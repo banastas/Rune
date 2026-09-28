@@ -1,0 +1,3 @@
+23:51:30.141 nib-spike xattr-check on Bill’s Mac mini, macOS Version 27.0 (Build 26A428)
+23:53:30.370   gave up waiting for xattr-0927-2340.md to arrive
+23:53:30.370 RESULT xattr-check: the file never arrived

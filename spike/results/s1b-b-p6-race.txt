@@ -1,0 +1,3 @@
+23:49:40.652 nib-spike race on Bill’s Mac mini, macOS Version 27.0 (Build 26A428)
+23:50:20.090   gave up waiting for race-0927-2340.md to arrive
+23:50:20.090 RESULT race second: the file never arrived

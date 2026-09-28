@@ -1,0 +1,11 @@
+S1b role b · Bill’s Mac mini · 27.0 · start 23:40
+RESULT reader p1-0927-2340.md: 0 arrivals · p50 — · p95 — · max —
+RESULT reader p2-0927-2340.md (fetch every 5 s): 0 arrivals · p50 — · p95 — · max —
+RESULT reader p3-0927-2340.md: 0 arrivals · p50 — · p95 — · max —
+RESULT reader p4-0927-2340.md (fetch every 5 s): 0 arrivals · p50 — · p95 — · max —
+RESULT watch-paused: the file never arrived
+RESULT race second: the file never arrived
+RESULT xattr-check: the file never arrived
+✔ Test run with 14 tests in 3 suites passed after 0.001 seconds.
+✔ Test run with 14 tests in 3 suites passed after 0.027 seconds.
+ALL CHECKS PASSED

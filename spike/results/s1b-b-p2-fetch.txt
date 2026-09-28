@@ -1,0 +1,2 @@
+23:42:10.198 nib-spike reader on Bill’s Mac mini, macOS Version 27.0 (Build 26A428)
+23:43:50.289 RESULT reader p2-0927-2340.md (fetch every 5 s): 0 arrivals · p50 — · p95 — · max —
