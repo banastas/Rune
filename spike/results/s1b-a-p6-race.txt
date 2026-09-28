@@ -1,0 +1,10 @@
+07:36:50.657 nib-spike race on Bill’s MacBook Air, macOS Version 27.0 (Build 26A428)
+07:36:50.671   +7 ms  ubiquitous status=current - not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+07:36:51.000   +336 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+07:36:53.367   +2703 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+07:37:28.009   race-0928-0735.md appeared after 7 ms: ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict · size 34 · blocks 8
+07:37:30.125   pauseSync: 119 ms · ok
+07:37:30.125 held true; base: "race base by Bill’s MacBook Air\n"
+07:37:36.668   uploadLocalVersion(failOnConflict): 1652 ms · ok
+07:38:00.147   resumeSync: 137 ms · ok
+07:38:30.010 RESULT race first: upload accepted · final file here: race base by Bill’s MacBook Air | line from Bill’s MacBook Air (first)
