@@ -1,0 +1,5 @@
+21:43:40.506 nib-spike metadata on Bill’s MacBook Air, macOS Version 27.0 (Build 26A428)
+21:43:46.524 scope UbiquitousDocuments: started=true gathered=true results=0
+21:43:52.527 scope UbiquitousData: started=true gathered=true results=0
+21:43:58.532 scope AccessibleUbiquitousExternalDocuments: started=true gathered=true results=0
+21:43:58.532 RESULT metadata: without an iCloud entitlement, see which scopes return anything

@@ -1,0 +1,19 @@
+21:41:46.887 nib-spike controls on Bill’s MacBook Air, macOS Version 27.0 (Build 26A428)
+21:41:46.894 wrote controls-200k-214146.md (204800 bytes)
+21:41:46.902   +8 ms  ubiquitous status=current - not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:41:47.220   +325 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:41:49.630   +2736 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:41:49.632 before: ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:41:50.171   pauseSync: 539 ms · ok
+21:41:50.177 after pause: ubiquitous status=current - UPLOADED SYNC-PAUSED controls=pauseSync+failUploadOnConflict upload-error=NSFileProviderInternalErrorDomain 27: Sync is paused, open the file to resume.
+21:41:50.188   inplace write: inode 5314149 → 5314149
+21:41:53.195 3 s after a write while paused: ubiquitous status=current - not-uploaded SYNC-PAUSED controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:41:55.388   uploadLocalVersion(failOnConflict): 2194 ms · ok
+21:41:55.395   uploaded: version saved 21:41:50.187 by ? at controls-200k-214146.md
+21:41:55.402 after upload: ubiquitous status=current - not-uploaded SYNC-PAUSED controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:41:55.413   fetchLatestRemoteVersion: 11 ms · ok
+21:41:55.420   latest: version saved 21:41:50.187 by ? at controls-200k-214146.md
+21:41:56.417   resumeSync: 996 ms · ok
+21:41:56.421 after resume: ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:41:56.426   +4 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:41:56.426 RESULT controls: see the pause, upload, fetch and resume lines above

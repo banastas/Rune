@@ -187,6 +187,20 @@ Also out, to keep scope honest:
 | **J3** | **Highlighting that matches.** An Old Hope, as today | `an-old-hope.tmTheme` | Numbers and constants in a purple that's hard to read (2.9:1); comments and keywords just under 4.5:1 | **An Old Hope · nib** built in (HL10), the same file installed in Sublime; any other `.tmTheme` or `.sublime-color-scheme` importable | ≥ 98% of characters colored as Sublime colors them (§9) |
 | **J4** | **scratch.md as a working clipboard** on every Mac | A file in iCloud Drive, saved by hand | Stale copies on the second Mac; `scratch 2.md` | Autosave, instant reload, merge, visible sync state, a global shortcut to summon it | 30 days on two Macs with zero lost edits and no unresolved duplicates (§9) |
 
+### Reference setup
+
+What nib is built and measured against, as Blit's README has a reference environment. Found on 2026-09-27.
+
+| | |
+|---|---|
+| This Mac | `Mac16,12`, Apple M4, macOS 27.0; Xcode 27.0 (27A266a), Swift 6.4. `xcode-select` points at the Command Line Tools, so builds set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, as Blit's README describes |
+| Other Macs | All on macOS 27 and Apple silicon (confirmed) |
+| Sublime Text | Build 4200. `color_scheme` is `Packages/User/an-old-hope.tmTheme`, identical to the file shared for this PRD, so there are no local overrides |
+| **The scratch file** | **`iCloud Drive/_scratch2.md`**: 197 KB, 3,924 lines, in daily use (decided: nib opens it where it is) |
+| Earlier scratch files, same folder | `_scratch.md` 2.4 MB and 50,826 lines, last edited 2026-09-24; `_scratch-archive-through-2026-07-20.md` 2.4 MB, 50,284 lines; `_scratch-current.md` 123 bytes |
+
+What that means for the design: scratch files grow to about **2.4 MB and 50,000 lines** before they're archived by hand. That is the size the performance targets, the journal and the merge are built for (§4.3, §6.5), and `_scratch.md` (or a synthetic file of the same size) is the stress test. nib never reads the contents of these files for testing; spikes use generated text of the same shape.
+
 ---
 
 ## 3. Functional requirements
@@ -195,7 +209,7 @@ Also out, to keep scope honest:
 
 ### Scratch (SC)
 
-- **SC1 · P0** One scratch file, chosen once. First run finds or creates it: pick an existing `scratch.md`, or create `iCloud Drive/nib/scratch.md` (location: open question 1). It has its own window, which ⌘W hides rather than closes; nib keeps running.
+- **SC1 · P0** One scratch file, opened where it is: **`iCloud Drive/_scratch2.md`** (decided 2026-09-27). On each Mac, first run finds it at that path; Settings can point to another file (for example when the current one is archived and a new one started). Without an existing file, first run offers to create `iCloud Drive/scratch.md`. The scratch window has its own window, which ⌘W hides rather than closes; nib keeps running.
 - **SC2 · P0** A global shortcut, **Show Scratch** (proposed default ⌥Space, configurable; ⌃Space and ⌃⌥Space are macOS's input-source switches, and first run warns if another app such as Raycast or Alfred already holds the chosen keys), brings the scratch window forward from any app with the caret where it was, in under 50 ms. Pressed again while the scratch window is frontmost, it hides nib and returns to the previous app.
 - **SC3 · P0** Caret, selection and scroll position are restored per Mac. They're local, not synced (open question 18).
 - **SC4 · P1** Markdown highlighting, with fenced code blocks highlighted in their own language (bash, js, json, html, css).
@@ -317,7 +331,7 @@ nib makes three promises, in order of strength:
 
 1. **Durability.** Every edit is on this Mac's disk, in the recovery journal, within 300 ms, and in the file itself within 1 s of a pause. A crash, a force quit or a kernel panic loses at most the last 300 ms. Only a full disk can leave text in memory alone, and then nib says so loudly (§4.9).
 2. **No silent loss.** No text that any Mac wrote is ever dropped without the user seeing it. Every divergence is merged or shown. Every saved version stays in local History for 30 days.
-3. **Honest freshness.** nib shows how current its copy is, as far as iCloud will say. It **cannot promise** that the copy on screen is the newest one anywhere: iCloud has no "is the other Mac ahead of me?" API, and a Mac that sleeps before uploading can't tell anyone anything. Promises 1 and 2 are what make this safe: typing on a stale copy produces a merge, not a loss. Shrinking the stale window is V2's job (§4.10).
+3. **Honest freshness.** nib shows how current its copy is, and since macOS 26 it can also ask: it fetches the newest version from iCloud whenever it becomes active, so the Mac you switch to checks before you type (§4.4), and it uploads its own edits within seconds instead of waiting for iCloud's schedule (§4.3). What it still **cannot promise**: a Mac that hasn't uploaded yet (asleep, offline, or its lid closed during the 2-3 s upload) can't tell anyone anything. Promises 1 and 2 are what make that safe: typing on a stale copy produces a merge, not a loss. Shrinking what's left of the stale window is V2's job (§4.10).
 
 ### 4.2 Where the file lives
 
@@ -326,7 +340,7 @@ Two options, settled by the M0 spike (S1):
 - **(a) A plain folder in iCloud Drive** (`~/Library/Mobile Documents/com~apple~CloudDocs/nib/scratch.md`), or wherever the user's scratch.md already is. No entitlements; every tool sees it. nib isn't sandboxed (T6), so it can read and write any path. The first access may bring up a macOS privacy prompt for files managed by iCloud Drive; first run explains it beforehand (AP5).
 - **(b) nib's own iCloud container** (`iCloud.com.banastas.nib`), which shows up in Finder as an "nib" folder in iCloud Drive with the app's icon, and lives on disk at `~/Library/Mobile Documents/iCloud~com~banastas~nib/Documents/`. It needs the iCloud Documents entitlement and a Developer ID provisioning profile (new for the family; Blit has no iCloud entitlements). What it buys: `NSMetadataQuery` pushes live upload and download state, including percent uploaded, and there's no privacy prompt.
 
-**Recommendation:** start with (a), since it's what the user described and works with any existing path. Nothing in this spec depends on (b): the source of truth for sync state is the file's URL resource values, which work for any iCloud Drive file. `NSMetadataQuery` is an accelerator used wherever it works; S1 finds out whether it covers files outside nib's container.
+**Decided (2026-09-27): (a).** The scratch file is `iCloud Drive/_scratch2.md`, where it already is. M0 showed (b) isn't needed: FileManager's sync controls work on a plain iCloud Drive file with no entitlement (from an app bundle), and `NSFilePresenter` pushes upload and download state, which covers what `NSMetadataQuery` would have given. Without the entitlement `NSMetadataQuery` finds nothing in any scope, so nib doesn't use it ([M0 results](#m0-results)).
 
 ### 4.3 Save pipeline
 
@@ -334,29 +348,37 @@ Two options, settled by the M0 spike (S1):
 keystroke ─▶ buffer (main thread)
    │ 250 ms after the last keystroke
    ▼
-journal snapshot ─▶ temp file ─▶ fsync ─▶ rename     (~/Library/Application Support/nib/Journal/)
+journal ─▶ fsync                         (~/Library/Application Support/nib/Journal/)
    │ 1 s after the last keystroke, 5 s at most while typing, or at once on a trigger
    ▼
-coordinated compare-and-swap write ─▶ iCloud Drive file ─▶ Sync Log ─▶ watch the upload
+coordinated compare-and-swap write, in place ─▶ the file (iCloud sync paused while nib holds it)
+   │ at most every 3 s while typing, and at once on a trigger
+   ▼
+upload now, failing on conflict ─▶ ✓ SYNCED (the version iCloud returns)
+                                └▶ server has newer: fetch it, merge, save, upload again
 ```
 
-1. **Journal (SY1).** Off the main thread: write the whole buffer, the base version's SHA-256, the file's identity, its encoding and its line endings to a temp file in the journal folder, fsync it, then rename it over the previous snapshot. Whole snapshots are simple and cheap at scratch sizes; an edit log is a P2 option for files over 1 MB. The journal is local and never synced.
+**nib holds the file while it's open.** macOS 26 added sync controls to `FileManager`, and M0 confirmed iCloud Drive offers both of them (`pauseSync`, `failUploadOnConflict`) for a plain file like `_scratch2.md`. When nib opens a file in iCloud Drive, it pauses iCloud's own syncing of that file (`pauseSyncForUbiquitousItem`, retried with a short backoff if iCloud is busy with it) and decides itself when to upload (step 7) and when to fetch (§4.4). iCloud can't swap the file under nib, and nib's own edits never become iCloud conflict copies: the server refuses an upload made from an old version, and nib merges before it retries. On close and on quit, nib resumes syncing (`resumeSyncForUbiquitousItem`). A pause outlives the app (a crash leaves the file paused), so nib keeps a list of the files it paused and settles it at every launch (§4.9). A pause belongs to the app's bundle ID (M1: a rebuild of nib can resume it; another app can't), and pausing a file that's already paused answers "not supported" instead of succeeding, so a file left paused is resumed first and then paused fresh. If a file can't be paused (it isn't in iCloud, the controls aren't offered, or pausing keeps failing), nib runs the same pipeline without step 7 and lets iCloud upload on its own schedule.
+
+1. **Journal (SY1).** Off the main thread: write the whole buffer, the base version's SHA-256, the file's identity, its encoding and its line endings to a temp file in the journal folder, fsync it, then rename it over the previous snapshot. Whole snapshots are simple and cheap up to 1 MB (`_scratch2.md` is 197 KB today). Scratch files have reached 2.4 MB, where a snapshot every 250 ms would mean writing about 10 MB/s while typing, so files over 1 MB journal an **edit log** instead: each edit appended and fsynced, with a full snapshot at most once a minute (P1, before the scratch file crosses 1 MB). The journal is local and never synced.
 2. **Debounce (SY2).** The file is written 1 s after typing pauses, and at least every 5 s during continuous typing, so a long burst can't stay unwritten.
 3. **Triggers that save at once:** the window stops being key; nib stops being the active app; ⌘S; closing the window or tab; quitting (`applicationShouldTerminate` waits for the write, as Blit's quit waits for its queue); the Mac going to sleep (`NSWorkspace.willSleepNotification`); the screens sleeping; the screen locking; fast user switching (`sessionDidResignActive`); before a merge; before Open With… hands the file to another app. Not during IME composition: a save waits until marked text is committed.
-4. **Compare-and-swap (SY3, L4).** Inside one `NSFileCoordinator` block that coordinates reading and writing the same URL (`.forReplacing`), nib checks the file's fingerprint on disk (size, modification date, file ID, and SHA-256 when any of those changed) against the **base**: the version the buffer was loaded from or last saved as. If they differ, the write is abandoned and the new version goes through the merge (§4.7) first, then the save retries. This closes the race where a debounce fires before the change notification arrives.
-5. **Write.** Encode with the original encoding, BOM and line endings; write a temp file in the same folder; fsync it; copy POSIX permissions and extended attributes; set the lineage attribute (§4.6); replace the original in place, keeping its identity. The base becomes the new version.
+4. **Compare-and-swap (SY3, L4).** Inside one `NSFileCoordinator` block that coordinates reading and writing the same URL, nib checks the file's fingerprint on disk (size, modification date, file ID, and SHA-256 when any of those changed) against the **base**: the version the buffer was loaded from or last saved as. If they differ, the write is abandoned and the new version goes through the merge (§4.7) first, then the save retries. This closes the race where a debounce fires before the change notification arrives.
+5. **Write, in place.** Encode with the original encoding, BOM and line endings, then truncate, write and fsync the same file. Not a temp file renamed over it: M0 showed that a rename, or `replaceItemAt`, makes a new file, which drops the pause and reaches file presenters as a deletion. A write torn by a crash or power loss is repaired from the journal at the next launch, which is what the journal is for; the pause keeps a torn file from uploading meanwhile. Permissions and extended attributes stay because the file does. Set the lineage attribute (§4.6). The base becomes the new version.
 6. **Never write a clean buffer (SY4).** If the buffer's SHA-256 equals the base's, nothing is written. A Mac nobody typed on never writes, so background copies of nib can't create phantom versions or conflicts. No reformatting on load, no trailing-newline fixes unless the user edited the file.
-7. **After the write:** a Sync Log line (time, size, SHA-256, device), and upload tracking starts (§4.5).
+7. **Upload now.** `uploadLocalVersionOfUbiquitousItem(at:withConflictResolutionPolicy: .failOnConflict)`, with one upload in flight at a time: at most every 3 s while typing continues, and at once on every trigger in step 3. M0 measured 2.2-3.0 s per upload for both 200 KB and 2.4 MB, all successful during continuous typing, so the server stays within about 5 s of the keyboard. (Without the pause, iCloud restarted its upload at every save and finished nothing until 6 s after typing stopped.) The version the call returns is what ✓ SYNCED means (§4.5). If the server has a newer version, the call fails with `localVersionConflictingWithServer`: nib fetches the latest version (§4.4), merges (§4.7), saves and uploads again.
+8. **Log it:** a Sync Log line for each save and each upload (time, size, SHA-256, device, and for uploads how long it took).
 
 ### 4.4 Load and reload pipeline
 
 - **Open.** Off the main thread (SY8): read the resource values first. If the file isn't downloaded, start the download (`startDownloadingUbiquitousItem`) and show ◐ NOT ON THIS MAC; the buffer opens when it arrives, or from the local shadow copy if offline (§4.8 F). Then a coordinated read, encoding detection, base = what was read, and the file is registered as an `NSFilePresenter`. An FSEvents stream on the parent folder catches writers that don't coordinate (vim, shell redirection, some sync tools) and new sibling files (duplicates, §4.6).
-- **Signals that trigger a check:** presenter callbacks (`presentedItemDidChange`, `…DidGainVersion`, `…DidMove`, `accommodatePresentedItemDeletion`), FSEvents on the folder, resource-value changes, nib becoming active, the Mac waking, and the network coming back. Checks are coalesced for 50 ms. **Every activation re-checks** regardless of notifications, because notifications can arrive late while nib is in the background or App Napped.
+- **Signals that trigger a check:** presenter callbacks (`presentedItemDidChange`, `…DidGainVersion`, `…DidMove`, `accommodatePresentedItemDeletion`, and `presentedItemDidChangeUbiquityAttributes` for upload and download state), FSEvents on the folder, nib becoming active, the Mac waking, and the network coming back. Checks are coalesced for 50 ms. **Every activation re-checks** regardless of notifications, because notifications can arrive late while nib is in the background or App Napped.
+- **Fetch, because a held file doesn't download by itself.** While nib holds a file (§4.3), iCloud doesn't bring newer versions down on its own, so nib asks with `fetchLatestRemoteVersionOfItem`: when nib becomes active, when a window with the file becomes key, on wake, when the network returns, and every 30 s while nib is frontmost. M0: 3-11 ms when nothing is newer. A newer version arrives at a side location while the file is paused; nib reads it there, merges if there are local edits, and applies it with `NSFileVersion.replaceItem(at:)`. Whether the presenter also hears about a newer server version while paused (a push, not a fetch) is S1b's question for two Macs.
 - **Check.** Coordinated fingerprint read. Same as base: nothing. Different: read the new text, then:
   - **no local edits since base** → replace the buffer (SY5). The caret, selection and scroll are mapped through a line diff so text doesn't jump; the change is one undo step ("Changes from Studio"); the strip shows "▼ UPDATED FROM STUDIO · 10:42:31" for 10 s;
   - **local edits** → merge (§4.7).
 - **Never apply under the caret mid-thought.** A reload or merge waits while marked text (IME) is open, and until 300 ms after the last keystroke, up to 2 s at most.
-- **Target:** new version on disk to new text on screen in under 200 ms.
+- **Target:** new version on disk to new text on screen in under 200 ms. Writers on the same Mac that don't coordinate (`echo >> file`) reach the presenter about 1 s later (M0); FSEvents on the folder is there to be faster than that.
 
 ### 4.5 Sync state and the indicator
 
@@ -365,9 +387,9 @@ States for a file in iCloud Drive, as the strip shows them (W5, V4):
 | State | Strip (glyph · words) | Means | Evidence |
 |---|---|---|---|
 | Editing | `· EDITING` (dim) | Typed in the last second; in the journal, not yet in the file | nib's own state |
-| **Saved locally** | `= SAVED LOCALLY · 10:42:05` | In the file on this Mac; iCloud hasn't taken it yet | disk SHA-256 = buffer; not uploading, not uploaded |
-| **Uploading** | `▲ UPLOADING · 10:42:05` (percent when known) | iCloud is sending this version | `ubiquitousItemIsUploading` |
-| **Synced** | `✓ SYNCED · 10:42:07` | iCloud reports this exact version uploaded | `ubiquitousItemIsUploaded`, and disk SHA-256 = what nib wrote (L5) |
+| **Saved locally** | `= SAVED LOCALLY · 10:42:05` | In the file on this Mac; iCloud hasn't taken it yet | disk SHA-256 = buffer, and no upload has returned this version yet |
+| **Uploading** | `▲ UPLOADING · 10:42:05` (percent when known) | iCloud is sending this version | an upload call in flight (held file); `ubiquitousItemIsUploading` otherwise |
+| **Synced** | `✓ SYNCED · 10:42:07` | iCloud has this exact version | the upload call returned it (held file); otherwise `ubiquitousItemIsUploaded` and disk SHA-256 = what nib wrote (L5) |
 | Delivered (P1) | `✓ SYNCED · ON STUDIO 10:42:31` | The other Mac's nib has loaded this version | a receipt with the same SHA-256 (below) |
 | Newer elsewhere (P1) | `▼ NEWER ON AIR (10:42) · NOT HERE YET` | Another Mac saved a version this Mac hasn't received | a receipt with a SHA-256 this Mac hasn't seen |
 | Downloading | `▼ NEWER VERSION ARRIVING` | iCloud is fetching a newer version | `ubiquitousItemIsDownloading`, or status not current |
@@ -381,18 +403,20 @@ States for a file in iCloud Drive, as the strip shows them (W5, V4):
 Rules:
 
 - **Say what it's waiting for (W4).** If a file sits in Saved locally for more than 60 s with a network available: `= SAVED LOCALLY · ICLOUD HASN'T STARTED UPLOADING (2 MIN)`. Waiting is dim, never red (L6).
-- **Polling only while needed (A11).** While a version is saved but not yet synced, nib re-reads the resource values every second for 30 s, then every 5 s, clearing the URL's cached values each time. Once synced, polling stops.
+- **Pushed, not polled (A11).** State comes from two places, neither of them a timer: the result of each upload call (step 7 of §4.3), and the presenter's `presentedItemDidChangeUbiquityAttributes`, which M0 showed fires as uploading and uploaded change. While a file is paused, its `ubiquitousItemIsUploaded` flag stays false even after a successful upload, so for a held file only the upload's returned version counts.
+- **iCloud's error fields are noisy; nib doesn't repeat them.** In M0, every ordinary upload briefly reported `NSCocoaErrorDomain 4355` ("the iCloud servers might be unreachable") while succeeding, and a paused file always reports "Sync is paused, open the file to resume." Neither is shown. A problem is a failed upload call, or, for a file nib doesn't hold, an upload error that lasts more than 30 s without progress (L6).
 - **Tooltips carry the precise meaning.** For Synced: "iCloud reports this version (SHA-256 9f3a1c…) is uploaded, 10:42:07. Other Macs get it when iCloud delivers it."
 - **Delivery receipts (SY14).** Each Mac's nib publishes a small record: device name, and for each synced file (keyed by its path inside iCloud Drive), the SHA-256 and time of the version it has loaded. It's published only when that changes, at most every 5 s. It travels by iCloud key-value storage if the entitlement works for a Developer ID build (S1), otherwise as `.nib/devices/<device>.json` in the same folder. Receipts travel through iCloud too, so they're as late as iCloud is, and this is stated in the tooltip. They're still useful: before closing the laptop, "ON STUDIO" says the desk Mac already has the text.
 - **Device names** come from the Mac's computer name ("Studio", "Air") and can be changed in Settings. Clocks can disagree between Macs, so versions are never ordered by modification date alone (§4.7); displayed times are each device's own.
 
 ### 4.6 Conflict detection
 
-A conflict is any version this Mac didn't write and hasn't merged. nib looks in six places:
+A conflict is any version this Mac didn't write and hasn't merged. nib looks in seven places:
 
+0. **At upload (the main one):** the server refuses the upload because it has a newer version (`localVersionConflictingWithServer`, §4.3 step 7). For files nib holds, this is where almost every conflict is found, before iCloud has made a conflict copy of anything.
 1. **At save:** compare-and-swap finds the disk ahead of the base (§4.3, step 4).
 2. **At reload:** a new version arrives while there are local edits (§4.4).
-3. **iCloud conflict versions:** `ubiquitousItemHasUnresolvedConflicts`, then `NSFileVersion.unresolvedConflictVersionsOfItem(at:)`, each with `localizedNameOfSavingComputer` and a date.
+3. **iCloud conflict versions** (from edits made while nib wasn't holding the file): `ubiquitousItemHasUnresolvedConflicts`, then `NSFileVersion.unresolvedConflictVersionsOfItem(at:)`, each with `localizedNameOfSavingComputer` and a date.
 4. **Duplicate files:** a new sibling named `<name> <n>.<ext>` (n ≥ 2, e.g. `scratch 2.md`) that appears after the original, as iCloud Drive creates in some races, such as two Macs creating the same file on first run. Also, defensively, old-style `.scratch.md.icloud` placeholders (pre-File-Provider iCloud Drive; not expected on macOS 27).
 5. **Crash recovery:** at launch, a journal snapshot newer than the file's last save.
 6. **Receipts:** another Mac reports a SHA-256 for this file that this Mac has never seen (informational until the version itself arrives).
@@ -446,7 +470,7 @@ Seven-character markers are what git and most tools recognize. nib renders them 
 | 4 | Both Macs changed the same line | Word-level retry; otherwise conflict markers and a conflict block (B) | 2 |
 | 5 | Another app on this Mac writes the file (Sublime, vim, `echo >> scratch.md`) | FSEvents or the presenter → reload or merge, as for another Mac | 2 |
 | 6 | The debounce fires just as a new version lands | Compare-and-swap aborts the write and merges first | 2 (L4) |
-| 7 | Evicted by Optimize Mac Storage | Never read on the main thread; download started; ◐ shown; F if offline. First run suggests Finder's "Keep Downloaded" for the nib folder; S1 checks whether macOS 27 has an API to keep one file downloaded | 1, 3 |
+| 7 | Evicted by Optimize Mac Storage | Never read on the main thread: in M0 a coordinated read of an evicted 200 KB file blocked 1.1 s while it downloaded (an explicit download took 0.45 s). Download started; ◐ shown; F if offline. First run suggests Finder's "Keep Downloaded" for the folder; the SDK has no API to keep one file downloaded (M0 checked) | 1, 3 |
 | 8 | Deleted or moved to the Trash elsewhere | E | 2 |
 | 9 | Renamed or moved elsewhere | The presenter follows the move; the title updates; the scratch binding follows too | 2 |
 | 10 | The nib folder is deleted or renamed | As 8 or 9, for the folder | 2 |
@@ -454,6 +478,10 @@ Seven-character markers are what git and most tools recognize. nib renders them 
 | 12 | iCloud storage full, or another upload error | Red `✕ ICLOUD STORAGE IS FULL · SAVED LOCALLY ONLY`; keeps saving locally; retries when the error clears | 1 |
 | 13 | This Mac's disk is full | The journal and the save both fail. The one case where text lives only in memory: red strip `✕ DISK FULL · YOUR LATEST CHANGES ARE ONLY IN MEMORY · FREE SPACE OR COPY THEM`, a notification, a retry every 15 s, and **Empty Trash** offered when the Trash holds enough to help (borrowed from Blit's WAITING FOR SPACE, R5.8 and R5.9) | 1 degrades, loudly |
 | 14 | nib crashes, is force-quit, or the Mac panics | G at next launch; at most 300 ms lost | 1 |
+| 14a | …and leaves a file paused | At launch, nib resumes every file on its paused list that it won't open (`preserveLocalChanges` in M1; `afterUploadWithFailOnConflict` with the merge flow in M2). The file it will open is resumed (fail-on-conflict first), uploaded if iCloud may lack its last save, and paused fresh. A pause never outlives nib's next launch (M1: tested with `kill -9`) | 2 |
+| 14b | nib isn't running on a Mac where a file is still paused (quit during a crash loop, or removed) | That Mac neither uploads nor downloads the file until it's resumed. `nib --resume-sync` resumes everything nib paused; removing nib means quitting it first, which resumes. Stated in the README | 2 |
+| 14c | `pauseSync` answers "resource busy" (iCloud is still applying a change) | Retry after 0.5, 1, 2… s (M0 hit it right after an upload); meanwhile the file runs unheld | n/a |
+| 14d | Another app on the same Mac reads the file while nib holds it | It sees what nib last saved; newer versions from other Macs arrive only when nib fetches (§4.4) | 3 |
 | 15 | Two nib windows on the same file | One buffer per file (ED2) | n/a |
 | 16 | Clocks differ between Macs | Order by lineage and hashes, never by modification date alone; each side labeled with its own device's time | 2 |
 | 17 | Line endings or encoding differ between versions | Compared after normalizing; written back in the file's original form | 1 |
@@ -463,17 +491,17 @@ Seven-character markers are what git and most tools recognize. nib renders them 
 | 21 | Older nib on the other Mac | Receipts and lineage carry a format version; unknown versions are ignored, not misread | 2 |
 | 22 | Low Power Mode or a constrained network slows iCloud | Waiting states say why (W4) | 3 |
 | 23 | Secrets in scratch.md (API tokens in terminal commands) | History and the journal are local only, never synced. The file itself is in iCloud Drive, which is end-to-end encrypted only with Advanced Data Protection; Settings says so in one sentence | privacy |
-| 24 | A huge paste into scratch (MBs) | Snapshots cost a few ms; files over 1 MB can switch to an edit-log journal (P2) | 1 |
+| 24 | A scratch file past 1 MB, or a huge paste | Edit-log journal above 1 MB (§4.3), so typing writes bytes, not megabytes | 1 |
 
 ### 4.10 Is iCloud Drive enough? A V2 recommendation
 
 **What iCloud Drive gives:** durable storage with no account, server or cost beyond the user's plan; a real file that Finder, Terminal, other editors and the iPhone's Files app all see; optional end-to-end encryption.
 
-**What it can't give:** a bound on delivery time. Apple publishes no latency figure, and there's no "upload now" or "check the server now" call. Typical delays run from seconds to minutes, and a Mac that sleeps before uploading holds its changes until it wakes. There's no ordering and no "the other Mac is ahead" signal, and conflicts are resolved per file, coarsely. V1's merge engine makes all of this safe (guarantee 2). V2 can only make it faster (guarantee 3).
+**What it can't give:** a bound on delivery time. Apple publishes no latency figure, and a Mac that sleeps before its upload finishes holds its changes until it wakes. On its own schedule iCloud is slow for this job (M0: saves every second were never uploaded until typing stopped). macOS 26's sync controls fix most of that: nib uploads within about 5 s of typing and fetches the latest version when you switch to a Mac (§4.3, §4.4). What remains is the gap between the last keystroke and the end of its upload (about 2.5 s), plus whatever S1b measures on the receiving side. V1's merge engine makes all of it safe (guarantee 2). V2 can only make it faster (guarantee 3).
 
 | Option | Latency | Covers "switched Macs within seconds"? | Covers "lid closed before upload"? | Cost and fit |
 |---|---|---|---|---|
-| **1. iCloud Drive alone** (V1) | iCloud's: seconds to minutes | Sometimes | No | None. Fits the family (no servers) |
+| **1. iCloud Drive alone** (V1), with sync controls | Upload 2-3 s after a save; the receiving Mac fetches on activation (S1b measures the total) | Mostly | No, if the lid closes within the 2-3 s upload | None. Fits the family (no servers) |
 | **2. LAN peer-to-peer express lane** (Network.framework, Bonjour, TLS with keys exchanged through iCloud Keychain or key-value storage) | Under 100 ms, both Macs awake on the same network | Yes, when on the same network | Yes: the edit leaves within one debounce, before the lid closes | Moderate. Needs local-network permission, which Blit already asks for (`NSLocalNetworkUsageDescription`). Useless when the Macs are apart |
 | **3. CloudKit express lane** (each save as a record in the private database, pushed to the other Mac) | Usually seconds; pushes can be coalesced or throttled | Mostly | Partly: it still has to leave before sleep | Moderate. Adds a CloudKit container and schema; still Apple's infrastructure, with no guarantee |
 | **4. Handoff** (`NSUserActivity` with continuation streams: the other Mac pulls the text directly) | About a second, on demand | Yes, if the user clicks the Handoff icon | Only if the first Mac is awake | Small. Explicit UX; historically unreliable. Good as a P2 extra, not as the mechanism |
@@ -483,7 +511,7 @@ Seven-character markers are what git and most tools recognize. nib renders them 
 **Recommendation:**
 
 - **Ship V1 on iCloud Drive alone**, instrumented: the Sync Log records how long each version took to arrive (from lineage times and receipts), so the need for V2 is measured rather than guessed (T3).
-- **Build a V2 express lane only if the numbers call for it:** if, over two weeks of real use, the 95th percentile from save on one Mac to load on the other exceeds the time it actually takes to switch Macs (open question 3), or if any stale-copy merge shows up at all in the log.
+- **Build a V2 express lane only if the numbers call for it.** The sync controls make this less likely than it looked before M0. Build it only if, over two weeks of real use, the 95th percentile from save on one Mac to load on the other exceeds the time it actually takes to switch Macs (open question 3), or if any stale-copy merge shows up at all in the log.
 - **If the Macs are usually on the same network, choose option 2 (LAN peer).** It's the only option that also covers the lid-closed-before-upload case, and it answers exactly the failure described: sequential switching between Macs that sit near each other. **If they're usually apart** (home and office), choose option 3 (CloudKit). Open question 2 decides.
 - **Either way, the express lane only delivers versions early.** iCloud Drive stays the file of record, and an early version enters the same merge pipeline as any other remote version, so no new conflict rules. Lineage (§4.6) lets a later iCloud copy of the same version be recognized as already applied.
 - **Skip options 5 and 6.** Handoff (4) is a P2 nicety on top of whichever lane is chosen.
@@ -727,7 +755,7 @@ The voice (W1-W7), applied to nib's common moments.
 | Language and UI | Swift 6 with strict concurrency; SwiftUI app lifecycle, AppKit for the text view and window-level behavior |
 | Appearance | Dark only, always (`NSApp.appearance = .darkAqua`, A17) |
 | Distribution | Developer ID signed, Hardened Runtime, notarized and stapled; not sandboxed |
-| Bundle ID | `com.banastas.nib` (Blit is `com.banastas.Blit`; casing is open question 14) |
+| Name and bundle ID | `nib`, lowercase everywhere; `com.banastas.nib` (decided 2026-09-27; Blit is `com.banastas.Blit`) |
 | Category | Developer tools (`public.app-category.developer-tools`) |
 | Build | Xcode 27; hand-written project with a folder-synced group; `NibKit` as a local package (T2) |
 
@@ -765,7 +793,7 @@ The voice (W1-W7), applied to nib's common moments.
 
 ### 6.3 Key decisions
 
-**Text view: `NSTextView`, wrapped for SwiftUI.** SwiftUI's `TextEditor` offers no control over highlighting attributes, carets or performance. A custom renderer (the Zed approach) would mean rebuilding input methods, accessibility and bidirectional text for none of the four jobs. Open decision: **TextKit 1 or TextKit 2.** TextKit 2 is the modern path, but estimated heights in large documents have made scroll positions and scroll bars jump in other editors; TextKit 1 is mature and fast with non-contiguous layout. The M0 spike (S2) decides by measurement. Highlighting uses rendering-only attributes (temporary attributes in TextKit 1, rendering attributes in TextKit 2), so it never touches the text storage, undo or layout.
+**Text view: `NSTextView`, wrapped for SwiftUI.** SwiftUI's `TextEditor` offers no control over highlighting attributes, carets or performance. A custom renderer (the Zed approach) would mean rebuilding input methods, accessibility and bidirectional text for none of the four jobs. **TextKit 2, decided by S2 (2026-09-27).** At 2.4 MB its main-thread cost per keystroke was a tenth to a half of TextKit 1's (p99 2 ms without highlighting and ≤ 10 ms with a stand-in highlighter, against 20-21 ms and 17-19 ms), and it used 16 MB less memory after opening, 100 MB less with the whole document highlighted ([M0 results](#m0-results)). The price is the one other editors report: TextKit 2 estimates the height of text it hasn't laid out, so the scroll bar's size and position shift as you move through a large file (the estimate varied by 175,000 pt at 2.4 MB). Laying out the whole document doesn't fix it in TextKit 2 (it made the estimate vary more and mid-document keystrokes 41 ms), so nib doesn't. Rules that follow: nothing ever touches `layoutManager` on a TextKit 2 view (that silently switches it to TextKit 1; debug builds assert the engine), and the editor module keeps TextKit behind one type, so falling back to TextKit 1 stays a contained change if the scroll bar proves unacceptable in use. Highlighting uses rendering attributes, which never touch the text storage, undo or layout.
 
 **Highlighting: tree-sitter, with a capture-to-scope map.** Two ways to reach J3:
 
@@ -776,11 +804,13 @@ The voice (W1-W7), applied to nib's common moments.
 | Stack | SwiftPM C targets; stays Swift + SPM (T7) | A Rust toolchain and an xcframework in a Swift-only family |
 | Theme side | nib's own parser either way: syntect reads `.tmTheme` but not `.sublime-color-scheme` | same |
 
+**Highlight the viewport, parse the document.** S2 showed that applying rendering attributes to a whole 2.4 MB document costs 308 ms and a lot of memory, while re-highlighting a window of ±3,000 characters around each edit stays within a few milliseconds. So the parser (below) runs over the whole document off the main thread, but attributes are applied only to what's visible plus a margin, and again as the view scrolls.
+
 **Recommendation: tree-sitter.** The grammars for all six languages exist (HTML, CSS, JavaScript, JSON, Markdown block and inline, Bash) under permissive licenses, and injections cover `<script>`, `<style>` and code fences. The scope map is written against Sublime's actual scopes for these languages, including the `text source` context An Old Hope's "Embedded Source" rule relies on. **Fallback:** syntect behind the same highlighter protocol, only if the fidelity harness (S3) can't reach 98%. That would be the one "strong reason" to leave the pure Swift stack, and would be recorded here with the numbers.
 
-**Documents: own layer over `NSFilePresenter` and `NSFileCoordinator`, not `NSDocument` or `DocumentGroup`.** `NSDocument` gives autosave and iCloud handling, but its autosave timing and its conflict window (pick a version, no merge) are opaque. nib needs a 1 s debounce, compare-and-swap saves, a journal and a merge flow, so it owns the pipeline and uses the same coordination primitives underneath. The cost: reimplementing careful coordination. S1 tests it against real iCloud behavior before anything depends on it.
+**Documents: own layer over `NSFilePresenter`, `NSFileCoordinator` and FileManager's sync controls, not `NSDocument` or `DocumentGroup`.** `NSDocument` gives autosave and iCloud handling, but its autosave timing and its conflict window (pick a version, no merge) are opaque, and it saves by replacing the file, which M0 showed drops a sync pause. nib needs a 1 s debounce, in-place compare-and-swap saves, a journal, uploads it times itself and a merge flow, so it owns the pipeline: pause, save in place, upload with fail-on-conflict, fetch, resume (§4.3, §4.4). The sync controls need an app identity (a bare command-line binary gets "feature not supported"), so the `nib` CLI never writes synced files itself; it asks the running app.
 
-**App lifecycle: SwiftUI `App`, as Blit** (`Window` for scratch, `WindowGroup(for:)` for files, `MenuBarExtra`, `Settings`, `Window` for About and History), with the `NSApplicationDelegate` adaptor for opening files, termination, sleep and Services. Escape hatch: if S2 measures SwiftUI's lifecycle adding more than 100 ms to a cold launch compared with a plain AppKit shell, nib switches to an AppKit lifecycle hosting the same SwiftUI views, and records why here.
+**App lifecycle: SwiftUI `App`, as Blit** (`Window` for scratch, `WindowGroup(for:)` for files, `MenuBarExtra`, `Settings`, `Window` for About and History), with the `NSApplicationDelegate` adaptor for opening files, termination, sleep and Services. S2 measured the cost: first window at a median 201 ms after process start with SwiftUI, 139 ms with plain AppKit, and 25.3 against 22.4 MB idle. About 60 ms and 3 MB, under the 100 ms bar set here, so the SwiftUI lifecycle stays. (The launch that matters is the Show Scratch shortcut into a running app, which S2 didn't measure; M1 does.)
 
 **Global hotkeys: Carbon `RegisterEventHotKey`,** which needs no Accessibility permission, wrapped in about 100 lines in the shared package rather than adding a dependency (T7). **Launch at login:** `SMAppService.mainApp`.
 
@@ -803,7 +833,8 @@ The voice (W1-W7), applied to nib's common moments.
 | Built-in scheme | An Old Hope · nib, in the app bundle (from `themes/`) | no |
 | Imported themes | `…/nib/Themes/` (converted to one internal format) | no |
 | Receipts | iCloud key-value storage, or `.nib/devices/` beside the file | yes |
-| Lineage | extended attribute on the file (if S1 confirms it syncs) | yes |
+| Paused files | `…/nib/paused.json`: every file nib has paused, settled at each launch (§4.9, 14a) | no |
+| Lineage | extended attribute on the file (if S1b confirms it syncs; M0 showed it survives eviction on one Mac, which doesn't prove it reaches another) | yes |
 | Preferences, caret and scroll per file | `UserDefaults` | no |
 
 ### 6.5 Performance targets
@@ -813,15 +844,16 @@ Baselined against Sublime Text on the same Mac in M0, in the manner of Blit's pe
 | Measure | Target | Notes |
 |---|---|---|
 | Show Scratch shortcut to caret ready (app running) | ≤ 50 ms, p95 | The launch that matters: nib is always running |
-| Cold launch to editable scratch window | ≤ 300 ms, p95 | Measured after a reboot; Sublime baseline in M0 |
-| Keystroke to glyph on screen | ≤ 1 frame (8.3 ms at 120 Hz), p99 ≤ 16 ms | Measured with Typometer, Sublime alongside |
-| Idle memory, scratch window open | ≤ 40 MB physical footprint | `footprint`/Activity Monitor. No Swift app idles at zero; the target is close to an empty AppKit app |
+| Cold launch to editable scratch window | ≤ 300 ms, p95 | S2: 167-217 ms with SwiftUI and a 197 KB file once cached; 478 ms on the first launch after a build. Sublime baseline still to take |
+| Keystroke to glyph on screen | ≤ 1 frame (8.3 ms at 120 Hz), p99 ≤ 16 ms | S2 measured nib's main-thread share only: p99 2 ms at 2.4 MB without highlighting, ≤ 10 ms with the stand-in highlighter. Glass-to-glass still needs Typometer, Sublime alongside |
+| Idle memory, scratch window open | ≤ 40 MB physical footprint | S2: 25.3 MB idle with SwiftUI and a 197 KB file. **Watch:** after 400 synthetic edits in two places of a 2.4 MB file, TextKit 2 had grown to 113 MB; M1 measures real use against this target |
 | Idle memory, no windows | ≤ 25 MB | Menu bar only |
 | Idle CPU and wakeups | 0.0%, no timer wakeups | A11; checked with `powermetrics` |
 | Open a 5 MB JavaScript file | first paint ≤ 300 ms, fully highlighted ≤ 1 s | |
 | Keystroke to journal | ≤ 300 ms | SY1 |
 | Keystroke to file | ≤ 1 s after a pause, ≤ 5 s while typing | SY2 |
 | New version on disk to screen | ≤ 200 ms | §4.4 |
+| Scratch at 2.4 MB, 50,000 lines | opens ≤ 300 ms; typing latency as for a small file; a reload or merge ≤ 100 ms | The size scratch files reach before archiving (§2, Reference setup). S2: opens in 8-10 ms (only the visible part is laid out) |
 | Save on one Mac to load on the other, iCloud only | measured: p50 and p95 | The input to the V2 decision (§4.10) |
 
 ### 6.6 Testing
@@ -916,13 +948,105 @@ FamilyKit/
 
 Blit's pattern (T3): measure first, give each milestone a "done when", and write the results back here with dates.
 
+**Safety rule while building:** until M1's "done when" has passed on both Macs, no build of nib and no spike opens the live `_scratch2.md`. They work in `iCloud Drive/nib-spike/`, on generated files.
+
 | | Milestone | Scope | Done when |
 |---|---|---|---|
-| **M0** | **Spikes** (an evening or two, before the weekend) | **S1 · iCloud probe, two Macs:** save-to-load latency (p50, p95) for small edits and for continuous typing; reproduce on purpose: simultaneous offline edits (conflict versions, or `name 2` files?), sleep before upload, eviction (`brctl evict`) and reading a dataless file, deletion and rename; whether a `#S` extended attribute syncs; whether `NSMetadataQuery` sees files outside nib's container; the privacy prompt for iCloud Drive; whether iCloud Documents and key-value storage entitlements work with Developer ID signing; whether macOS 27 can keep one file downloaded. **S2 · Text view:** TextKit 1 vs TextKit 2 with tree-sitter highlighting on a 5 MB JavaScript file and a 1 MB Markdown file: typing latency, scrolling, memory; SwiftUI vs AppKit cold launch. **S3 · Fidelity:** the Sublime dump plugin, An Old Hope · nib installed in Sublime, six reference files; tree-sitter plus a first scope map. Sublime baselines for §6.5. | Each question has a written answer here. §4.2 and §6.3's open choices are decided. Tree-sitter reaches ≥ 90% on S3 with a first-pass map (≥ 98% is M2's bar) |
-| **M1** | **Weekend MVP** | All P0: scratch window and Show Scratch shortcut; plain paste and plain copy; `NSTextView` editor with native find; journal; autosave with every trigger; compare-and-swap saves; never writing a clean buffer; reload when clean; the Keep Mine / Keep Theirs / Keep Both safety net; the status strip with sync states (vendored pixel pieces); dark appearance and An Old Hope · nib's editor colors; nothing on the main thread; stays running with no windows. Installed on both Macs with `release.sh`. | Five scripted scenarios on two Macs lose nothing: stale typing, lid closed before upload, both offline, `kill -9` mid-typing, another app writing the file. Rich text pasted from five sources comes out plain. Scratch has been used on both Macs for a day |
+| **M0** | **Spikes** (an evening or two, before the weekend) | **S1 · iCloud probe** (one-Mac half done 2026-09-27, [results](#m0-results); two-Mac half is S1b): save-to-load latency (p50, p95) for small edits and for continuous typing; reproduce on purpose: simultaneous offline edits (conflict versions, or `name 2` files?), sleep before upload, eviction (`brctl evict`) and reading a dataless file, deletion and rename; whether a `#S` extended attribute syncs; whether `NSMetadataQuery` sees files outside nib's container; the privacy prompt for iCloud Drive; whether iCloud Documents and key-value storage entitlements work with Developer ID signing; whether macOS 27 can keep one file downloaded. **S2 · Text view** (done 2026-09-27, [results](#m0-results)): TextKit 1 vs TextKit 2 at 197 KB and 2.4 MB: open time, typing cost, scrolling, memory; SwiftUI vs AppKit launch. **S3 · Fidelity:** the Sublime dump plugin, An Old Hope · nib installed in Sublime, six reference files; tree-sitter plus a first scope map. Sublime baselines for §6.5. | Each question has a written answer here. §4.2 and §6.3's open choices are decided. Tree-sitter reaches ≥ 90% on S3 with a first-pass map (≥ 98% is M2's bar) |
+| **M1** | **Weekend MVP** (in progress; one-Mac checks passed 2026-09-27, [progress](#m1-progress)) | All P0: scratch window and Show Scratch shortcut; plain paste and plain copy; `NSTextView` editor with native find; journal; autosave with every trigger; compare-and-swap saves; never writing a clean buffer; reload when clean; the Keep Mine / Keep Theirs / Keep Both safety net; the status strip with sync states (vendored pixel pieces); dark appearance and An Old Hope · nib's editor colors; nothing on the main thread; stays running with no windows. Installed on both Macs with `release.sh`. | Five scripted scenarios on two Macs lose nothing: stale typing, lid closed before upload, both offline, `kill -9` mid-typing, another app writing the file. Rich text pasted from five sources comes out plain. Scratch has been used on both Macs for a day |
 | **M2** | **Daily driver** | All P1: files, tabs, CLI; tree-sitter highlighting for the six languages; An Old Hope · nib's rules, theme import (`.tmTheme` and `.sublime-color-scheme`), Import from Sublime, the import report; Sublime keys; find and replace with regex; multiple carets if kept (open question 10); three-way merge, conflict blocks and merge view; duplicates, conflict versions, eviction, deletion, iCloud off, errors; History and Sync Log; receipts; Clean Clipboard, Paste Clean, Copy Block, Append to Scratch; menu bar extra; launch at login; first run; VoiceOver; Reduce Motion; FamilyKit created and adopted by Blit and nib. | Fidelity ≥ 98%. §6.5 targets met or their gap written down. Sublime not opened for 14 consecutive days (§9) |
 | **M3** | **Polish** | All P2: sync HUD with CRT; pixel app icon and menu bar art; About; Dock ✕ badge; headings list; Services and Shortcuts; hide the Dock icon; performance tuning; QA and UX review; if sold, Sparkle, `nib.banast.as` and licensing. | Notarized release on both Macs; if sold, an update verified end to end through Sparkle, as Blit's 0.2.5 → 0.2.6 was |
 | **V2** | **Faster sync** (conditional) | The express lane from §4.10, LAN or CloudKit per open question 2; Handoff | The decision rule in §4.10 is met. After: save-to-load p95 under 2 s when both Macs are awake |
+
+### M0 results
+
+**S1, one Mac (2026-09-27).** `spike/` (`nib-spike`, Blit's spike layout), run on this Mac (MacBook Air, M4, macOS 27.0) against generated files in `iCloud Drive/nib-spike/`. Raw output is in `spike/results/`; `spike/run-s1.sh` repeats it.
+
+| Question | Answer |
+|---|---|
+| Plain save, 200 KB: time until iCloud reports it uploaded | 2.7-4.1 s; the upload starts within about 220 ms |
+| Saves every second (continuous typing), iCloud on its own | **Never uploaded while typing**: each save restarted the upload; the last one finished 6.1 s after typing stopped |
+| Does iCloud Drive offer the macOS 26 sync controls for a plain file? | **Yes:** `pauseSync` and `failUploadOnConflict`, no entitlement needed |
+| …from a command-line binary? | No: "feature not supported". From an app bundle (ad-hoc signed): yes |
+| Pause, then save by renaming a temp file over the original (atomic write, or `replaceItemAt`) | The rename makes a new file (new inode): the pause is lost, iCloud uploads on its own, and "upload now" and "resume" report "not supported". File presenters see the rename as a **deletion** |
+| Pause, then save in place (truncate, write, fsync) | Same inode, still paused, iCloud uploads nothing by itself |
+| Upload now with fail-on-conflict, while paused | Works: 2.2 s for 200 KB, returns the uploaded version |
+| Paused, saving every second, uploading at most every 3 s | Every upload succeeded, 2.2-2.9 s each (200 KB) and 2.4-3.0 s (2.4 MB): the server stays within about 5 s of the keyboard |
+| Fetch latest remote version | 3-11 ms when nothing is newer (whether it beats push for another Mac's version: S1b) |
+| Pause right after an upload | Once answered "resource busy" (EBUSY): needs a retry |
+| Resume | 0.4-1.0 s; state returns to uploaded |
+| `isUploaded` while paused | Stays false even after a successful upload: for a held file, the upload call's result is the truth |
+| iCloud's error fields | Every ordinary upload briefly reports 4355 "servers might be unreachable" while succeeding; paused files report "Sync is paused". Noise, not problems |
+| Push notifications for sync state | Yes: the presenter's `presentedItemDidChangeUbiquityAttributes` fires as uploading and uploaded change. No polling needed |
+| Uncoordinated write from another process (`>>` append) | The presenter hears about it about 1.1 s later; a folder watch doesn't (no entry changes) |
+| Evicted file | Dataless (0 blocks, `SF_DATALESS`, size kept). A coordinated read blocks 1.1 s while it downloads; an explicit download takes 0.45 s. Never read on the main thread |
+| Extended attributes (`…lineage#S` and a plain one) through eviction | Both survive on this Mac. That doesn't show they reach another Mac: S1b |
+| `NSMetadataQuery` without an iCloud entitlement | No results in any scope |
+| An API to keep one file downloaded | None in the macOS 27 SDK |
+
+What changed in this PRD because of it: the save pipeline now holds the file with a sync pause, saves in place, and uploads with fail-on-conflict (§4.3); the Mac you switch to fetches on activation (§4.4); sync state is pushed, not polled, and iCloud's error noise is ignored (§4.5); the server's refusal is the main conflict detector (§4.6); new failure cases for pauses left behind (§4.9, 14a-14d); option (a) for the file's location is decided (§4.2); V2 looks less necessary (§4.10).
+
+**S1b, two Macs (to do).** Build with `spike/run-s1.sh` on both Macs, then:
+
+1. **Latency, iCloud on its own:** Mac A `nib-spike writer --every 5 --count 24`; Mac B `nib-spike reader --seconds 150`. Then again with `reader --fetch-every 5`.
+2. **Latency, nib's pipeline:** Mac A `writer --mode push`; Mac B `reader`, then `reader --fetch-every 5`.
+3. **Does a paused file hear about a newer server version** (presenter or `downloadingStatus` turning stale), or only when fetched?
+4. **Server refusal:** both Macs pause the same file, both save, both upload now: the second must fail with `localVersionConflictingWithServer`; then fetch, merge, upload.
+5. **Lineage:** does `com.banastas.nib.lineage#S` arrive on the other Mac (`nib-spike status`)?
+6. **Lid closed right after a save:** how long until the other Mac sees it after the lid opens?
+
+**S2, text view and lifecycle, one Mac (2026-09-27).** `spike/Sources/nib-textspike` puts an `NSTextView` with either engine in a real window (on screen at 1% opacity, never key), loads generated scratch-shaped Markdown (short lines, code fences, and every 25th line a long email paragraph that wraps), inserts 300 keystrokes at the end and 300 in the middle (every 17th a newline, every 23rd a delete), displays synchronously after each, and times it. "Highlight" is a regular-expression stand-in re-applied to ±3,000 characters around each edit, as rendering attributes; tree-sitter is S3. Times are nib's main-thread share of a keystroke, not glass to glass. `nib-launch-appkit` and `nib-launch-swiftui` time process start to first window, 8 runs each. Raw output in `spike/results/s2-*`.
+
+| | TextKit 1 | TextKit 2 |
+|---|---|---|
+| Open 197 KB / 2.4 MB (set text, first display) | 14.8 / 12.3 ms | 8.3 / 8.1 ms |
+| Keystroke, 2.4 MB, no highlighting (end · middle), p99 | 21.4 · 20.1 ms | 2.0 · 2.0 ms |
+| Keystroke, 2.4 MB, stand-in highlighting (end · middle), p99 | 16.5 · 18.5 ms | 3.5 · 10.0 ms |
+| Keystroke, 197 KB, stand-in highlighting (end · middle), p99 | 16.2 · 23.2 ms | 3.5 · 6.9 ms |
+| Scroll jump to a random place, p95 (2.4 MB) | 15.3 ms | 12.1 ms |
+| Estimated document height across 40 jumps (2.4 MB) | varied by 27,380 pt | **varied by 174,704 pt** |
+| …after laying out the whole document | exact (311 ms to lay out) | still varied (232,178 pt), and mid-document keystrokes rose to 41 ms p50 |
+| Memory after opening 2.4 MB, no highlighting | 47.6 MB | 31.5 MB |
+| …with the whole document highlighted | 146 MB | 46 MB |
+| Applying highlighting to the whole 2.4 MB document | 498 ms | 308 ms |
+
+| Lifecycle (first window, 197 KB file, TextKit 2) | Median | Range | Idle memory |
+|---|---|---|---|
+| Plain AppKit | 139 ms | 124-166 ms | 22.4 MB |
+| SwiftUI `App` | 201 ms | 167-217 ms (478 ms on the first launch after building) | 25.3 MB |
+
+Decided: TextKit 2, the SwiftUI lifecycle, and viewport-only highlighting (§6.3). Open: whether TextKit 2's shifting scroll bar is acceptable in real use (M1 will show it at once), and why memory grows while typing in a large file (§6.5).
+
+**S3:** not started.
+
+### M1 progress
+
+**Built (2026-09-27), against the test file `iCloud Drive/nib-spike/scratch-test.md` only (the §8 safety rule is enforced in code: any other path is refused until `allowLiveScratch` is set):**
+
+- `NibKit` (Swift package, 28 tests): `NibText` (encodings, BOM, line endings, fingerprints, Keep Both conflict text, paste cleanup) and `NibSync` (journal, in-place compare-and-swap saves, iCloud sync controls, paused-files list, Sync Log, save schedule).
+- `nib.xcodeproj`, hand-written with a folder-synced group like Blit's, `com.banastas.nib`, SwiftUI lifecycle, dark only (A17). Blit's HUD tokens, fonts and pixel glyphs are copied into `nib/Vendor/FromBlit/` with their source commit (§7).
+- P0 in place: the scratch window (SC1) and ⌥Space to show or hide it (SC2); caret per Mac (SC3); plain paste and copy (PT1, PT2); a TextKit 2 editor with native find, undo and An Old Hope's colors and current-line highlight (ED1, HL6, HL10); the journal (SY1); saves 1 s after typing pauses, 5 s at most, and at once on window or app switch, sleep, screens off, lock, user switch, ⌘S and quit (SY2); compare-and-swap in place (SY3); no write without an edit (SY4); reload when clean (SY5); the Keep Mine / Keep Theirs / Keep Both sheet (SY6); the status strip (SY7); no file work on the main thread (SY8); the pause, upload-now and fetch pipeline (§4.3, §4.4); staying open with no windows (AP1).
+- `scripts/run-m1-scenarios.sh` builds everything and runs the debug harness's scenarios (`nib/Model/TestHarness.swift`).
+
+**One-Mac results** (all 23 scenario checks and 28 unit tests pass; times from the last keystroke):
+
+| Scenario | Result |
+|---|---|
+| Type, then wait | Journal 245 ms · file 1,002 ms · iCloud has it 4.0-4.5 s (1 s wait + an upload of about 3 s). The file holds exactly the buffer |
+| Paste rich text (RTF, bold, red, CRLF) | Plain text with LF, the editor's font; copying writes plain text only |
+| Undo, redo | Both work, and an undo is saved and synced like any edit |
+| `kill -9` 600 ms after typing, saving held off | The journal had the typing, the file didn't; the next launch took the file back (resume, pause), restored the typing, said so in the strip, saved and synced it |
+| Another app appends to the file, no edits in nib | Reloaded, "▼ UPDATED FROM ANOTHER APP", and uploaded (a held file doesn't upload on its own) |
+| …with unsaved edits in nib | Conflict sheet; the file keeps the other app's version; Keep Both writes both between markers and syncs |
+| Quit | Saves, uploads, resumes iCloud's syncing in 0.6-1.2 s; nothing left on the paused list |
+
+**Found while building, and fixed:**
+
+- **A pause belongs to the bundle ID** (it's recorded on the file as `com.apple.file-provider-sync_paused_bundle_id#PX`); **pausing an already-paused file answers "not supported"**, contrary to the documentation. The first build treated that as "can't pause" and ran unheld, the worst case: a paused file that nothing uploads. Now a file left paused is resumed, then paused fresh (§4.3).
+- **Quit asked for from inside a main-queue job hung** until a watchdog that was itself queued behind it; AppKit waits for the reply in a mode where the main queue doesn't drain. A menu's Quit doesn't hit this, but the watchdog is now a run-loop timer that fires regardless, so quitting always ends within 10 s.
+- **Inside SwiftUI's window the text view had no undo manager.** The editor now owns one, which also keeps the undo history when the window is closed and reopened.
+
+**Still to do for M1:** the two-Mac scenarios (stale typing, lid closed before upload, both offline; S1b's steps first), a build on the second Mac (open `nib.xcodeproj` in Xcode and run, or adapt Blit's `release.sh`), trying ⌥Space and the strip by hand, then a day on both Macs with the test file before `allowLiveScratch` points nib at `_scratch2.md`.
 
 ---
 
@@ -942,20 +1066,20 @@ How to know nib has replaced Sublime:
 
 ## 10. Open questions
 
-1. **Where does scratch.md live today, and must it stay there?** An exact path in iCloud Drive that other tools or scripts use would rule out moving it into a nib folder or container (§4.2).
+1. ~~**Where does scratch.md live today, and must it stay there?**~~ **Decided (2026-09-27):** `iCloud Drive/_scratch2.md`, opened where it is (SC1). That settles §4.2 on option (a), a plain iCloud Drive path. Still open: when a scratch file is archived and a new one started, should nib do the rollover (a command that archives and starts the next file), or is it done by hand as now?
 2. **How many Macs, and are they usually on the same network when you switch between them** (desk and laptop at home), or apart (home and office)? This decides V2: LAN peer or CloudKit (§4.10).
 3. **How fast is a typical switch?** Seconds (lid closes, turn to the desktop) or minutes? It sets the latency bar for V2.
-4. **Do all your Macs run macOS 27 on Apple silicon?** Blit's platform rule (T1) matters more when the whole point is more than one Mac.
+4. ~~**Do all your Macs run macOS 27 on Apple silicon?**~~ **Answered (2026-09-27):** yes. Blit's platform rule (T1) holds.
 5. **Merges:** should clean merges apply on their own with a notice (recommended), or always ask? And should overlapping edits be written into the file as conflict markers (recommended: durable, synced, visible anywhere), or held inside nib until resolved?
 6. **Autosave for every file, or only files in iCloud Drive?** Autosaving everything follows "no unsaved state in memory", but autosaving files under a live-reload dev server or a config file a daemon watches fires those tools on every pause. Local History is the safety net either way.
 7. **What does "clean" mean for ⌘V?** Plain text only (recommended for ⌘V), or also: remove invisible characters, straighten smart quotes and dashes, trim trailing spaces, unwrap hard line breaks from PDFs? Paste Clean (⌥⇧⌘V) would do the rest.
 8. **Does "paste anything" include images (recognize the text) and files (paste their path, or their contents)?** And where should a plain paste land when nib isn't frontmost: the clipboard in place (Clean Clipboard), scratch at the caret, or a new untitled buffer?
-9. **Theme details.** ~~Light mode, and the purple~~ **Decided (2026-09-27):** nib is dark only, always (A17), and the purple is removed in An Old Hope · nib (HL10). Still open: match Sublime's actual rendering, or the scheme's intent, where they differ (JSON keys, HL7)? Is An Old Hope customized in Sublime's `Packages/User` (if so, those overrides belong in the nib edition too)? And do the HL10 changes look right in use, or should numbers take another color than orange?
+9. **Theme details.** ~~Light mode, and the purple~~ **Decided (2026-09-27):** nib is dark only, always (A17), and the purple is removed in An Old Hope · nib (HL10). Still open: match Sublime's actual rendering, or the scheme's intent, where they differ (JSON keys, HL7)? ~~Is An Old Hope customized in Sublime's `Packages/User`?~~ No: Sublime's copy is identical (Reference setup). And do the HL10 changes look right in use, or should numbers take another color than orange?
 10. **Which Sublime commands do you actually use?** In particular multiple carets (⌘D, ⇧⌘L, column select) and any ⌘K chords (⌘K ⌘U upper case, ⌘K ⌘B sidebar). Multiple carets are the most expensive P1 item.
 11. **Tabs:** native window tabs (recommended, A5), or a Sublime-style tab bar? Should files open as tabs in one window by default?
 12. **Untitled buffers:** local only (recommended), or synced so they follow you like scratch.md?
 13. **Is nib for sale like Blit** (trial, Lemon Squeezy, `nib.banast.as`, Sparkle), or a personal tool? This changes P2 scope and whether naming and licensing clearance matter. If sold: may An Old Hope · nib ship built in (the original is "based on @JesseLeite's theme for Atom"; its license needs checking; the Obsidian port is MIT, © 2026 Bill Anastas)?
-14. **The name.** "nib" collides with Apple's `.nib` Interface Builder files and `NSNib`, which makes it hard to search for and possibly to trademark. Lowercase "nib" everywhere (as this PRD and the repo README use), or "Nib" as the display name, as with Blit? And the bundle ID's casing.
+14. **The name.** ~~Casing~~ **Decided (2026-09-27):** `nib`, lowercase everywhere, bundle ID `com.banastas.nib`. Still open, only if nib is sold: "nib" collides with Apple's `.nib` Interface Builder files and `NSNib`, which makes it hard to search for and possibly to trademark.
 15. **Should nib become the default app** for `.md`, `.html`, `.css`, `.js`, `.json` and shell scripts, or register only as an alternate for Open With?
 16. **nib as `$EDITOR`** (`nib -w`) for git commit messages and `crontab -e`: wanted?
 17. **Largest files you edit?** Big logs or data dumps would move ED9's thresholds.

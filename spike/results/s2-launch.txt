@@ -1,0 +1,16 @@
+LAUNCH appkit · first window 153 ms after process start · idle footprint 22.4 MB
+LAUNCH appkit · first window 166 ms after process start · idle footprint 22.7 MB
+LAUNCH appkit · first window 149 ms after process start · idle footprint 22.5 MB
+LAUNCH appkit · first window 124 ms after process start · idle footprint 22.0 MB
+LAUNCH appkit · first window 138 ms after process start · idle footprint 22.5 MB
+LAUNCH appkit · first window 140 ms after process start · idle footprint 22.0 MB
+LAUNCH appkit · first window 139 ms after process start · idle footprint 21.9 MB
+LAUNCH appkit · first window 132 ms after process start · idle footprint 22.5 MB
+LAUNCH swiftui · first window 478 ms after process start · idle footprint 25.9 MB
+LAUNCH swiftui · first window 167 ms after process start · idle footprint 25.3 MB
+LAUNCH swiftui · first window 186 ms after process start · idle footprint 25.3 MB
+LAUNCH swiftui · first window 192 ms after process start · idle footprint 25.3 MB
+LAUNCH swiftui · first window 210 ms after process start · idle footprint 25.3 MB
+LAUNCH swiftui · first window 199 ms after process start · idle footprint 26.3 MB
+LAUNCH swiftui · first window 217 ms after process start · idle footprint 25.3 MB
+LAUNCH swiftui · first window 210 ms after process start · idle footprint 25.2 MB
