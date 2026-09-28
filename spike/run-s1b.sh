@@ -69,7 +69,7 @@ fi
 
 {
   echo "S1b role $role · $host · $(sw_vers -productVersion) · start $at"
-  grep -h RESULT "$out"-*.txt | sed 's/^[0-9:.]* //'
+  grep -h RESULT "$out"-p[0-9]-*.txt "$out"-xattr-*.txt 2>/dev/null | sed 's/^[0-9:.]* //'
 } > "$out-summary.txt"
 
 if [[ $role == b && $plan == all ]]; then

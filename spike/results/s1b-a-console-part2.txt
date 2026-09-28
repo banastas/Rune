@@ -1,3 +1,18 @@
 ==> Building the probe on Bill’s MacBook Air
 .build/NibSpike.app: replacing existing signature
 ==> Role a on Bill’s MacBook Air; plan part2; starting at 23:40 (in 885 s). Leave both Macs awake and online.
+==> [23:40:00] xattr-write
+23:40:04.340 RESULT xattr-write: com.apple.provenance, com.banastas.nib.lineage#S, com.banastas.nib.local
+==> [23:40:10] p5-push
+23:41:23.328 RESULT writer p5-0927-2340.md: 7 writes every 10.0 s (held: in place + upload now) · uploads 7/7, median 2096 ms
+==> [23:41:50] p6-race
+23:43:30.012 RESULT race first: upload accepted · final file here: race base by Bill’s MacBook Air | line from Bill’s MacBook Air (first)
+
+================ paste this ================
+S1b role a · Bill’s MacBook Air · 27.0 · start 23:40
+RESULT xattr-write: com.apple.provenance, com.banastas.nib.lineage#S, com.banastas.nib.local
+RESULT writer p5-0927-2340.md: 7 writes every 10.0 s (held: in place + upload now) · uploads 7/7, median 2096 ms
+RESULT race first: upload accepted · final file here: race base by Bill’s MacBook Air | line from Bill’s MacBook Air (first)
+RESULT writer p5-0927-2340.md: 7 writes every 10.0 s (held: in place + upload now) · uploads 7/7, median 2096 ms
+RESULT race first: upload accepted · final file here: race base by Bill’s MacBook Air | line from Bill’s MacBook Air (first)
+RESULT xattr-write: com.apple.provenance, com.banastas.nib.lineage#S, com.banastas.nib.local

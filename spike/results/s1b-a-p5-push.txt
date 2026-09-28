@@ -1,0 +1,21 @@
+23:40:10.398 nib-spike writer on Bill’s MacBook Air, macOS Version 27.0 (Build 26A428)
+23:40:10.415   +10 ms  ubiquitous status=current - not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+23:40:10.532   +127 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+23:40:12.656   +2251 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+23:40:13.227   pauseSync: 571 ms · ok
+23:40:15.682   uploadLocalVersion(failOnConflict): 2449 ms · ok
+23:40:15.682 wrote seq 1
+23:40:25.261   uploadLocalVersion(failOnConflict): 2022 ms · ok
+23:40:25.261 wrote seq 2
+23:40:35.528   uploadLocalVersion(failOnConflict): 2283 ms · ok
+23:40:35.528 wrote seq 3
+23:40:45.264   uploadLocalVersion(failOnConflict): 2017 ms · ok
+23:40:45.264 wrote seq 4
+23:40:55.512   uploadLocalVersion(failOnConflict): 2258 ms · ok
+23:40:55.512 wrote seq 5
+23:41:05.279   uploadLocalVersion(failOnConflict): 2022 ms · ok
+23:41:05.279 wrote seq 6
+23:41:15.354   uploadLocalVersion(failOnConflict): 2097 ms · ok
+23:41:15.355 wrote seq 7
+23:41:23.328   resumeSync: 74 ms · ok
+23:41:23.328 RESULT writer p5-0927-2340.md: 7 writes every 10.0 s (held: in place + upload now) · uploads 7/7, median 2096 ms
