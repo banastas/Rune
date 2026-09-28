@@ -1108,12 +1108,14 @@ Decided: TextKit 2, the SwiftUI lifecycle, and viewport-only highlighting (§6.3
 
 What the five runs fixed, in order: a saved-but-unsent version replaced by a fetched one (silent loss); another app's write unnoticed while a save waited to upload; the note read from a stale local copy; an upload call that never answered stalling everything behind it; eviction refused right after an upload. Each is covered by the single-Mac suite or the two-Mac runner now.
 
+**Team-signed, single Mac (13:02, Mac mini): passed**, in `iCloud Drive/nib/Test/`, scenarios in about 65 s. The first run found a harness fault, not a nib one: in "unsent" the harness asked nib to quit while the Keep Both sheet was still going away. AppKit ignores `terminate(_:)` while a sheet is attached, so nib stayed open until the runner's guard killed it 120 s later, with the file still paused (the next scenario handed it back). The harness now waits for the sheet to go before quitting; a quit asked for a few seconds later was never affected.
+
 **Still to do for M1:**
 
 - **Lid closed before the upload** (by hand): type a line on the laptop and close the lid within a second; on the other Mac, check the line is absent, then open the lid and check it arrives (and, if the other Mac typed meanwhile, that the merge comes up instead of an overwrite).
 - **Both Macs offline** (by hand): Wi-Fi off on both, type a different line on each, Wi-Fi back on; expect one conflict sheet, Keep Both, both Macs converging.
 - **By hand:** ⌥Space to show and hide, the strip's states, ⌘W and reopening.
-- **nib's own iCloud folder** (§4.2, decided 2026-09-28): configured (`Support/nib.entitlements`, `Support/Info.plist`); needs the app ID and the container registered to the team once, from a Mac with Xcode signed in (`xcodebuild … -allowProvisioningUpdates build`), then team-signed builds on both Macs and the whole suite, single-Mac and two-Mac, again in `iCloud Drive/nib/Test/`.
+- **nib's own iCloud folder** (§4.2, decided 2026-09-28): configured (`Support/nib.entitlements`, `Support/Info.plist`). **Registered 2026-09-28 from the Mac mini:** the app ID, the container and the Mac mini as a device (a Mac new to the team also needs `-allowProvisioningDeviceRegistration`, once). The single-Mac suite passes team-signed there, in `iCloud Drive/nib/Test/` (below). Left: the MacBook Air (its signing certificate, then registering it), then the two-Mac test again in `iCloud Drive/nib/Test/`.
 - **A day on both Macs with the test file**, then move `_scratch2.md` to `iCloud Drive/nib/scratch.md` and set `allowLiveScratch`.
 
 ---

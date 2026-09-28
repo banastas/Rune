@@ -3,7 +3,7 @@
 //
 //   nib -NibScenario type|clipboard|crash|recover|external -NibScenarioLog /path [-NibMarker text]
 //
-// Each runs against the scratch test file (iCloud Drive/nib-spike/), writes PASS or
+// Each runs against the scratch test file (iCloud Drive/nib/Test/, or nib-spike/ ad hoc), writes PASS or
 // FAIL lines to the log, and quits (crash ends with SIGKILL instead).
 
 #if DEBUG
@@ -34,6 +34,9 @@ enum TestHarness {
             default: log.line("FAIL unknown scenario")
             }
             log.line("done")
+            // terminate(_:) does nothing while a sheet is attached, even one on its way out:
+            // "unsent" resolves its conflict moments before this.
+            _ = await waitFor(5) { NSApp.windows.allSatisfy { $0.attachedSheet == nil } }
             // From the run loop, as a menu's Quit arrives. Called from inside this task (a
             // main-queue job), quit's own save-and-resume work would queue behind it and wait.
             NSApp.perform(#selector(NSApplication.terminate(_:)), with: nil, afterDelay: 0)

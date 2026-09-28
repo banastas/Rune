@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # M1's single-Mac checks (PRD §8): builds the Debug app and runs every scenario in
-# nib/Model/TestHarness.swift against the scratch test file in iCloud Drive/nib-spike/.
+# nib/Model/TestHarness.swift against the scratch test file (iCloud Drive/nib/Test/, or
+# iCloud Drive/nib-spike/ with SIGN=adhoc).
 # Prints PASS/FAIL lines; exits non-zero if anything failed. Takes about a minute.
 # A nib window appears briefly for each scenario.
 set -euo pipefail
@@ -31,10 +32,11 @@ run() {   # run <name> [args…]: one scenario, killed after 120 s if it hangs
   local name=$1; shift
   "$APP" -NibScenario "$name" -NibScenarioLog "$PWD/$LOGS/$name.log" "$@" >/dev/null 2>&1 &
   local pid=$!
-  ( sleep 120; kill "$pid" 2>/dev/null ) & local guard=$!
+  # The guard's output goes nowhere, or its sleep would hold a pipe open for 120 s.
+  ( sleep 120; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 & local guard=$!
   disown "$guard"
   wait "$pid" 2>/dev/null || true
-  kill "$guard" 2>/dev/null || true
+  pkill -P "$guard" sleep 2>/dev/null; kill "$guard" 2>/dev/null || true
   echo "==> $name"
   grep -E "PASS|FAIL|after the last" "$LOGS/$name.log" || echo "FAIL no output"
 }

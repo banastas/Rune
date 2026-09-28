@@ -6,8 +6,8 @@ Read **PRD.md** first. It's the living product document, as Blit's README is for
 
 M1, the weekend MVP, works on one Mac and between two (MacBook Air and Mac mini, both macOS 27). The last two-Mac run passed on both. Open, in order:
 
-1. **nib's own iCloud folder** (§4.2, decided 2026-09-28): `iCloud Drive/nib/`, container `iCloud.com.banastas.nib`, configured in `Support/nib.entitlements` and `Support/Info.plist`. Needs the app ID and container registered to the team once, from a Mac whose Xcode is signed in: `xcodebuild … -allowProvisioningUpdates build` (see Build). On the MacBook Air it stopped at "Apple Development certificate… private key is not installed": revoking and recreating that certificate is the user's decision (Xcode › Settings › Accounts › Manage Certificates).
-2. Then the suite team-signed (test files move to `iCloud Drive/nib/Test/`), and the two-Mac test again there.
+1. **nib's own iCloud folder** (§4.2, decided 2026-09-28): `iCloud Drive/nib/`, container `iCloud.com.banastas.nib`, configured in `Support/nib.entitlements` and `Support/Info.plist`. **Registered 2026-09-28 from the Mac mini** (the app ID, the container, the Mac mini as a device); the single-Mac suite passes team-signed there, in `iCloud Drive/nib/Test/`. Left: the MacBook Air. It stopped at "Apple Development certificate… private key is not installed": revoking and recreating that certificate, or exporting it with its key from the Mac mini if it's the one the Mac mini signs with (`Apple Development: William T Anastas (R8L5X78JQG)`), is the user's decision (Xcode › Settings › Accounts › Manage Certificates). Then it needs registering as a device, once (see Build).
+2. Then the two-Mac test again, team-signed, in `iCloud Drive/nib/Test/`.
 3. By hand: lid closed right after a save; both Macs offline; ⌥Space, the strip, ⌘W.
 4. A day on both Macs with the test file; then move `iCloud Drive/_scratch2.md` to `iCloud Drive/nib/scratch.md` and set `allowLiveScratch`.
 5. M2 (§8): three-way merge, files and tabs, tree-sitter highlighting, the S3 fidelity harness (a small Sublime plugin in `Packages/User`; the user has OK'd it), the shared package (§7).
@@ -37,6 +37,12 @@ SIGN=adhoc scripts/run-m1-scenarios.sh      # without the Apple account: no iClo
 scripts/run-m1-two-mac.sh a|b HH:MM         # the two-Mac test; same start time on both Macs
 spike/run-s1b.sh a|b HH:MM [part2]          # M0 iCloud probes on two Macs
 cd NibKit && swift test                     # the engine alone
+```
+
+A Mac new to the team has to be registered as a device once, or team-signed builds stop at "Device … isn't registered in your developer account". That changes the user's developer account, so it's their step:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData -destination "platform=macOS" -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
 ```
 
 Scenario logs are in `build/scenarios/`; nib's own Sync Log is `~/Library/Application Support/nib/sync.jsonl`.
