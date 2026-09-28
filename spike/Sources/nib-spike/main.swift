@@ -432,8 +432,9 @@ final class Presenter: NSObject, NSFilePresenter {
     let presentedItemURL: URL?
     let presentedItemOperationQueue = OperationQueue()
     var mark = Date()
+    var calls = 0
     init(_ url: URL) { presentedItemURL = url }
-    func note(_ what: String) { log("  presenter: \(what) (+\(ms(since: mark)) ms)") }
+    func note(_ what: String) { calls += 1; log("  presenter: \(what) (+\(ms(since: mark)) ms)") }
     func presentedItemDidChange() { note("presentedItemDidChange") }
     func presentedItemDidGain(_ version: NSFileVersion) { note("didGain \(describe(version))") }
     func presentedItemDidLose(_ version: NSFileVersion) { note("didLose \(describe(version))") }
@@ -506,52 +507,226 @@ func modeMetadata() {
     log("RESULT metadata: without an iCloud entitlement, see which scopes return anything")
 }
 
-/// Two Macs: `writer` on one, `reader` on the other. Content carries the write time.
+// MARK: - Two Macs (S1b)
+
+func errorChain(_ error: Error?) -> [NSError] {
+    var out: [NSError] = []
+    var next = error as NSError?
+    while let current = next, out.count < 8 { out.append(current); next = current.userInfo[NSUnderlyingErrorKey] as? NSError }
+    return out
+}
+func isConflictError(_ error: Error?) -> Bool { errorChain(error).contains { $0.domain == "NSFileProviderErrorDomain" && $0.code == -2015 } }
+func isBusyError(_ error: Error?) -> Bool { errorChain(error).contains { $0.domain == NSPOSIXErrorDomain && $0.code == Int(EBUSY) } }
+func isUnsupportedError(_ error: Error?) -> Bool { errorChain(error).contains { $0.domain == NSCocoaErrorDomain && $0.code == 3328 } }
+
+/// Pauses, retrying while iCloud is busy; a file already paused (which answers "not
+/// supported") is resumed and paused again, as nib does (PRD §4.3).
+func pauseRetrying(_ url: URL) -> Bool {
+    var delay = 0.5
+    for _ in 1...8 {
+        let error = pause(url)
+        if error == nil { return true }
+        if isBusyError(error) { Thread.sleep(forTimeInterval: delay); delay *= 2; continue }
+        if isUnsupportedError(error), cloudState(url).paused == true { _ = resume(url); continue }
+        return false
+    }
+    return false
+}
+
+func xattrValue(_ name: String, _ url: URL) -> String? {
+    let size = getxattr(url.path, name, nil, 0, 0, XATTR_NOFOLLOW)
+    guard size > 0 else { return nil }
+    var buffer = [UInt8](repeating: 0, count: size)
+    getxattr(url.path, name, &buffer, size, 0, XATTR_NOFOLLOW)
+    return String(decoding: buffer, as: UTF8.self)
+}
+
+func waitForFile(_ url: URL, timeout: TimeInterval) -> Bool {
+    let start = Date()
+    while Date().timeIntervalSince(start) < timeout {
+        if fm.fileExists(atPath: url.path), cloudState(url).status == "current" { return true }
+        Thread.sleep(forTimeInterval: 0.25)
+    }
+    log("  gave up waiting for \(url.lastPathComponent) to arrive")
+    return false
+}
+
+func firstLine(_ url: URL) -> String {
+    ((try? String(contentsOf: url, encoding: .utf8)) ?? "").split(separator: "\n").first.map(String.init) ?? "(empty)"
+}
+
+/// Mac A: writes `seq N written <ms> by <host>` every `every` seconds. `--mode push`
+/// holds the file as nib does: paused, saved in place, uploaded now each time.
 func modeWriter() {
     let every = Double(option("every", "5")) ?? 5
     let count = Int(option("count", "24")) ?? 24
     let push = option("mode", "plain") == "push"
-    let url = spikeFile("latency.md")
-    if push, fm.fileExists(atPath: url.path) { _ = pause(url) }
+    let url = spikeFile(option("file", "latency.md"))
+    try? coordinatedWrite("seq 0 written 0 by \(host)\n", to: url)
+    _ = waitUploaded(url, timeout: 120)
+    let held = push && pauseRetrying(url)
+    if push, !held { log("could not pause: plain writes instead") }
+    var uploads: [Int] = []
     for n in 1...count {
         let now = Date()
         let text = "seq \(n) written \(Int(now.timeIntervalSince1970 * 1000)) by \(host)\n"
-        try? coordinatedWrite(text, to: url)
-        if push { _ = uploadNow(url) }
+        if held {
+            try? save(text, to: url, how: "inplace")
+            let started = Date()
+            let (_, error) = uploadNow(url)
+            if error == nil { uploads.append(Int(Date().timeIntervalSince(started) * 1000)) }
+        } else {
+            try? coordinatedWrite(text, to: url)
+        }
         log("wrote seq \(n)")
         Thread.sleep(forTimeInterval: max(0, every - Date().timeIntervalSince(now)))
     }
-    if push { _ = resume(url) }
-    log("RESULT writer: \(count) writes every \(every) s (\(push ? "pause + upload now" : "plain writes"))")
+    if held { _ = resume(url) }
+    let upload = uploads.isEmpty ? "" : " · uploads \(uploads.count)/\(count), median \(uploads.sorted()[uploads.count / 2]) ms"
+    log("RESULT writer \(url.lastPathComponent): \(count) writes every \(every) s (\(held ? "held: in place + upload now" : "plain writes"))\(upload)")
 }
 
+/// Mac B: logs how long each seq took to arrive. `--fetch-every N` also asks the server.
 func modeReader() {
     let seconds = Double(option("seconds", "150")) ?? 150
     let fetchEvery = Double(option("fetch-every", "0")) ?? 0
-    let url = spikeFile("latency.md")
+    let url = spikeFile(option("file", "latency.md"))
     let start = Date()
     var lastFetch = Date.distantPast
     var seen = 0
     var latencies: [Int] = []
     while Date().timeIntervalSince(start) < seconds {
-        if fetchEvery > 0, Date().timeIntervalSince(lastFetch) >= fetchEvery {
+        if fetchEvery > 0, fm.fileExists(atPath: url.path), Date().timeIntervalSince(lastFetch) >= fetchEvery {
             lastFetch = Date()
             fm.fetchLatestRemoteVersionOfItem(at: url) { _, error in if let error { log("  fetch: \(describe(error))") } }
         }
         if let text = try? String(contentsOf: url, encoding: .utf8) {
             let parts = text.split(separator: " ")
             if parts.count >= 4, parts[0] == "seq", let n = Int(parts[1]), n > seen, let written = Double(parts[3]) {
-                let latency = Int(Date().timeIntervalSince1970 * 1000 - written)
                 seen = n
-                latencies.append(latency)
-                log("seq \(n) arrived \(latency) ms after it was written · \(cloudState(url))")
+                if written / 1000 > start.timeIntervalSince1970 - 2 {   // skip what was there before this run
+                    let latency = Int(Date().timeIntervalSince1970 * 1000 - written)
+                    latencies.append(latency)
+                    log("seq \(n) arrived \(latency) ms after it was written · \(cloudState(url))")
+                }
             }
         }
         Thread.sleep(forTimeInterval: 0.1)
     }
     let sorted = latencies.sorted()
     func pct(_ p: Double) -> String { sorted.isEmpty ? "—" : "\(sorted[min(sorted.count - 1, Int(Double(sorted.count) * p))]) ms" }
-    log("RESULT reader: \(sorted.count) arrivals · p50 \(pct(0.5)) · p95 \(pct(0.95)) · max \(sorted.last.map { "\($0) ms" } ?? "—")")
+    log("RESULT reader \(url.lastPathComponent)\(fetchEvery > 0 ? " (fetch every \(Int(fetchEvery)) s)" : ""): \(sorted.count) arrivals · p50 \(pct(0.5)) · p95 \(pct(0.95)) · max \(sorted.last.map { "\($0) ms" } ?? "—")")
+}
+
+/// Mac B, while Mac A writes: does a paused file hear about newer versions (presenter,
+/// download status), or change on disk? Then one fetch to see what the server had.
+func modeWatchPaused() {
+    let url = spikeFile(option("file", "watch.md"))
+    let seconds = Double(option("seconds", "60")) ?? 60
+    guard waitForFile(url, timeout: 90) else { log("RESULT watch-paused: the file never arrived"); return }
+    guard pauseRetrying(url) else { log("RESULT watch-paused: could not pause"); return }
+    let pausedLine = firstLine(url)
+    log("paused at: \(pausedLine)")
+    let presenter = Presenter(url)
+    NSFileCoordinator.addFilePresenter(presenter)
+    presenter.mark = Date()
+    let start = Date()
+    var last: CloudState?
+    var statusChanges = 0, diskChanges = 0
+    var lastLine = pausedLine
+    while Date().timeIntervalSince(start) < seconds {
+        let state = cloudState(url)
+        if state != last { if last != nil { statusChanges += 1 }; log("  +\(ms(since: start)) ms  \(state)"); last = state }
+        let line = firstLine(url)
+        if line != lastLine { diskChanges += 1; log("  +\(ms(since: start)) ms  the local file changed: \(line)"); lastLine = line }
+        Thread.sleep(forTimeInterval: 0.25)
+    }
+    NSFileCoordinator.removeFilePresenter(presenter)
+    let (latest, error) = fetchLatest(url)
+    var fetched = "fetch failed: \(describe(error))"
+    if let latest {
+        if latest.url.standardizedFileURL.path != url.standardizedFileURL.path {
+            fetched = "fetch found a newer version at a side location: \(firstLine(latest.url))"
+        } else {
+            fetched = "fetch: nothing newer (local: \(firstLine(url)))"
+        }
+    }
+    _ = resume(url)
+    log("RESULT watch-paused: \(Int(seconds)) s paused · presenter callbacks \(presenter.calls) · status changes \(statusChanges) · local file changes \(diskChanges) · \(fetched)")
+}
+
+/// Both Macs pause the same file and change it; the second to upload must be refused
+/// (`localVersionConflictingWithServer`), then fetch, merge and upload again.
+func modeRace() {
+    let role = option("role", "first")
+    let url = spikeFile(option("file", "race.md"))
+    let t0 = Double(option("at", "0")) ?? 0
+    func until(_ offset: Double) {
+        let wait = t0 + offset - Date().timeIntervalSince1970
+        if wait > 0 { Thread.sleep(forTimeInterval: wait) }
+    }
+    var result = "\(role):"
+    if role == "first" {
+        until(0)
+        try? coordinatedWrite("race base by \(host)\n", to: url)
+        _ = waitUploaded(url, timeout: 60)
+    }
+    until(38)
+    guard waitForFile(url, timeout: 2) else { log("RESULT race \(role): the file never arrived"); return }
+    until(40)
+    let held = pauseRetrying(url)
+    let base = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+    log("held \(held); base: \(base.debugDescription)")
+    if role == "first" {
+        until(45)
+        try? save(base + "line from \(host) (first)\n", to: url, how: "inplace")
+        let (_, error) = uploadNow(url)
+        result += " upload \(error == nil ? "accepted" : describe(error))"
+    } else {
+        until(47)
+        try? save(base + "line from \(host) (second)\n", to: url, how: "inplace")
+        until(55)
+        let (_, error) = uploadNow(url)
+        let refused = isConflictError(error)
+        result += " upload \(error == nil ? "ACCEPTED (expected a refusal)" : refused ? "refused as a conflict (-2015)" : describe(error))"
+        if refused {
+            let (latest, fetchError) = fetchLatest(url)
+            if let latest, latest.url.standardizedFileURL.path != url.standardizedFileURL.path {
+                let theirs = (try? String(contentsOf: latest.url, encoding: .utf8)) ?? ""
+                do { _ = try latest.replaceItem(at: url, options: []) } catch { log("  replaceItem: \(describe(error))") }
+                let stillPaused = cloudState(url).paused == true
+                log("after replaceItem: paused \(stillPaused) · \(cloudState(url))")
+                if !stillPaused { _ = pauseRetrying(url) }
+                try? save(theirs + "line from \(host) (second, merged)\n", to: url, how: "inplace")
+                let (_, again) = uploadNow(url)
+                result += " · fetched theirs (\(theirs.split(separator: "\n").count) lines) · still paused after replaceItem: \(stillPaused) · merged upload \(again == nil ? "accepted" : describe(again))"
+            } else {
+                result += " · fetch gave \(latest == nil ? "nothing (\(describe(fetchError)))" : "the local file, not a newer version")"
+            }
+        }
+    }
+    until(70)
+    if held { _ = resume(url) }
+    until(100)
+    let lines = ((try? String(contentsOf: url, encoding: .utf8)) ?? "").split(separator: "\n").joined(separator: " | ")
+    log("RESULT race \(result) · final file here: \(lines)")
+}
+
+func modeXattrWrite() {
+    let url = spikeFile(option("file", "xattr.md"))
+    try? coordinatedWrite("xattr test by \(host)\n", to: url)
+    setXattr("com.banastas.nib.lineage#S", "lineage-from-\(host)", on: url)
+    setXattr("com.banastas.nib.local", "plain-from-\(host)", on: url)
+    _ = waitUploaded(url, timeout: 120)
+    log("RESULT xattr-write: \(xattrs(url).joined(separator: ", "))")
+}
+
+func modeXattrCheck() {
+    let url = spikeFile(option("file", "xattr.md"))
+    guard waitForFile(url, timeout: 120) else { log("RESULT xattr-check: the file never arrived"); return }
+    let lineage = xattrValue("com.banastas.nib.lineage#S", url)
+    let plain = xattrValue("com.banastas.nib.local", url)
+    log("RESULT xattr-check: lineage#S \(lineage.map { "ARRIVED (\($0))" } ?? "missing") · plain \(plain.map { "arrived (\($0))" } ?? "missing") · all: \(xattrs(url).joined(separator: ", "))")
 }
 
 /// Pause persists across crashes and relaunches, so this resumes anything left paused.
@@ -570,6 +745,7 @@ let modes: [String: () -> Void] = [
     "status": modeStatus, "upload": modeUpload, "typing": modeTyping, "controls": modeControls,
     "evict": modeEvict, "presenter": modePresenter, "metadata": modeMetadata,
     "writer": modeWriter, "push-typing": modePushTyping, "reader": modeReader, "cleanup": modeCleanup,
+    "watch-paused": modeWatchPaused, "race": modeRace, "xattr-write": modeXattrWrite, "xattr-check": modeXattrCheck,
 ]
 
 guard let mode = arguments.first, let run = modes[mode] else {
@@ -583,8 +759,11 @@ guard let mode = arguments.first, let run = modes[mode] else {
       evict    --size 200k           xattrs, eviction, reading a dataless file, explicit download
       presenter --size 20k           NSFilePresenter and folder events for three kinds of change
       metadata                       NSMetadataQuery scopes without an iCloud entitlement
-      writer   --every 5 --count 24 --mode plain|push   two Macs: write latency.md (Mac A)
-      reader   --seconds 150 --fetch-every 0           two Macs: log arrival times (Mac B)
+      writer   --file F --every 5 --count 24 --mode plain|push   two Macs (A): seq lines with write times
+      reader   --file F --seconds 150 --fetch-every 0           two Macs (B): arrival latency
+      watch-paused --file F --seconds 60   two Macs (B): does a paused file hear about newer versions?
+      race     --role first|second --file F --at <epoch s>      two Macs: the server refuses the second upload
+      xattr-write --file F / xattr-check --file F               two Macs: does a #S attribute travel?
       cleanup                        resume sync on anything left paused
     """)
     exit(arguments.isEmpty ? 0 : 2)
