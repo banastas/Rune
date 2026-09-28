@@ -4,13 +4,11 @@ Read **PRD.md** first. It's the living product document, as Blit's README is for
 
 ## Where things stand (2026-09-28)
 
-M1, the weekend MVP, works on one Mac and between two (MacBook Air and Mac mini, both macOS 27). The last two-Mac run passed on both. Open, in order:
+M1, the weekend MVP, works on one Mac and between two (MacBook Air `Bill's MacBook Air` and Mac mini `m2pr0m4cm1n1`, both macOS 27), team-signed, in nib's own iCloud folder: `iCloud Drive/nib/`, container `iCloud.com.banastas.nib` (§4.2; `Support/nib.entitlements`, `Support/Info.plist`). Both Macs are registered to the team, each with its own Apple Development certificate. The single-Mac suite passes on both; the seventh two-Mac run (13:35) passed on both, with the same SHA-256, after a fix for a version merged twice in the sixth (PRD §8). Open, in order:
 
-1. **nib's own iCloud folder** (§4.2, decided 2026-09-28): `iCloud Drive/nib/`, container `iCloud.com.banastas.nib`, configured in `Support/nib.entitlements` and `Support/Info.plist`. **Set up 2026-09-28 on both Macs:** the app ID and the container registered to the team, both Macs registered as devices, each with its own Apple Development certificate (the Air's old one, whose private key was gone, was revoked on developer.apple.com). The single-Mac suite passes team-signed on both, in `iCloud Drive/nib/Test/`.
-2. The two-Mac test, team-signed, in `iCloud Drive/nib/Test/`: the sixth run (13:22) merged one version twice on the Mac mini (PRD §8); fixed in `Document` (a count of running fetches; a version already here isn't news), not yet run again on two Macs.
-3. By hand: lid closed right after a save; both Macs offline; ⌥Space, the strip, ⌘W.
-4. A day on both Macs with the test file; then move `iCloud Drive/_scratch2.md` to `iCloud Drive/nib/scratch.md` and set `allowLiveScratch`.
-5. M2 (§8): three-way merge, files and tabs, tree-sitter highlighting, the S3 fidelity harness (a small Sublime plugin in `Packages/User`; the user has OK'd it), the shared package (§7).
+1. By hand: lid closed right after a save; both Macs offline; ⌥Space, the strip, ⌘W. The window subtitle shows the container's raw path, not "iCloud Drive › nib › Test" (`ScratchView.subtitle` knows only iCloud Drive's own folder).
+2. A day on both Macs with the test file; then move `iCloud Drive/_scratch2.md` to `iCloud Drive/nib/scratch.md` and set `allowLiveScratch`.
+3. M2 (§8): three-way merge, files and tabs, tree-sitter highlighting, the S3 fidelity harness (a small Sublime plugin in `Packages/User`; the user has OK'd it), the shared package (§7).
 
 ## Rules that are settled (don't relitigate)
 
