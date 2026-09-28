@@ -1002,13 +1002,24 @@ What it means:
 3. **Fetching adds nothing for a file that isn't paused.** For a paused one (nib's scratch file on Mac B), it may be the only way in; that's what the paused-file test answers.
 4. **New files from another Mac can arrive as placeholders** that download when read (the Mac mini behaves this way, as Optimize Mac Storage does). The readers above read every 100 ms, which downloaded each version; so the latencies include that download. The probe's "wait for the file" step didn't read, so the paused-file, conflict and attribute tests reported "never arrived" and have to be run again (`run-s1b.sh a|b HH:MM part2`, fixed). A later run on the old probe confirmed it: a file that had been on the server for 7 minutes still wasn't downloaded on the Mac mini, because nothing had read it.
 
+**S1b, second run (2026-09-28, 07:35).** The paused-file, conflict and attribute tests, with the fixed probe on both Macs.
+
+| Test | Result |
+|---|---|
+| **Server refusal** (both Macs pause the same file; Mac A saves and uploads first; Mac B saves from the old version and uploads 10 s later) | **Works.** Mac A's upload accepted; Mac B's refused as a conflict (`-2015`); Mac B fetched the newer version (it came to a side location), put it in place with `replaceItem` (the file **stayed paused**), merged its line in, and the merged upload was **accepted** |
+| **Lineage attribute** (`com.banastas.nib.lineage#S`, set on Mac A) | **Arrived** on Mac B with Mac A's value. The same attribute without `#S` didn't. §4.6's exact base for a three-way merge is available |
+| Paused file on Mac B while Mac A uploads every 10 s | Mac B's local file didn't change while paused (iCloud held off, as intended); the presenter was called 3 times and the iCloud state changed twice; a fetch at the end failed with `GSLibraryErrorDomain 3` ("Generation not found"). What the callbacks were is still to read from Mac B's log |
+| **Resuming** (both Macs, 30 s after the merge, with `.preserveLocalChanges`) | **The merged version was lost from the current file:** afterwards Mac A's file held only Mac A's lines, a fetch on Mac A called Mac A's own version the newest, and there was no conflict copy on Mac A. Apple documents that this mode "may automatically pick the winner"; it appears to have. Still to confirm on Mac B's side |
+
+What changed because of it: **nib never resumes with `.preserveLocalChanges`.** A file whose every save is uploaded is resumed with `.dropLocalChanges` (take the server's version; iCloud keeps any local change as an alternate version), and one with unsent saves with `.afterUploadWithFailOnConflict`; a refusal there takes the server's version and puts this Mac's text in front of the user through the journal and the conflict sheet (`CloudControl.ResumeMode`, `Document.close`, `hold`, `settlePausedFiles`). The M1 suite passes with it.
+
 **S1b, still to do:**
 
 1. ~~Latency, iCloud on its own~~ (above).
 2. ~~Latency, nib's pipeline~~ (above).
-3. **Does a paused file hear about a newer server version** (presenter or `downloadingStatus` turning stale), or only when fetched?
-4. **Server refusal:** both Macs pause the same file, both save, both upload now: the second must fail with `localVersionConflictingWithServer`; then fetch, merge, upload.
-5. **Lineage:** does `com.banastas.nib.lineage#S` arrive on the other Mac (`nib-spike status`)?
+3. **Does a paused file hear about a newer server version** (presenter or `downloadingStatus` turning stale), or only when fetched? Partly answered above; the callbacks' details, and why the fetch failed, are still open.
+4. ~~Server refusal~~ (works, above). Still to do: the same race with the new resume modes, to show the merged version survives on both Macs.
+5. ~~Lineage~~ (arrives, above).
 6. **Lid closed right after a save:** how long until the other Mac sees it after the lid opens?
 
 **S2, text view and lifecycle, one Mac (2026-09-27).** `spike/Sources/nib-textspike` puts an `NSTextView` with either engine in a real window (on screen at 1% opacity, never key), loads generated scratch-shaped Markdown (short lines, code fences, and every 25th line a long email paragraph that wraps), inserts 300 keystrokes at the end and 300 in the middle (every 17th a newline, every 23rd a delete), displays synchronously after each, and times it. "Highlight" is a regular-expression stand-in re-applied to ±3,000 characters around each edit, as rendering attributes; tree-sitter is S3. Times are nib's main-thread share of a keystroke, not glass to glass. `nib-launch-appkit` and `nib-launch-swiftui` time process start to first window, 8 runs each. Raw output in `spike/results/s2-*`.

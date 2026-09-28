@@ -179,13 +179,24 @@ final class Document {
         }
         if status.paused == true {
             // Left paused by an earlier session (a crash, or a quit that didn't finish). Pausing
-            // again answers "not supported" (M1), so take it back first, then hold it fresh.
+            // again answers "not supported" (M1), so take it back first, then hold it fresh. The
+            // file may hold saves iCloud never got: upload them, refusing to overwrite a newer one.
             do {
-                try await CloudControl.resume(url, failOnConflict: true)
-                record("resume", detail: "left paused by an earlier session")
+                try await CloudControl.resume(url, .uploadFailingOnConflict)
+                record("resume", detail: "left paused by an earlier session; its saves are uploaded")
             } catch {
-                try? await CloudControl.resume(url, failOnConflict: false)
-                record("resume", detail: "left paused by an earlier session; fail-on-conflict resume failed: \(CloudControl.describe(error))")
+                // The server has something newer. Keep what's here for the conflict sheet, take
+                // the server's version, and let the user choose (M1's two-way flow).
+                let leftover = editor.textView.string
+                try? await CloudControl.resume(url, .takeServerVersion)
+                record("resume", detail: "left paused with unsent saves, and the server has a newer version: \(CloudControl.describe(error))")
+                let presenter = self.presenter
+                let url = self.url
+                if let (data, fingerprint) = try? await io.run({ try FileAccess.read(url, presenter: presenter) }),
+                   TextFile.decode(data).text != leftover {
+                    editCount += 1   // the leftover counts as edits, so it reaches the sheet, not the void
+                    incoming(data, fingerprint: fingerprint, from: "iCloud", fromServer: true)
+                }
             }
         }
         do {
@@ -546,12 +557,16 @@ final class Document {
         for _ in 0..<50 where uploading { try? await Task.sleep(for: .milliseconds(100)) }
         NSFileCoordinator.removeFilePresenter(presenter)
         guard held else { return }
-        record("quit", ms: ms(since: started), detail: "saved; resuming iCloud sync")
+        let clean = !dirty && conflict == nil && uploadedSHA != nil && uploadedSHA == baseFingerprint?.sha256
+        record("quit", ms: ms(since: started), detail: clean ? "everything uploaded; resuming iCloud sync" : "unsent edits; resuming iCloud sync")
+        if !clean { await writeJournal() }   // the next launch compares it with the file (§4.8 G)
         do {
-            try await CloudControl.resume(url, failOnConflict: true)
+            try await CloudControl.resume(url, clean ? .takeServerVersion : .uploadFailingOnConflict)
         } catch {
-            record("resume", detail: "fail-on-conflict resume failed, resuming as is: \(CloudControl.describe(error))")
-            try? await CloudControl.resume(url, failOnConflict: false)
+            // A newer version on the server and unsent edits here: take the server's; the
+            // journal (and iCloud's alternate version) keep ours for the next launch's sheet.
+            record("resume", detail: "upload refused at quit, taking the server's version; this Mac's text is in the journal: \(CloudControl.describe(error))")
+            try? await CloudControl.resume(url, .takeServerVersion)
         }
         held = false
         pausedFiles.remove(url.path)
@@ -562,7 +577,12 @@ final class Document {
     static func settlePausedFiles(except keep: URL) async {
         let list = PausedFiles(url: NibPaths.support.appendingPathComponent("paused.json"))
         for path in list.all() where path != keep.path {
-            try? await CloudControl.resume(URL(fileURLWithPath: path), failOnConflict: false)
+            let url = URL(fileURLWithPath: path)
+            do {
+                try await CloudControl.resume(url, .uploadFailingOnConflict)
+            } catch {
+                try? await CloudControl.resume(url, .takeServerVersion)   // local changes become an alternate version
+            }
             list.remove(path)
         }
     }

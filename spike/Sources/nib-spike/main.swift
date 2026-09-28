@@ -260,10 +260,15 @@ func pause(_ url: URL) -> Error? {
     }.1
 }
 
-func resume(_ url: URL, _ behavior: NSFileManagerResumeSyncBehavior = .preserveLocalChanges) -> Error? {
-    blocking("resumeSync") { (finish: @escaping (Bool?, Error?) -> Void) in
+/// Never `.preserveLocalChanges`: it can let iCloud pick a winner over a newer server
+/// version (S1b, the 07:35 race). Upload failing on conflict; if refused, take the
+/// server's version (local changes kept as an alternate version).
+func resume(_ url: URL, _ behavior: NSFileManagerResumeSyncBehavior = .afterUploadWithFailOnConflict) -> Error? {
+    let error = blocking("resumeSync(\(behavior == .dropLocalChanges ? "take server" : "upload, fail on conflict"))") { (finish: @escaping (Bool?, Error?) -> Void) in
         fm.resumeSyncForUbiquitousItem(at: url, with: behavior) { finish(true, $0) }
     }.1
+    if error != nil, behavior == .afterUploadWithFailOnConflict { return resume(url, .dropLocalChanges) }
+    return error
 }
 
 func uploadNow(_ url: URL) -> (NSFileVersion?, Error?) {

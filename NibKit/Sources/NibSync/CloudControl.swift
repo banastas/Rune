@@ -76,11 +76,22 @@ public enum CloudControl {
         }
     }
 
-    /// Resumes iCloud's own syncing. With `failOnConflict`, a server version newer than
-    /// ours makes it fail (as `isConflict`) instead of iCloud making a conflict copy.
-    public static func resume(_ url: URL, failOnConflict: Bool) async throws {
+    /// How to hand a paused file back to iCloud. There's deliberately no third way:
+    /// `.preserveLocalChanges` lets iCloud "automatically pick the winner" when the server
+    /// has a newer version (Apple's words), and in S1b a resume on one Mac replaced a
+    /// version the other Mac had just uploaded, with no conflict copy. Never use it.
+    public enum ResumeMode: Sendable {
+        /// Unsent edits here: upload them first, and fail (as `isConflict`) if the server
+        /// has a newer version, so nib merges instead of iCloud choosing.
+        case uploadFailingOnConflict
+        /// Everything here is already uploaded: take the server's newest version. Any local
+        /// change iCloud finds is kept as an alternate version, not dropped.
+        case takeServerVersion
+    }
+
+    public static func resume(_ url: URL, _ mode: ResumeMode) async throws {
         try await FileManager.default.resumeSyncForUbiquitousItem(
-            at: url, with: failOnConflict ? .afterUploadWithFailOnConflict : .preserveLocalChanges)
+            at: url, with: mode == .uploadFailingOnConflict ? .afterUploadWithFailOnConflict : .dropLocalChanges)
     }
 
     /// "Upload now", refusing if the server has a newer version. Returns when iCloud has it.
