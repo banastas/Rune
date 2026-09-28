@@ -136,14 +136,17 @@ enum TestHarness {
 
         await type("\n- local edit \(marker)\n", into: document)   // dirty; saving held off by NibSaveIdle
         append("external two \(marker)", to: document.url)
-        let conflicted = await waitFor(8) { document.conflict != nil }
-        log.check(conflicted, "dirty buffer: a conflict, not an overwrite (state \(document.state.line))")
+        let blocked = await waitFor(8) { !ours(document, marker).isEmpty }
+        log.check(blocked && document.editor.textView.string.contains("local edit \(marker)"),
+                  "dirty buffer: both versions in the text, between markers, not an overwrite (\(ours(document, marker).count) block)")
+        let saved = await waitFor(15) {
+            let disk = fileText(document)
+            return disk.contains("local edit \(marker)") && disk.contains("external two \(marker)") && ConflictText.hasMarkers(disk)
+        }
+        log.check(saved, "and in the file, between conflict markers")
+        let resolved = await keepBoth(document, marker)
         let disk = fileText(document)
-        log.check(disk.contains("external two \(marker)") && !disk.contains("local edit \(marker)"), "the file still holds the other app's version")
-        document.resolve(.both)
-        let saved = await waitFor(15) { fileText(document).contains("local edit \(marker)") && fileText(document).contains("external two \(marker)") }
-        log.check(saved, "Keep Both: both versions in the file")
-        log.check(ConflictText.hasMarkers(fileText(document)), "between conflict markers")
+        log.check(resolved && disk.contains("local edit \(marker)") && disk.contains("external two \(marker)"), "⌘3 keeps both: the markers gone, both lines in the file")
         await waitSynced(document, 20)
         log.check(isSynced(document), "and synced (state \(document.state.line))")
     }
@@ -176,12 +179,12 @@ enum TestHarness {
         let saved = await waitFor(8) { fileText(document).contains("unsent \(marker)") && !document.dirty }
         log.check(saved, "saved on this Mac, not uploaded (dirty \(document.dirty), unsent \(document.unsent))")
         append("other version \(marker)", to: document.url)
-        let conflicted = await waitFor(8) { document.conflict != nil }
-        log.check(conflicted, "another version arrived: a conflict, not a replacement (state \(document.state.line))")
+        let blocked = await waitFor(8) { !ours(document, marker).isEmpty }
+        log.check(blocked, "another version arrived: both in the text between markers, not a replacement (\(ours(document, marker).count) block)")
         log.check(document.editor.textView.string.contains("unsent \(marker)"), "this Mac's line is still in the buffer")
-        document.resolve(.both)
-        let both = await waitFor(10) { fileText(document).contains("unsent \(marker)") && fileText(document).contains("other version \(marker)") }
-        log.check(both, "Keep Both: both lines in the file")
+        let both = await keepBoth(document, marker)
+        log.check(both && fileText(document).contains("unsent \(marker)") && fileText(document).contains("other version \(marker)"),
+                  "⌘3 keeps both: both lines in the file, no markers")
     }
 
     /// A version from a pretend other Mac, made (its note says) from the version this Mac
@@ -215,13 +218,13 @@ enum TestHarness {
         try? theirs.write(to: document.url)   // in place, as a fetch puts it there
         var sheet = false
         let arrived = await waitFor(10) {
-            if document.conflict != nil { sheet = true }
+            if !ours(document, marker).isEmpty { sheet = true }
             return view.string.contains("merge theirs \(marker)")
         }
         func count(_ line: String) -> Int { view.string.components(separatedBy: line).count - 1 }
         let lines = (mine: count("- merge mine \(marker)"), theirs: count("- merge theirs \(marker)"))
-        log.check(arrived && !sheet && document.conflict == nil && lines == (1, 1),
-                  "merged without a sheet: both lines, once each (mine \(lines.mine)×, theirs \(lines.theirs)×)")
+        log.check(arrived && !sheet && ours(document, marker).isEmpty && lines == (1, 1),
+                  "merged with no conflict block: both lines, once each (mine \(lines.mine)×, theirs \(lines.theirs)×)")
         log.check(document.notice?.contains("MERGED 1 CHANGE FROM TEST MAC") == true, "the strip says so: \(document.notice ?? "nothing")")
         let merge = events.read().dropFirst(before).last { $0.event == "merge" }
         log.check(merge != nil, "the Sync Log has it: \(merge?.detail ?? "no merge event")")
@@ -313,7 +316,7 @@ enum TestHarness {
         await until(60)
         end()
         view.insertText("\n- clash from \(role) \(marker)\n", replacementRange: view.selectedRange())
-        await answerSheets(document, log, role, "clash", until: t0 + 110)
+        await answerBlocks(document, log, role, "clash", marker, until: t0 + 110)
         await until(115)
         document.becameActive()   // as if you looked at this Mac again
         await until(125)
@@ -322,6 +325,7 @@ enum TestHarness {
         func count(_ line: String) -> Int { view.string.components(separatedBy: line).count - 1 }
         let clashes = (a: count("- clash from a \(marker)"), b: count("- clash from b \(marker)"))
         log.check(clashes == (1, 1), "\(role): both clash lines are here, once each (a \(clashes.a)×, b \(clashes.b)×)")
+        log.check(ours(document, marker).isEmpty && noBlocksInFile(document, marker), "\(role): the block was resolved (Keep Both), here too")
 
         // Then both type at the same moment in different places, a first in the file, b last:
         // the Mac whose upload is refused merges without asking (§4.7, §4.8 A).
@@ -335,14 +339,14 @@ enum TestHarness {
             end()
             view.insertText("\n- apart from b \(marker)\n", replacementRange: view.selectedRange())
         }
-        let sheets = await answerSheets(document, log, role, "apart", until: t0 + 180)
+        let sheets = await answerBlocks(document, log, role, "apart", marker, until: t0 + 180)
         await until(185)
         document.becameActive()
         await until(195)
         let merges = events.read().dropFirst(before).filter { $0.event == "merge" }
         for merge in merges { log.line("\(role): merged by itself · \(merge.detail ?? "")") }
         let apart = (a: count("- apart from a \(marker)"), b: count("- apart from b \(marker)"))
-        log.check(apart == (1, 1) && sheets == 0, "\(role): both apart lines are here, once each, with no sheet (a \(apart.a)×, b \(apart.b)×, sheets \(sheets))")
+        log.check(apart == (1, 1) && sheets == 0, "\(role): both apart lines are here, once each, with no conflict block (a \(apart.a)×, b \(apart.b)×, blocks written \(sheets))")
         log.check(view.string.hasPrefix("- apart from a \(marker)\n"), "\(role): a's line is first in the file, b's last")
         let expected = TextFile.encode(view.string, as: document.format)
         log.check((try? Data(contentsOf: document.url)) == expected, "\(role): the file holds exactly the buffer")
@@ -351,28 +355,56 @@ enum TestHarness {
         await until(205)
     }
 
-    /// Answers each conflict sheet with Keep Both once it has been up 5 s, as a person would
-    /// take a moment (time for a late note to merge it by itself). Returns how many it answered.
+    /// Blocks this Mac wrote (a "conflict" in its Sync Log) are resolved with Keep Both once
+    /// they've been in the text 5 s, as a person would take a moment; blocks that arrive from
+    /// the other Mac are left for it, whose resolution arrives in turn. Returns how many
+    /// times this Mac wrote blocks.
     @discardableResult
-    static func answerSheets(_ document: Document, _ log: HarnessLog, _ role: String, _ phase: String, until deadline: Double) async -> Int {
-        var answered = 0, since: Date?
+    static func answerBlocks(_ document: Document, _ log: HarnessLog, _ role: String, _ phase: String, _ marker: String, until deadline: Double) async -> Int {
+        let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
+        let before = events.read().count
+        var written = 0, since: Date?
         while Date().timeIntervalSince1970 < deadline {   // room for an upload that times out (15 s) and its retry
-            if document.conflict == nil {
-                if since != nil { log.line("\(role): \(phase) sheet went by itself (its note came: merged)") }
-                since = nil
-            } else if let up = since {
-                if Date().timeIntervalSince(up) >= 5 {
-                    log.line("\(role): \(phase) conflict sheet · Keep Both\(document.conflict?.merged != nil ? " (three-way)" : "")")
-                    document.resolve(.both)
-                    answered += 1
-                    since = nil
-                }
-            } else {
+            let conflicts = events.read().dropFirst(before).filter { $0.event == "conflict" }.count
+            if conflicts > written {
+                written = conflicts
                 since = Date()
+                let n = ours(document, marker).count
+                log.line("\(role): \(phase) conflict · \(n) block\(n == 1 ? "" : "s") in the text\(document.mergedAroundBlocks ? " (three-way)" : "")")
+            }
+            if let up = since, Date().timeIntervalSince(up) >= 5, !ours(document, marker).isEmpty {
+                let resolved = await keepBoth(document, marker)
+                log.line("\(role): \(phase) blocks · ⌘3 Keep Both\(resolved ? "" : " · FAILED")")
+                since = nil
             }
             try? await Task.sleep(for: .milliseconds(200))
         }
-        return answered
+        return written
+    }
+
+    /// This run's blocks: the ones with its marker in them. (The test file may hold others.)
+    static func ours(_ document: Document, _ marker: String) -> [ConflictBlock] {
+        let text = document.editor.textView.string as NSString
+        return document.blocks.filter { text.substring(with: $0.range).contains(marker) }
+    }
+
+    /// No block in the file with this run's marker in it.
+    static func noBlocksInFile(_ document: Document, _ marker: String) -> Bool {
+        let disk = fileText(document)
+        return !ConflictText.blocks(in: disk).contains { (disk as NSString).substring(with: $0.range).contains(marker) }
+    }
+
+    /// ⌘3 in each of this run's blocks, as the Conflicts menu does: true once the file has none.
+    static func keepBoth(_ document: Document, _ marker: String) async -> Bool {
+        let view = document.editor.textView
+        for _ in 0..<20 {
+            guard let block = ours(document, marker).first else { break }
+            view.setSelectedRange(NSRange(location: block.first.location, length: 0))
+            guard await waitFor(2, { document.caretBlock != nil }) else { return false }
+            document.resolveBlock(.both)
+            await endOfEvent(view)
+        }
+        return await waitFor(15) { noBlocksInFile(document, marker) }
     }
 
     /// Puts sample text on screen and holds still for a screenshot; also renders the
@@ -380,11 +412,15 @@ enum TestHarness {
     static func snapshot(_ document: Document, _ log: HarnessLog) async {
         await waitReady(document)
         let view = document.editor.textView
-        let sample = "## Deploy\n```bash\nssh me@seedbox 'df -h ~/files'\n```\n\n## Email · Q4 vendor\nHi Sam, thanks for the quick turnaround on the invoice. We can ship on Friday if QA signs off.\n"
+        var sample = "## Deploy\n```bash\nssh me@seedbox 'df -h ~/files'\n```\n\n## Email · Q4 vendor\nHi Sam, thanks for the quick turnaround on the invoice. We can ship on Friday if QA signs off.\n"
+        if UserDefaults.standard.bool(forKey: "NibSnapshotConflict") {   // the banner and a block (§5.4)
+            sample = "## Email · Q4 vendor\nHi Sam, thanks for the quick turnaround.\n<<<<<<< \(document.device) · 10:42\nWe can ship on Friday if QA signs off.\n=======\nWe can ship Thursday.\n>>>>>>> Bill’s MacBook Air · 10:41\nAlso: invoice attached.\n"
+        }
         view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
         view.insertText(sample, replacementRange: view.selectedRange())
+        await endOfEvent(view)   // its own undo step, so the undo at the end takes out just the sample
         let end = (view.string as NSString).length
-        view.setSelectedRange(NSRange(location: end - 20, length: 0))
+        view.setSelectedRange(NSRange(location: document.blocks.last.map { $0.first.location + 4 } ?? end - 20, length: 0))
         view.scrollRangeToVisible(view.selectedRange())
         await waitSynced(document, 20)
         guard let window = view.window else { log.line("FAIL no window"); return }

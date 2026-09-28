@@ -7,6 +7,7 @@
 // "feature not supported" (M0).
 
 import Foundation
+import NibText
 
 public enum CloudControl {
     public struct Status: Sendable, Equatable {
@@ -26,6 +27,8 @@ public enum CloudControl {
         case current
         /// A newer version, already put in place of the local file; here are its bytes.
         case newer(data: Data, savedBy: String?, modified: Date?)
+        /// iCloud offered a version the caller said to skip (by SHA-256): not put in place.
+        case skipped(sha256: String)
     }
 
     public enum ControlError: Error, Equatable {
@@ -136,14 +139,17 @@ public enum CloudControl {
     /// arrives at a side location: its bytes are read there and it's put in place of the
     /// local file, so a following upload is based on it (the caller has the local edits
     /// in its buffer and journal, and merges before saving again).
-    public static func fetchLatest(_ url: URL) async throws -> FetchResult {
-        try await within(15) { try await fetchLatestUnbounded(url) }
+    /// `skipping`: versions, by SHA-256, the caller knows to be stale. Right after an upload
+    /// iCloud can still offer the version that upload replaced (the two-Mac test at 14:20).
+    public static func fetchLatest(_ url: URL, skipping: Set<String> = []) async throws -> FetchResult {
+        try await within(15) { try await fetchLatestUnbounded(url, skipping: skipping) }
     }
-
-    private static func fetchLatestUnbounded(_ url: URL) async throws -> FetchResult {
+    private static func fetchLatestUnbounded(_ url: URL, skipping: Set<String>) async throws -> FetchResult {
         let version = try await FileManager.default.fetchLatestRemoteVersionOfItem(at: url)
         guard version.url.standardizedFileURL.path != url.standardizedFileURL.path else { return .current }
         let data = try FileAccess.read(version.url).data
+        let sha = Digest.sha256(data)
+        if skipping.contains(sha) { return .skipped(sha256: sha) }
         let savedBy = version.localizedNameOfSavingComputer
         let modified = version.modificationDate
         _ = try version.replaceItem(at: url, options: [])

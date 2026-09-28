@@ -10,6 +10,11 @@ enum OldHope {
     static let selection = color(0x49483E)
     static let inactiveSelection = color(0x3A3A3A)
     static let lineHighlight = color(0x272B34)
+    /// Conflict blocks (§5.4): a dark tint of the one red behind the block, and its marker
+    /// lines in the red's text tint (V3, #C98080), so they read as nib's, not the text's.
+    static let conflictBlock = color(0x2B2124)
+    static let conflictMarker = color(0xC98080)
+    static let conflictBar = color(0xB35C5C)
     static let comment = color(0x848484)
 
     /// SF Mono 13 until M2 imports the Sublime font (HL3).

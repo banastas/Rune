@@ -4,6 +4,7 @@
 
 import AppKit
 import Carbon.HIToolbox
+import NibText
 import SwiftUI
 
 @main
@@ -26,6 +27,7 @@ struct NibApp: App {
                 Button("Save") { Task { await AppDelegate.document.flush(reason: "⌘S") } }
                     .keyboardShortcut("s")
             }
+            ConflictCommands(document: AppDelegate.document)
         }
     }
 }
@@ -119,6 +121,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.apple.screenIsLocked"),
                                                             object: nil, queue: .main) { _ in
             Task { @MainActor in await Self.document.flush(reason: "screen locked") }
+        }
+    }
+}
+
+/// The Conflicts menu (PRD §5.4, §5.12): with the caret in a block, ⌘1 uses the first
+/// version, ⌘2 the second, ⌘3 keeps both; ⌥⌘↓ and ⌥⌘↑ go between blocks.
+struct ConflictCommands: Commands {
+    let document: Document
+
+    var body: some Commands {
+        CommandMenu("Conflicts") {
+            let block = document.caretBlock.flatMap { $0 < document.blocks.count ? document.blocks[$0] : nil }
+            Button(block.map { "Use \($0.firstLabel)" } ?? "Use the First Version") { document.resolveBlock(.first) }
+                .keyboardShortcut("1")
+                .disabled(block == nil)
+            Button(block.map { "Use \($0.secondLabel)" } ?? "Use the Second Version") { document.resolveBlock(.second) }
+                .keyboardShortcut("2")
+                .disabled(block == nil)
+            Button("Keep Both") { document.resolveBlock(.both) }
+                .keyboardShortcut("3")
+                .disabled(block == nil)
+            Divider()
+            Button("Next Conflict") { document.goToBlock(forward: true) }
+                .keyboardShortcut(.downArrow, modifiers: [.command, .option])
+                .disabled(document.blocks.isEmpty)
+            Button("Previous Conflict") { document.goToBlock(forward: false) }
+                .keyboardShortcut(.upArrow, modifiers: [.command, .option])
+                .disabled(document.blocks.isEmpty)
+            Button("Resolve…") { document.goToBlock(forward: true) }
+                .keyboardShortcut("r", modifiers: [.command, .option])
+                .disabled(document.blocks.isEmpty)
         }
     }
 }

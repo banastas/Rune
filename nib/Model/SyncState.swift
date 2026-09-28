@@ -16,8 +16,6 @@ enum SyncState: Equatable {
     case synced(Date)
     /// Nothing wrong, just waiting on something outside nib (W4, L6: never red).
     case waiting(String)
-    /// The file changed elsewhere while there were unsaved edits.
-    case conflict
     case problem(String)
 
     static let clock: DateFormatter = {
@@ -36,7 +34,6 @@ enum SyncState: Equatable {
         case .uploading(let time): "▲ UPLOADING · SAVED \(Self.clock.string(from: time))"
         case .synced(let time): "✓ SYNCED · \(Self.clock.string(from: time))"
         case .waiting(let why): "‖ \(why)"
-        case .conflict: "CHANGED ELSEWHERE WHILE YOU TYPED · NOTHING OVERWRITTEN · CHOOSE A VERSION"
         case .problem(let why): why
         }
     }
@@ -44,7 +41,6 @@ enum SyncState: Equatable {
     /// The muted-red tag in front of the words, when there is one.
     var tag: String? {
         switch self {
-        case .conflict: "✕ CONFLICT"
         case .problem: "✕"
         default: nil
         }
@@ -67,7 +63,6 @@ enum SyncState: Equatable {
         case .uploading: "Uploading to iCloud"
         case .synced(let time): "Synced at \(Self.clock.string(from: time))"
         case .waiting(let why): "Waiting: \(why.lowercased())"
-        case .conflict: "Conflict: the file changed elsewhere while you typed. Nothing was overwritten."
         case .problem(let why): "Problem: \(why.lowercased())"
         }
     }

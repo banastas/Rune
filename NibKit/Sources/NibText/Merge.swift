@@ -27,12 +27,20 @@ public enum Merge {
         let o = ConflictText.lines(base), x = ConflictText.lines(first.text), y = ConflictText.lines(second.text)
         var out: [Substring] = []
         var conflicts = 0, fromX = 0, fromY = 0, withinLine = false
+        /// Lines both sides share at the edges (the blank line both typed before theirs)
+        /// stay outside the markers.
         func block<C: Collection<Substring>>(_ x: C, _ y: C) {
+            let x = Array(x), y = Array(y)
+            var p = 0, q = 0
+            while p < x.count, p < y.count, x[p] == y[p] { p += 1 }
+            while q < x.count - p, q < y.count - p, x[x.count - 1 - q] == y[y.count - 1 - q] { q += 1 }
+            out += x[..<p]
             out.append("<<<<<<< \(first.label)")
-            out += x
+            out += x[p..<(x.count - q)]
             out.append("=======")
-            out += y
+            out += y[p..<(y.count - q)]
             out.append(">>>>>>> \(second.label)")
+            out += x[(x.count - q)...]
             conflicts += 1
         }
         for chunk in chunks(base: o, x, y) {

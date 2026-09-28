@@ -2,8 +2,9 @@
 // model journals it (SY1), saves it in place with compare-and-swap (SY2-SY4),
 // holds the file with an iCloud sync pause and uploads each version itself with
 // fail-on-conflict (§4.3), fetches newer versions when nib becomes active (§4.4),
-// reloads when the file changes and there are no edits (SY5), and stops to ask
-// when it changes while there are (SY6). Nothing is ever overwritten unseen.
+// reloads when the file changes and there are no edits (SY5), and merges when it
+// changes while there are (§4.7): cleanly, or with both versions between conflict
+// markers in the text (SY6, §5.4). Nothing is ever overwritten unseen.
 
 import AppKit
 import Network
@@ -12,19 +13,13 @@ import NibText
 import Observation
 import Security
 
-/// Two versions to choose between (SY6).
-struct Conflict: Identifiable {
-    let id = UUID()
-    /// The buffer: edits made on this Mac.
+/// Blocks written two-way, before a note could prove where both versions came from
+/// (§4.6). If it arrives while the text is as written, the three-way merge replaces them.
+private struct Unproven {
     var mine: ConflictText.Side
-    /// What's in the file now.
     var theirs: ConflictText.Side
-    var theirsFingerprint: Fingerprint?
-    /// Theirs came from iCloud's server (so iCloud already has it), not from an app on this Mac.
-    var theirsFromServer = false
-    /// Keep Both's text when a merge base was proven (§4.7): everything that doesn't overlap
-    /// merged, only the places both changed between markers. Nil: the two-way Keep Both.
-    var merged: Merge.Result?
+    var theirsSHA: String
+    var written: String
 }
 
 @MainActor
@@ -36,7 +31,14 @@ final class Document {
     private(set) var format = FileFormat.standard
     /// A line that shows in the strip for a while ("▼ UPDATED FROM …", "RECOVERED …").
     private(set) var notice: String?
-    var conflict: Conflict?
+    /// The conflict blocks in the buffer (§5.4), kept current as it changes, and the one the
+    /// caret is in: ⌘1, ⌘2 and ⌘3 resolve it.
+    private(set) var blocks: [ConflictBlock] = []
+    private(set) var caretBlock: Int?
+    /// Everything but the blocks merged (a three-way merge wrote them), for the banner.
+    private(set) var mergedAroundBlocks = false
+    /// Escape hides the banner until the blocks change.
+    var bannerHidden = false
     /// iCloud sync is paused for the file and nib uploads it itself (§4.3).
     private(set) var held = false
     private(set) var ready = false
@@ -54,7 +56,17 @@ final class Document {
     @ObservationIgnored private let journalQueue = IOQueue(label: "nib.journal")
 
     /// The version the buffer came from, or was last saved as.
-    @ObservationIgnored private var baseFingerprint: Fingerprint?
+    @ObservationIgnored private var baseFingerprint: Fingerprint? {
+        didSet {
+            guard let old = oldValue?.sha256, let new = baseFingerprint?.sha256, old != new else { return }
+            superseded.insert(old)
+            superseded.remove(new)
+        }
+    }
+    /// Versions this Mac has moved past (earlier bases, by SHA-256), and when it last
+    /// uploaded: just after an upload iCloud can still offer the version it replaced.
+    @ObservationIgnored private var superseded: Set<String> = []
+    @ObservationIgnored private var lastUpload: Date?
     @ObservationIgnored private var editCount = 0
     @ObservationIgnored private var savedEditCount = 0
     @ObservationIgnored private var schedule: SaveSchedule
@@ -87,6 +99,10 @@ final class Document {
     /// Texts of the last few versions this Mac has had, by SHA-256: merge bases (§4.6).
     @ObservationIgnored private var versions: [String: String] = [:]
     @ObservationIgnored private var versionOrder: [String] = []
+    /// Other versions already taken into the buffer (merged, or written between markers):
+    /// the same version arriving again isn't news (the two-Mac test at 13:22).
+    @ObservationIgnored private var incorporated: Set<String> = []
+    @ObservationIgnored private var unproven: Unproven?
     /// Direct file-system watches, behind iCloud's presenters: writers that don't coordinate
     /// (`echo >> file`) went unnoticed by the presenter while a save waited to upload (M1).
     @ObservationIgnored private var fileWatch: DispatchSourceFileSystemObject?
@@ -96,7 +112,7 @@ final class Document {
 
     /// Work on this Mac that no other Mac has: unsaved edits, or, for a held file, a saved
     /// version iCloud hasn't taken yet. Only a buffer with nothing unsent may be replaced by
-    /// another version; anything else goes to the conflict sheet. (Two-Mac test, 09:25: a
+    /// another version; anything else is merged with it. (Two-Mac test, 09:25: a
     /// saved-but-refused version counted as clean and was replaced, losing its line.)
     var unsent: Bool { dirty || (held && uploadedSHA != baseFingerprint?.sha256) }
 
@@ -167,6 +183,7 @@ final class Document {
         editor.textView.string = text
         applying = false
         editor.restoreSelection(for: url)
+        updateBlocks()
         NSFileCoordinator.addFilePresenter(presenter)
         try? FileManager.default.createDirectory(at: Announcement.url(for: url).deletingLastPathComponent(), withIntermediateDirectories: true)
         NSFileCoordinator.addFilePresenter(notePresenter)
@@ -205,16 +222,16 @@ final class Document {
             show("RECOVERED TYPING FROM BEFORE NIB QUIT UNEXPECTEDLY · SAVING IT NOW", for: 20)
             record("recover", size: entry.text.utf8.count, detail: "journal from \(entry.written)")
         } else {
-            // The file changed too: both versions, and the user decides.
+            // The file changed too: both versions between markers, and typing goes on (§4.8 B).
+            let both = ConflictText.keepBoth(.init(text: entry.text, label: "\(device) · \(SyncState.clock.string(from: entry.written))"),
+                                             .init(text: fileText, label: "The file · now"))
             editCount += 1
             applying = true
-            editor.textView.string = entry.text
+            editor.textView.string = both
             applying = false
-            conflict = Conflict(mine: .init(text: entry.text, label: "\(device) · \(SyncState.clock.string(from: entry.written))"),
-                                theirs: .init(text: fileText, label: "The file · now"),
-                                theirsFingerprint: baseFingerprint)
-            state = .conflict
-            record("conflict", detail: "journal and file both changed")
+            updateBlocks()
+            show("✕ TYPING FROM BEFORE NIB QUIT, AND A NEWER FILE · BOTH ARE IN THE TEXT, BETWEEN MARKERS", for: 20)
+            record("conflict", detail: "journal and file both changed: both written between markers")
         }
     }
 
@@ -232,8 +249,8 @@ final class Document {
                 try await CloudControl.resume(url, .uploadFailingOnConflict)
                 record("resume", detail: "left paused by an earlier session; its saves are uploaded")
             } catch {
-                // The server has something newer. Keep what's here for the conflict sheet, take
-                // the server's version, and let the user choose (M1's two-way flow).
+                // The server has something newer. Keep what's here as edits, take the server's
+                // version, and merge the two (with no proven base: both, between markers).
                 let leftover = editor.textView.string
                 try? await CloudControl.resume(url, .takeServerVersion)
                 record("resume", detail: "left paused with unsent saves, and the server has a newer version: \(CloudControl.describe(error))")
@@ -241,7 +258,7 @@ final class Document {
                 let url = self.url
                 if let (data, fingerprint) = try? await io.run({ try FileAccess.read(url, presenter: presenter) }),
                    TextFile.decode(data).text != leftover {
-                    editCount += 1   // the leftover counts as edits, so it reaches the sheet, not the void
+                    editCount += 1   // the leftover counts as edits, so it's merged, not dropped
                     incoming(data, fingerprint: fingerprint, from: "iCloud", fromServer: true)
                 }
             }
@@ -260,16 +277,73 @@ final class Document {
 
     /// From the editor, for every change the user makes.
     func textDidChange() {
+        updateBlocks()
         guard !applying, locked == nil else { return }
         editCount += 1
         schedule.edited()
-        if conflict == nil { state = .editing }
+        state = .editing
         scheduleJournal()
         scheduleSave()
     }
 
     func selectionDidChange(line: Int, column: Int) {
         cursor = (line, column)
+        updateCaretBlock()
+    }
+
+    // MARK: - Conflict blocks (§5.4)
+
+    /// Finds the blocks again after any change to the buffer (a scan, and only when a
+    /// marker is there at all: a few ms at 2.4 MB).
+    private func updateBlocks() {
+        let found = ConflictText.blocks(in: editor.textView.string)
+        if found.count != blocks.count { bannerHidden = false }
+        if found != blocks { blocks = found }
+        if blocks.isEmpty { mergedAroundBlocks = false }
+        editor.highlight(blocks)
+        updateCaretBlock()
+    }
+
+    private func updateCaretBlock() {
+        let caret = editor.textView.selectedRange().location
+        let inside = blocks.firstIndex { caret >= $0.range.location && caret < NSMaxRange($0.range) }
+        if inside != caretBlock { caretBlock = inside }
+    }
+
+    /// ⌘1, ⌘2, ⌘3 with the caret in a block: an edit like typing (journaled, saved, one undo step).
+    func resolveBlock(_ choice: ConflictBlock.Choice) {
+        guard let index = caretBlock, index < blocks.count else { NSSound.beep(); return }
+        let block = blocks[index]
+        let view = editor.textView
+        let kept = ConflictText.resolution(of: block, choice, in: view.string)
+        guard view.shouldChangeText(in: block.range, replacementString: kept) else { return }
+        view.textStorage?.replaceCharacters(in: block.range, with: kept)
+        view.didChangeText()
+        let label = choice == .first ? block.firstLabel : choice == .second ? block.secondLabel : "both"
+        view.undoManager?.setActionName(choice == .both ? "Keep Both" : "Use \(label)")
+        view.setSelectedRange(NSRange(location: block.range.location + (kept as NSString).length, length: 0))
+        view.scrollRangeToVisible(view.selectedRange())
+        record("resolve", detail: choice == .both ? "a block: both" : "a block: \(label)'s")
+    }
+
+    /// ⌥⌘↓ and ⌥⌘↑ (and Resolve…, until the merge view): the caret to the next block's first side.
+    func goToBlock(forward: Bool) {
+        guard !blocks.isEmpty else { NSSound.beep(); return }
+        let caret = editor.textView.selectedRange().location
+        let target = forward
+            ? blocks.first { $0.range.location > caret } ?? blocks[0]
+            : blocks.last { NSMaxRange($0.range) <= caret } ?? blocks[blocks.count - 1]
+        let view = editor.textView
+        view.setSelectedRange(NSRange(location: target.first.location, length: 0))
+        view.scrollRangeToVisible(target.range)
+        view.window?.makeFirstResponder(view)
+    }
+
+    /// Escape: the banner goes until the blocks change. False if it wasn't showing.
+    func hideBanner() -> Bool {
+        guard !blocks.isEmpty, !bannerHidden else { return false }
+        bannerHidden = true
+        return true
     }
 
     private func scheduleJournal() {
@@ -315,7 +389,7 @@ final class Document {
     }
 
     func save(reason: String) async {
-        guard ready, locked == nil, dirty, conflict == nil else { return }
+        guard ready, locked == nil, dirty else { return }
         if editor.textView.hasMarkedText() {   // mid-composition (IME): wait for the commit
             scheduleSave(after: 0.3)
             return
@@ -342,7 +416,7 @@ final class Document {
                     schedule.saved()
                     journal.clear(path: url.path)
                 }
-                if conflict == nil { state = dirty ? .editing : .saved(lastSaved) }
+                state = dirty ? .editing : .saved(lastSaved)
                 record("save", size: data.count, sha: fingerprint.sha256, ms: ms(since: started), detail: reason)
                 uploadNow = reason != "debounce"
             case .diskChanged(let onDisk, let fingerprint):
@@ -358,7 +432,7 @@ final class Document {
             return
         }
         saving = false
-        if dirty, conflict == nil { scheduleSave() }
+        if dirty { scheduleSave() }
         if let uploadNow { await upload(now: uploadNow) }
     }
 
@@ -366,7 +440,6 @@ final class Document {
 
     /// At most every 3 s while typing continues, one at a time; `now` skips the spacing.
     private func upload(now: Bool) async {
-        guard conflict == nil else { return }
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "NibHoldUploads") { return }   // the "unsent" scenario
         #endif
@@ -388,16 +461,17 @@ final class Document {
         uploading = true
         lastUploadStart = Date()
         let sha = baseFingerprint?.sha256
-        if conflict == nil, !dirty { state = .uploading(lastSaved) }
+        if !dirty { state = .uploading(lastSaved) }
         let started = Date()
         do {
             _ = try await CloudControl.upload(url)
             let parent = uploadedSHA
             uploadedSHA = sha
+            lastUpload = Date()
             uploadBackoff = 10
             record("upload", sha: sha, ms: ms(since: started))
             if let sha { announce(sha, parent: parent) }
-            if conflict == nil, !dirty, baseFingerprint?.sha256 == sha { state = .synced(Date()) }
+            if !dirty, baseFingerprint?.sha256 == sha { state = .synced(Date()) }
         } catch where CloudControl.isConflict(error) {
             record("upload", ms: ms(since: started), detail: "refused: the server has a newer version")
             uploading = false
@@ -406,11 +480,9 @@ final class Document {
         } catch {
             let noAnswer = CloudControl.isNoAnswer(error)
             record("upload", ms: ms(since: started), detail: noAnswer ? "no answer in 15 s; retrying" : "failed: \(CloudControl.describe(error))")
-            if conflict == nil {
-                state = .waiting(!online ? "WAITING FOR NETWORK · SAVED LOCALLY"
-                                 : noAnswer ? "ICLOUD ISN'T ANSWERING · SAVED LOCALLY · RETRYING"
-                                 : "ICLOUD ISN'T TAKING UPLOADS · SAVED LOCALLY · RETRYING")
-            }
+            state = .waiting(!online ? "WAITING FOR NETWORK · SAVED LOCALLY"
+                             : noAnswer ? "ICLOUD ISN'T ANSWERING · SAVED LOCALLY · RETRYING"
+                             : "ICLOUD ISN'T TAKING UPLOADS · SAVED LOCALLY · RETRYING")
             // No answer: retry soon; the retry is typically refused or accepted at once.
             let delay = noAnswer ? 2 : uploadBackoff
             uploadBackoff = min(uploadBackoff * 2, 300)
@@ -439,11 +511,18 @@ final class Document {
         fetches += 1
         defer { fetches -= 1 }
         do {
-            let result = try await CloudControl.fetchLatest(url)
+            // Within 30 s of this Mac's own upload, a version it has already moved past is iCloud
+            // lagging, not news (the two-Mac test at 14:20 showed an old version for 24 s). Later
+            // it's taken as before; another Mac going back to it comes with its note anyway.
+            let recent = lastUpload.map { Date().timeIntervalSince($0) < 30 } ?? false
+            let result = try await CloudControl.fetchLatest(url, skipping: recent ? superseded : [])
             switch result {
+            case .skipped(let sha):
+                record("fetch", sha: sha, detail: "iCloud offered a version this Mac had moved past, just after uploading: left as is (\(reason))")
+                fallthrough
             case .current:
                 // Nothing newer anywhere, and iCloud has what's here: synced.
-                if conflict == nil, !dirty, !uploading, uploadedSHA != nil, uploadedSHA == baseFingerprint?.sha256 {
+                if !dirty, !uploading, uploadedSHA != nil, uploadedSHA == baseFingerprint?.sha256 {
                     state = .synced(Date())
                 }
             case .newer(let data, let savedBy, _):
@@ -491,10 +570,10 @@ final class Document {
 
     /// A version nib didn't write. No local edits: it replaces the buffer. Edits: a conflict.
     private func incoming(_ data: Data, fingerprint: Fingerprint?, from source: String, fromServer: Bool = false) {
-        // Not news: the version the buffer's edits start from, or the one the conflict sheet
-        // is about. The two-Mac test at 13:22 merged one version twice, then its own save.
+        // Not news: the version the buffer's edits start from, or one already taken in (merged,
+        // or between markers). The two-Mac test at 13:22 merged one version twice, then its own save.
         if let sha = fingerprint?.sha256 {
-            if sha == conflict?.theirsFingerprint?.sha256 { return }
+            if incorporated.contains(sha) { return }
             if sha == baseFingerprint?.sha256 {
                 baseFingerprint = fingerprint
                 if fromServer { uploadedSHA = sha }
@@ -512,6 +591,7 @@ final class Document {
         }
         if !unsent {
             apply(theirs)
+            record("update", sha: fingerprint?.sha256, detail: "nothing unsent here: the buffer is now \(source)'s version")
             baseFingerprint = fingerprint
             show("▼ UPDATED FROM \(source.uppercased()) · \(SyncState.clock.string(from: Date()))", for: 10)
             if fromServer {
@@ -526,48 +606,59 @@ final class Document {
         }
         // Made from the version this Mac last had on the server, as its note says (§4.6): a
         // three-way merge from there. Clean, it's applied like an edit (§4.8 A); overlapping,
-        // the sheet's Keep Both uses it. Without that proof, the two-way sheet as before: a
-        // guessed base can undo edits without a trace.
+        // the places both changed go between markers (§4.8 B). Without that proof, both whole
+        // versions go between markers: a guessed base can undo edits without a trace.
         let proven = provenBase(for: fingerprint?.sha256)
         let clock = SyncState.clock.string(from: Date())
+        let who = proven?.device ?? source.capitalized
         let mySide = ConflictText.Side(text: mine, label: "\(device) · \(clock)")
-        let theirSide = ConflictText.Side(text: theirs, label: "\(proven?.device ?? source.capitalized) · \(clock)")
-        var merged: Merge.Result?
+        let theirSide = ConflictText.Side(text: theirs, label: "\(who) · \(clock)")
+        let sha = fingerprint?.sha256
         if let proven {
             let result = Merge.threeWay(base: proven.text, mySide, theirSide)
             if result.isClean {
-                applyMerge(result, fingerprint: fingerprint, from: proven.device)
-                return
+                applyMerge(result, sha: sha, from: proven.device)
+            } else {
+                writeBlocks(result.text, places: result.conflicts, merged: true, from: who)
             }
-            merged = result
+        } else {
+            writeBlocks(ConflictText.keepBoth(mySide, theirSide), places: 1, merged: false, from: who)
+            if let sha { unproven = Unproven(mine: mySide, theirs: theirSide, theirsSHA: sha, written: editor.textView.string) }
         }
-        saveTask?.cancel()
-        conflict = Conflict(mine: mySide, theirs: theirSide, theirsFingerprint: fingerprint,
-                            theirsFromServer: fromServer || proven != nil, merged: merged)
-        state = .conflict
-        record("conflict", detail: "changed by \(proven?.device ?? source) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have")"
-               + (merged.map { "; merged from the version both had, \($0.conflicts) place\($0.conflicts == 1 ? "" : "s") overlap" } ?? ""))
+        // Either way the file holds theirs now; with a proven base, so does the server, and the
+        // result is made from it: the next merge starts there.
+        baseFingerprint = fingerprint
+        if proven != nil { uploadedSHA = sha }
+        if let sha { incorporated.insert(sha) }
+        record("conflict", sha: sha, detail: "changed by \(who) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have"): "
+               + (proven != nil ? "merged from the version both had" : "no version both had is known, so both whole versions")
+               + ", between markers")
+    }
+
+    /// Both versions of the places both changed, between markers in the text, where they sync
+    /// and last (§4.7, §4.8 B). No dialog waits: typing goes on, and ⌘1, ⌘2, ⌘3 resolve each block.
+    private func writeBlocks(_ text: String, places: Int, merged: Bool, from who: String) {
+        replaceBuffer(with: text, action: "Conflict with \(who)")
+        mergedAroundBlocks = merged
+        show("✕ CONFLICT WITH \(who.uppercased()) · \(places) PLACE\(places == 1 ? "" : "S") · BOTH VERSIONS ARE IN THE TEXT", for: 10)
         NSApp.requestUserAttention(.informationalRequest)
     }
 
-    /// The sheet is up for a version whose note has only now arrived: if it proves a base,
-    /// merge after all. Clean, the sheet goes and the merge is applied; overlapping, Keep
-    /// Both gets the three-way text.
-    private func mergeIfProven() {
-        guard let conflict, conflict.merged == nil, let proven = provenBase(for: conflict.theirsFingerprint?.sha256) else { return }
-        var theirs = conflict.theirs
+    /// Blocks were written two-way, and now a note proves the base: if the text is as it was
+    /// written, the three-way merge replaces them (clean, or with smaller blocks).
+    private func upgradeIfProven() {
+        guard let pending = unproven, let proven = provenBase(for: pending.theirsSHA) else { return }
+        unproven = nil
+        guard editor.textView.string == pending.written else { return }   // edited since: left as written
+        var theirs = pending.theirs
         theirs.label = "\(proven.device) · \(SyncState.clock.string(from: Date()))"
-        let result = Merge.threeWay(base: proven.text, conflict.mine, theirs)
-        if result.isClean {
-            self.conflict = nil
-            record("conflict", detail: "its note arrived: merged after all")
-            applyMerge(result, fingerprint: conflict.theirsFingerprint, from: proven.device)
-        } else {
-            self.conflict?.theirs = theirs
-            self.conflict?.theirsFromServer = true
-            self.conflict?.merged = result
-            record("conflict", detail: "its note arrived: merged from the version both had, \(result.conflicts) place\(result.conflicts == 1 ? "" : "s") overlap")
-        }
+        let result = Merge.threeWay(base: proven.text, pending.mine, theirs)
+        replaceBuffer(with: result.text, action: "Merge from \(proven.device)")
+        mergedAroundBlocks = !result.isClean
+        record("merge", sha: pending.theirsSHA, detail: "its note arrived: merged from the version both had, "
+               + (result.isClean ? "cleanly" : "\(result.conflicts) place\(result.conflicts == 1 ? "" : "s") between markers"))
+        show(result.isClean ? "✓ MERGED FROM \(proven.device.uppercased()) AFTER ALL · ⌘Z UNDOES"
+                            : "✕ CONFLICT WITH \(proven.device.uppercased()) · NARROWED TO \(result.conflicts) PLACE\(result.conflicts == 1 ? "" : "S")", for: 10)
     }
 
     /// The base for a three-way merge with version `sha`, when its note proves one: `sha`
@@ -580,26 +671,29 @@ final class Document {
     }
 
     /// A clean merge, applied as one edit (§4.7): one undo step, the strip says so for 10 s,
-    /// then the normal save and upload. The file holds theirs, and the note says the server does.
-    private func applyMerge(_ result: Merge.Result, fingerprint: Fingerprint?, from who: String) {
-        saveTask?.cancel()
-        let view = editor.textView
-        // Its own undo group: AppKit's automatic ones close with an event, and a merge
-        // doesn't come with one, so the next keystroke would otherwise join it.
-        view.breakUndoCoalescing()
-        view.undoManager?.beginUndoGrouping()
-        apply(result.text, undoable: true)
-        view.undoManager?.setActionName("Merge from \(who)")
-        view.undoManager?.endUndoGrouping()
-        view.breakUndoCoalescing()
-        editCount += 1
-        baseFingerprint = fingerprint
-        uploadedSHA = fingerprint?.sha256
+    /// then the normal save and upload.
+    private func applyMerge(_ result: Merge.Result, sha: String?, from who: String) {
+        replaceBuffer(with: result.text, action: "Merge from \(who)")
         let n = result.changesFromSecond
         let changes = "\(n) CHANGE\(n == 1 ? "" : "S")"
         show("✓ MERGED \(changes) FROM \(who.uppercased()) · ⌘Z UNDOES", for: 10)
-        record("merge", sha: fingerprint?.sha256,
+        record("merge", sha: sha,
                detail: "clean: \(changes.lowercased()) from \(who) onto this Mac's edits\(result.withinLine ? ", merged within a line" : "")")
+    }
+
+    /// Nib's own change to the buffer as one edit: its own undo step (AppKit's automatic
+    /// groups close with an event, and a merge doesn't come with one, so the next keystroke
+    /// would otherwise join it), journaled, then the normal save and upload.
+    private func replaceBuffer(with text: String, action: String) {
+        saveTask?.cancel()
+        let view = editor.textView
+        view.breakUndoCoalescing()
+        view.undoManager?.beginUndoGrouping()
+        apply(text, undoable: true)
+        view.undoManager?.setActionName(action)
+        view.undoManager?.endUndoGrouping()
+        view.breakUndoCoalescing()
+        editCount += 1
         Task {
             await writeJournal()
             await flush(reason: "merge")
@@ -613,35 +707,6 @@ final class Document {
         versionOrder.append(sha)
         if versionOrder.count > 8, let i = versionOrder.firstIndex(where: { $0 != uploadedSHA }) {
             versions[versionOrder.remove(at: i)] = nil
-        }
-    }
-
-    enum Choice: String { case mine, theirs, both }
-
-    /// The conflict sheet's answer. The file already holds theirs; the base becomes it.
-    func resolve(_ choice: Choice) {
-        guard let conflict else { return }
-        baseFingerprint = conflict.theirsFingerprint
-        self.conflict = nil
-        switch choice {
-        case .mine:
-            editCount += 1
-        case .theirs:
-            apply(conflict.theirs.text)
-            savedEditCount = editCount
-            if conflict.theirsFromServer { uploadedSHA = conflict.theirsFingerprint?.sha256 }
-            journal.clear(path: url.path)
-            state = .saved(Date())
-        case .both:
-            apply(conflict.merged?.text ?? ConflictText.keepBoth(conflict.mine, conflict.theirs), undoable: true)
-            editCount += 1
-            // A three-way merge holds theirs, which the server has: the next merge starts there.
-            if conflict.merged != nil { uploadedSHA = conflict.theirsFingerprint?.sha256 }
-        }
-        record("resolve", detail: choice == .both && conflict.merged != nil ? "both, three-way" : choice.rawValue)
-        Task {
-            await writeJournal()
-            await flush(reason: "resolve")
         }
     }
 
@@ -660,6 +725,7 @@ final class Document {
         applying = false
         let length = (text as NSString).length
         view.setSelectedRange(NSRange(location: min(selection.location, length), length: 0))
+        updateBlocks()
     }
 
     // MARK: - The "latest version" note (SY14, S1b)
@@ -686,12 +752,12 @@ final class Document {
         let url = self.url
         guard let note = await io.run({ Announcement.read(for: url, fresh: true) }) else { return }
         lastNote = note
-        mergeIfProven()
+        upgradeIfProven()
         guard note.device != device, !handledAnnouncements.contains(note.sha256),
               note.sha256 != baseFingerprint?.sha256, note.sha256 != uploadedSHA else { return }
         handledAnnouncements.insert(note.sha256)
         record("announce", sha: note.sha256, detail: "\(note.device) uploaded a version this Mac doesn't have (\(reason))")
-        guard !unsent, conflict == nil, !saving, !uploading else { return }
+        guard !unsent, !saving, !uploading else { return }
         await refresh(announced: note)
     }
 
@@ -777,7 +843,7 @@ final class Document {
 
     /// Unheld files: iCloud's own upload state, pushed through the presenter.
     func cloudAttributesChanged() {
-        guard ready, !held, conflict == nil, !dirty else { return }
+        guard ready, !held, !dirty else { return }
         let status = CloudControl.status(url)
         if status.uploading { state = .uploading(lastSaved) } else if status.uploaded { state = .synced(Date()) }
     }
@@ -844,7 +910,7 @@ final class Document {
         fileWatch?.cancel()
         noteWatch?.cancel()
         guard held else { return }
-        let clean = !dirty && conflict == nil && uploadedSHA != nil && uploadedSHA == baseFingerprint?.sha256
+        let clean = !dirty && uploadedSHA != nil && uploadedSHA == baseFingerprint?.sha256
         record("quit", ms: ms(since: started), detail: clean ? "everything uploaded; resuming iCloud sync" : "unsent edits; resuming iCloud sync")
         if !clean { await writeJournal() }   // the next launch compares it with the file (§4.8 G)
         do {

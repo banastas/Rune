@@ -63,6 +63,13 @@ import Testing
         #expect(r.conflicts == 1)
     }
 
+    @Test func sharedBlankLinesStayOutsideTheBlock() {
+        // As the two-Mac test types it: a blank line, then each Mac's own.
+        let base = "notes\n- lead\n"
+        let r = Merge.threeWay(base: base, mini(base + "\n- clash from b\n"), air(base + "\n- clash from a\n"))
+        #expect(r.text == "notes\n- lead\n\n<<<<<<< Air · 10:42\n- clash from a\n=======\n- clash from b\n>>>>>>> Mini · 10:41\n")
+    }
+
     @Test func sidesInEitherOrderGiveTheSameBytes() {
         let base = "a\nb\nc\nd\ne\n"
         let x = air("A\nb\nc\nd\ne\nair\n"), y = mini("a\nb\nC\nd\ne\nmini\n")

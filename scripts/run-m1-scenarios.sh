@@ -25,6 +25,13 @@ else
     -destination "platform=macOS" -allowProvisioningUpdates -quiet build
 fi
 APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
+
+# A fresh test file (generated text): earlier runs leave conflict blocks in it, and the
+# banner and the scenarios would see them all.
+if [[ $SIGN == adhoc ]]; then TESTFILE="$HOME/Library/Mobile Documents/com~apple~CloudDocs/nib-spike/scratch-test.md"
+else TESTFILE="$HOME/Library/Mobile Documents/iCloud~com~banastas~nib/Documents/Test/scratch-test.md"; fi
+mkdir -p "$(dirname "$TESTFILE")"
+printf 'Nib test file: generated text for the scenarios, started afresh by run-m1-scenarios.sh at %s.\n' "$(date '+%Y-%m-%d %H:%M:%S')" > "$TESTFILE"
 LOGS=build/scenarios
 mkdir -p "$LOGS"
 

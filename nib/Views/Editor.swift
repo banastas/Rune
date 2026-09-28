@@ -48,11 +48,30 @@ final class Editor: NSObject, NSTextViewDelegate {
         textView.selectedTextAttributes = [.backgroundColor: OldHope.selection]
         textView.typingAttributes = [.font: OldHope.font, .foregroundColor: OldHope.foreground]
         textView.delegate = self
+        textView.onEscape = { [weak self] in self?.document?.hideBanner() ?? false }
         textView.setAccessibilityLabel("Scratch")
         scrollView.documentView = textView
     }
 
     func undoManager(for view: NSTextView) -> UndoManager? { undo }
+
+    private var highlighted: [ConflictBlock] = []
+
+    /// Conflict blocks (§5.4): a full-width panel behind each, drawn with the line highlight,
+    /// and its marker lines in the red's text tint as a TextKit 2 rendering attribute, so the
+    /// text itself stays plain.
+    func highlight(_ blocks: [ConflictBlock]) {
+        guard !(blocks.isEmpty && highlighted.isEmpty), let layout = textView.textLayoutManager else { return }
+        highlighted = blocks
+        textView.blockRanges = blocks.map(\.range)
+        layout.removeRenderingAttribute(.foregroundColor, for: layout.documentRange)
+        for block in blocks {
+            for marker in block.markers {
+                if let range = textView.textRange(marker) { layout.addRenderingAttribute(.foregroundColor, value: OldHope.conflictMarker, for: range) }
+            }
+        }
+        textView.needsDisplay = true
+    }
 
     func textDidChange(_ notification: Notification) {
         document?.textDidChange()
@@ -103,6 +122,16 @@ final class Editor: NSObject, NSTextViewDelegate {
 
 /// Plain text in, plain text out (PT1, PT2), and Sublime's current-line highlight.
 final class NibTextView: NSTextView {
+    /// Escape, before the text view's own use of it: true if it was handled (the banner hidden).
+    var onEscape: (() -> Bool)?
+    /// Conflict blocks, drawn as panels behind the text with a bar in the one red at the left.
+    var blockRanges: [NSRange] = []
+
+    override func cancelOperation(_ sender: Any?) {
+        if onEscape?() == true { return }
+        super.cancelOperation(sender)
+    }
+
     /// ⌘V: the clipboard's text only, line endings made "\n". Files copied in Finder
     /// paste as their paths, one per line.
     override func paste(_ sender: Any?) {
@@ -126,12 +155,39 @@ final class NibTextView: NSTextView {
         super.writeSelection(to: pboard, types: [.string])
     }
 
-    /// The caret's visual line, in An Old Hope's line highlight (#272B34).
+    /// Conflict blocks' panels, then the caret's visual line in An Old Hope's line highlight (#272B34).
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
+        for range in blockRanges {
+            guard let band = bandRect(range), band.intersects(rect) else { continue }
+            OldHope.conflictBlock.setFill()
+            band.intersection(rect).fill()
+            OldHope.conflictBar.setFill()
+            NSRect(x: band.minX, y: band.minY, width: 3, height: band.height).intersection(rect).fill()
+        }
         guard selectedRange().length == 0, let line = currentLineRect() else { return }
         OldHope.lineHighlight.setFill()
         line.intersection(rect).fill()
+    }
+
+    func textRange(_ range: NSRange) -> NSTextRange? {
+        guard let content = textLayoutManager?.textContentManager,
+              let start = content.location(content.documentRange.location, offsetBy: range.location),
+              let end = content.location(start, offsetBy: range.length) else { return nil }
+        return NSTextRange(location: start, end: end)
+    }
+
+    /// The full-width band a range's lines take up.
+    private func bandRect(_ range: NSRange) -> NSRect? {
+        guard let layout = textLayoutManager, let textRange = textRange(range) else { return nil }
+        var top = CGFloat.greatestFiniteMagnitude, bottom = -CGFloat.greatestFiniteMagnitude
+        layout.enumerateTextSegments(in: textRange, type: .standard, options: []) { _, frame, _, _ in
+            top = min(top, frame.minY)
+            bottom = max(bottom, frame.maxY)
+            return true
+        }
+        guard top < bottom else { return nil }
+        return NSRect(x: 0, y: textContainerOrigin.y + top, width: bounds.width, height: bottom - top)
     }
 
     private func currentLineRect() -> NSRect? {

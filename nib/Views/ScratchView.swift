@@ -1,5 +1,5 @@
 // The scratch window (PRD §5.1): the text in An Old Hope, the status strip under it,
-// and the conflict sheet when there is one. Focus leaving the window saves (§4.3 step 3);
+// and the conflict banner above it while the text holds conflict blocks (§5.4). Focus leaving the window saves (§4.3 step 3);
 // focus arriving checks for a newer version (§4.4).
 
 import AppKit
@@ -12,6 +12,9 @@ struct ScratchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if !document.blocks.isEmpty, !document.bannerHidden {
+                ConflictBanner(document: document)
+            }
             EditorHost(editor: document.editor)
             StatusStrip(document: document)
         }
@@ -19,11 +22,6 @@ struct ScratchView: View {
         .navigationTitle(document.url.lastPathComponent)
         .navigationSubtitle(subtitle)
         .frame(minWidth: 480, minHeight: 320)
-        // Only a resolution clears a conflict; the sheet can't be dismissed without one.
-        .sheet(item: Binding(get: { document.conflict }, set: { _ in })) { conflict in
-            ConflictSheet(document: document, conflict: conflict)
-                .interactiveDismissDisabled()
-        }
         .onAppear { AppDelegate.openScratchWindow = { openWindow(id: "scratch") } }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { note in
             guard isScratchWindow(note.object) else { return }

@@ -46,7 +46,7 @@ struct StatusStrip: View {
     private var stateColor: Color {
         if document.notice != nil { return HUDColor.bright }
         switch document.state {
-        case .conflict, .problem: return HUDColor.failureText
+        case .problem: return HUDColor.failureText
         default: return document.state.isDim ? HUDColor.dim : HUDColor.bright
         }
     }
@@ -65,7 +65,6 @@ struct StatusStrip: View {
         case .synced: return "iCloud has this exact version. Other Macs get it when they check, which Nib does whenever it comes forward. " + hold
         case .saved: return "Saved on this Mac. iCloud doesn't have this version yet. " + hold
         case .uploading: return "Uploading this version to iCloud. " + hold
-        case .conflict: return "The file changed on another Mac or in another app while you had unsaved edits. Nothing was overwritten: choose a version."
         default: return document.state.spoken + ". " + hold
         }
     }
