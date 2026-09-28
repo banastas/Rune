@@ -1,0 +1,3 @@
+==> Building the probe on Bill’s MacBook Air
+.build/NibSpike.app: replacing existing signature
+==> Role a on Bill’s MacBook Air; plan part2; starting at 23:40 (in 885 s). Leave both Macs awake and online.

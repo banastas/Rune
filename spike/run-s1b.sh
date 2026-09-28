@@ -5,13 +5,14 @@
 #   Mac A:  spike/run-s1b.sh a 23:10
 #   Mac B:  spike/run-s1b.sh b 23:10
 #
-# Takes about 11 minutes after the start time. Everything happens in iCloud Drive/nib-spike/
+# Takes about 11 minutes after the start time (part2, the last three tests only: about 4). Everything happens in iCloud Drive/nib-spike/
 # on generated files. Mac B also runs the M1 single-Mac checks at the end. Paste the summary
 # printed at the end (also in spike/results/s1b-<role>-summary.txt).
 set -euo pipefail
 cd "$(dirname "$0")"
-role=${1:?usage: run-s1b.sh a|b HH:MM}
-at=${2:?usage: run-s1b.sh a|b HH:MM}
+role=${1:?usage: run-s1b.sh a|b HH:MM [all|part2]}
+at=${2:?usage: run-s1b.sh a|b HH:MM [all|part2]}
+plan=${3:-all}   # part2: only the paused-file, conflict and attribute tests (about 4 minutes)
 [[ $role == a || $role == b ]] || { echo "role is a or b"; exit 2; }
 export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}
 
@@ -38,8 +39,16 @@ phase() {   # phase <seconds after start> <name> <mode and options…>
   grep RESULT "$out-$name.txt" || echo "   (no RESULT line; see $out-$name.txt)"
 }
 
-echo "==> Role $role on $host; starting at $at (in $(( T0 - $(date +%s) )) s). Leave both Macs awake and online."
-if [[ $role == a ]]; then
+echo "==> Role $role on $host; plan $plan; starting at $at (in $(( T0 - $(date +%s) )) s). Leave both Macs awake and online."
+if [[ $plan == part2 && $role == a ]]; then
+  phase 0   xattr-write   xattr-write --file "xattr-$tag.md"
+  phase 10  p5-push       writer --file "p5-$tag.md" --every 10 --count 7 --mode push
+  phase 110 p6-race       race --role first --file "race-$tag.md" --at $((T0 + 110))
+elif [[ $plan == part2 ]]; then
+  phase 10  p5-paused     watch-paused --file "p5-$tag.md" --seconds 60
+  phase 110 p6-race       race --role second --file "race-$tag.md" --at $((T0 + 110))
+  phase 215 xattr-check   xattr-check --file "xattr-$tag.md"
+elif [[ $role == a ]]; then
   phase 0   xattr-write   xattr-write --file "xattr-$tag.md"
   phase 20  p1-plain      writer --file "p1-$tag.md" --every 5 --count 16
   phase 130 p2-plain      writer --file "p2-$tag.md" --every 5 --count 16
@@ -63,7 +72,7 @@ fi
   grep -h RESULT "$out"-*.txt | sed 's/^[0-9:.]* //'
 } > "$out-summary.txt"
 
-if [[ $role == b ]]; then
+if [[ $role == b && $plan == all ]]; then
   echo "==> M1 single-Mac checks on $host"
   ../scripts/run-m1-scenarios.sh 2>&1 | grep -E "FAIL|ALL CHECKS|SOME CHECKS|Test run" | tee -a "$out-summary.txt" || true
 fi

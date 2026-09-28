@@ -541,13 +541,26 @@ func xattrValue(_ name: String, _ url: URL) -> String? {
     return String(decoding: buffer, as: UTF8.self)
 }
 
+/// Waits for a file another Mac created. It can arrive as a dataless placeholder (S1b: on a
+/// Mac with Optimize Mac Storage, new files from other Macs download only when read), so
+/// this asks for the download and reads it, logging the state it arrived in.
 func waitForFile(_ url: URL, timeout: TimeInterval) -> Bool {
     let start = Date()
+    var seen = false
     while Date().timeIntervalSince(start) < timeout {
-        if fm.fileExists(atPath: url.path), cloudState(url).status == "current" { return true }
+        if fm.fileExists(atPath: url.path) {
+            let state = cloudState(url)
+            if !seen { log("  \(url.lastPathComponent) appeared after \(ms(since: start)) ms: \(state) · \(statLine(url))"); seen = true }
+            if state.status == "current" { return true }
+            try? fm.startDownloadingUbiquitousItem(at: url)
+            if (try? coordinatedRead(url)) != nil {
+                log("  read it after \(ms(since: start)) ms: \(cloudState(url)) · \(statLine(url))")
+                return true
+            }
+        }
         Thread.sleep(forTimeInterval: 0.25)
     }
-    log("  gave up waiting for \(url.lastPathComponent) to arrive")
+    log("  gave up waiting for \(url.lastPathComponent) after \(ms(since: start)) ms (appeared: \(seen))")
     return false
 }
 

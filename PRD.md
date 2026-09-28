@@ -501,7 +501,7 @@ Seven-character markers are what git and most tools recognize. nib renders them 
 
 | Option | Latency | Covers "switched Macs within seconds"? | Covers "lid closed before upload"? | Cost and fit |
 |---|---|---|---|---|
-| **1. iCloud Drive alone** (V1), with sync controls | Upload 2-3 s after a save; the receiving Mac fetches on activation (S1b measures the total) | Mostly | No, if the lid closes within the 2-3 s upload | None. Fits the family (no servers) |
+| **1. iCloud Drive alone** (V1), with sync controls | S1b: save to load on the other Mac in 2.5 s median, 3.6 s p95 (plain iCloud: 3.6 s and 6.2 s) | Yes, unless the switch takes under about 3 s | No, if the lid closes within the 2 s upload | None. Fits the family (no servers) |
 | **2. LAN peer-to-peer express lane** (Network.framework, Bonjour, TLS with keys exchanged through iCloud Keychain or key-value storage) | Under 100 ms, both Macs awake on the same network | Yes, when on the same network | Yes: the edit leaves within one debounce, before the lid closes | Moderate. Needs local-network permission, which Blit already asks for (`NSLocalNetworkUsageDescription`). Useless when the Macs are apart |
 | **3. CloudKit express lane** (each save as a record in the private database, pushed to the other Mac) | Usually seconds; pushes can be coalesced or throttled | Mostly | Partly: it still has to leave before sleep | Moderate. Adds a CloudKit container and schema; still Apple's infrastructure, with no guarantee |
 | **4. Handoff** (`NSUserActivity` with continuation streams: the other Mac pulls the text directly) | About a second, on demand | Yes, if the user clicks the Handoff icon | Only if the first Mac is awake | Small. Explicit UX; historically unreliable. Good as a P2 extra, not as the mechanism |
@@ -511,7 +511,7 @@ Seven-character markers are what git and most tools recognize. nib renders them 
 **Recommendation:**
 
 - **Ship V1 on iCloud Drive alone**, instrumented: the Sync Log records how long each version took to arrive (from lineage times and receipts), so the need for V2 is measured rather than guessed (T3).
-- **Build a V2 express lane only if the numbers call for it.** The sync controls make this less likely than it looked before M0. Build it only if, over two weeks of real use, the 95th percentile from save on one Mac to load on the other exceeds the time it actually takes to switch Macs (open question 3), or if any stale-copy merge shows up at all in the log.
+- **Build a V2 express lane only if the numbers call for it.** The sync controls make this less likely than it looked before M0, and S1b's first numbers (2.5 s median, 3.6 s p95 from save to the other Mac's disk, with the upload itself taking 2.1 s of it) make it less likely still. Build it only if, over two weeks of real use, the 95th percentile from save on one Mac to load on the other exceeds the time it actually takes to switch Macs (open question 3), or if any stale-copy merge shows up at all in the log.
 - **If the Macs are usually on the same network, choose option 2 (LAN peer).** It's the only option that also covers the lid-closed-before-upload case, and it answers exactly the failure described: sequential switching between Macs that sit near each other. **If they're usually apart** (home and office), choose option 3 (CloudKit). Open question 2 decides.
 - **Either way, the express lane only delivers versions early.** iCloud Drive stays the file of record, and an early version enters the same merge pipeline as any other remote version, so no new conflict rules. Lineage (§4.6) lets a later iCloud copy of the same version be recognized as already applied.
 - **Skip options 5 and 6.** Handoff (4) is a P2 nicety on top of whichever lane is chosen.
@@ -986,10 +986,26 @@ Blit's pattern (T3): measure first, give each milestone a "done when", and write
 
 What changed in this PRD because of it: the save pipeline now holds the file with a sync pause, saves in place, and uploads with fail-on-conflict (§4.3); the Mac you switch to fetches on activation (§4.4); sync state is pushed, not polled, and iCloud's error noise is ignored (§4.5); the server's refusal is the main conflict detector (§4.6); new failure cases for pauses left behind (§4.9, 14a-14d); option (a) for the file's location is decided (§4.2); V2 looks less necessary (§4.10).
 
-**S1b, two Macs (to do).** Build with `spike/run-s1.sh` on both Macs, then:
+**S1b, two Macs, first run (2026-09-27, 23:10).** `spike/run-s1b.sh` on this MacBook Air (Mac A, writing) and the Mac mini (Mac B, reading), both awake and online; 16 versions per phase, 5 s apart; latency is from the write on Mac A to the new text being readable on Mac B (clocks via NTP).
 
-1. **Latency, iCloud on its own:** Mac A `nib-spike writer --every 5 --count 24`; Mac B `nib-spike reader --seconds 150`. Then again with `reader --fetch-every 5`.
-2. **Latency, nib's pipeline:** Mac A `writer --mode push`; Mac B `reader`, then `reader --fetch-every 5`.
+| Phase | p50 | p95 | Max | Note |
+|---|---|---|---|---|
+| Plain iCloud (atomic writes, iCloud's own schedule) | 3.6 s | 6.2 s | 6.2 s | 16 of 16 arrived |
+| …and Mac B fetches every 5 s | 3.4 s | 6.8 s | 6.8 s | 15 of 16: one version was skipped. Fetching doesn't speed up an unpaused file |
+| **nib's pipeline on Mac A: held, saved in place, upload now** | **2.5 s** | **3.6 s** | 3.6 s | 16 of 16; upload-now took 2.1 s median of that |
+| …and Mac B fetches every 5 s | 2.8 s | 5.2 s | 5.2 s | Fetching still doesn't help |
+
+What it means:
+
+1. **iCloud on its own is far better than the PRD assumed** ("seconds to minutes"): a few seconds when both Macs are awake. The failure the PRD is built around is still real, but it comes from edits that never leave Mac A (unsaved, or a lid closed before the upload), not from slow delivery.
+2. **nib's upload-now shaves about 1 s at the median and 2.6 s at p95, and makes delivery predictable.** Once the upload returns, iCloud gets the version to the other Mac in well under a second. The upload is the bottleneck.
+3. **Fetching adds nothing for a file that isn't paused.** For a paused one (nib's scratch file on Mac B), it may be the only way in; that's what the paused-file test answers.
+4. **New files from another Mac can arrive as placeholders** that download when read (the Mac mini behaves this way, as Optimize Mac Storage does). The readers above read every 100 ms, which downloaded each version; so the latencies include that download. The probe's "wait for the file" step didn't read, so the paused-file, conflict and attribute tests reported "never arrived" and have to be run again (`run-s1b.sh a|b HH:MM part2`, fixed).
+
+**S1b, still to do:**
+
+1. ~~Latency, iCloud on its own~~ (above).
+2. ~~Latency, nib's pipeline~~ (above).
 3. **Does a paused file hear about a newer server version** (presenter or `downloadingStatus` turning stale), or only when fetched?
 4. **Server refusal:** both Macs pause the same file, both save, both upload now: the second must fail with `localVersionConflictingWithServer`; then fetch, merge, upload.
 5. **Lineage:** does `com.banastas.nib.lineage#S` arrive on the other Mac (`nib-spike status`)?
