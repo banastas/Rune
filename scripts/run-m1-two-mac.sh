@@ -7,7 +7,7 @@
 #
 # Mac A adds a line; Mac B, untouched, must show it (by itself, or once it comes forward).
 # Then both add a line at the same moment; the Mac whose upload is refused merges (Keep Both);
-# both must end with both lines, the same bytes, synced. About two minutes after the start.
+# both must end with both lines, the same bytes, synced. About 2.5 minutes after the start.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 role=${1:?usage: run-m1-two-mac.sh a|b HH:MM}

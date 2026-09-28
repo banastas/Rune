@@ -30,6 +30,35 @@ public enum CloudControl {
 
     public enum ControlError: Error, Equatable {
         case unsupported
+        /// iCloud didn't answer in time (two-Mac test, 10:40: an upload racing another Mac's
+        /// was still unanswered 35 s later). nib stops waiting and retries; iCloud may still
+        /// finish the old call, and its late answer is ignored.
+        case noAnswer(seconds: Double)
+    }
+
+    /// Runs `work`, giving up after `seconds`. Not a task group: a group waits for every
+    /// child, and iCloud's calls can't be cancelled, so the wait would never end.
+    static func within<T: Sendable>(_ seconds: Double, _ work: @escaping @Sendable () async throws -> T) async throws -> T {
+        let gate = Gate()
+        return try await withCheckedThrowingContinuation { continuation in
+            Task {
+                do {
+                    let value = try await work()
+                    gate.once { continuation.resume(returning: value) }
+                } catch {
+                    gate.once { continuation.resume(throwing: error) }
+                }
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(seconds))
+                gate.once { continuation.resume(throwing: ControlError.noAnswer(seconds: seconds)) }
+            }
+        }
+    }
+
+    public static func isNoAnswer(_ error: Error) -> Bool {
+        if case ControlError.noAnswer = error { return true }
+        return false
     }
 
     /// Fresh values every call (a new NSURL has no cached resource values).
@@ -65,7 +94,7 @@ public enum CloudControl {
         var delay: Double = 0.5
         for attempt in 1...6 {
             do {
-                try await FileManager.default.pauseSyncForUbiquitousItem(at: url)
+                try await within(20) { try await FileManager.default.pauseSyncForUbiquitousItem(at: url) }
                 return
             } catch {
                 if isUnsupported(error) { throw ControlError.unsupported }
@@ -90,15 +119,17 @@ public enum CloudControl {
     }
 
     public static func resume(_ url: URL, _ mode: ResumeMode) async throws {
-        try await FileManager.default.resumeSyncForUbiquitousItem(
-            at: url, with: mode == .uploadFailingOnConflict ? .afterUploadWithFailOnConflict : .dropLocalChanges)
+        let behavior: NSFileManagerResumeSyncBehavior = mode == .uploadFailingOnConflict ? .afterUploadWithFailOnConflict : .dropLocalChanges
+        try await within(20) { try await FileManager.default.resumeSyncForUbiquitousItem(at: url, with: behavior) }
     }
 
     /// "Upload now", refusing if the server has a newer version. Returns when iCloud has it.
     public static func upload(_ url: URL) async throws -> Date? {
-        let version = try await FileManager.default.uploadLocalVersionOfUbiquitousItem(
-            at: url, withConflictResolutionPolicy: .conflictPolicyFailOnConflict)
-        return version.modificationDate
+        try await within(15) {
+            let version = try await FileManager.default.uploadLocalVersionOfUbiquitousItem(
+                at: url, withConflictResolutionPolicy: .conflictPolicyFailOnConflict)
+            return version.modificationDate
+        }
     }
 
     /// Asks the server for its newest version. While `url` is paused, a newer version
@@ -106,6 +137,10 @@ public enum CloudControl {
     /// local file, so a following upload is based on it (the caller has the local edits
     /// in its buffer and journal, and merges before saving again).
     public static func fetchLatest(_ url: URL) async throws -> FetchResult {
+        try await within(15) { try await fetchLatestUnbounded(url) }
+    }
+
+    private static func fetchLatestUnbounded(_ url: URL) async throws -> FetchResult {
         let version = try await FileManager.default.fetchLatestRemoteVersionOfItem(at: url)
         guard version.url.standardizedFileURL.path != url.standardizedFileURL.path else { return .current }
         let data = try FileAccess.read(version.url).data
@@ -143,5 +178,19 @@ public enum CloudControl {
     /// One line for the strip's tooltip and the Sync Log.
     public static func describe(_ error: Error) -> String {
         chain(error).map { "\($0.domain) \($0.code): \($0.localizedDescription)" }.joined(separator: " ← ")
+    }
+}
+
+/// Resumes a continuation once, whichever side gets there first.
+final class Gate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var done = false
+
+    func once(_ action: () -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !done else { return }
+        done = true
+        action()
     }
 }

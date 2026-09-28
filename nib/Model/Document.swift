@@ -382,11 +382,15 @@ final class Document {
             await fetchLatest(reason: "upload refused")
             return
         } catch {
-            record("upload", ms: ms(since: started), detail: "failed: \(CloudControl.describe(error))")
+            let noAnswer = CloudControl.isNoAnswer(error)
+            record("upload", ms: ms(since: started), detail: noAnswer ? "no answer in 15 s; retrying" : "failed: \(CloudControl.describe(error))")
             if conflict == nil {
-                state = .waiting(online ? "ICLOUD ISN'T TAKING UPLOADS · SAVED LOCALLY · RETRYING" : "WAITING FOR NETWORK · SAVED LOCALLY")
+                state = .waiting(!online ? "WAITING FOR NETWORK · SAVED LOCALLY"
+                                 : noAnswer ? "ICLOUD ISN'T ANSWERING · SAVED LOCALLY · RETRYING"
+                                 : "ICLOUD ISN'T TAKING UPLOADS · SAVED LOCALLY · RETRYING")
             }
-            let delay = uploadBackoff
+            // No answer: retry soon; the retry is typically refused or accepted at once.
+            let delay = noAnswer ? 2 : uploadBackoff
             uploadBackoff = min(uploadBackoff * 2, 300)
             uploadTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(delay))

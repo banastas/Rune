@@ -173,3 +173,23 @@ func scratchFolder() -> URL {
         #expect(Announcement.read(for: scratchFolder().appendingPathComponent("none.md")) == nil)
     }
 }
+
+@Suite struct TimeLimitTests {
+    @Test func givesUpOnACallThatNeverAnswers() async {
+        let start = Date()
+        await #expect(throws: CloudControl.ControlError.self) {
+            try await CloudControl.within(0.2) { try await Task.sleep(for: .seconds(30)); return 1 }
+        }
+        #expect(Date().timeIntervalSince(start) < 2)   // didn't wait for the abandoned call
+    }
+
+    @Test func passesThroughAQuickAnswer() async throws {
+        #expect(try await CloudControl.within(2) { 7 } == 7)
+    }
+
+    @Test func passesThroughAnError() async {
+        await #expect(throws: CocoaError.self) {
+            try await CloudControl.within(2) { () -> Int in throw CocoaError(.fileReadUnknown) }
+        }
+    }
+}

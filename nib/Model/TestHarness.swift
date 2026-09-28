@@ -201,8 +201,8 @@ enum TestHarness {
     ///   -NibRole a: at +5 s adds a line with its time; at +60 s adds a clash line.
     ///   -NibRole b: stays idle and must show a's line without anyone typing, first by
     ///   itself, then (from +25 s) as if the user switched to it; at +60 s adds its clash line.
-    /// Both: a conflict is answered Keep Both; at +100 s both Macs must hold both clash
-    /// lines, the file equal to the buffer, synced. Paste both logs to compare the SHA-256s.
+    /// Both: a conflict is answered Keep Both; both come forward at +115 s; at +125 s both
+    /// Macs must hold both clash lines, the file equal to the buffer, synced, the same bytes.
     static func twoMac(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         let defaults = UserDefaults.standard
         let role = defaults.string(forKey: "NibRole") ?? "a"
@@ -248,7 +248,7 @@ enum TestHarness {
         await until(60)
         end()
         view.insertText("\n- clash from \(role) \(marker)\n", replacementRange: view.selectedRange())
-        let deadline = Date().addingTimeInterval(35)
+        let deadline = Date().addingTimeInterval(50)   // room for an upload that times out (15 s) and its retry
         while Date() < deadline {
             if document.conflict != nil {
                 log.line("\(role): conflict sheet · Keep Both")
@@ -256,16 +256,16 @@ enum TestHarness {
             }
             try? await Task.sleep(for: .milliseconds(200))
         }
-        await until(90)
+        await until(115)
         document.becameActive()   // as if you looked at this Mac again
-        await until(100)
+        await until(125)
         let text = view.string
         log.check(text.contains("- clash from a \(marker)") && text.contains("- clash from b \(marker)"), "\(role): both clash lines are here")
         let expected = TextFile.encode(text, as: document.format)
         log.check((try? Data(contentsOf: document.url)) == expected, "\(role): the file holds exactly the buffer")
         log.check(isSynced(document), "\(role): synced (state \(document.state.line))")
         log.line("\(role): file SHA-256 \(Digest.sha256(expected)) · compare with the other Mac's")
-        await until(110)
+        await until(135)
     }
 
     /// Puts sample text on screen and holds still for a screenshot; also renders the
