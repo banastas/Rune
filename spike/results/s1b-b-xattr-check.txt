@@ -1,3 +1,4 @@
-23:51:30.141 nib-spike xattr-check on Bill’s Mac mini, macOS Version 27.0 (Build 26A428)
-23:53:30.370   gave up waiting for xattr-0927-2340.md to arrive
-23:53:30.370 RESULT xattr-check: the file never arrived
+07:38:35.073 nib-spike xattr-check on Bill’s Mac mini, macOS Version 27.0 (Build 26A428)
+07:38:35.087   xattr-0928-0735.md appeared after 12 ms: ubiquitous status=notDownloaded - UPLOADED sync-running controls=pauseSync+failUploadOnConflict · size 35 · blocks 0 · DATALESS
+07:38:35.918   read it after 836 ms: ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict · size 35 · blocks 8
+07:38:35.919 RESULT xattr-check: lineage#S ARRIVED (lineage-from-Bill’s MacBook Air) · plain missing · all: com.banastas.nib.lineage#S
