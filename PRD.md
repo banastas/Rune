@@ -1000,7 +1000,7 @@ What it means:
 1. **iCloud on its own is far better than the PRD assumed** ("seconds to minutes"): a few seconds when both Macs are awake. The failure the PRD is built around is still real, but it comes from edits that never leave Mac A (unsaved, or a lid closed before the upload), not from slow delivery.
 2. **nib's upload-now shaves about 1 s at the median and 2.6 s at p95, and makes delivery predictable.** Once the upload returns, iCloud gets the version to the other Mac in well under a second. The upload is the bottleneck.
 3. **Fetching adds nothing for a file that isn't paused.** For a paused one (nib's scratch file on Mac B), it may be the only way in; that's what the paused-file test answers.
-4. **New files from another Mac can arrive as placeholders** that download when read (the Mac mini behaves this way, as Optimize Mac Storage does). The readers above read every 100 ms, which downloaded each version; so the latencies include that download. The probe's "wait for the file" step didn't read, so the paused-file, conflict and attribute tests reported "never arrived" and have to be run again (`run-s1b.sh a|b HH:MM part2`, fixed).
+4. **New files from another Mac can arrive as placeholders** that download when read (the Mac mini behaves this way, as Optimize Mac Storage does). The readers above read every 100 ms, which downloaded each version; so the latencies include that download. The probe's "wait for the file" step didn't read, so the paused-file, conflict and attribute tests reported "never arrived" and have to be run again (`run-s1b.sh a|b HH:MM part2`, fixed). A later run on the old probe confirmed it: a file that had been on the server for 7 minutes still wasn't downloaded on the Mac mini, because nothing had read it.
 
 **S1b, still to do:**
 
@@ -1061,6 +1061,8 @@ Decided: TextKit 2, the SwiftUI lifecycle, and viewport-only highlighting (§6.3
 - **A pause belongs to the bundle ID** (it's recorded on the file as `com.apple.file-provider-sync_paused_bundle_id#PX`); **pausing an already-paused file answers "not supported"**, contrary to the documentation. The first build treated that as "can't pause" and ran unheld, the worst case: a paused file that nothing uploads. Now a file left paused is resumed, then paused fresh (§4.3).
 - **Quit asked for from inside a main-queue job hung** until a watchdog that was itself queued behind it; AppKit waits for the reply in a mode where the main queue doesn't drain. A menu's Quit doesn't hit this, but the watchdog is now a run-loop timer that fires regardless, so quitting always ends within 10 s.
 - **Inside SwiftUI's window the text view had no undo manager.** The editor now owns one, which also keeps the undo history when the window is closed and reopened.
+
+**Second Mac (2026-09-27, 23:53):** `scripts/run-m1-scenarios.sh` passed on the Mac mini too: all 23 scenario checks and 28 unit tests.
 
 **Still to do for M1:** the two-Mac scenarios (stale typing, lid closed before upload, both offline; S1b's steps first), a build on the second Mac (open `nib.xcodeproj` in Xcode and run, or adapt Blit's `release.sh`), trying ⌥Space and the strip by hand, then a day on both Macs with the test file before `allowLiveScratch` points nib at `_scratch2.md`.
 
