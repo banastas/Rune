@@ -1,6 +1,8 @@
 // M1's conflict safety net (PRD SY6): the file changed while there were unsaved
 // edits. Both versions side by side; Keep Mine, Keep Theirs or Keep Both. Nothing is
-// overwritten while it waits. M2 replaces this with the three-way merge (§4.7-4.8).
+// overwritten while it waits. Since M2's three-way merge (§4.7) it comes up only for
+// overlapping edits, or when no base is proven; conflict blocks and the banner (§5.4)
+// replace it next.
 
 import AppKit
 import NibText
@@ -14,7 +16,7 @@ struct ConflictSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("“\(document.url.lastPathComponent)” changed while you had unsaved edits")
                 .font(.headline)
-            Text("Nothing has been overwritten. The file holds the other version; your edits are here and in nib's recovery journal. Keep Both puts the lines that differ one after the other, between conflict markers, so you can tidy them up.")
+            Text("Nothing has been overwritten. The file holds the other version; your edits are here and in Nib's recovery journal. " + keepBothExplained)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -32,6 +34,14 @@ struct ConflictSheet: View {
         }
         .padding(20)
         .frame(minWidth: 760, idealWidth: 900, minHeight: 460, idealHeight: 560)
+    }
+
+    private var keepBothExplained: String {
+        guard let merged = conflict.merged else {
+            return "Keep Both puts the lines that differ one after the other, between conflict markers, so you can tidy them up."
+        }
+        let places = merged.conflicts == 1 ? "the 1 place" : "the \(merged.conflicts) places"
+        return "Keep Both merges everything else and puts \(places) you both changed between conflict markers, so you can tidy them up."
     }
 
     private func pane(_ side: ConflictText.Side, other: String) -> some View {

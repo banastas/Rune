@@ -40,13 +40,16 @@ struct ScratchView: View {
         return window === document.editor.textView.window
     }
 
-    /// "iCloud Drive › nib-spike", as Finder would name the folder.
+    /// "iCloud Drive › Nib › Test" (Nib's own folder) or "iCloud Drive › nib-spike", as Finder
+    /// would name the folder.
     private var subtitle: String {
         let folder = document.url.deletingLastPathComponent().path
-        let drive = NibPaths.iCloudDrive.path
-        guard folder.hasPrefix(drive) else { return (folder as NSString).abbreviatingWithTildeInPath }
-        let rest = folder.dropFirst(drive.count).split(separator: "/")
-        return (["iCloud Drive"] + rest.map(String.init)).joined(separator: " › ")
+        for (root, name) in [(ScratchLocation.folder.path, "iCloud Drive › Nib"), (NibPaths.iCloudDrive.path, "iCloud Drive")]
+        where folder == root || folder.hasPrefix(root + "/") {
+            let rest = folder.dropFirst(root.count).split(separator: "/")
+            return ([name] + rest.map(String.init)).joined(separator: " › ")
+        }
+        return (folder as NSString).abbreviatingWithTildeInPath
     }
 }
 

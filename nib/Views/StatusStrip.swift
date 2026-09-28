@@ -59,10 +59,10 @@ struct StatusStrip: View {
     /// The precise meaning, in sentence case (PRD §4.5, "tooltips carry the precise meaning").
     private var tooltip: String {
         let hold = document.held
-            ? "nib holds this file: iCloud's own syncing is paused, and nib uploads each version itself, refusing to overwrite a newer one."
+            ? "Nib holds this file: iCloud's own syncing is paused, and Nib uploads each version itself, refusing to overwrite a newer one."
             : "iCloud syncs this file on its own schedule."
         switch document.state {
-        case .synced: return "iCloud has this exact version. Other Macs get it when they check, which nib does whenever it comes forward. " + hold
+        case .synced: return "iCloud has this exact version. Other Macs get it when they check, which Nib does whenever it comes forward. " + hold
         case .saved: return "Saved on this Mac. iCloud doesn't have this version yet. " + hold
         case .uploading: return "Uploading this version to iCloud. " + hold
         case .conflict: return "The file changed on another Mac or in another app while you had unsaved edits. Nothing was overwritten: choose a version."

@@ -22,6 +22,9 @@ struct Conflict: Identifiable {
     var theirsFingerprint: Fingerprint?
     /// Theirs came from iCloud's server (so iCloud already has it), not from an app on this Mac.
     var theirsFromServer = false
+    /// Keep Both's text when a merge base was proven (§4.7): everything that doesn't overlap
+    /// merged, only the places both changed between markers. Nil: the two-way Keep Both.
+    var merged: Merge.Result?
 }
 
 @MainActor
@@ -79,6 +82,11 @@ final class Document {
     @ObservationIgnored private var fetches = 0
     /// Announced versions already dealt with, by SHA-256.
     @ObservationIgnored private var handledAnnouncements: Set<String> = []
+    /// The last note read: which version is on the server, and what it was made from.
+    @ObservationIgnored private var lastNote: Announcement?
+    /// Texts of the last few versions this Mac has had, by SHA-256: merge bases (§4.6).
+    @ObservationIgnored private var versions: [String: String] = [:]
+    @ObservationIgnored private var versionOrder: [String] = []
     /// Direct file-system watches, behind iCloud's presenters: writers that don't coordinate
     /// (`echo >> file`) went unnoticed by the presenter while a save waited to upload (M1).
     @ObservationIgnored private var fileWatch: DispatchSourceFileSystemObject?
@@ -149,6 +157,7 @@ final class Document {
             text = decoded.text
             format = decoded.format
             baseFingerprint = fingerprint
+            remember(text, sha: fingerprint.sha256)
         } catch {
             state = .problem("COULDN'T READ \(url.lastPathComponent.uppercased()) · \(short(error))")
             record("problem", detail: CloudControl.describe(error))
@@ -326,6 +335,7 @@ final class Document {
             switch outcome {
             case .written(let fingerprint):
                 baseFingerprint = fingerprint
+                remember(text, sha: fingerprint.sha256)
                 savedEditCount = snapshot
                 lastSaved = Date()
                 if !dirty {
@@ -442,13 +452,18 @@ final class Document {
                     fingerprint.sha256 = Digest.sha256(data)
                     return fingerprint
                 }
-                record("fetch", size: data.count, sha: fingerprint?.sha256, detail: "newer, saved by \(savedBy ?? "another Mac") (\(reason))")
+                // After an upload iCloud offers this Mac's own version back; it's put in place all
+                // the same (the next upload needs it), but it isn't another Mac's.
+                let own = fingerprint?.sha256 != nil && fingerprint?.sha256 == baseFingerprint?.sha256
+                record("fetch", size: data.count, sha: fingerprint?.sha256,
+                       detail: own ? "this Mac's own version back from iCloud (\(reason))" : "newer, saved by \(savedBy ?? "another Mac") (\(reason))")
                 // Replacing the local file may have ended the pause: hold it again.
                 if CloudControl.status(url).paused != true {
                     try? await CloudControl.pause(url)
                 }
                 // iCloud often doesn't say which Mac saved it; the note does.
                 let note = await io.run { Announcement.read(for: url) }
+                if let note { lastNote = note }
                 let who = savedBy ?? note?.device ?? "another Mac"
                 incoming(data, fingerprint: fingerprint, from: who, fromServer: true)
             }
@@ -487,6 +502,7 @@ final class Document {
             }
         }
         let theirs = TextFile.decode(data).text
+        remember(theirs, sha: fingerprint?.sha256)
         let mine = editor.textView.string
         if theirs == mine {
             baseFingerprint = fingerprint
@@ -508,13 +524,96 @@ final class Document {
             }
             return
         }
+        // Made from the version this Mac last had on the server, as its note says (§4.6): a
+        // three-way merge from there. Clean, it's applied like an edit (§4.8 A); overlapping,
+        // the sheet's Keep Both uses it. Without that proof, the two-way sheet as before: a
+        // guessed base can undo edits without a trace.
+        let proven = provenBase(for: fingerprint?.sha256)
+        let clock = SyncState.clock.string(from: Date())
+        let mySide = ConflictText.Side(text: mine, label: "\(device) · \(clock)")
+        let theirSide = ConflictText.Side(text: theirs, label: "\(proven?.device ?? source.capitalized) · \(clock)")
+        var merged: Merge.Result?
+        if let proven {
+            let result = Merge.threeWay(base: proven.text, mySide, theirSide)
+            if result.isClean {
+                applyMerge(result, fingerprint: fingerprint, from: proven.device)
+                return
+            }
+            merged = result
+        }
         saveTask?.cancel()
-        conflict = Conflict(mine: .init(text: mine, label: "\(device) · \(SyncState.clock.string(from: Date()))"),
-                            theirs: .init(text: theirs, label: "\(source.capitalized) · \(SyncState.clock.string(from: Date()))"),
-                            theirsFingerprint: fingerprint, theirsFromServer: fromServer)
+        conflict = Conflict(mine: mySide, theirs: theirSide, theirsFingerprint: fingerprint,
+                            theirsFromServer: fromServer || proven != nil, merged: merged)
         state = .conflict
-        record("conflict", detail: "changed by \(source) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have")")
+        record("conflict", detail: "changed by \(proven?.device ?? source) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have")"
+               + (merged.map { "; merged from the version both had, \($0.conflicts) place\($0.conflicts == 1 ? "" : "s") overlap" } ?? ""))
         NSApp.requestUserAttention(.informationalRequest)
+    }
+
+    /// The sheet is up for a version whose note has only now arrived: if it proves a base,
+    /// merge after all. Clean, the sheet goes and the merge is applied; overlapping, Keep
+    /// Both gets the three-way text.
+    private func mergeIfProven() {
+        guard let conflict, conflict.merged == nil, let proven = provenBase(for: conflict.theirsFingerprint?.sha256) else { return }
+        var theirs = conflict.theirs
+        theirs.label = "\(proven.device) · \(SyncState.clock.string(from: Date()))"
+        let result = Merge.threeWay(base: proven.text, conflict.mine, theirs)
+        if result.isClean {
+            self.conflict = nil
+            record("conflict", detail: "its note arrived: merged after all")
+            applyMerge(result, fingerprint: conflict.theirsFingerprint, from: proven.device)
+        } else {
+            self.conflict?.theirs = theirs
+            self.conflict?.theirsFromServer = true
+            self.conflict?.merged = result
+            record("conflict", detail: "its note arrived: merged from the version both had, \(result.conflicts) place\(result.conflicts == 1 ? "" : "s") overlap")
+        }
+    }
+
+    /// The base for a three-way merge with version `sha`, when its note proves one: `sha`
+    /// was made from the version this Mac last had on the server, and this Mac still has
+    /// that version's text. That version is also where this Mac's edits start.
+    private func provenBase(for sha: String?) -> (text: String, device: String)? {
+        guard let sha, let note = lastNote, note.sha256 == sha, note.device != device,
+              let parent = note.parent, parent == uploadedSHA, let text = versions[parent] else { return nil }
+        return (text, note.device)
+    }
+
+    /// A clean merge, applied as one edit (§4.7): one undo step, the strip says so for 10 s,
+    /// then the normal save and upload. The file holds theirs, and the note says the server does.
+    private func applyMerge(_ result: Merge.Result, fingerprint: Fingerprint?, from who: String) {
+        saveTask?.cancel()
+        let view = editor.textView
+        // Its own undo group: AppKit's automatic ones close with an event, and a merge
+        // doesn't come with one, so the next keystroke would otherwise join it.
+        view.breakUndoCoalescing()
+        view.undoManager?.beginUndoGrouping()
+        apply(result.text, undoable: true)
+        view.undoManager?.setActionName("Merge from \(who)")
+        view.undoManager?.endUndoGrouping()
+        view.breakUndoCoalescing()
+        editCount += 1
+        baseFingerprint = fingerprint
+        uploadedSHA = fingerprint?.sha256
+        let n = result.changesFromSecond
+        let changes = "\(n) CHANGE\(n == 1 ? "" : "S")"
+        show("✓ MERGED \(changes) FROM \(who.uppercased()) · ⌘Z UNDOES", for: 10)
+        record("merge", sha: fingerprint?.sha256,
+               detail: "clean: \(changes.lowercased()) from \(who) onto this Mac's edits\(result.withinLine ? ", merged within a line" : "")")
+        Task {
+            await writeJournal()
+            await flush(reason: "merge")
+        }
+    }
+
+    /// The version's text, kept for later merges: the last eight, never the one on the server.
+    private func remember(_ text: String, sha: String?) {
+        guard let sha, versions[sha] == nil else { return }
+        versions[sha] = text
+        versionOrder.append(sha)
+        if versionOrder.count > 8, let i = versionOrder.firstIndex(where: { $0 != uploadedSHA }) {
+            versions[versionOrder.remove(at: i)] = nil
+        }
     }
 
     enum Choice: String { case mine, theirs, both }
@@ -534,10 +633,12 @@ final class Document {
             journal.clear(path: url.path)
             state = .saved(Date())
         case .both:
-            apply(ConflictText.keepBoth(conflict.mine, conflict.theirs), undoable: true)
+            apply(conflict.merged?.text ?? ConflictText.keepBoth(conflict.mine, conflict.theirs), undoable: true)
             editCount += 1
+            // A three-way merge holds theirs, which the server has: the next merge starts there.
+            if conflict.merged != nil { uploadedSHA = conflict.theirsFingerprint?.sha256 }
         }
-        record("resolve", detail: choice.rawValue)
+        record("resolve", detail: choice == .both && conflict.merged != nil ? "both, three-way" : choice.rawValue)
         Task {
             await writeJournal()
             await flush(reason: "resolve")
@@ -583,8 +684,10 @@ final class Document {
     func checkAnnouncement(reason: String) async {
         guard ready, locked == nil, !refreshing else { return }
         let url = self.url
-        guard let note = await io.run({ Announcement.read(for: url, fresh: true) }),
-              note.device != device, !handledAnnouncements.contains(note.sha256),
+        guard let note = await io.run({ Announcement.read(for: url, fresh: true) }) else { return }
+        lastNote = note
+        mergeIfProven()
+        guard note.device != device, !handledAnnouncements.contains(note.sha256),
               note.sha256 != baseFingerprint?.sha256, note.sha256 != uploadedSHA else { return }
         handledAnnouncements.insert(note.sha256)
         record("announce", sha: note.sha256, detail: "\(note.device) uploaded a version this Mac doesn't have (\(reason))")
@@ -595,6 +698,7 @@ final class Document {
     /// Brings down the server's version of the held file (§4.4): hand it back taking the
     /// server's version, evict, download, hold again. About a second (S1b: 0.6-1.3 s).
     private func refresh(announced note: Announcement) async {
+        lastNote = note
         refreshing = true
         let started = Date()
         let url = self.url
@@ -821,14 +925,14 @@ final class IOQueue: Sendable {
     }
 }
 
-/// Where the scratch file is (PRD §4.2): nib's own folder in iCloud Drive, "nib", an app
+/// Where the scratch file is (PRD §4.2): Nib's own folder in iCloud Drive, "Nib", an app
 /// container like other apps' folders, with the sync notes hidden inside it. And the M1
 /// safety rule (§8): until M1 has passed on both Macs, nib opens only test files, in
-/// iCloud Drive/nib/Test/ (or, in ad-hoc builds that can't carry the iCloud entitlement,
+/// iCloud Drive/Nib/Test/ (or, in ad-hoc builds that can't carry the iCloud entitlement,
 /// iCloud Drive/nib-spike/).
 enum ScratchLocation {
     static let containerID = "iCloud.com.banastas.nib"
-    /// iCloud Drive/nib/ on disk.
+    /// iCloud Drive/Nib/ on disk.
     static let folder = URL(fileURLWithPath: NSHomeDirectory() + "/Library/Mobile Documents/iCloud~com~banastas~nib/Documents")
     static let testFolder = folder.appendingPathComponent("Test")
     static let unsignedTestFolder = NibPaths.iCloudDrive.appendingPathComponent("nib-spike")

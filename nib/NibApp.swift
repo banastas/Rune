@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // Show Scratch (SC2): ⌥Space, toggling. ⌃Space and ⌃⌥Space are macOS's input-source keys.
         if !HotKey.register(id: 1, keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey), action: { Self.toggleScratch() }) {
-            NSLog("nib: ⌥Space is taken by another app")
+            NSLog("Nib: ⌥Space is taken by another app")
         }
         observeSystem()
     }

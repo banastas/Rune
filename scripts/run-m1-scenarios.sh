@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # M1's single-Mac checks (PRD §8): builds the Debug app and runs every scenario in
-# nib/Model/TestHarness.swift against the scratch test file (iCloud Drive/nib/Test/, or
+# nib/Model/TestHarness.swift against the scratch test file (iCloud Drive/Nib/Test/, or
 # iCloud Drive/nib-spike/ with SIGN=adhoc).
 # Prints PASS/FAIL lines; exits non-zero if anything failed. Takes about a minute.
 # A nib window appears briefly for each scenario.
@@ -12,7 +12,7 @@ echo "==> NibKit tests"
 (cd NibKit && swift test 2>&1 | grep -E "Test run with|error:" | sed "s/\x1b\[[0-9;]*m//g" || true)
 
 # SIGN=team (default): signed with the developer team, so nib gets its iCloud folder
-# (iCloud Drive/nib/Test/). Needs Xcode signed in to the Apple account on this Mac.
+# (iCloud Drive/Nib/Test/). Needs Xcode signed in to the Apple account on this Mac.
 # SIGN=adhoc: no account needed, no iCloud container; tests run in iCloud Drive/nib-spike/.
 SIGN=${SIGN:-team}
 echo "==> Building nib (Debug, $SIGN signing)"
@@ -24,7 +24,7 @@ else
   xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
     -destination "platform=macOS" -allowProvisioningUpdates -quiet build
 fi
-APP=build/DerivedData/Build/Products/Debug/nib.app/Contents/MacOS/nib
+APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
 LOGS=build/scenarios
 mkdir -p "$LOGS"
 
@@ -53,11 +53,12 @@ run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"
 run external -NibSaveIdle 600 -NibSaveMax 600
 run unsent -NibHoldUploads YES
+run merge
 run refresh
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard undo crash recover external unsent refresh; do   # this run's logs only
+for name in type clipboard undo crash recover external unsent merge refresh; do   # this run's logs only
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi

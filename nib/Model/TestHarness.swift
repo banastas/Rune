@@ -3,7 +3,7 @@
 //
 //   nib -NibScenario type|clipboard|crash|recover|external -NibScenarioLog /path [-NibMarker text]
 //
-// Each runs against the scratch test file (iCloud Drive/nib/Test/, or nib-spike/ ad hoc), writes PASS or
+// Each runs against the scratch test file (iCloud Drive/Nib/Test/, or nib-spike/ ad hoc), writes PASS or
 // FAIL lines to the log, and quits (crash ends with SIGKILL instead).
 
 #if DEBUG
@@ -30,6 +30,7 @@ enum TestHarness {
             case "undo": await undoRedo(document, log, marker)
             case "refresh": await refreshFromNote(document, log)
             case "unsent": await unsentThenIncoming(document, log, marker)
+            case "merge": await mergeFromNote(document, log, marker)
             case "two-mac": await twoMac(document, log, marker)
             default: log.line("FAIL unknown scenario")
             }
@@ -183,6 +184,59 @@ enum TestHarness {
         log.check(both, "Keep Both: both lines in the file")
     }
 
+    /// A version from a pretend other Mac, made (its note says) from the version this Mac
+    /// last uploaded, arrives while this Mac has an unsent edit elsewhere in the file: a
+    /// clean three-way merge, no sheet, one undo step (§4.7, §4.8 A).
+    static func mergeFromNote(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        let view = document.editor.textView
+        // The base: a version this Mac uploaded.
+        await type("\n- merge base \(marker)\n", into: document)
+        _ = await waitFor(10) { document.dirty }
+        await waitSynced(document, 20)
+        guard let base = document.debugSnapshot.uploadedSHA, isSynced(document) else {
+            log.line("FAIL nothing uploaded to merge from (state \(document.state.line))"); return
+        }
+        let baseText = view.string
+        // From here on nothing reaches iCloud (as with -NibHoldUploads), so this edit stays unsent.
+        UserDefaults.standard.register(defaults: ["NibHoldUploads": true])
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        view.insertText("- merge mine \(marker)\n", replacementRange: view.selectedRange())
+        await endOfEvent(view)
+        let saved = await waitFor(8) { fileText(document).contains("merge mine \(marker)") && !document.dirty }
+        log.check(saved && document.unsent, "this Mac's line is saved, not uploaded")
+        // The other Mac's version, the base plus a line at the end; its note comes first, as from iCloud.
+        let theirs = TextFile.encode(baseText + "- merge theirs \(marker)\n", as: document.format)
+        try? Announcement(sha256: Digest.sha256(theirs), parent: base, device: "Test Mac", size: theirs.count).write(for: document.url)
+        try? await Task.sleep(for: .seconds(3))
+        let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
+        let before = events.read().count
+        try? theirs.write(to: document.url)   // in place, as a fetch puts it there
+        var sheet = false
+        let arrived = await waitFor(10) {
+            if document.conflict != nil { sheet = true }
+            return view.string.contains("merge theirs \(marker)")
+        }
+        func count(_ line: String) -> Int { view.string.components(separatedBy: line).count - 1 }
+        let lines = (mine: count("- merge mine \(marker)"), theirs: count("- merge theirs \(marker)"))
+        log.check(arrived && !sheet && document.conflict == nil && lines == (1, 1),
+                  "merged without a sheet: both lines, once each (mine \(lines.mine)×, theirs \(lines.theirs)×)")
+        log.check(document.notice?.contains("MERGED 1 CHANGE FROM TEST MAC") == true, "the strip says so: \(document.notice ?? "nothing")")
+        let merge = events.read().dropFirst(before).last { $0.event == "merge" }
+        log.check(merge != nil, "the Sync Log has it: \(merge?.detail ?? "no merge event")")
+        let synced = await waitFor(10) { fileText(document) == view.string }
+        log.check(synced, "and it's saved: the file holds the buffer")
+        let action = view.undoManager?.canUndo == true ? view.undoManager?.undoActionName ?? "" : "nothing to undo"
+        view.undoManager?.undo()
+        log.check(count("- merge mine \(marker)") == 1 && count("- merge theirs \(marker)") == 0,
+                  "⌘Z undoes the merge in one step (\(action); then mine \(count("- merge mine \(marker)"))×, theirs \(count("- merge theirs \(marker)"))×)")
+        view.undoManager?.redo()
+        log.check(count("- merge theirs \(marker)") == 1 && count("- merge mine \(marker)") == 1, "and redo brings it back")
+        _ = await waitFor(10) { fileText(document) == view.string }
+        try? FileManager.default.removeItem(at: Announcement.url(for: document.url))
+    }
+
     /// A note from a pretend other Mac names a version this Mac doesn't have: nib hands the
     /// file back, evicts it, downloads it and holds it again, keeping its text (SY14, S1b).
     static func refreshFromNote(_ document: Document, _ log: HarnessLog) async {
@@ -254,32 +308,71 @@ enum TestHarness {
             log.check(seen, "b: after coming forward, a's line is here \(seen ? "within \(Int(Date().timeIntervalSince(cameForward) * 1000)) ms" : "— never") (\(latency()) ms after a added it), with nothing typed here")
         }
 
-        // Both type at the same moment: one upload is refused, that Mac merges.
+        // Both type at the same moment in the same place: one upload is refused, and that
+        // Mac merges; the two lines overlap, so the sheet comes up (Keep Both).
         await until(60)
         end()
         view.insertText("\n- clash from \(role) \(marker)\n", replacementRange: view.selectedRange())
-        let deadline = Date().addingTimeInterval(50)   // room for an upload that times out (15 s) and its retry
-        while Date() < deadline {
-            if document.conflict != nil {
-                log.line("\(role): conflict sheet · Keep Both")
-                document.resolve(.both)
-            }
-            try? await Task.sleep(for: .milliseconds(200))
-        }
+        await answerSheets(document, log, role, "clash", until: t0 + 110)
         await until(115)
         document.becameActive()   // as if you looked at this Mac again
         await until(125)
-        let text = view.string
         // Once each: at 13:22 a version merged twice, then a save merged with itself, and
         // both lines were there three and two times over, nested.
-        func count(_ line: String) -> Int { text.components(separatedBy: line).count - 1 }
+        func count(_ line: String) -> Int { view.string.components(separatedBy: line).count - 1 }
         let clashes = (a: count("- clash from a \(marker)"), b: count("- clash from b \(marker)"))
         log.check(clashes == (1, 1), "\(role): both clash lines are here, once each (a \(clashes.a)×, b \(clashes.b)×)")
-        let expected = TextFile.encode(text, as: document.format)
+
+        // Then both type at the same moment in different places, a first in the file, b last:
+        // the Mac whose upload is refused merges without asking (§4.7, §4.8 A).
+        await until(130)
+        let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
+        let before = events.read().count
+        if role == "a" {
+            view.setSelectedRange(NSRange(location: 0, length: 0))
+            view.insertText("- apart from a \(marker)\n", replacementRange: view.selectedRange())
+        } else {
+            end()
+            view.insertText("\n- apart from b \(marker)\n", replacementRange: view.selectedRange())
+        }
+        let sheets = await answerSheets(document, log, role, "apart", until: t0 + 180)
+        await until(185)
+        document.becameActive()
+        await until(195)
+        let merges = events.read().dropFirst(before).filter { $0.event == "merge" }
+        for merge in merges { log.line("\(role): merged by itself · \(merge.detail ?? "")") }
+        let apart = (a: count("- apart from a \(marker)"), b: count("- apart from b \(marker)"))
+        log.check(apart == (1, 1) && sheets == 0, "\(role): both apart lines are here, once each, with no sheet (a \(apart.a)×, b \(apart.b)×, sheets \(sheets))")
+        log.check(view.string.hasPrefix("- apart from a \(marker)\n"), "\(role): a's line is first in the file, b's last")
+        let expected = TextFile.encode(view.string, as: document.format)
         log.check((try? Data(contentsOf: document.url)) == expected, "\(role): the file holds exactly the buffer")
         log.check(isSynced(document), "\(role): synced (state \(document.state.line))")
         log.line("\(role): file SHA-256 \(Digest.sha256(expected)) · compare with the other Mac's")
-        await until(135)
+        await until(205)
+    }
+
+    /// Answers each conflict sheet with Keep Both once it has been up 5 s, as a person would
+    /// take a moment (time for a late note to merge it by itself). Returns how many it answered.
+    @discardableResult
+    static func answerSheets(_ document: Document, _ log: HarnessLog, _ role: String, _ phase: String, until deadline: Double) async -> Int {
+        var answered = 0, since: Date?
+        while Date().timeIntervalSince1970 < deadline {   // room for an upload that times out (15 s) and its retry
+            if document.conflict == nil {
+                if since != nil { log.line("\(role): \(phase) sheet went by itself (its note came: merged)") }
+                since = nil
+            } else if let up = since {
+                if Date().timeIntervalSince(up) >= 5 {
+                    log.line("\(role): \(phase) conflict sheet · Keep Both\(document.conflict?.merged != nil ? " (three-way)" : "")")
+                    document.resolve(.both)
+                    answered += 1
+                    since = nil
+                }
+            } else {
+                since = Date()
+            }
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        return answered
     }
 
     /// Puts sample text on screen and holds still for a screenshot; also renders the
@@ -346,6 +439,15 @@ enum TestHarness {
             view.insertText(String(character), replacementRange: view.selectedRange())
             try? await Task.sleep(for: .milliseconds(30))
         }
+    }
+
+    /// Typing here comes without key events, and AppKit closes an undo group at the end of
+    /// an event: post one, as a keystroke would end, so what follows is its own undo step.
+    static func endOfEvent(_ view: NSTextView) async {
+        let event = NSEvent.otherEvent(with: .applicationDefined, location: .zero, modifierFlags: [], timestamp: 0,
+                                       windowNumber: 0, context: nil, subtype: 0, data1: 0, data2: 0)
+        if let event { NSApp.postEvent(event, atStart: false) }
+        _ = await waitFor(2) { (view.undoManager?.groupingLevel ?? 0) == 0 }
     }
 
     static func fileText(_ document: Document) -> String {

@@ -6,8 +6,10 @@
 #   Mac B:  scripts/run-m1-two-mac.sh b 08:40
 #
 # Mac A adds a line; Mac B, untouched, must show it (by itself, or once it comes forward).
-# Then both add a line at the same moment; the Mac whose upload is refused merges (Keep Both);
-# both must end with both lines, the same bytes, synced. About 2.5 minutes after the start.
+# Then both add a line at the same moment in the same place; the Mac whose upload is refused
+# merges (Keep Both). Then both add a line at the same moment in different places, a at the top,
+# b at the bottom: the refused Mac merges without a sheet. Both must end with every line once,
+# the same bytes, synced. About 3.5 minutes after the start.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 role=${1:?usage: run-m1-two-mac.sh a|b HH:MM}
@@ -27,7 +29,7 @@ else
   xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
     -destination "platform=macOS" -allowProvisioningUpdates -quiet build
 fi
-APP=build/DerivedData/Build/Products/Debug/nib.app/Contents/MacOS/nib
+APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
 mkdir -p build/scenarios
 LOG=$PWD/build/scenarios/two-mac-$role.log
 # A clean start: until M1 passes, nib opens only test files, so its journal holds only
@@ -41,4 +43,4 @@ echo "==> [$(date +%H:%M:%S)] nib on $(scutil --get ComputerName), role $role; s
 echo
 echo "================ paste this ================"
 echo "M1 two-Mac · role $role · $(scutil --get ComputerName)"
-grep -E "PASS|FAIL|SHA-256|conflict sheet" "$LOG" || echo "no output"
+grep -E "PASS|FAIL|SHA-256|sheet|merged by itself" "$LOG" || echo "no output"

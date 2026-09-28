@@ -12,7 +12,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A1B0C0DE00000000000000C1 /* nib.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = nib.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B0C0DE00000000000000C1 /* Nib.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nib.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -39,7 +39,7 @@
 		A1B0C0DE00000000000000F1 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A1B0C0DE00000000000000C1 /* nib.app */,
+				A1B0C0DE00000000000000C1 /* Nib.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,7 +76,7 @@
 				A1B0C0DE00000000000000B2 /* NibText */,
 			);
 			productName = nib;
-			productReference = A1B0C0DE00000000000000C1 /* nib.app */;
+			productReference = A1B0C0DE00000000000000C1 /* Nib.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -143,13 +143,14 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = F87BNUZAVJ;
 				CODE_SIGN_ENTITLEMENTS = Support/nib.entitlements;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Support/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = nib;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = Nib;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -158,7 +159,7 @@
 				);
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.banastas.nib;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Nib;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Debug;
@@ -169,13 +170,14 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = F87BNUZAVJ;
 				CODE_SIGN_ENTITLEMENTS = Support/nib.entitlements;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Support/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = nib;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = Nib;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -184,7 +186,7 @@
 				);
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.banastas.nib;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Nib;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;

@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Merged into the generated Info.plist. The container shows in iCloud Drive as "nib",
+	<!-- Merged into the generated Info.plist. The container shows in iCloud Drive as "Nib",
 	     beside other apps' folders. iCloud caches this: raise CFBundleVersion when it changes. -->
 	<key>NSUbiquitousContainers</key>
 	<dict>
@@ -11,7 +11,7 @@
 			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
 			<true/>
 			<key>NSUbiquitousContainerName</key>
-			<string>nib</string>
+			<string>Nib</string>
 			<key>NSUbiquitousContainerSupportedFolderLevels</key>
 			<string>Any</string>
 		</dict>
