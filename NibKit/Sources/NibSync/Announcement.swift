@@ -57,12 +57,23 @@ public struct Announcement: Codable, Sendable, Equatable {
         if let error = coordinationError ?? writeError { throw error }
     }
 
-    /// A coordinated read, which also downloads it if it arrived as a placeholder
-    /// (S1b: on a Mac with Optimize Mac Storage, new files download only when read).
-    public static func read(for document: URL) -> Announcement? {
+    /// Reads the note. `fresh` asks the server rather than trusting the local copy: it
+    /// evicts the note and reads it back, which downloads the server's version (about a
+    /// second). The two-Mac test at 10:00 showed a local copy that stayed old while the
+    /// server had a newer one, as S1b found for the document itself; eviction is the one
+    /// thing that reliably shows the server's version, and the note is tiny and never
+    /// paused, so this is cheap. Blocking: call it off the main thread.
+    public static func read(for document: URL, fresh: Bool = false) -> Announcement? {
         let url = Self.url(for: document)
-        guard FileManager.default.fileExists(atPath: url.path),
-              let (data, _) = try? FileAccess.read(url) else { return nil }
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        if fresh, (try? FileManager.default.evictUbiquitousItem(at: url)) != nil {
+            // Eviction completes asynchronously; then the coordinated read downloads it.
+            for _ in 0..<20 where CloudControl.status(url).downloadStatus != "notDownloaded" {
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+        }
+        guard let (data, _) = try? FileAccess.read(url) else { return nil }
         return try? decoder.decode(Announcement.self, from: data)
     }
 }

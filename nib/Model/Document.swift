@@ -72,6 +72,8 @@ final class Document {
     @ObservationIgnored private var applying = false
     /// A refresh (hand back, evict, download, hold again) is running (S1b, SY14).
     @ObservationIgnored private var refreshing = false
+    /// A fetch is putting a newer version in place: its own change to the file isn't news.
+    @ObservationIgnored private var fetching = false
     /// Announced versions already dealt with, by SHA-256.
     @ObservationIgnored private var handledAnnouncements: Set<String> = []
     /// Direct file-system watches, behind iCloud's presenters: writers that don't coordinate
@@ -408,6 +410,8 @@ final class Document {
         guard held else { await diskMayHaveChanged(); return }
         guard !uploading else { return }   // the upload itself is refused if the server is newer
         let url = self.url
+        fetching = true
+        defer { fetching = false }
         do {
             let result = try await CloudControl.fetchLatest(url)
             switch result {
@@ -427,7 +431,10 @@ final class Document {
                 if CloudControl.status(url).paused != true {
                     try? await CloudControl.pause(url)
                 }
-                incoming(data, fingerprint: fingerprint, from: (savedBy ?? "another Mac"), fromServer: true)
+                // iCloud often doesn't say which Mac saved it; the note does.
+                let note = await io.run { Announcement.read(for: url) }
+                let who = savedBy ?? note?.device ?? "another Mac"
+                incoming(data, fingerprint: fingerprint, from: who, fromServer: true)
             }
         } catch {
             record("fetch", detail: "failed (\(reason)): \(CloudControl.describe(error))")
@@ -436,7 +443,7 @@ final class Document {
 
     /// The presenter or a check found the file different: look at what's there (§4.4 Check).
     func diskMayHaveChanged() async {
-        guard ready, locked == nil, !saving, !refreshing else { return }
+        guard ready, locked == nil, !saving, !refreshing, !fetching else { return }
         let url = self.url
         let presenter = self.presenter
         guard FileManager.default.fileExists(atPath: url.path),
@@ -550,7 +557,7 @@ final class Document {
     func checkAnnouncement(reason: String) async {
         guard ready, locked == nil, !refreshing else { return }
         let url = self.url
-        guard let note = await io.run({ Announcement.read(for: url) }),
+        guard let note = await io.run({ Announcement.read(for: url, fresh: true) }),
               note.device != device, !handledAnnouncements.contains(note.sha256),
               note.sha256 != baseFingerprint?.sha256, note.sha256 != uploadedSHA else { return }
         handledAnnouncements.insert(note.sha256)

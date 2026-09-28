@@ -225,21 +225,23 @@ enum TestHarness {
             log.check(isSynced(document), "a: the lead line is uploaded (state \(document.state.line))")
         } else {
             await until(0)   // the lead line comes at +5 s; wait for it from the start, not from opening
-            let arrived = await waitFor(20) { view.string.contains(lead) }
-            var how = "by itself"
-            if !arrived {
-                await until(25)
-                document.becameActive()   // as if the user switched to this Mac
-                how = "after coming forward"
-            }
-            let seen = await waitFor(15) { view.string.contains(lead) }
-            if seen, let range = view.string.range(of: lead) {
+            func latency() -> Int {
+                guard let range = view.string.range(of: lead) else { return -1 }
                 let digits = view.string[range.upperBound...].prefix { $0.isNumber }
-                let latency = Int(Date().timeIntervalSince1970 * 1000) - (Int(digits) ?? 0)
-                log.check(true, "b: a's line arrived \(how), \(latency) ms after a added it, with nothing typed here")
-            } else {
-                log.check(false, "b: a's line never arrived (state \(document.state.line))")
+                return Int(Date().timeIntervalSince1970 * 1000) - (Int(digits) ?? 0)
             }
+            // Informational: an idle Mac depends on iCloud pushing to it.
+            if await waitFor(20, { view.string.contains(lead) }) {
+                log.line("b: a's line arrived by itself, \(latency()) ms after a added it")
+            } else {
+                log.line("b: a's line didn't arrive by itself within 20 s")
+            }
+            // The promise: coming forward shows the newest version (the user switching Macs).
+            await until(25)
+            let cameForward = Date()
+            document.becameActive()
+            let seen = await waitFor(15) { view.string.contains(lead) }
+            log.check(seen, "b: after coming forward, a's line is here \(seen ? "within \(Int(Date().timeIntervalSince(cameForward) * 1000)) ms" : "— never") (\(latency()) ms after a added it), with nothing typed here")
         }
 
         // Both type at the same moment: one upload is refused, that Mac merges.
@@ -254,6 +256,8 @@ enum TestHarness {
             }
             try? await Task.sleep(for: .milliseconds(200))
         }
+        await until(90)
+        document.becameActive()   // as if you looked at this Mac again
         await until(100)
         let text = view.string
         log.check(text.contains("- clash from a \(marker)") && text.contains("- clash from b \(marker)"), "\(role): both clash lines are here")
