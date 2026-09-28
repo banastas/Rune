@@ -27,8 +27,8 @@ struct ConflictBanner: View {
             .font(.callout)
             .lineLimit(2)
             Spacer(minLength: 8)
-            Button("Resolve…") { document.goToBlock(forward: true) }
-                .help("Go to the next conflict (⌥⌘R)")
+            Button("Resolve…") { document.resolveConflicts() }
+                .help(document.blocks.count > 3 ? "Open the merge view (⌥⌘R)" : "Go to the next conflict (⌥⌘R)")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)

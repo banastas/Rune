@@ -22,6 +22,9 @@ struct ScratchView: View {
         .navigationTitle(document.url.lastPathComponent)
         .navigationSubtitle(subtitle)
         .frame(minWidth: 480, minHeight: 320)
+        .sheet(isPresented: Binding(get: { document.merge != nil }, set: { if !$0 { document.closeMerge(done: false) } })) {
+            if let session = document.merge { MergeView(document: document, session: session) }
+        }
         .onAppear { AppDelegate.openScratchWindow = { openWindow(id: "scratch") } }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { note in
             guard isScratchWindow(note.object) else { return }

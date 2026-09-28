@@ -62,6 +62,22 @@ import Testing
         #expect(b.markers.map { sub(t, $0) } == ["<<<<<<< HEAD\n", "||||||| base\nold\n=======\n", ">>>>>>> branch\n"])
     }
 
+    @Test func eachSidesWholeText() {
+        let two = "a\n<<<<<<< X\n1\n=======\n2\n>>>>>>> Y\nb\n<<<<<<< X\n3\n=======\n>>>>>>> Y\nc\n"
+        let sides = ConflictText.sides(of: two)
+        #expect(sides.first == "a\n1\nb\n3\nc\n")
+        #expect(sides.second == "a\n2\nb\nc\n")
+    }
+
+    @Test func lineMarksAgainstTheOtherSide() {
+        let (a, b) = ConflictText.lineMarks("hi\nFriday\ninvoice\n", "hi\nThursday\n")
+        #expect(a == [.same, .changed, .changed, .same])   // "Friday", "invoice" against "Thursday"
+        #expect(b == [.same, .changed, .same])
+        let (c, d) = ConflictText.lineMarks("hi\nextra\nbye\n", "hi\nbye\n")
+        #expect(c == [.same, .only, .same, .same])
+        #expect(d == [.same, .same, .same])
+    }
+
     @Test func notBlocks() {
         #expect(ConflictText.blocks(in: "plain\ntext\n").isEmpty)
         #expect(ConflictText.blocks(in: "<<<<<<< X\nno end\n=======\nstill none\n").isEmpty)

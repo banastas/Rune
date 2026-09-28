@@ -74,6 +74,45 @@ extension ConflictText {
         return kept
     }
 
+    /// Each side's whole text: every block resolved to its first version, and to its second.
+    public static func sides(of text: String) -> (first: String, second: String) {
+        var first = text as NSString, second = text as NSString
+        for block in blocks(in: text).reversed() {
+            first = first.replacingCharacters(in: block.range, with: resolution(of: block, .first, in: text)) as NSString
+            second = second.replacingCharacters(in: block.range, with: resolution(of: block, .second, in: text)) as NSString
+        }
+        return (first as String, second as String)
+    }
+
+    public enum LineMark: Sendable, Equatable {
+        /// On both sides.
+        case same
+        /// Here and on the other side, but different (`~`).
+        case changed
+        /// Only on this side (`+`).
+        case only
+    }
+
+    /// For the merge view's two panes (§5.5): each line of `a` and of `b` against the other.
+    /// Without the version both came from, a line one side lacks is "only", never "removed".
+    public static func lineMarks(_ a: String, _ b: String) -> (a: [LineMark], b: [LineMark]) {
+        let x = Array(lines(a)), y = Array(lines(b))
+        let matched = Merge.matches(x, y)
+        var marksA = [LineMark](repeating: .same, count: x.count), marksB = [LineMark](repeating: .same, count: y.count)
+        var i = 0, j = 0
+        while i < x.count || j < y.count {
+            if i < x.count, matched[i] == j { i += 1; j += 1; continue }
+            var endA = i
+            while endA < x.count, matched[endA] == nil { endA += 1 }
+            let endB = endA < x.count ? matched[endA]! : y.count
+            let mark: LineMark = endA > i && endB > j ? .changed : .only
+            for k in i..<endA { marksA[k] = mark }
+            for k in j..<endB { marksB[k] = mark }
+            i = endA; j = endB
+        }
+        return (marksA, marksB)
+    }
+
     /// The label after a seven-character marker of `c` ("<<<<<<< Air · 10:42" → "Air · 10:42"), or nil.
     static func marker(_ c: Character, _ line: String) -> String? {
         let head = String(repeating: c, count: 7)

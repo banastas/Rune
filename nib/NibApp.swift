@@ -126,13 +126,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// The Conflicts menu (PRD §5.4, §5.12): with the caret in a block, ⌘1 uses the first
-/// version, ⌘2 the second, ⌘3 keeps both; ⌥⌘↓ and ⌥⌘↑ go between blocks.
+/// version, ⌘2 the second, ⌘3 keeps both; ⌥⌘↓ and ⌥⌘↑ go between blocks; Resolve… opens
+/// the merge view for more than three. In the merge view, they act on its result.
 struct ConflictCommands: Commands {
     let document: Document
 
     var body: some Commands {
         CommandMenu("Conflicts") {
-            let block = document.caretBlock.flatMap { $0 < document.blocks.count ? document.blocks[$0] : nil }
+            let block = document.activeCaretBlock
             Button(block.map { "Use \($0.firstLabel)" } ?? "Use the First Version") { document.resolveBlock(.first) }
                 .keyboardShortcut("1")
                 .disabled(block == nil)
@@ -145,13 +146,13 @@ struct ConflictCommands: Commands {
             Divider()
             Button("Next Conflict") { document.goToBlock(forward: true) }
                 .keyboardShortcut(.downArrow, modifiers: [.command, .option])
-                .disabled(document.blocks.isEmpty)
+                .disabled(document.activeBlockCount == 0)
             Button("Previous Conflict") { document.goToBlock(forward: false) }
                 .keyboardShortcut(.upArrow, modifiers: [.command, .option])
-                .disabled(document.blocks.isEmpty)
-            Button("Resolve…") { document.goToBlock(forward: true) }
+                .disabled(document.activeBlockCount == 0)
+            Button("Resolve…") { document.resolveConflicts() }
                 .keyboardShortcut("r", modifiers: [.command, .option])
-                .disabled(document.blocks.isEmpty)
+                .disabled(document.blocks.isEmpty || document.merge != nil)
         }
     }
 }

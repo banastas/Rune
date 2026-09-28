@@ -31,6 +31,7 @@ enum TestHarness {
             case "refresh": await refreshFromNote(document, log)
             case "unsent": await unsentThenIncoming(document, log, marker)
             case "merge": await mergeFromNote(document, log, marker)
+            case "mergeview": await mergeView(document, log, marker)
             case "two-mac": await twoMac(document, log, marker)
             default: log.line("FAIL unknown scenario")
             }
@@ -238,6 +239,64 @@ enum TestHarness {
         log.check(count("- merge theirs \(marker)") == 1 && count("- merge mine \(marker)") == 1, "and redo brings it back")
         _ = await waitFor(10) { fileText(document) == view.string }
         try? FileManager.default.removeItem(at: Announcement.url(for: document.url))
+    }
+
+    /// Four blocks in the text: Resolve… opens the merge view (§5.5). Three are resolved in its
+    /// result (first version, second, both), Done puts it in the buffer and the file with one
+    /// block left, and Cancel leaves the text as it was.
+    static func mergeView(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        let view = document.editor.textView
+        let header = "## merge view \(marker)\n"
+        var sample = header
+        for n in 1...4 {
+            sample += "line \(n)\n<<<<<<< \(document.device) · 10:4\(n)\nmine \(n) \(marker)\n=======\ntheirs \(n) \(marker)\n>>>>>>> Test Mac · 10:3\(n)\n"
+        }
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        view.insertText(sample, replacementRange: view.selectedRange())
+        await endOfEvent(view)
+        log.check(ours(document, marker).count == 4, "four blocks in the text")
+        document.resolveConflicts()
+        let opened = await waitFor(5) { document.merge != nil && view.window?.attachedSheet != nil }
+        guard opened, let session = document.merge else { log.line("FAIL Resolve… didn't open the merge view"); return }
+        log.check(true, "Resolve… with four blocks opened the merge view")
+        log.check(session.first.text.contains("mine 4 \(marker)") && !session.first.text.contains("theirs 1 \(marker)")
+                  && session.second.text.contains("theirs 1 \(marker)") && !session.second.text.contains("mine 4 \(marker)"),
+                  "each pane holds one version's whole text (\(session.first.label) · \(session.second.label))")
+        log.check(session.marks.first.contains(.changed) && session.marks.second.contains(.changed), "and marks what differs (~)")
+        for choice in [ConflictBlock.Choice.first, .second, .both] {
+            session.resolve(choice)   // each moves the caret on to the next block
+            await endOfEvent(session.editor.textView)
+        }
+        let left = session.blocks.filter { (session.result as NSString).substring(with: $0.range).contains(marker) }.count
+        log.check(left == 1, "three resolved in the result, each moving on to the next; \(left) left")
+        try? await Task.sleep(for: .milliseconds(500))
+        if let sheet = view.window?.attachedSheet, let content = sheet.contentView,
+           let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+            content.cacheDisplay(in: content.bounds, to: rep)
+            let url = URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("snapshot-mergeview.png")
+            try? rep.representation(using: .png, properties: [:])?.write(to: url)
+        }
+        document.closeMerge(done: true)
+        let applied = await waitFor(10) {
+            let disk = fileText(document)
+            return disk.contains("mine 1 \(marker)") && !disk.contains("theirs 1 \(marker)")
+                && disk.contains("theirs 2 \(marker)") && !disk.contains("mine 2 \(marker)")
+                && disk.contains("mine 3 \(marker)") && disk.contains("theirs 3 \(marker)") && ours(document, marker).count == 1
+        }
+        log.check(applied && view.window?.attachedSheet == nil, "Done: the result is in the buffer and the file, one block left")
+        let before = view.string
+        document.openMerge()
+        _ = await waitFor(5) { document.merge != nil }
+        document.merge?.resolve(.both)
+        document.closeMerge(done: false)
+        _ = await waitFor(3) { view.window?.attachedSheet == nil }
+        log.check(view.string == before && ours(document, marker).count == 1, "Cancel: nothing changed, the block is still in the text")
+        // Out again, from its heading to the end.
+        let at = (view.string as NSString).range(of: header).location
+        if at != NSNotFound { view.insertText("", replacementRange: NSRange(location: at, length: (view.string as NSString).length - at)) }
+        _ = await waitFor(10) { !fileText(document).contains(marker) }
     }
 
     /// A note from a pretend other Mac names a version this Mac doesn't have: nib hands the

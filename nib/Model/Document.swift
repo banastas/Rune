@@ -305,38 +305,67 @@ final class Document {
     }
 
     private func updateCaretBlock() {
-        let caret = editor.textView.selectedRange().location
-        let inside = blocks.firstIndex { caret >= $0.range.location && caret < NSMaxRange($0.range) }
+        let inside = editor.block(atCaretIn: blocks)
         if inside != caretBlock { caretBlock = inside }
     }
 
+    // The Conflicts menu acts on the merge view's result while it's open, else on the buffer.
+
+    /// Where ⌘1, ⌘2, ⌘3 would act: the merge view's result's caret block, or the buffer's.
+    var activeCaretBlock: ConflictBlock? {
+        if let merge { return merge.caretBlock.map { merge.blocks[$0] } }
+        return caretBlock.flatMap { $0 < blocks.count ? blocks[$0] : nil }
+    }
+    var activeBlockCount: Int { merge?.blocks.count ?? blocks.count }
+
     /// ⌘1, ⌘2, ⌘3 with the caret in a block: an edit like typing (journaled, saved, one undo step).
     func resolveBlock(_ choice: ConflictBlock.Choice) {
+        if let merge { merge.resolve(choice); return }
         guard let index = caretBlock, index < blocks.count else { NSSound.beep(); return }
-        let block = blocks[index]
-        let view = editor.textView
-        let kept = ConflictText.resolution(of: block, choice, in: view.string)
-        guard view.shouldChangeText(in: block.range, replacementString: kept) else { return }
-        view.textStorage?.replaceCharacters(in: block.range, with: kept)
-        view.didChangeText()
-        let label = choice == .first ? block.firstLabel : choice == .second ? block.secondLabel : "both"
-        view.undoManager?.setActionName(choice == .both ? "Keep Both" : "Use \(label)")
-        view.setSelectedRange(NSRange(location: block.range.location + (kept as NSString).length, length: 0))
-        view.scrollRangeToVisible(view.selectedRange())
+        let label = editor.resolve(blocks[index], choice)
         record("resolve", detail: choice == .both ? "a block: both" : "a block: \(label)'s")
     }
 
-    /// ⌥⌘↓ and ⌥⌘↑ (and Resolve…, until the merge view): the caret to the next block's first side.
+    /// ⌥⌘↓ and ⌥⌘↑: the caret to the next (or previous) block.
     func goToBlock(forward: Bool) {
-        guard !blocks.isEmpty else { NSSound.beep(); return }
-        let caret = editor.textView.selectedRange().location
-        let target = forward
-            ? blocks.first { $0.range.location > caret } ?? blocks[0]
-            : blocks.last { NSMaxRange($0.range) <= caret } ?? blocks[blocks.count - 1]
-        let view = editor.textView
-        view.setSelectedRange(NSRange(location: target.first.location, length: 0))
-        view.scrollRangeToVisible(target.range)
-        view.window?.makeFirstResponder(view)
+        if let merge { merge.editor.go(forward: forward, in: merge.blocks); return }
+        editor.go(forward: forward, in: blocks)
+    }
+
+    /// Resolve… (⌥⌘R): the merge view for more than three blocks (§5.5), else the next block.
+    func resolveConflicts() {
+        if merge == nil, blocks.count > 3 { openMerge() } else { goToBlock(forward: true) }
+    }
+
+    // MARK: - The merge view (§5.5)
+
+    /// The open merge view, if any.
+    private(set) var merge: MergeSession?
+
+    func openMerge() {
+        guard merge == nil, !blocks.isEmpty else { NSSound.beep(); return }
+        merge = MergeSession(text: editor.textView.string, device: device)
+        record("merge view", detail: "opened on \(blocks.count) block\(blocks.count == 1 ? "" : "s")")
+    }
+
+    /// Done: the result into the buffer as one edit. If the buffer changed while the sheet was up
+    /// (another Mac's version arrived), the two are merged from where the sheet started, so
+    /// nothing that came meanwhile is lost. Cancel: nothing changes; the markers stay.
+    func closeMerge(done: Bool) {
+        guard let session = merge else { return }
+        merge = nil
+        guard done else { record("merge view", detail: "cancelled; the blocks stay in the text"); return }
+        let now = editor.textView.string
+        var result = session.result
+        if now != session.original {
+            let clock = SyncState.clock.string(from: Date())
+            result = Merge.threeWay(base: session.original, .init(text: result, label: "Merge view · \(clock)"),
+                                    .init(text: now, label: "\(device) · \(clock)")).text
+        }
+        guard result != now else { return }
+        replaceBuffer(with: result, action: "Merge View")
+        let left = ConflictText.blocks(in: result).count
+        record("merge view", detail: "done: \(session.total - min(left, session.total)) of \(session.total) resolved" + (now != session.original ? ", merged with what arrived meanwhile" : ""))
     }
 
     /// Escape: the banner goes until the blocks change. False if it wasn't showing.

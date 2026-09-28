@@ -73,14 +73,56 @@ final class Editor: NSObject, NSTextViewDelegate {
         textView.needsDisplay = true
     }
 
+    /// For an editor with no document (the merge view's result): told of changes and caret moves.
+    var onChange: (() -> Void)?
+    var onSelection: (() -> Void)?
+
     func textDidChange(_ notification: Notification) {
         document?.textDidChange()
+        onChange?()
     }
 
     func textViewDidChangeSelection(_ notification: Notification) {
         textView.needsDisplay = true   // the current-line highlight follows the caret
-        let (line, column) = position(of: textView.selectedRange().location)
-        document?.selectionDidChange(line: line, column: column)
+        if let document {
+            let (line, column) = position(of: textView.selectedRange().location)
+            document.selectionDidChange(line: line, column: column)
+        }
+        onSelection?()
+    }
+
+    // MARK: Conflict blocks: the keys (§5.4, §5.5)
+
+    /// The block the caret is in, if any.
+    func block(atCaretIn blocks: [ConflictBlock]) -> Int? {
+        let caret = textView.selectedRange().location
+        return blocks.firstIndex { caret >= $0.range.location && caret < NSMaxRange($0.range) }
+    }
+
+    /// ⌘1, ⌘2, ⌘3 on `block`: an edit like typing, one undo step. Returns whose version was kept.
+    @discardableResult
+    func resolve(_ block: ConflictBlock, _ choice: ConflictBlock.Choice) -> String {
+        let kept = ConflictText.resolution(of: block, choice, in: textView.string)
+        guard textView.shouldChangeText(in: block.range, replacementString: kept) else { return "" }
+        textView.textStorage?.replaceCharacters(in: block.range, with: kept)
+        textView.didChangeText()
+        let label = choice == .first ? block.firstLabel : choice == .second ? block.secondLabel : "both"
+        textView.undoManager?.setActionName(choice == .both ? "Keep Both" : "Use \(label)")
+        textView.setSelectedRange(NSRange(location: block.range.location + (kept as NSString).length, length: 0))
+        textView.scrollRangeToVisible(textView.selectedRange())
+        return label
+    }
+
+    /// ⌥⌘↓ and ⌥⌘↑: the caret to the next (or previous) block's first version, round the end.
+    func go(forward: Bool, in blocks: [ConflictBlock]) {
+        guard !blocks.isEmpty else { NSSound.beep(); return }
+        let caret = textView.selectedRange().location
+        let target = forward
+            ? blocks.first { $0.range.location > caret } ?? blocks[0]
+            : blocks.last { NSMaxRange($0.range) <= caret } ?? blocks[blocks.count - 1]
+        textView.setSelectedRange(NSRange(location: target.first.location, length: 0))
+        textView.scrollRangeToVisible(target.range)
+        textView.window?.makeFirstResponder(textView)
     }
 
     /// Line and column (1-based) of a UTF-16 offset, counting in chunks: a few ms at 2.4 MB.
