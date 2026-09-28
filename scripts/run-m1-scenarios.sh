@@ -29,6 +29,10 @@ run() {   # run <name> [args…]: one scenario, killed after 120 s if it hangs
   grep -E "PASS|FAIL|after the last" "$LOGS/$name.log" || echo "FAIL no output"
 }
 
+# A clean start: until M1 passes, nib opens only test files, so its journal holds only
+# test-file snapshots (a failed earlier run can leave one that raises a conflict at launch).
+rm -f "$HOME/Library/Application Support/nib/Journal/"*.json
+
 marker="crash-$(date +%s)"
 run type
 run clipboard
@@ -36,7 +40,13 @@ run undo
 run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"
 run external -NibSaveIdle 600 -NibSaveMax 600
+run unsent -NibHoldUploads YES
+run refresh
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
-if grep -q "FAIL" "$LOGS"/*.log; then echo "SOME CHECKS FAILED"; exit 1; fi
+failed=0
+for name in type clipboard undo crash recover external unsent refresh; do   # this run's logs only
+  grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
+done
+if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi
 echo "ALL CHECKS PASSED"

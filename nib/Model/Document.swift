@@ -19,6 +19,8 @@ struct Conflict: Identifiable {
     /// What's in the file now.
     var theirs: ConflictText.Side
     var theirsFingerprint: Fingerprint?
+    /// Theirs came from iCloud's server (so iCloud already has it), not from an app on this Mac.
+    var theirsFromServer = false
 }
 
 @MainActor
@@ -72,8 +74,18 @@ final class Document {
     @ObservationIgnored private var refreshing = false
     /// Announced versions already dealt with, by SHA-256.
     @ObservationIgnored private var handledAnnouncements: Set<String> = []
+    /// Direct file-system watches, behind iCloud's presenters: writers that don't coordinate
+    /// (`echo >> file`) went unnoticed by the presenter while a save waited to upload (M1).
+    @ObservationIgnored private var fileWatch: DispatchSourceFileSystemObject?
+    @ObservationIgnored private var noteWatch: DispatchSourceFileSystemObject?
 
     var dirty: Bool { editCount != savedEditCount }
+
+    /// Work on this Mac that no other Mac has: unsaved edits, or, for a held file, a saved
+    /// version iCloud hasn't taken yet. Only a buffer with nothing unsent may be replaced by
+    /// another version; anything else goes to the conflict sheet. (Two-Mac test, 09:25: a
+    /// saved-but-refused version counted as clean and was replaced, losing its line.)
+    var unsent: Bool { dirty || (held && uploadedSHA != baseFingerprint?.sha256) }
 
     init(url: URL) {
         self.url = url
@@ -135,6 +147,8 @@ final class Document {
         NSFileCoordinator.addFilePresenter(presenter)
         try? FileManager.default.createDirectory(at: Announcement.url(for: url).deletingLastPathComponent(), withIntermediateDirectories: true)
         NSFileCoordinator.addFilePresenter(notePresenter)
+        watchFile()
+        watchNoteFolder()
         record("open", size: text.utf8.count, sha: baseFingerprint?.sha256)
         recoverFromJournal(fileText: text)
         watchNetwork()
@@ -329,6 +343,9 @@ final class Document {
     /// At most every 3 s while typing continues, one at a time; `now` skips the spacing.
     private func upload(now: Bool) async {
         guard conflict == nil else { return }
+        #if DEBUG
+        if UserDefaults.standard.bool(forKey: "NibHoldUploads") { return }   // the "unsent" scenario
+        #endif
         guard held, online || now else {
             if held, !online { state = .waiting("WAITING FOR NETWORK · SAVED LOCALLY \(SyncState.clock.string(from: lastSaved))") }
             return
@@ -441,9 +458,10 @@ final class Document {
         if theirs == mine {
             baseFingerprint = fingerprint
             savedEditCount = editCount
+            if fromServer { uploadedSHA = fingerprint?.sha256 }
             return
         }
-        if !dirty {
+        if !unsent {
             apply(theirs)
             baseFingerprint = fingerprint
             show("▼ UPDATED FROM \(source.uppercased()) · \(SyncState.clock.string(from: Date()))", for: 10)
@@ -460,9 +478,9 @@ final class Document {
         saveTask?.cancel()
         conflict = Conflict(mine: .init(text: mine, label: "\(device) · \(SyncState.clock.string(from: Date()))"),
                             theirs: .init(text: theirs, label: "\(source.capitalized) · \(SyncState.clock.string(from: Date()))"),
-                            theirsFingerprint: fingerprint)
+                            theirsFingerprint: fingerprint, theirsFromServer: fromServer)
         state = .conflict
-        record("conflict", detail: "changed by \(source) while there were unsaved edits")
+        record("conflict", detail: "changed by \(source) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have")")
         NSApp.requestUserAttention(.informationalRequest)
     }
 
@@ -479,6 +497,7 @@ final class Document {
         case .theirs:
             apply(conflict.theirs.text)
             savedEditCount = editCount
+            if conflict.theirsFromServer { uploadedSHA = conflict.theirsFingerprint?.sha256 }
             journal.clear(path: url.path)
             state = .saved(Date())
         case .both:
@@ -536,7 +555,7 @@ final class Document {
               note.sha256 != baseFingerprint?.sha256, note.sha256 != uploadedSHA else { return }
         handledAnnouncements.insert(note.sha256)
         record("announce", sha: note.sha256, detail: "\(note.device) uploaded a version this Mac doesn't have (\(reason))")
-        guard !dirty, conflict == nil, !saving, !uploading else { return }
+        guard !unsent, conflict == nil, !saving, !uploading else { return }
         await refresh(announced: note)
     }
 
@@ -546,9 +565,15 @@ final class Document {
         refreshing = true
         let started = Date()
         let url = self.url
-        // nib's own presenter counts as a user of the file, and eviction refuses a file in use.
+        // nib's own presenter and file watch count as users of the file, and eviction
+        // refuses a file in use. The download may also bring a new inode: watch it afresh.
         NSFileCoordinator.removeFilePresenter(presenter)
-        defer { NSFileCoordinator.addFilePresenter(presenter) }
+        fileWatch?.cancel()
+        fileWatch = nil
+        defer {
+            NSFileCoordinator.addFilePresenter(presenter)
+            watchFile()
+        }
         do {
             let (data, fingerprint) = try await CloudControl.refetch(url, wasPaused: held)
             held = false
@@ -566,6 +591,40 @@ final class Document {
             if CloudControl.status(url).paused != true { held = false; await holdAgain() }
             refreshing = false
         }
+    }
+
+    /// Any write, growth, attribute change, rename or delete of the file itself.
+    private func watchFile() {
+        fileWatch?.cancel()
+        let descriptor = Darwin.open(url.path, O_EVTONLY)
+        guard descriptor >= 0 else { return }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor,
+                                                               eventMask: [.write, .extend, .attrib, .rename, .delete], queue: .main)
+        source.setEventHandler { [weak self] in
+            let event = source.data
+            Task { @MainActor in
+                guard let self else { return }
+                if event.contains(.rename) || event.contains(.delete) { self.watchFile() }   // a new inode
+                await self.diskMayHaveChanged()
+            }
+        }
+        source.setCancelHandler { Darwin.close(descriptor) }
+        source.resume()
+        fileWatch = source
+    }
+
+    /// The `.nib` folder: a note written or replaced there changes its entries.
+    private func watchNoteFolder() {
+        noteWatch?.cancel()
+        let descriptor = Darwin.open(Announcement.url(for: url).deletingLastPathComponent().path, O_EVTONLY)
+        guard descriptor >= 0 else { return }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .attrib], queue: .main)
+        source.setEventHandler { [weak self] in
+            Task { @MainActor in await self?.checkAnnouncement(reason: "note folder changed") }
+        }
+        source.setCancelHandler { Darwin.close(descriptor) }
+        source.resume()
+        noteWatch = source
     }
 
     private func holdAgain() async {
@@ -645,6 +704,8 @@ final class Document {
         for _ in 0..<50 where uploading { try? await Task.sleep(for: .milliseconds(100)) }
         NSFileCoordinator.removeFilePresenter(presenter)
         NSFileCoordinator.removeFilePresenter(notePresenter)
+        fileWatch?.cancel()
+        noteWatch?.cancel()
         guard held else { return }
         let clean = !dirty && conflict == nil && uploadedSHA != nil && uploadedSHA == baseFingerprint?.sha256
         record("quit", ms: ms(since: started), detail: clean ? "everything uploaded; resuming iCloud sync" : "unsent edits; resuming iCloud sync")

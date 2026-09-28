@@ -1090,6 +1090,12 @@ Decided: TextKit 2, the SwiftUI lifecycle, and viewport-only highlighting (§6.3
 
 **Second Mac (2026-09-27, 23:53):** `scripts/run-m1-scenarios.sh` passed on the Mac mini too: all 23 scenario checks and 28 unit tests.
 
+**Two-Mac test, first run (2026-09-28, 09:25; `scripts/run-m1-two-mac.sh`):** both Macs had the test file open and held. Mac A added a line; then both added a line at the same moment.
+
+- **Found a data-loss bug, now fixed.** Mac A saved its clash line and uploaded it; the upload was refused (Mac B's landed first); Mac A fetched Mac B's version and, because its buffer matched its saved file, treated itself as clean and **replaced the buffer with Mac B's version**, dropping its own line. Both Macs converged on the same bytes (the same SHA-256), with one line missing and nothing to say so. The rule now: a buffer may be replaced only when nothing on this Mac is unsent: no unsaved edits, and for a held file, its saved version is the one iCloud has (`Document.unsent`). Anything else goes to the conflict sheet. A single-Mac regression scenario (`unsent`, uploads held back) reproduces it and passes.
+- **Another app's write went unnoticed** while a saved version waited to upload (found by that regression): iCloud's presenter stayed quiet. nib now also watches the file and the `.nib` folder directly (file-system events), as §4.4 planned for writers that don't coordinate; the watch steps aside during a refresh, since eviction refuses a file in use.
+- **Mac B showed Mac A's line one second after coming forward** (the activation check and a refresh). Whether it arrives by itself, without coming forward, wasn't really tested: the harness's wait ran before Mac A typed. Fixed for the next run.
+
 **Still to do for M1:** the two-Mac scenarios (stale typing, lid closed before upload, both offline; S1b's steps first), a build on the second Mac (open `nib.xcodeproj` in Xcode and run, or adapt Blit's `release.sh`), trying ⌥Space and the strip by hand, then a day on both Macs with the test file before `allowLiveScratch` points nib at `_scratch2.md`.
 
 ---

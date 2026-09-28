@@ -29,6 +29,7 @@ enum TestHarness {
             case "snapshot": await snapshot(document, log)
             case "undo": await undoRedo(document, log, marker)
             case "refresh": await refreshFromNote(document, log)
+            case "unsent": await unsentThenIncoming(document, log, marker)
             case "two-mac": await twoMac(document, log, marker)
             default: log.line("FAIL unknown scenario")
             }
@@ -160,6 +161,23 @@ enum TestHarness {
         log.check(isSynced(document), "and synced (state \(document.state.line))")
     }
 
+    /// Regression for the two-Mac test at 09:25: a version saved here but not yet uploaded
+    /// is still this Mac's work. Another version arriving must bring the conflict sheet,
+    /// not replace it. Run with -NibHoldUploads YES, so the save can't reach iCloud.
+    static func unsentThenIncoming(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await type("\n- unsent \(marker)\n", into: document)
+        let saved = await waitFor(8) { fileText(document).contains("unsent \(marker)") && !document.dirty }
+        log.check(saved, "saved on this Mac, not uploaded (dirty \(document.dirty), unsent \(document.unsent))")
+        append("other version \(marker)", to: document.url)
+        let conflicted = await waitFor(8) { document.conflict != nil }
+        log.check(conflicted, "another version arrived: a conflict, not a replacement (state \(document.state.line))")
+        log.check(document.editor.textView.string.contains("unsent \(marker)"), "this Mac's line is still in the buffer")
+        document.resolve(.both)
+        let both = await waitFor(10) { fileText(document).contains("unsent \(marker)") && fileText(document).contains("other version \(marker)") }
+        log.check(both, "Keep Both: both lines in the file")
+    }
+
     /// A note from a pretend other Mac names a version this Mac doesn't have: nib hands the
     /// file back, evicts it, downloads it and holds it again, keeping its text (SY14, S1b).
     static func refreshFromNote(_ document: Document, _ log: HarnessLog) async {
@@ -206,6 +224,7 @@ enum TestHarness {
             await waitSynced(document, 20)
             log.check(isSynced(document), "a: the lead line is uploaded (state \(document.state.line))")
         } else {
+            await until(0)   // the lead line comes at +5 s; wait for it from the start, not from opening
             let arrived = await waitFor(20) { view.string.contains(lead) }
             var how = "by itself"
             if !arrived {
