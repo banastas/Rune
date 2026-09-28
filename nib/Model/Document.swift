@@ -50,10 +50,15 @@ final class Document {
     @ObservationIgnored let presenter: Presenter
     @ObservationIgnored let notePresenter: NotePresenter
     @ObservationIgnored private let journal = Journal(directory: NibPaths.support.appendingPathComponent("Journal"))
+    /// Every version this Mac saved or took in, for 30 days (SY13, guarantee 2).
+    @ObservationIgnored let history: History
     @ObservationIgnored private let log = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
     @ObservationIgnored private let pausedFiles = PausedFiles(url: NibPaths.support.appendingPathComponent("paused.json"))
     @ObservationIgnored private let io = IOQueue(label: "nib.io")
     @ObservationIgnored private let journalQueue = IOQueue(label: "nib.journal")
+    /// For conflict versions and duplicates: iCloud's version store can be slow, and saves
+    /// mustn't queue behind it.
+    @ObservationIgnored private let othersQueue = IOQueue(label: "nib.others")
 
     /// The version the buffer came from, or was last saved as.
     @ObservationIgnored private var baseFingerprint: Fingerprint? {
@@ -103,6 +108,13 @@ final class Document {
     /// the same version arriving again isn't news (the two-Mac test at 13:22).
     @ObservationIgnored private var incorporated: Set<String> = []
     @ObservationIgnored private var unproven: Unproven?
+    /// iCloud conflict versions and duplicate files already dealt with this session, and the
+    /// ones whose text went into the buffer: marked resolved, or moved to the Trash, once a save
+    /// has put that text in the file (§4.7).
+    @ObservationIgnored private var handledOthers: Set<String> = []
+    @ObservationIgnored private var pendingResolved: Set<String> = []
+    @ObservationIgnored private var pendingTrash: [(url: URL, sha: String)] = []
+    @ObservationIgnored private var checkingOthers = false
     /// Direct file-system watches, behind iCloud's presenters: writers that don't coordinate
     /// (`echo >> file`) went unnoticed by the presenter while a save waited to upload (M1).
     @ObservationIgnored private var fileWatch: DispatchSourceFileSystemObject?
@@ -123,6 +135,7 @@ final class Document {
                                 maxWait: defaults.object(forKey: "NibSaveMax") as? TimeInterval ?? 5)
         presenter = Presenter(url: url)
         notePresenter = NotePresenter(note: Announcement.url(for: url))
+        history = History(root: NibPaths.support.appendingPathComponent("History"), path: url.path)
         editor = Editor()
         presenter.document = self
         notePresenter.document = self
@@ -174,6 +187,7 @@ final class Document {
             format = decoded.format
             baseFingerprint = fingerprint
             remember(text, sha: fingerprint.sha256)
+            recordHistory { history in try? history.record(data, parent: nil, source: "opened") }
         } catch {
             state = .problem("COULDN'T READ \(url.lastPathComponent.uppercased()) · \(short(error))")
             record("problem", detail: CloudControl.describe(error))
@@ -206,6 +220,9 @@ final class Document {
         }
         await fetchLatest(reason: "open")
         await checkAnnouncement(reason: "open")
+        await checkOthers(reason: "open")
+        let history = self.history
+        Task { await journalQueue.run { history.thin() } }
         if dirty { scheduleSave() }
     }
 
@@ -439,6 +456,8 @@ final class Document {
             case .written(let fingerprint):
                 baseFingerprint = fingerprint
                 remember(text, sha: fingerprint.sha256)
+                recordHistory { history in try? history.record(data, parent: base?.sha256, source: "saved") }
+                if !pendingResolved.isEmpty || !pendingTrash.isEmpty { settleOthers() }
                 savedEditCount = snapshot
                 lastSaved = Date()
                 if !dirty {
@@ -616,6 +635,7 @@ final class Document {
         }
         let theirs = TextFile.decode(data).text
         remember(theirs, sha: fingerprint?.sha256)
+        recordHistory { history in try? history.record(data, parent: nil, source: "from \(source)") }
         let mine = editor.textView.string
         if theirs == mine {
             baseFingerprint = fingerprint
@@ -695,12 +715,156 @@ final class Document {
                             : "✕ CONFLICT WITH \(proven.device.uppercased()) · NARROWED TO \(result.conflicts) PLACE\(result.conflicts == 1 ? "" : "S")", for: 10)
     }
 
+    // MARK: - iCloud conflict versions and duplicate files (§4.6 3-4, §4.8 C-D)
+
+    /// Versions of the file that didn't come through Nib: iCloud's conflict versions (edits made
+    /// while no Mac held the file) and `scratch 2.md`-style duplicates. Nothing in them is
+    /// dropped: what this Mac already has is settled at once; anything else goes into the text
+    /// beside this Mac's, between markers, and is settled once a save has it in the file.
+    func checkOthers(reason: String) async {
+        guard ready, locked == nil, !checkingOthers else { return }
+        checkingOthers = true
+        defer { checkingOthers = false }
+        let url = self.url
+        var versions = await othersQueue.run { CloudControl.conflictVersions(url) }
+        #if DEBUG
+        versions += TestHarness.fakeConflictVersions
+        #endif
+        for version in versions where !handledOthers.contains(version.sha256) {
+            handleConflictVersion(version)
+        }
+        // Duplicates there at the first look were there before Nib: someone's own files.
+        let known = "siblings:" + url.path
+        let found = await othersQueue.run { Duplicates.beside(url) }
+        if UserDefaults.standard.array(forKey: known) == nil { UserDefaults.standard.set(found.map(\.lastPathComponent), forKey: known) }
+        let before = Set(UserDefaults.standard.stringArray(forKey: known) ?? [])
+        for duplicate in found where !before.contains(duplicate.lastPathComponent) {
+            guard let (data, _) = try? await othersQueue.run({ try FileAccess.read(duplicate) }) else { continue }
+            handleDuplicate(duplicate, data)
+        }
+    }
+
+    // MARK: - History (SY13)
+
+    /// Bumped with every version History keeps, so Revert To and the History window follow.
+    private(set) var historyChanged = 0
+
+    private func recordHistory(_ work: @escaping @Sendable (History) -> Void) {
+        let history = self.history
+        Task {
+            await journalQueue.run { work(history) }
+            historyChanged += 1
+        }
+    }
+
+    /// Revert To (SY13): a version from History back in the buffer as one edit (⌘Z undoes it).
+    /// The version it replaces is in History too, so nothing is lost.
+    func restore(_ entry: HistoryEntry) {
+        guard let data = history.data(entry.sha256) else { NSSound.beep(); return }
+        let text = TextFile.decode(data).text
+        guard text != editor.textView.string else { return }
+        let time = SyncState.clock.string(from: entry.time)
+        replaceBuffer(with: text, action: "Revert to \(time)")
+        show("= BACK TO THE VERSION FROM \(time) (\(entry.source.uppercased())) · ⌘Z UNDOES", for: 10)
+        record("revert", sha: entry.sha256, detail: "to the version from \(time) (\(entry.source))")
+    }
+
+    /// A version this Mac has already had: identical to the buffer or the file, taken in
+    /// before, or kept in History. Its text adds nothing.
+    private func alreadyHave(_ text: String, sha: String) -> Bool {
+        text == editor.textView.string || sha == baseFingerprint?.sha256 || incorporated.contains(sha)
+            || superseded.contains(sha) || history.contains(sha)
+    }
+
+    private func handleConflictVersion(_ version: CloudControl.ConflictVersion) {
+        handledOthers.insert(version.sha256)
+        let theirs = TextFile.decode(version.data).text
+        let who = version.savedBy ?? "another Mac"
+        let known = alreadyHave(theirs, sha: version.sha256)
+        let data = version.data
+        recordHistory { history in try? history.record(data, parent: nil, source: "iCloud conflict version from \(who)") }
+        if known {
+            // Identical, or a version this Mac already has: resolved at once (§4.7).
+            markResolved([version.sha256])
+            record("conflict version", sha: version.sha256, detail: "from \(who): nothing this Mac doesn't have; marked resolved")
+            return
+        }
+        // iCloud doesn't say what it was made from: both whole versions, between markers.
+        let when = version.modified.map { SyncState.clock.string(from: $0) } ?? "earlier"
+        let mine = ConflictText.Side(text: editor.textView.string, label: "\(device) · \(SyncState.clock.string(from: Date()))")
+        writeBlocks(ConflictText.keepBoth(mine, .init(text: theirs, label: "\(who) · \(when)")), places: 1, merged: false, from: who)
+        incorporated.insert(version.sha256)
+        pendingResolved.insert(version.sha256)
+        record("conflict", sha: version.sha256, detail: "an iCloud conflict version from \(who): both versions between markers; marked resolved once saved")
+    }
+
+    private func handleDuplicate(_ duplicate: URL, _ data: Data) {
+        let name = duplicate.lastPathComponent
+        let sha = Digest.sha256(data)
+        guard handledOthers.insert(name + ":" + sha).inserted else { return }
+        let theirs = TextFile.decode(data).text
+        let identical = theirs == editor.textView.string || sha == baseFingerprint?.sha256
+        let known = alreadyHave(theirs, sha: sha)
+        recordHistory { history in try? history.record(data, parent: nil, source: "duplicate \(name)") }
+        if known {
+            trash(duplicate, sha: sha, notice: "REMOVED DUPLICATE “\(name.uppercased())” (\(identical ? "IDENTICAL" : "AN EARLIER VERSION, IN HISTORY")) · IN THE TRASH")
+            return
+        }
+        let when = (try? duplicate.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        let mine = ConflictText.Side(text: editor.textView.string, label: "\(device) · \(SyncState.clock.string(from: Date()))")
+        writeBlocks(ConflictText.keepBoth(mine, .init(text: theirs, label: "\(name) · \(when.map { SyncState.clock.string(from: $0) } ?? "earlier")")),
+                    places: 1, merged: false, from: name)
+        incorporated.insert(sha)
+        pendingTrash.append((duplicate, sha))
+        record("duplicate", sha: sha, detail: "\(name): its text between markers; to the Trash once saved")
+    }
+
+    /// A save has put the conflict versions' and duplicates' text in the file: settle them.
+    private func settleOthers() {
+        let resolved = pendingResolved, trashing = pendingTrash
+        pendingResolved = []
+        pendingTrash = []
+        if !resolved.isEmpty {
+            markResolved(resolved)
+            record("conflict version", detail: "\(resolved.count) marked resolved: their text is in the file")
+        }
+        for item in trashing {
+            trash(item.url, sha: item.sha, notice: "MERGED “\(item.url.lastPathComponent.uppercased())” INTO THE TEXT · IT'S IN THE TRASH")
+        }
+    }
+
+    private func markResolved(_ shas: Set<String>) {
+        let url = self.url
+        Task { await othersQueue.run { CloudControl.markResolved(url, sha256s: shas) } }
+        #if DEBUG
+        TestHarness.fakeConflictVersions.removeAll { shas.contains($0.sha256) }
+        #endif
+    }
+
+    /// To the Trash, never deleted, and only if it's still what was read (§4.7).
+    private func trash(_ duplicate: URL, sha: String, notice: String) {
+        Task {
+            let moved = await othersQueue.run { () -> Bool in
+                guard let (data, _) = try? FileAccess.read(duplicate), Digest.sha256(data) == sha else { return false }
+                return (try? FileManager.default.trashItem(at: duplicate, resultingItemURL: nil)) != nil
+            }
+            if moved {
+                show(notice, for: 10)
+                record("duplicate", sha: sha, detail: "\(duplicate.lastPathComponent) moved to the Trash")
+            } else {
+                record("duplicate", sha: sha, detail: "\(duplicate.lastPathComponent) changed or couldn't be moved: left where it is")
+                handledOthers.remove(duplicate.lastPathComponent + ":" + sha)
+            }
+        }
+    }
+
     /// The base for a three-way merge with version `sha`, when its note proves one: `sha`
     /// was made from the version this Mac last had on the server, and this Mac still has
     /// that version's text. That version is also where this Mac's edits start.
     private func provenBase(for sha: String?) -> (text: String, device: String)? {
         guard let sha, let note = lastNote, note.sha256 == sha, note.device != device,
-              let parent = note.parent, parent == uploadedSHA, let text = versions[parent] else { return nil }
+              let parent = note.parent, parent == uploadedSHA,
+              let text = versions[parent] ?? history.data(parent).map({ TextFile.decode($0).text }) else { return nil }
         return (text, note.device)
     }
 
@@ -906,12 +1070,14 @@ final class Document {
             if held { await diskMayHaveChanged() }   // another app on this Mac may have written it
             await checkAnnouncement(reason: "activated")
             await fetchLatest(reason: "activated")
+            await checkOthers(reason: "activated")
         }
         fetchTimer?.invalidate()
         fetchTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.checkAnnouncement(reason: "every 30 s")
                 await self?.fetchLatest(reason: "every 30 s")
+                await self?.checkOthers(reason: "every 30 s")
             }
         }
     }

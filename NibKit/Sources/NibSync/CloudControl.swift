@@ -139,6 +139,40 @@ public enum CloudControl {
     /// arrives at a side location: its bytes are read there and it's put in place of the
     /// local file, so a following upload is based on it (the caller has the local edits
     /// in its buffer and journal, and merges before saving again).
+    /// An iCloud conflict version of the file (§4.6, 3): edits made while Nib wasn't holding it,
+    /// which iCloud kept beside the version it chose.
+    public struct ConflictVersion: Sendable, Equatable {
+        public var data: Data
+        public var sha256: String
+        public var savedBy: String?
+        public var modified: Date?
+
+        public init(data: Data, savedBy: String?, modified: Date?) {
+            self.data = data
+            self.sha256 = Digest.sha256(data)
+            self.savedBy = savedBy
+            self.modified = modified
+        }
+    }
+
+    /// The file's unresolved conflict versions, read. A local query; the reads are coordinated,
+    /// so off the main thread.
+    public static func conflictVersions(_ url: URL) -> [ConflictVersion] {
+        (NSFileVersion.unresolvedConflictVersionsOfItem(at: url) ?? []).compactMap { version in
+            guard let data = try? FileAccess.read(version.url).data else { return nil }
+            return ConflictVersion(data: data, savedBy: version.localizedNameOfSavingComputer, modified: version.modificationDate)
+        }
+    }
+
+    /// Marks resolved the conflict versions with these contents, once their text is in the file
+    /// (§4.7). Nothing is deleted: iCloud keeps them as ordinary versions, and History has them.
+    public static func markResolved(_ url: URL, sha256s: Set<String>) {
+        for version in NSFileVersion.unresolvedConflictVersionsOfItem(at: url) ?? [] {
+            guard let data = try? FileAccess.read(version.url).data, sha256s.contains(Digest.sha256(data)) else { continue }
+            version.isResolved = true
+        }
+    }
+
     /// `skipping`: asked once iCloud has answered, which versions (by SHA-256) the caller knows
     /// to be stale then. Right after an upload iCloud can still offer the version that upload
     /// replaced (two-Mac tests at 14:20 and 15:05; at 15:05 the fetch began while the upload

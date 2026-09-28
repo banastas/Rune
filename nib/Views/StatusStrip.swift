@@ -39,6 +39,7 @@ struct StatusStrip: View {
         .overlay(alignment: .top) { Rectangle().fill(HUDColor.border).frame(height: 0.5) }
         .environment(\.colorScheme, .dark)
         .help(tooltip)
+        .contextMenu { StripMenu(document: document) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(document.url.lastPathComponent), \(document.state.spoken), line \(document.cursor.line), column \(document.cursor.column)")
     }
@@ -67,5 +68,17 @@ struct StatusStrip: View {
         case .uploading: return "Uploading this version to iCloud. " + hold
         default: return document.state.spoken + ". " + hold
         }
+    }
+}
+
+/// Right-click on the strip (PRD §5.2): Save Now, Show History, Reveal in Finder.
+struct StripMenu: View {
+    let document: Document
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Save Now") { Task { await document.flush(reason: "strip") } }
+        Button("Show History") { openWindow(id: "history") }
+        Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([document.url]) }
     }
 }

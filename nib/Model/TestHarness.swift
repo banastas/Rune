@@ -13,6 +13,11 @@ import NibText
 
 @MainActor
 enum TestHarness {
+    /// iCloud conflict versions a scenario pretends are there (a real one needs iCloud itself to
+    /// reconcile two offline edits); `Document` reads them with the real ones, and marking them
+    /// resolved takes them away.
+    static var fakeConflictVersions: [CloudControl.ConflictVersion] = []
+
     static func runIfRequested(_ document: Document) {
         let defaults = UserDefaults.standard
         guard let scenario = defaults.string(forKey: "NibScenario") else { return }
@@ -32,6 +37,9 @@ enum TestHarness {
             case "unsent": await unsentThenIncoming(document, log, marker)
             case "merge": await mergeFromNote(document, log, marker)
             case "mergeview": await mergeView(document, log, marker)
+            case "duplicates": await duplicates(document, log, marker)
+            case "conflictversions": await conflictVersions(document, log, marker)
+            case "history": await historyScenario(document, log, marker)
             case "two-mac": await twoMac(document, log, marker)
             default: log.line("FAIL unknown scenario")
             }
@@ -299,6 +307,113 @@ enum TestHarness {
         _ = await waitFor(10) { !fileText(document).contains(marker) }
     }
 
+    /// Duplicates beside the file (§4.8 C): an identical one goes to the Trash with a notice; one
+    /// with new text is merged between markers and goes to the Trash once saved; one that's an
+    /// earlier version, in History, goes to the Trash with nothing merged.
+    static func duplicates(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        let view = document.editor.textView
+        let folder = document.url.deletingLastPathComponent()
+        let stem = document.url.deletingPathExtension().lastPathComponent, ext = document.url.pathExtension
+        func free() -> URL {
+            var n = 2
+            while FileManager.default.fileExists(atPath: folder.appendingPathComponent("\(stem) \(n).\(ext)").path) { n += 1 }
+            return folder.appendingPathComponent("\(stem) \(n).\(ext)")
+        }
+        // Whatever is beside the file now counts as someone's own: the first look records it.
+        UserDefaults.standard.removeObject(forKey: "siblings:" + document.url.path)
+        await document.checkOthers(reason: "harness")
+
+        let identical = free()
+        try? TextFile.encode(view.string, as: document.format).write(to: identical)
+        await document.checkOthers(reason: "harness")
+        let gone = await waitFor(10) { !FileManager.default.fileExists(atPath: identical.path) && document.notice?.contains("(IDENTICAL) · IN THE TRASH") == true }
+        log.check(gone, "an identical duplicate: to the Trash (\(document.notice ?? "no notice"))")
+
+        let different = free()
+        try? TextFile.encode(view.string + "- duplicate only \(marker)\n", as: document.format).write(to: different)
+        await document.checkOthers(reason: "harness")
+        let blocked = await waitFor(8) { !ours(document, marker).isEmpty }
+        let labels = ours(document, marker).first.map { [$0.firstLabel, $0.secondLabel] } ?? []
+        log.check(blocked && labels.contains { $0.hasPrefix(different.lastPathComponent) }, "one with new text: its text between markers (\(labels.joined(separator: " / ")))")
+        let merged = await waitFor(15) {
+            !FileManager.default.fileExists(atPath: different.path) && fileText(document).contains("duplicate only \(marker)")
+                && document.notice?.contains("IT'S IN THE TRASH") == true
+        }
+        log.check(merged, "and to the Trash once the file had its text (\(document.notice ?? "no notice"))")
+        let kept = await keepBoth(document, marker)
+        log.check(kept && fileText(document).contains("duplicate only \(marker)"), "⌘3 keeps both: the line stays, the markers go")
+
+        // The version as opened is in History, and the file has moved on from it.
+        let now = Digest.sha256(TextFile.encode(view.string, as: document.format))
+        let earlier = document.history.entries().last { ($0.source == "opened" || $0.source == "saved") && $0.sha256 != now }
+        if let earlier, let data = document.history.data(earlier.sha256) {
+            let old = free()
+            try? data.write(to: old)
+            let before = view.string
+            await document.checkOthers(reason: "harness")
+                let trashed = await waitFor(10) { !FileManager.default.fileExists(atPath: old.path) && document.notice?.contains("AN EARLIER VERSION, IN HISTORY") == true }
+            log.check(trashed && view.string == before,
+                      "an earlier version of the file: to the Trash, nothing merged (\(document.notice ?? "no notice"))")
+        } else {
+            log.line("FAIL no earlier version in History to try")
+        }
+        let sources = Set(document.history.entries().map(\.source))
+        log.check(sources.contains("saved") && sources.contains { $0.hasPrefix("duplicate ") }, "History has what was saved and the duplicates")
+    }
+
+    /// iCloud conflict versions (§4.8 D), pretended: an identical one is marked resolved and
+    /// nothing changes; one with new text goes between markers, labelled with the Mac that
+    /// saved it, and is marked resolved once the file has its text.
+    static func conflictVersions(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        let view = document.editor.textView
+        let before = view.string
+        fakeConflictVersions = [.init(data: TextFile.encode(before, as: document.format), savedBy: "Test Mac", modified: Date())]
+        await document.checkOthers(reason: "harness")
+        log.check(fakeConflictVersions.isEmpty && view.string == before, "an identical conflict version: marked resolved, nothing changed")
+
+        fakeConflictVersions = [.init(data: TextFile.encode(before + "- conflict version only \(marker)\n", as: document.format), savedBy: "Test Mac", modified: Date())]
+        await document.checkOthers(reason: "harness")
+        let blocked = await waitFor(8) { !ours(document, marker).isEmpty }
+        let labels = ours(document, marker).first.map { [$0.firstLabel, $0.secondLabel] } ?? []
+        log.check(blocked && labels.contains { $0.hasPrefix("Test Mac") }, "one with new text: between markers (\(labels.joined(separator: " / ")))")
+        let resolved = await waitFor(15) { fakeConflictVersions.isEmpty && fileText(document).contains("conflict version only \(marker)") }
+        log.check(resolved, "and marked resolved once the file had its text")
+        let kept = await keepBoth(document, marker)
+        log.check(kept, "⌘3 keeps both: the markers go")
+    }
+
+    /// History (SY13): each saved version is kept; Revert To puts one back as an edit, and the
+    /// version it replaced can be put back in turn.
+    static func historyScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        await type("\n- history one \(marker)\n", into: document)
+        _ = await waitFor(10) { fileText(document).contains("history one \(marker)") && !document.dirty }
+        await type("- history two \(marker)\n", into: document)
+        _ = await waitFor(10) { fileText(document).contains("history two \(marker)") && !document.dirty }
+        _ = await waitFor(5) { document.history.entries().contains { text(document, $0).contains("history two \(marker)") } }
+        let entries = document.history.entries()
+        let one = entries.last { text(document, $0).contains("history one \(marker)") && !text(document, $0).contains("history two \(marker)") }
+        let two = entries.last { text(document, $0).contains("history two \(marker)") }
+        log.check(one != nil && two != nil, "both saved versions are in History (\(entries.count) versions)")
+        guard let one, let two else { return }
+        document.restore(one)
+        let back = await waitFor(10) { fileText(document).contains("history one \(marker)") && !fileText(document).contains("history two \(marker)") }
+        log.check(back && document.notice?.contains("BACK TO THE VERSION FROM") == true, "Revert To: the earlier version, in the buffer and the file (\(document.notice ?? "no notice"))")
+        document.restore(two)
+        let again = await waitFor(10) { fileText(document).contains("history two \(marker)") }
+        log.check(again, "and the version it replaced came back from History")
+        log.check(document.history.entries().contains { $0.source == "opened" }, "the version as opened is in History")
+    }
+
+    static func text(_ document: Document, _ entry: HistoryEntry) -> String {
+        document.history.data(entry.sha256).map { TextFile.decode($0).text } ?? ""
+    }
+
     /// A note from a pretend other Mac names a version this Mac doesn't have: nib hands the
     /// file back, evicts it, downloads it and holds it again, keeping its text (SY14, S1b).
     static func refreshFromNote(_ document: Document, _ log: HarnessLog) async {
@@ -470,6 +585,21 @@ enum TestHarness {
     /// window into a PNG from inside the app, next to the log.
     static func snapshot(_ document: Document, _ log: HarnessLog) async {
         await waitReady(document)
+        if UserDefaults.standard.bool(forKey: "NibSnapshotHistory") {   // the History window, as File › Revert To opens it
+            let menu = NSApp.mainMenu?.item(withTitle: "File")?.submenu?.item(withTitle: "Revert To")?.submenu
+            if let browse = menu?.items.last, let index = menu?.index(of: browse) { menu?.performActionForItem(at: index) }
+            _ = await waitFor(5) { NSApp.windows.contains { $0.title.hasPrefix("History") && $0.isVisible } }
+            try? await Task.sleep(for: .milliseconds(800))
+            if let window = NSApp.windows.first(where: { $0.title.hasPrefix("History") }), let content = window.contentView?.superview ?? window.contentView,
+               let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+                content.cacheDisplay(in: content.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("snapshot-history.png"))
+                log.line("rendered snapshot-history.png")
+            } else {
+                log.line("FAIL no History window")
+            }
+            return
+        }
         let view = document.editor.textView
         var sample = "## Deploy\n```bash\nssh me@seedbox 'df -h ~/files'\n```\n\n## Email · Q4 vendor\nHi Sam, thanks for the quick turnaround on the invoice. We can ship on Friday if QA signs off.\n"
         if UserDefaults.standard.bool(forKey: "NibSnapshotConflict") {   // the banner and a block (§5.4)

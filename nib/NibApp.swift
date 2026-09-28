@@ -20,12 +20,17 @@ struct NibApp: App {
             ScratchView(document: AppDelegate.document)
         }
         .defaultSize(width: 720, height: 560)
+        Window("History", id: "history") {
+            HistoryView(document: AppDelegate.document)
+        }
+        .defaultSize(width: 820, height: 520)
         .commands {
             CommandGroup(replacing: .newItem) {}   // one scratch file in M1
             CommandGroup(replacing: .saveItem) {
                 // Everything saves by itself; ⌘S saves and uploads now.
                 Button("Save") { Task { await AppDelegate.document.flush(reason: "⌘S") } }
                     .keyboardShortcut("s")
+                RevertToMenu(document: AppDelegate.document)
             }
             ConflictCommands(document: AppDelegate.document)
         }

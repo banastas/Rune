@@ -193,3 +193,60 @@ func scratchFolder() -> URL {
         }
     }
 }
+
+@Suite struct HistoryTests {
+    @Test func keepsEachVersionOnceAndListsWhereItCameFrom() throws {
+        let history = History(root: scratchFolder(), path: "/tmp/scratch.md")
+        try history.record(Data("one\n".utf8), parent: nil, source: "saved")
+        try history.record(Data("one\n".utf8), parent: nil, source: "saved")        // the same again: not a new entry
+        try history.record(Data("two\n".utf8), parent: Digest.sha256(Data("one\n".utf8)), source: "from Air")
+        try history.record(Data("one\n".utf8), parent: nil, source: "duplicate scratch 2.md")   // back again: an entry, one copy
+        let entries = history.entries()
+        #expect(entries.map(\.source) == ["saved", "from Air", "duplicate scratch 2.md"])
+        #expect(history.data(Digest.sha256(Data("two\n".utf8))) == Data("two\n".utf8))
+        #expect(history.contains(Digest.sha256(Data("one\n".utf8))))
+        #expect(!history.contains(Digest.sha256(Data("three\n".utf8))))
+    }
+
+    @Test func thinsByAge() throws {
+        let history = History(root: scratchFolder(), path: "/tmp/scratch.md")
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        func at(_ hoursAgo: Double, _ text: String) throws {
+            try history.record(Data(text.utf8), parent: nil, source: "saved", time: now.addingTimeInterval(-hoursAgo * 3_600))
+        }
+        try at(40 * 24, "too old")                            // over 30 days: gone
+        // Buckets are clock hours and UTC days; `now` is 33 min into an hour, 3 h 33 min into a day.
+        try at(10 * 24 + 2.5, "day 10, early"); try at(10 * 24 + 0.5, "day 10, late")   // one a day: the later
+        try at(3 * 24 + 0.3, "day 3, hour a"); try at(3 * 24 + 0.1, "day 3, hour a, later")   // one an hour: the later
+        try at(2, "today 1"); try at(1, "today 2")            // the last day: all
+        history.thin(now: now)
+        #expect(history.entries().map { String(decoding: history.data($0.sha256) ?? Data(), as: UTF8.self) }
+                == ["day 10, late", "day 3, hour a, later", "today 1", "today 2"])
+        #expect(!history.contains(Digest.sha256(Data("too old".utf8))))   // its bytes went too
+    }
+}
+
+@Suite struct DuplicateTests {
+    @Test func namesICloudGives() {
+        #expect(Duplicates.isDuplicate("scratch 2.md", of: "scratch.md"))
+        #expect(Duplicates.isDuplicate("scratch 10.md", of: "scratch.md"))
+        #expect(Duplicates.isDuplicate("scratch-test 2.md", of: "scratch-test.md"))
+        #expect(Duplicates.isDuplicate("my notes 3.md", of: "my notes.md"))
+        #expect(Duplicates.isDuplicate("notes 2", of: "notes"))
+    }
+
+    @Test func namesThatAreNotDuplicates() {
+        for name in ["scratch 1.md", "scratch 2.txt", "scratch copy.md", "scratch2.md", "scratch 2 2.md",
+                     "scratch .md", "scratch 02.md", "scratch ２.md", "other 2.md", "scratch.md"] {
+            #expect(!Duplicates.isDuplicate(name, of: "scratch.md"), "\(name)")
+        }
+    }
+
+    @Test func findsThemBesideTheFile() throws {
+        let folder = scratchFolder()
+        for name in ["scratch.md", "scratch 2.md", "scratch 3.md", "scratch copy.md", "notes 2.md"] {
+            FileManager.default.createFile(atPath: folder.appendingPathComponent(name).path, contents: Data())
+        }
+        #expect(Duplicates.beside(folder.appendingPathComponent("scratch.md")).map(\.lastPathComponent) == ["scratch 2.md", "scratch 3.md"])
+    }
+}
