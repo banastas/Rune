@@ -183,6 +183,11 @@ enum TestHarness {
     static func refreshFromNote(_ document: Document, _ log: HarnessLog) async {
         await waitReady(document)
         await waitSynced(document, 20)
+        // As in the two-Mac test at 11:15: typed and uploaded shortly before the note arrives.
+        await type("\n- before the note \(Int(Date().timeIntervalSince1970))\n", into: document)
+        _ = await waitFor(10) { document.dirty }
+        await waitSynced(document, 20)
+        try? await Task.sleep(for: .seconds(3))
         let before = document.editor.textView.string
         let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
         let count = events.read().count

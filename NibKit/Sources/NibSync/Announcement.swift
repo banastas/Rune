@@ -86,14 +86,16 @@ extension CloudControl {
     /// unsaved edits: eviction refuses a file with changes iCloud doesn't have.
     public static func refetch(_ url: URL, wasPaused: Bool) async throws -> (data: Data, fingerprint: Fingerprint) {
         if wasPaused { try await resume(url, .takeServerVersion) }
-        // Right after a resume iCloud can still be busy with the file (EBUSY): retry briefly.
+        // Right after a resume, and shortly after an upload, iCloud can refuse the eviction
+        // for a while: EBUSY, or "cannot be evicted" (-2008; the two-Mac test at 11:15, and
+        // reproduced on one Mac right after an upload). Retry with backoff, about 15 s in all.
         var delay = 0.25
-        for attempt in 1...6 {
+        for attempt in 1...7 {
             do {
                 try FileManager.default.evictUbiquitousItem(at: url)
                 break
             } catch {
-                guard isBusy(error), attempt < 6 else { throw error }
+                guard isBusy(error) || isNotEvictableYet(error), attempt < 7 else { throw error }
                 try await Task.sleep(for: .seconds(delay))
                 delay *= 2
             }

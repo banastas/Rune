@@ -23,6 +23,9 @@ xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataP
 APP=build/DerivedData/Build/Products/Debug/nib.app/Contents/MacOS/nib
 mkdir -p build/scenarios
 LOG=$PWD/build/scenarios/two-mac-$role.log
+# A clean start: until M1 passes, nib opens only test files, so its journal holds only
+# test-file snapshots, and one left by an earlier failed run would raise a conflict at launch.
+rm -f "$HOME/Library/Application Support/nib/Journal/"*.json
 
 # Open the file a minute early, so both Macs hold it before anything happens.
 wait=$(( T0 - 60 - $(date +%s) )); (( wait > 0 )) && { echo "==> Opening nib at $(date -r $((T0 - 60)) +%H:%M:%S)"; sleep "$wait"; }
