@@ -1,0 +1,4 @@
+S1b role b · Bill’s Mac mini · 27.0 · start 08:05
+RESULT watch-paused: 60 s paused · presenter callbacks 3 · status changes 2 · local file changes 0 · fetch failed: GSLibraryErrorDomain 3: The operation couldn’t be completed. (GSLibraryErrorDomain error 3 - Generation not found)
+RESULT race second: upload refused as a conflict (-2015) · fetched theirs (2 lines) · still paused after replaceItem: true · merged upload accepted · final file here: race base by Bill’s MacBook Air | line from Bill’s MacBook Air (first) | line from Bill’s Mac mini (second, merged)
+RESULT xattr-check: lineage#S ARRIVED (lineage-from-Bill’s MacBook Air) · plain missing · all: com.banastas.nib.lineage#S

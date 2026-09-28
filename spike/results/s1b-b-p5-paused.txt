@@ -1,0 +1,14 @@
+08:05:10.654 nib-spike watch-paused on Bill’s Mac mini, macOS Version 27.0 (Build 26A428)
+08:05:13.745   p5-0928-0805.md appeared after 3088 ms: ubiquitous status=notDownloaded - not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect. · size 40 · blocks 0 · DATALESS
+08:05:15.056   read it after 4393 ms: ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict · size 40 · blocks 8
+08:05:15.178   pauseSync: 122 ms · ok
+08:05:15.178 paused at: seq 0 written 0 by Bill’s MacBook Air
+08:05:15.185   +7 ms  ubiquitous status=current - UPLOADED SYNC-PAUSED controls=pauseSync+failUploadOnConflict upload-error=NSFileProviderInternalErrorDomain 27: Sync is paused, open the file to resume.
+08:05:15.191   presenter: ubiquity attributes changed: NSURLUbiquitousItemDownloadingStatusKey, NSURLUbiquitousItemHasUnresolvedConflictsKey, NSURLUbiquitousItemIsSyncPausedKey, NSURLUbiquitousItemIsUploadedKey, NSURLUbiquitousItemIsUploadingKey (+13 ms)
+08:05:15.443   +265 ms  ubiquitous status=current - UPLOADED SYNC-PAUSED controls=pauseSync+failUploadOnConflict
+08:05:16.494   presenter: presentedItemDidChange (+1316 ms)
+08:05:16.618   presenter: ubiquity attributes changed: NSURLUbiquitousItemDownloadingStatusKey (+1439 ms)
+08:05:16.737   +1559 ms  ubiquitous status=stale - UPLOADED SYNC-PAUSED controls=pauseSync+failUploadOnConflict
+08:06:16.728   fetchLatestRemoteVersion: 1298 ms · GSLibraryErrorDomain 3: The operation couldn’t be completed. (GSLibraryErrorDomain error 3 - Generation not found)
+08:06:17.376   resumeSync(upload, fail on conflict): 648 ms · ok
+08:06:17.376 RESULT watch-paused: 60 s paused · presenter callbacks 3 · status changes 2 · local file changes 0 · fetch failed: GSLibraryErrorDomain 3: The operation couldn’t be completed. (GSLibraryErrorDomain error 3 - Generation not found)
