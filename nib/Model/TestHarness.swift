@@ -416,9 +416,9 @@ enum TestHarness {
         if UserDefaults.standard.bool(forKey: "NibSnapshotConflict") {   // the banner and a block (§5.4)
             sample = "## Email · Q4 vendor\nHi Sam, thanks for the quick turnaround.\n<<<<<<< \(document.device) · 10:42\nWe can ship on Friday if QA signs off.\n=======\nWe can ship Thursday.\n>>>>>>> Bill’s MacBook Air · 10:41\nAlso: invoice attached.\n"
         }
-        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        let sampleRange = NSRange(location: (view.string as NSString).length, length: (sample as NSString).length)
+        view.setSelectedRange(NSRange(location: sampleRange.location, length: 0))
         view.insertText(sample, replacementRange: view.selectedRange())
-        await endOfEvent(view)   // its own undo step, so the undo at the end takes out just the sample
         let end = (view.string as NSString).length
         view.setSelectedRange(NSRange(location: document.blocks.last.map { $0.first.location + 4 } ?? end - 20, length: 0))
         view.scrollRangeToVisible(view.selectedRange())
@@ -427,7 +427,7 @@ enum TestHarness {
         window.setFrame(NSRect(x: 80, y: 120, width: 760, height: 420), display: true)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate()
-        view.scrollRangeToVisible(view.selectedRange())
+        view.scrollRangeToVisible(document.blocks.last.map { NSRange(location: $0.range.location, length: $0.range.length + 30) } ?? view.selectedRange())
         view.needsDisplay = true
         try? await Task.sleep(for: .milliseconds(600))
         log.line("window \(window.windowNumber)")
@@ -439,7 +439,13 @@ enum TestHarness {
             log.line("rendered \(url.lastPathComponent)")
         }
         try? await Task.sleep(for: .seconds(5))   // time for an outside screenshot
-        view.undoManager?.undo()
+        // Out again as an edit, by its own range: nothing else writes the file meanwhile.
+        if NSMaxRange(sampleRange) <= (view.string as NSString).length,
+           (view.string as NSString).substring(with: sampleRange) == sample {
+            view.insertText("", replacementRange: sampleRange)
+        } else {
+            log.line("FAIL the sample moved; left in the test file")
+        }
         await document.flush(reason: "harness")
     }
 

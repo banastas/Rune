@@ -139,17 +139,19 @@ public enum CloudControl {
     /// arrives at a side location: its bytes are read there and it's put in place of the
     /// local file, so a following upload is based on it (the caller has the local edits
     /// in its buffer and journal, and merges before saving again).
-    /// `skipping`: versions, by SHA-256, the caller knows to be stale. Right after an upload
-    /// iCloud can still offer the version that upload replaced (the two-Mac test at 14:20).
-    public static func fetchLatest(_ url: URL, skipping: Set<String> = []) async throws -> FetchResult {
+    /// `skipping`: asked once iCloud has answered, which versions (by SHA-256) the caller knows
+    /// to be stale then. Right after an upload iCloud can still offer the version that upload
+    /// replaced (two-Mac tests at 14:20 and 15:05; at 15:05 the fetch began while the upload
+    /// was still running, so the answer is what matters, not the question).
+    public static func fetchLatest(_ url: URL, skipping: @escaping @Sendable () async -> Set<String> = { [] }) async throws -> FetchResult {
         try await within(15) { try await fetchLatestUnbounded(url, skipping: skipping) }
     }
-    private static func fetchLatestUnbounded(_ url: URL, skipping: Set<String>) async throws -> FetchResult {
+    private static func fetchLatestUnbounded(_ url: URL, skipping: @Sendable () async -> Set<String>) async throws -> FetchResult {
         let version = try await FileManager.default.fetchLatestRemoteVersionOfItem(at: url)
         guard version.url.standardizedFileURL.path != url.standardizedFileURL.path else { return .current }
         let data = try FileAccess.read(version.url).data
         let sha = Digest.sha256(data)
-        if skipping.contains(sha) { return .skipped(sha256: sha) }
+        if await skipping().contains(sha) { return .skipped(sha256: sha) }
         let savedBy = version.localizedNameOfSavingComputer
         let modified = version.modificationDate
         _ = try version.replaceItem(at: url, options: [])

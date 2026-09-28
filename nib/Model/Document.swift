@@ -511,11 +511,13 @@ final class Document {
         fetches += 1
         defer { fetches -= 1 }
         do {
-            // Within 30 s of this Mac's own upload, a version it has already moved past is iCloud
-            // lagging, not news (the two-Mac test at 14:20 showed an old version for 24 s). Later
-            // it's taken as before; another Mac going back to it comes with its note anyway.
-            let recent = lastUpload.map { Date().timeIntervalSince($0) < 30 } ?? false
-            let result = try await CloudControl.fetchLatest(url, skipping: recent ? superseded : [])
+            // Within 30 s of this Mac's own upload (as of iCloud's answer), a version it has already
+            // moved past is iCloud lagging, not news (the two-Mac test at 14:20 showed an old
+            // version for 24 s). Later it's taken as before; another Mac going back to it comes
+            // with its note anyway.
+            let result = try await CloudControl.fetchLatest(url, skipping: { [weak self] in
+                await MainActor.run { self?.staleVersions() ?? [] }
+            })
             switch result {
             case .skipped(let sha):
                 record("fetch", sha: sha, detail: "iCloud offered a version this Mac had moved past, just after uploading: left as is (\(reason))")
@@ -573,7 +575,10 @@ final class Document {
         // Not news: the version the buffer's edits start from, or one already taken in (merged,
         // or between markers). The two-Mac test at 13:22 merged one version twice, then its own save.
         if let sha = fingerprint?.sha256 {
-            if incorporated.contains(sha) { return }
+            if incorporated.contains(sha) {
+                record("reload", sha: sha, detail: "from \(source): a version already taken in, left as is")
+                return
+            }
             if sha == baseFingerprint?.sha256 {
                 baseFingerprint = fingerprint
                 if fromServer { uploadedSHA = sha }
@@ -614,15 +619,18 @@ final class Document {
         let mySide = ConflictText.Side(text: mine, label: "\(device) · \(clock)")
         let theirSide = ConflictText.Side(text: theirs, label: "\(who) · \(clock)")
         let sha = fingerprint?.sha256
+        let conflictBy = "changed by \(who) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have"): "
         if let proven {
             let result = Merge.threeWay(base: proven.text, mySide, theirSide)
             if result.isClean {
                 applyMerge(result, sha: sha, from: proven.device)
             } else {
                 writeBlocks(result.text, places: result.conflicts, merged: true, from: who)
+                record("conflict", sha: sha, detail: conflictBy + "merged from the version both had, \(result.conflicts) place\(result.conflicts == 1 ? "" : "s") between markers")
             }
         } else {
             writeBlocks(ConflictText.keepBoth(mySide, theirSide), places: 1, merged: false, from: who)
+            record("conflict", sha: sha, detail: conflictBy + "no version both had is known, so both whole versions, between markers")
             if let sha { unproven = Unproven(mine: mySide, theirs: theirSide, theirsSHA: sha, written: editor.textView.string) }
         }
         // Either way the file holds theirs now; with a proven base, so does the server, and the
@@ -630,9 +638,6 @@ final class Document {
         baseFingerprint = fingerprint
         if proven != nil { uploadedSHA = sha }
         if let sha { incorporated.insert(sha) }
-        record("conflict", sha: sha, detail: "changed by \(who) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have"): "
-               + (proven != nil ? "merged from the version both had" : "no version both had is known, so both whole versions")
-               + ", between markers")
     }
 
     /// Both versions of the places both changed, between markers in the text, where they sync
@@ -698,6 +703,12 @@ final class Document {
             await writeJournal()
             await flush(reason: "merge")
         }
+    }
+
+    /// Versions a fetch should leave alone: the ones this Mac has moved past, within 30 s of its upload.
+    private func staleVersions() -> Set<String> {
+        guard let lastUpload, Date().timeIntervalSince(lastUpload) < 30 else { return [] }
+        return superseded
     }
 
     /// The version's text, kept for later merges: the last eight, never the one on the server.

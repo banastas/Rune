@@ -57,17 +57,17 @@ final class Editor: NSObject, NSTextViewDelegate {
 
     private var highlighted: [ConflictBlock] = []
 
-    /// Conflict blocks (§5.4): a full-width panel behind each, drawn with the line highlight,
-    /// and its marker lines in the red's text tint as a TextKit 2 rendering attribute, so the
-    /// text itself stays plain.
+    /// Conflict blocks (§5.4): the text view draws each as a HUD frame on a panel, and the
+    /// marker lines' own text is hidden under it with a TextKit 2 rendering attribute, so the
+    /// file keeps plain markers that any editor can read.
     func highlight(_ blocks: [ConflictBlock]) {
         guard !(blocks.isEmpty && highlighted.isEmpty), let layout = textView.textLayoutManager else { return }
         highlighted = blocks
-        textView.blockRanges = blocks.map(\.range)
+        textView.conflictBlocks = blocks
         layout.removeRenderingAttribute(.foregroundColor, for: layout.documentRange)
         for block in blocks {
             for marker in block.markers {
-                if let range = textView.textRange(marker) { layout.addRenderingAttribute(.foregroundColor, value: OldHope.conflictMarker, for: range) }
+                if let range = textView.textRange(marker) { layout.addRenderingAttribute(.foregroundColor, value: NSColor.clear, for: range) }
             }
         }
         textView.needsDisplay = true
@@ -124,8 +124,10 @@ final class Editor: NSObject, NSTextViewDelegate {
 final class NibTextView: NSTextView {
     /// Escape, before the text view's own use of it: true if it was handled (the banner hidden).
     var onEscape: (() -> Bool)?
-    /// Conflict blocks, drawn as panels behind the text with a bar in the one red at the left.
-    var blockRanges: [NSRange] = []
+    /// Conflict blocks, drawn as HUD frames behind the text (§5.4), and a VoiceOver rotor.
+    var conflictBlocks: [ConflictBlock] = [] {
+        didSet { if oldValue.isEmpty != conflictBlocks.isEmpty { NSAccessibility.post(element: self, notification: .layoutChanged) } }
+    }
 
     override func cancelOperation(_ sender: Any?) {
         if onEscape?() == true { return }
@@ -155,19 +157,92 @@ final class NibTextView: NSTextView {
         super.writeSelection(to: pboard, types: [.string])
     }
 
-    /// Conflict blocks' panels, then the caret's visual line in An Old Hope's line highlight (#272B34).
+    /// Conflict blocks' panels, the caret's visual line in An Old Hope's line highlight
+    /// (#272B34), then the blocks' frames over both, all under the text.
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
-        for range in blockRanges {
-            guard let band = bandRect(range), band.intersects(rect) else { continue }
+        let frames = conflictBlocks.map { frameGeometry($0) }
+        for frame in frames.compactMap({ $0 }) where frame.box.intersects(rect) {
             OldHope.conflictBlock.setFill()
-            band.intersection(rect).fill()
-            OldHope.conflictBar.setFill()
-            NSRect(x: band.minX, y: band.minY, width: 3, height: band.height).intersection(rect).fill()
+            frame.box.intersection(rect).fill()
         }
-        guard selectedRange().length == 0, let line = currentLineRect() else { return }
-        OldHope.lineHighlight.setFill()
-        line.intersection(rect).fill()
+        if selectedRange().length == 0, let line = currentLineRect() {
+            OldHope.lineHighlight.setFill()
+            line.intersection(rect).fill()
+        }
+        for (block, frame) in zip(conflictBlocks, frames) {
+            if let frame, frame.box.insetBy(dx: 0, dy: -12).intersects(rect) { drawFrame(block, frame) }
+        }
+    }
+
+    // MARK: Conflict frames (§5.4)
+
+    /// ┌ AIR · 10:42 ──── ⌘1 USE · ⌘3 BOTH ┐ over the first marker, ├ MINI · 10:41 ── ⌘2 USE ┤
+    /// over the second, └──┘ over the last; 1 pt lines in the one red, Silkscreen labels, and
+    /// the pixel ✕ in the gutter (V3, V5, V6).
+    private struct FrameGeometry {
+        var top: NSRect, middle: NSRect, bottom: NSRect
+        var left: CGFloat, right: CGFloat
+        /// From the first marker line's middle to the last's: the panel inside the frame.
+        var box: NSRect { NSRect(x: left, y: top.midY.rounded(), width: right - left, height: bottom.midY.rounded() - top.midY.rounded() + 1) }
+    }
+
+    private func frameGeometry(_ block: ConflictBlock) -> FrameGeometry? {
+        guard block.markers.count == 3,
+              let top = bandRect(NSRange(location: block.markers[0].location, length: 1)),
+              let middle = bandRect(NSRange(location: block.markers[1].location, length: 1)),
+              let bottom = bandRect(NSRange(location: block.markers[2].location, length: 1)) else { return nil }
+        return FrameGeometry(top: top, middle: middle, bottom: bottom, left: 10, right: bounds.width - 10)
+    }
+
+    private func drawFrame(_ block: ConflictBlock, _ frame: FrameGeometry) {
+        let (top, middle, bottom, left, right) = (frame.top, frame.middle, frame.bottom, frame.left, frame.right)
+        let yTop = top.midY.rounded(), yMiddle = middle.midY.rounded(), yBottom = bottom.midY.rounded()
+        OldHope.conflictBar.setFill()
+        NSRect(x: left, y: yTop, width: right - left, height: 1).fill()
+        NSRect(x: left, y: yMiddle, width: right - left, height: 1).fill()
+        NSRect(x: left, y: yBottom, width: right - left, height: 1).fill()
+        NSRect(x: left, y: yTop, width: 1, height: yBottom - yTop + 1).fill()
+        NSRect(x: right - 1, y: yTop, width: 1, height: yBottom - yTop + 1).fill()
+        drawLabel(block.firstLabel.uppercased(), hint: "⌘1 USE · ⌘3 BOTH", on: top, left: left, right: right)
+        drawLabel(block.secondLabel.uppercased(), hint: "⌘2 USE", on: middle, left: left, right: right)
+        drawCross(at: NSPoint(x: 1, y: (top.midY - 3.5).rounded()))
+    }
+
+    private static let labelFont = NSFont(name: "Silkscreen-Regular", size: 9) ?? .monospacedSystemFont(ofSize: 8, weight: .medium)
+
+    /// A label and a hint on a frame line, each on a cut-out so the line stops short of them.
+    private func drawLabel(_ label: String, hint: String, on line: NSRect, left: CGFloat, right: CGFloat) {
+        func draw(_ text: String, color: NSColor, x: (CGFloat) -> CGFloat) {
+            let string = NSAttributedString(string: " \(text) ", attributes: [.font: Self.labelFont, .foregroundColor: color])
+            let size = string.size()
+            let origin = NSPoint(x: x(size.width).rounded(), y: (line.midY - size.height / 2).rounded())
+            let cut = NSRect(origin: origin, size: size)
+            OldHope.background.setFill()
+            NSRect(x: cut.minX, y: cut.minY, width: cut.width, height: line.midY.rounded() - cut.minY).fill()
+            OldHope.conflictBlock.setFill()
+            NSRect(x: cut.minX, y: line.midY.rounded(), width: cut.width, height: cut.maxY - line.midY.rounded()).fill()
+            string.draw(at: origin)
+        }
+        draw(label, color: OldHope.conflictMarker) { _ in left + 10 }
+        draw(hint, color: OldHope.comment) { width in right - 10 - width }
+    }
+
+    /// The pixel ✕ (Blit's 7×7 glyph, 1 pt a pixel) in the one red.
+    private func drawCross(at origin: NSPoint) {
+        OldHope.conflictBar.setFill()
+        for (y, row) in PixelGlyph.cross.rows.enumerated() {
+            for (x, ch) in row.enumerated() where ch == "#" {
+                NSRect(x: origin.x + CGFloat(x), y: origin.y + CGFloat(y), width: 1, height: 1).fill()
+            }
+        }
+    }
+
+    // MARK: VoiceOver: a Conflicts rotor (AX2)
+
+    override func accessibilityCustomRotors() -> [NSAccessibilityCustomRotor] {
+        let rotors = super.accessibilityCustomRotors()
+        return conflictBlocks.isEmpty ? rotors : rotors + [NSAccessibilityCustomRotor(label: "Conflicts", itemSearchDelegate: self)]
     }
 
     func textRange(_ range: NSRange) -> NSTextRange? {
@@ -223,5 +298,20 @@ final class NibTextView: NSTextView {
             return false
         }
         return last
+    }
+}
+
+/// VoiceOver's Conflicts rotor: each block, named by its two versions.
+extension NibTextView: @preconcurrency NSAccessibilityCustomRotorItemSearchDelegate {
+    func rotor(_ rotor: NSAccessibilityCustomRotor, resultFor searchParameters: NSAccessibilityCustomRotor.SearchParameters) -> NSAccessibilityCustomRotor.ItemResult? {
+        let current = searchParameters.currentItem?.targetRange.location ?? selectedRange().location
+        let block = searchParameters.searchDirection == .next
+            ? conflictBlocks.first { $0.range.location > current || (searchParameters.currentItem == nil && NSLocationInRange(current, $0.range)) }
+            : conflictBlocks.last { $0.range.location < current }
+        guard let block else { return nil }
+        let result = NSAccessibilityCustomRotor.ItemResult(targetElement: self)
+        result.targetRange = block.range
+        result.customLabel = "Conflict: \(block.firstLabel), or \(block.secondLabel)"
+        return result
     }
 }
