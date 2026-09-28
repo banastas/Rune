@@ -52,3 +52,35 @@ final class Presenter: NSObject, NSFilePresenter, @unchecked Sendable {
         completionHandler(nil)
     }
 }
+
+/// Watches the `.nib` folder that holds the "latest version" note (SY14): when another Mac
+/// announces a version, the document checks whether it has it. The note is never paused,
+/// so this arrives in seconds even while the document itself is held. It watches the
+/// folder, not the note: a presenter isn't told when a file it presents is first created.
+final class NotePresenter: NSObject, NSFilePresenter, @unchecked Sendable {
+    let presentedItemURL: URL?
+    let noteName: String
+    nonisolated(unsafe) weak var document: Document?
+    let presentedItemOperationQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        queue.name = "nib.note-presenter"
+        return queue
+    }()
+
+    /// `note` is the note file; the presenter watches its folder.
+    init(note: URL) {
+        presentedItemURL = note.deletingLastPathComponent()
+        noteName = note.lastPathComponent
+    }
+
+    private func check(_ url: URL, _ reason: String) {
+        guard url.lastPathComponent == noteName else { return }
+        let document = self.document
+        Task { @MainActor in await document?.checkAnnouncement(reason: reason) }
+    }
+
+    func presentedSubitemDidAppear(at url: URL) { check(url, "note appeared") }
+    func presentedSubitemDidChange(at url: URL) { check(url, "note changed") }
+    func presentedSubitem(at url: URL, didGain version: NSFileVersion) { check(url, "note changed") }
+}

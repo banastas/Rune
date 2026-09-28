@@ -28,6 +28,8 @@ enum TestHarness {
             case "external": await external(document, log, marker)
             case "snapshot": await snapshot(document, log)
             case "undo": await undoRedo(document, log, marker)
+            case "refresh": await refreshFromNote(document, log)
+            case "two-mac": await twoMac(document, log, marker)
             default: log.line("FAIL unknown scenario")
             }
             log.line("done")
@@ -156,6 +158,91 @@ enum TestHarness {
         log.check(!fileText(document).contains(marker), "the undo was saved to the file")
         await waitSynced(document, 20)
         log.check(isSynced(document), "and synced (state \(document.state.line))")
+    }
+
+    /// A note from a pretend other Mac names a version this Mac doesn't have: nib hands the
+    /// file back, evicts it, downloads it and holds it again, keeping its text (SY14, S1b).
+    static func refreshFromNote(_ document: Document, _ log: HarnessLog) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        let before = document.editor.textView.string
+        let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
+        let count = events.read().count
+        try? Announcement(sha256: String(repeating: "0", count: 64), parent: nil, device: "Test Mac", size: 1).write(for: document.url)
+        let ran = await waitFor(20) { events.read().dropFirst(count).contains { $0.event == "refresh" } }
+        let last = events.read().dropFirst(count).filter { $0.event == "refresh" }.last
+        log.check(ran && last?.detail?.hasPrefix("failed") == false, "the note led to a refresh: \(last?.detail ?? "none") (\(last?.ms ?? -1) ms)")
+        _ = await waitFor(10) { document.held }
+        log.check(document.held && CloudControl.status(document.url).paused == true, "the file is held again")
+        log.check(document.editor.textView.string == before, "the text is unchanged (the server had this version)")
+        log.check(fileText(document) == before, "and so is the file")
+        try? FileManager.default.removeItem(at: Announcement.url(for: document.url))
+    }
+
+    /// Two Macs, the same test file, started with the same -NibAt (epoch seconds):
+    ///   -NibRole a: at +5 s adds a line with its time; at +60 s adds a clash line.
+    ///   -NibRole b: stays idle and must show a's line without anyone typing, first by
+    ///   itself, then (from +25 s) as if the user switched to it; at +60 s adds its clash line.
+    /// Both: a conflict is answered Keep Both; at +100 s both Macs must hold both clash
+    /// lines, the file equal to the buffer, synced. Paste both logs to compare the SHA-256s.
+    static func twoMac(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        let defaults = UserDefaults.standard
+        let role = defaults.string(forKey: "NibRole") ?? "a"
+        let t0 = defaults.double(forKey: "NibAt")
+        func until(_ offset: Double) async {
+            let wait = t0 + offset - Date().timeIntervalSince1970
+            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+        }
+        await waitReady(document)
+        log.line("role \(role) · held \(document.held) · \(Int(t0 - Date().timeIntervalSince1970)) s to go")
+        let view = document.editor.textView
+        let lead = "- lead \(marker) written "
+        func end() { view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0)) }
+
+        if role == "a" {
+            await until(5)
+            end()
+            view.insertText("\n\(lead)\(Int(Date().timeIntervalSince1970 * 1000))\n", replacementRange: view.selectedRange())
+            await waitSynced(document, 20)
+            log.check(isSynced(document), "a: the lead line is uploaded (state \(document.state.line))")
+        } else {
+            let arrived = await waitFor(20) { view.string.contains(lead) }
+            var how = "by itself"
+            if !arrived {
+                await until(25)
+                document.becameActive()   // as if the user switched to this Mac
+                how = "after coming forward"
+            }
+            let seen = await waitFor(15) { view.string.contains(lead) }
+            if seen, let range = view.string.range(of: lead) {
+                let digits = view.string[range.upperBound...].prefix { $0.isNumber }
+                let latency = Int(Date().timeIntervalSince1970 * 1000) - (Int(digits) ?? 0)
+                log.check(true, "b: a's line arrived \(how), \(latency) ms after a added it, with nothing typed here")
+            } else {
+                log.check(false, "b: a's line never arrived (state \(document.state.line))")
+            }
+        }
+
+        // Both type at the same moment: one upload is refused, that Mac merges.
+        await until(60)
+        end()
+        view.insertText("\n- clash from \(role) \(marker)\n", replacementRange: view.selectedRange())
+        let deadline = Date().addingTimeInterval(35)
+        while Date() < deadline {
+            if document.conflict != nil {
+                log.line("\(role): conflict sheet · Keep Both")
+                document.resolve(.both)
+            }
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        await until(100)
+        let text = view.string
+        log.check(text.contains("- clash from a \(marker)") && text.contains("- clash from b \(marker)"), "\(role): both clash lines are here")
+        let expected = TextFile.encode(text, as: document.format)
+        log.check((try? Data(contentsOf: document.url)) == expected, "\(role): the file holds exactly the buffer")
+        log.check(isSynced(document), "\(role): synced (state \(document.state.line))")
+        log.line("\(role): file SHA-256 \(Digest.sha256(expected)) · compare with the other Mac's")
+        await until(110)
     }
 
     /// Puts sample text on screen and holds still for a screenshot; also renders the

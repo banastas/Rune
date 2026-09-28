@@ -40,6 +40,7 @@ final class Document {
 
     let editor: Editor
     @ObservationIgnored let presenter: Presenter
+    @ObservationIgnored let notePresenter: NotePresenter
     @ObservationIgnored private let journal = Journal(directory: NibPaths.support.appendingPathComponent("Journal"))
     @ObservationIgnored private let log = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
     @ObservationIgnored private let pausedFiles = PausedFiles(url: NibPaths.support.appendingPathComponent("paused.json"))
@@ -67,6 +68,10 @@ final class Document {
     @ObservationIgnored private let pathMonitor = NWPathMonitor()
     /// Set while nib itself changes the buffer (a reload, a resolution), so it isn't counted as an edit.
     @ObservationIgnored private var applying = false
+    /// A refresh (hand back, evict, download, hold again) is running (S1b, SY14).
+    @ObservationIgnored private var refreshing = false
+    /// Announced versions already dealt with, by SHA-256.
+    @ObservationIgnored private var handledAnnouncements: Set<String> = []
 
     var dirty: Bool { editCount != savedEditCount }
 
@@ -76,8 +81,10 @@ final class Document {
         schedule = SaveSchedule(idle: defaults.object(forKey: "NibSaveIdle") as? TimeInterval ?? 1,
                                 maxWait: defaults.object(forKey: "NibSaveMax") as? TimeInterval ?? 5)
         presenter = Presenter(url: url)
+        notePresenter = NotePresenter(note: Announcement.url(for: url))
         editor = Editor()
         presenter.document = self
+        notePresenter.document = self
         editor.document = self
     }
 
@@ -126,6 +133,8 @@ final class Document {
         applying = false
         editor.restoreSelection(for: url)
         NSFileCoordinator.addFilePresenter(presenter)
+        try? FileManager.default.createDirectory(at: Announcement.url(for: url).deletingLastPathComponent(), withIntermediateDirectories: true)
+        NSFileCoordinator.addFilePresenter(notePresenter)
         record("open", size: text.utf8.count, sha: baseFingerprint?.sha256)
         recoverFromJournal(fileText: text)
         watchNetwork()
@@ -142,6 +151,7 @@ final class Document {
             }
         }
         await fetchLatest(reason: "open")
+        await checkAnnouncement(reason: "open")
         if dirty { scheduleSave() }
     }
 
@@ -341,9 +351,11 @@ final class Document {
         let started = Date()
         do {
             _ = try await CloudControl.upload(url)
+            let parent = uploadedSHA
             uploadedSHA = sha
             uploadBackoff = 10
             record("upload", sha: sha, ms: ms(since: started))
+            if let sha { announce(sha, parent: parent) }
             if conflict == nil, !dirty, baseFingerprint?.sha256 == sha { state = .synced(Date()) }
         } catch where CloudControl.isConflict(error) {
             record("upload", ms: ms(since: started), detail: "refused: the server has a newer version")
@@ -407,7 +419,7 @@ final class Document {
 
     /// The presenter or a check found the file different: look at what's there (§4.4 Check).
     func diskMayHaveChanged() async {
-        guard ready, locked == nil, !saving else { return }
+        guard ready, locked == nil, !saving, !refreshing else { return }
         let url = self.url
         let presenter = self.presenter
         guard FileManager.default.fileExists(atPath: url.path),
@@ -497,6 +509,74 @@ final class Document {
         view.setSelectedRange(NSRange(location: min(selection.location, length), length: 0))
     }
 
+    // MARK: - The "latest version" note (SY14, S1b)
+
+    /// After an upload: tell the other Macs which version the server has now.
+    private func announce(_ sha: String, parent: String?) {
+        let note = Announcement(sha256: sha, parent: parent, device: device, size: Int(baseFingerprint?.size ?? 0))
+        let url = self.url
+        Task {
+            do {
+                try await journalQueue.run { try note.write(for: url) }
+            } catch {
+                record("announce", detail: "couldn't write the note: \(CloudControl.describe(error))")
+            }
+        }
+    }
+
+    /// Another Mac may have announced a version this Mac doesn't have. iCloud's own state
+    /// can't be trusted for a held file (S1b: stale for 26 minutes while "current"), so
+    /// the note decides. No edits here: refresh. Edits: nothing to do, since the next
+    /// upload is refused and the merge runs.
+    func checkAnnouncement(reason: String) async {
+        guard ready, locked == nil, !refreshing else { return }
+        let url = self.url
+        guard let note = await io.run({ Announcement.read(for: url) }),
+              note.device != device, !handledAnnouncements.contains(note.sha256),
+              note.sha256 != baseFingerprint?.sha256, note.sha256 != uploadedSHA else { return }
+        handledAnnouncements.insert(note.sha256)
+        record("announce", sha: note.sha256, detail: "\(note.device) uploaded a version this Mac doesn't have (\(reason))")
+        guard !dirty, conflict == nil, !saving, !uploading else { return }
+        await refresh(announced: note)
+    }
+
+    /// Brings down the server's version of the held file (§4.4): hand it back taking the
+    /// server's version, evict, download, hold again. About a second (S1b: 0.6-1.3 s).
+    private func refresh(announced note: Announcement) async {
+        refreshing = true
+        let started = Date()
+        let url = self.url
+        // nib's own presenter counts as a user of the file, and eviction refuses a file in use.
+        NSFileCoordinator.removeFilePresenter(presenter)
+        defer { NSFileCoordinator.addFilePresenter(presenter) }
+        do {
+            let (data, fingerprint) = try await CloudControl.refetch(url, wasPaused: held)
+            held = false
+            record("refresh", size: data.count, sha: fingerprint.sha256, ms: ms(since: started),
+                   detail: fingerprint.sha256 == note.sha256 ? "got \(note.device)'s version" : "the server has another version than the one announced")
+            await holdAgain()
+            refreshing = false
+            if fingerprint.sha256 != baseFingerprint?.sha256 {
+                incoming(data, fingerprint: fingerprint, from: note.device, fromServer: true)
+            } else {
+                uploadedSHA = fingerprint.sha256
+            }
+        } catch {
+            record("refresh", ms: ms(since: started), detail: "failed: \(CloudControl.describe(error))")
+            if CloudControl.status(url).paused != true { held = false; await holdAgain() }
+            refreshing = false
+        }
+    }
+
+    private func holdAgain() async {
+        do {
+            try await CloudControl.pause(url)
+            held = true
+        } catch {
+            record("pause", detail: "couldn't hold the file again, running unheld: \(CloudControl.describe(error))")
+        }
+    }
+
     // MARK: - iCloud state and the file itself
 
     /// Unheld files: iCloud's own upload state, pushed through the presenter.
@@ -522,11 +602,15 @@ final class Document {
     func becameActive() {
         Task {
             if held { await diskMayHaveChanged() }   // another app on this Mac may have written it
+            await checkAnnouncement(reason: "activated")
             await fetchLatest(reason: "activated")
         }
         fetchTimer?.invalidate()
         fetchTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.fetchLatest(reason: "every 30 s") }
+            Task { @MainActor in
+                await self?.checkAnnouncement(reason: "every 30 s")
+                await self?.fetchLatest(reason: "every 30 s")
+            }
         }
     }
 
@@ -542,7 +626,11 @@ final class Document {
             Task { @MainActor in
                 guard let self, self.online != up else { return }
                 self.online = up
-                if up { await self.upload(now: true); await self.fetchLatest(reason: "network back") }
+                if up {
+                    await self.upload(now: true)
+                    await self.checkAnnouncement(reason: "network back")
+                    await self.fetchLatest(reason: "network back")
+                }
             }
         }
         pathMonitor.start(queue: DispatchQueue(label: "nib.network"))
@@ -556,6 +644,7 @@ final class Document {
         await flush(reason: "quit")
         for _ in 0..<50 where uploading { try? await Task.sleep(for: .milliseconds(100)) }
         NSFileCoordinator.removeFilePresenter(presenter)
+        NSFileCoordinator.removeFilePresenter(notePresenter)
         guard held else { return }
         let clean = !dirty && conflict == nil && uploadedSHA != nil && uploadedSHA == baseFingerprint?.sha256
         record("quit", ms: ms(since: started), detail: clean ? "everything uploaded; resuming iCloud sync" : "unsent edits; resuming iCloud sync")

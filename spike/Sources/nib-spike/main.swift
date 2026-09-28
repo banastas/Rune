@@ -730,6 +730,35 @@ func modeRace() {
     log("RESULT race \(result) · final file here: \(lines)")
 }
 
+/// A clean file that may be stale: pause it, ask the server while paused, then resume
+/// taking the server's version. Does either bring down a newer version?
+func modeResync() {
+    let url = spikeFile(option("file", "race.md"))
+    func lines() -> String { ((try? String(contentsOf: url, encoding: .utf8)) ?? "").split(separator: "\n").joined(separator: " | ") }
+    log("before: \(lines()) · \(cloudState(url))")
+    guard pauseRetrying(url) else { log("RESULT resync: could not pause"); return }
+    let (latest, error) = fetchLatest(url)
+    var fetched = "fetch while paused: \(describe(error))"
+    if let latest {
+        fetched = latest.url.standardizedFileURL.path == url.standardizedFileURL.path
+            ? "fetch while paused: nothing newer"
+            : "fetch while paused: NEWER at a side location: \(((try? String(contentsOf: latest.url, encoding: .utf8)) ?? "").split(separator: "\n").joined(separator: " | "))"
+    }
+    log(fetched)
+    let resumeError = blocking("resumeSync(take server)") { (finish: @escaping (Bool?, Error?) -> Void) in
+        fm.resumeSyncForUbiquitousItem(at: url, with: .dropLocalChanges) { finish(true, $0) }
+    }.1
+    let start = Date()
+    let before = lines()
+    var after = before
+    while Date().timeIntervalSince(start) < 15 {
+        after = lines()
+        if after != before { break }
+        Thread.sleep(forTimeInterval: 0.25)
+    }
+    log("RESULT resync: \(fetched) · resume taking the server's version: \(describe(resumeError)) · file \(after == before ? "UNCHANGED after 15 s" : "changed after \(ms(since: start)) ms") · now: \(after)")
+}
+
 func modeXattrWrite() {
     let url = spikeFile(option("file", "xattr.md"))
     try? coordinatedWrite("xattr test by \(host)\n", to: url)
@@ -763,7 +792,7 @@ let modes: [String: () -> Void] = [
     "status": modeStatus, "upload": modeUpload, "typing": modeTyping, "controls": modeControls,
     "evict": modeEvict, "presenter": modePresenter, "metadata": modeMetadata,
     "writer": modeWriter, "push-typing": modePushTyping, "reader": modeReader, "cleanup": modeCleanup,
-    "watch-paused": modeWatchPaused, "race": modeRace, "xattr-write": modeXattrWrite, "xattr-check": modeXattrCheck,
+    "watch-paused": modeWatchPaused, "race": modeRace, "xattr-write": modeXattrWrite, "xattr-check": modeXattrCheck, "resync": modeResync,
 ]
 
 guard let mode = arguments.first, let run = modes[mode] else {

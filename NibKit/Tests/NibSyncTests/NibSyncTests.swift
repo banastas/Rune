@@ -155,3 +155,21 @@ func scratchFolder() -> URL {
         #expect(!CloudControl.isConflict(NSError(domain: NSCocoaErrorDomain, code: 4355)))
     }
 }
+
+@Suite struct AnnouncementTests {
+    @Test func livesInAHiddenFolderBesideTheFile() {
+        let doc = URL(fileURLWithPath: "/tmp/icloud/_scratch2.md")
+        #expect(Announcement.url(for: doc).path == "/tmp/icloud/.nib/latest-_scratch2.md.json")
+    }
+
+    @Test func roundTrip() throws {
+        let doc = scratchFolder().appendingPathComponent("scratch.md")
+        let note = Announcement(sha256: "abc", parent: "def", device: "Mac mini", time: Date(timeIntervalSince1970: 1_790_000_000), size: 42)
+        try note.write(for: doc)
+        #expect(Announcement.read(for: doc) == note)
+    }
+
+    @Test func missingMeansNone() {
+        #expect(Announcement.read(for: scratchFolder().appendingPathComponent("none.md")) == nil)
+    }
+}
