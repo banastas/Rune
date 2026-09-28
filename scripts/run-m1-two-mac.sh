@@ -17,9 +17,16 @@ export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer
 T0=$(date -j -f "%H:%M:%S" "$at:00" +%s)
 (( T0 > $(date +%s) + 60 )) || { echo "start time $at is less than a minute away (or past)"; exit 2; }
 
-echo "==> Building nib (Debug, ad-hoc signed)"
-xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
-  -destination "platform=macOS" CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= -quiet build
+SIGN=${SIGN:-team}   # as in run-m1-scenarios.sh; both Macs must use the same
+echo "==> Building nib (Debug, $SIGN signing)"
+if [[ $SIGN == adhoc ]]; then
+  xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
+    -destination "platform=macOS" CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+    CODE_SIGN_ENTITLEMENTS= -quiet build
+else
+  xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
+    -destination "platform=macOS" -allowProvisioningUpdates -quiet build
+fi
 APP=build/DerivedData/Build/Products/Debug/nib.app/Contents/MacOS/nib
 mkdir -p build/scenarios
 LOG=$PWD/build/scenarios/two-mac-$role.log

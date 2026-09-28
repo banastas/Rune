@@ -10,9 +10,19 @@ export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer
 echo "==> NibKit tests"
 (cd NibKit && swift test 2>&1 | grep -E "Test run with|error:" | sed "s/\x1b\[[0-9;]*m//g" || true)
 
-echo "==> Building nib (Debug, ad-hoc signed)"
-xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
-  -destination "platform=macOS" CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= -quiet build
+# SIGN=team (default): signed with the developer team, so nib gets its iCloud folder
+# (iCloud Drive/nib/Test/). Needs Xcode signed in to the Apple account on this Mac.
+# SIGN=adhoc: no account needed, no iCloud container; tests run in iCloud Drive/nib-spike/.
+SIGN=${SIGN:-team}
+echo "==> Building nib (Debug, $SIGN signing)"
+if [[ $SIGN == adhoc ]]; then
+  xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
+    -destination "platform=macOS" CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+    CODE_SIGN_ENTITLEMENTS= -quiet build
+else
+  xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
+    -destination "platform=macOS" -allowProvisioningUpdates -quiet build
+fi
 APP=build/DerivedData/Build/Products/Debug/nib.app/Contents/MacOS/nib
 LOGS=build/scenarios
 mkdir -p "$LOGS"

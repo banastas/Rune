@@ -10,6 +10,7 @@ import Network
 import NibSync
 import NibText
 import Observation
+import Security
 
 /// Two versions to choose between (SY6).
 struct Conflict: Identifiable {
@@ -113,6 +114,15 @@ final class Document {
         }
         let url = self.url
         let presenter = self.presenter
+        if ScratchLocation.inContainer(url) {
+            // Sets up nib's iCloud folder on first use; nil when iCloud Drive is off. Can block.
+            let container = await io.run { FileManager.default.url(forUbiquityContainerIdentifier: ScratchLocation.containerID) }
+            guard container != nil else {
+                state = .problem("NIB'S ICLOUD FOLDER ISN'T AVAILABLE · IS ICLOUD DRIVE ON? · NOTHING WAS OPENED")
+                record("problem", detail: "url(forUbiquityContainerIdentifier:) returned nil")
+                return
+            }
+        }
         if !FileManager.default.fileExists(atPath: url.path) {
             do {
                 if case .written(let fingerprint) = try await io.run({ try FileAccess.write(Data(), to: url, base: nil, presenter: presenter) }) {
@@ -799,20 +809,36 @@ final class IOQueue: Sendable {
     }
 }
 
-/// Where the scratch file is, and the M1 safety rule (PRD §8): until M1 has passed on
-/// both Macs, nib opens only test files in iCloud Drive/nib-spike/.
+/// Where the scratch file is (PRD §4.2): nib's own folder in iCloud Drive, "nib", an app
+/// container like other apps' folders, with the sync notes hidden inside it. And the M1
+/// safety rule (§8): until M1 has passed on both Macs, nib opens only test files, in
+/// iCloud Drive/nib/Test/ (or, in ad-hoc builds that can't carry the iCloud entitlement,
+/// iCloud Drive/nib-spike/).
 enum ScratchLocation {
-    static let testFolder = NibPaths.iCloudDrive.appendingPathComponent("nib-spike")
+    static let containerID = "iCloud.com.banastas.nib"
+    /// iCloud Drive/nib/ on disk.
+    static let folder = URL(fileURLWithPath: NSHomeDirectory() + "/Library/Mobile Documents/iCloud~com~banastas~nib/Documents")
+    static let testFolder = folder.appendingPathComponent("Test")
+    static let unsignedTestFolder = NibPaths.iCloudDrive.appendingPathComponent("nib-spike")
+
+    /// Signed with the iCloud container (a team-signed build), or not (ad-hoc).
+    static let hasContainer: Bool = {
+        guard let task = SecTaskCreateFromSelf(nil) else { return false }
+        return SecTaskCopyValueForEntitlement(task, "com.apple.developer.ubiquity-container-identifiers" as CFString, nil) != nil
+    }()
 
     static var url: URL {
         if let path = UserDefaults.standard.string(forKey: "scratchPath") { return URL(fileURLWithPath: path) }
-        return testFolder.appendingPathComponent("scratch-test.md")
+        return (hasContainer ? testFolder : unsignedTestFolder).appendingPathComponent("scratch-test.md")
     }
+
+    static func inContainer(_ url: URL) -> Bool { url.standardizedFileURL.path.hasPrefix(folder.path + "/") }
 
     static func refusal(for url: URL) -> String? {
         if UserDefaults.standard.bool(forKey: "allowLiveScratch") { return nil }
-        guard url.standardizedFileURL.path.hasPrefix(testFolder.path + "/") else {
-            return "NIB OPENS ONLY TEST FILES IN ICLOUD DRIVE/NIB-SPIKE UNTIL M1 HAS PASSED (PRD §8)"
+        let path = url.standardizedFileURL.path
+        guard path.hasPrefix(testFolder.path + "/") || path.hasPrefix(unsignedTestFolder.path + "/") else {
+            return "NIB OPENS ONLY TEST FILES (ICLOUD DRIVE › NIB › TEST) UNTIL M1 HAS PASSED (PRD §8)"
         }
         return nil
     }
