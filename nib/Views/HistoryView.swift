@@ -107,7 +107,23 @@ struct RevertToMenu: View {
                 Button("\(HistoryView.when(entry.time)) · \(entry.source)") { document.restore(entry) }
             }
             if !recent.isEmpty { Divider() }
-            Button("Browse All Versions…") { openWindow(id: "history") }
+            Button("Browse All Versions…") { openWindow(id: "history", value: document.url) }
+        }
+    }
+}
+
+/// A History window, for the file it was opened for, while that file is open.
+struct HistoryWindow: View {
+    let url: URL?
+
+    var body: some View {
+        if let document = url.flatMap(Documents.existing(for:)) ?? (url == nil ? Documents.scratch : nil) {
+            HistoryView(document: document)
+                .background(WindowConfigurator { $0.tabbingMode = .disallowed })
+        } else {
+            Text("Open the file to see its History.")
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 400, minHeight: 200)
         }
     }
 }

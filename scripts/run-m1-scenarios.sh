@@ -65,11 +65,12 @@ run mergeview
 run duplicates
 run conflictversions
 run history
+run files
 run refresh
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard undo crash recover external unsent merge mergeview duplicates conflictversions history refresh; do   # this run's logs only
+for name in type clipboard undo crash recover external unsent merge mergeview duplicates conflictversions history files refresh; do   # this run's logs only
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi

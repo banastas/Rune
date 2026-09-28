@@ -6,6 +6,7 @@
 // Duplicates, iCloud conflict versions and History, its other uses, come later.
 
 import AppKit
+import NibSyntax
 import NibText
 import SwiftUI
 
@@ -26,7 +27,7 @@ final class MergeSession {
 
     var result: String { editor.textView.string }
 
-    init(text: String, device: String) {
+    init(text: String, device: String, syntax: (language: SyntaxLanguage, root: String)?) {
         original = text
         let found = ConflictText.blocks(in: text)
         let sides = ConflictText.sides(of: text)
@@ -36,6 +37,7 @@ final class MergeSession {
         self.marks = (marks.a, marks.b)
         total = found.count
         editor.textView.string = text
+        editor.syntax = syntax
         editor.textView.setAccessibilityLabel("Merge result")
         editor.onChange = { [weak self] in self?.update() }
         editor.onSelection = { [weak self] in self?.updateCaret() }

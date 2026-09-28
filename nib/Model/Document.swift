@@ -9,6 +9,7 @@
 import AppKit
 import Network
 import NibSync
+import NibSyntax
 import NibText
 import Observation
 import Security
@@ -31,6 +32,8 @@ final class Document {
     private(set) var format = FileFormat.standard
     /// A line that shows in the strip for a while ("▼ UPDATED FROM …", "RECOVERED …").
     private(set) var notice: String?
+    /// For the strip: "MARKDOWN", "JAVASCRIPT", "PLAIN TEXT" (HL1).
+    private(set) var syntaxName = "PLAIN TEXT"
     /// The conflict blocks in the buffer (§5.4), kept current as it changes, and the one the
     /// caret is in: ⌘1, ⌘2 and ⌘3 resolve it.
     private(set) var blocks: [ConflictBlock] = []
@@ -205,6 +208,9 @@ final class Document {
         watchNoteFolder()
         record("open", size: text.utf8.count, sha: baseFingerprint?.sha256)
         recoverFromJournal(fileText: text)
+        let syntax = SyntaxLanguage.detect(fileName: url.lastPathComponent, firstLine: text.prefix(256).components(separatedBy: "\n").first)
+        syntaxName = syntax?.language.name.uppercased() ?? "PLAIN TEXT"
+        editor.syntax = syntax
         watchNetwork()
         state = status.uploaded ? .synced(Date()) : .saved(Date())
         ready = true
@@ -361,7 +367,7 @@ final class Document {
 
     func openMerge() {
         guard merge == nil, !blocks.isEmpty else { NSSound.beep(); return }
-        merge = MergeSession(text: editor.textView.string, device: device)
+        merge = MergeSession(text: editor.textView.string, device: device, syntax: editor.syntax)
         record("merge view", detail: "opened on \(blocks.count) block\(blocks.count == 1 ? "" : "s")")
     }
 
@@ -925,6 +931,7 @@ final class Document {
             view.didChangeText()
         } else {
             view.string = text
+            editor.scheduleHighlight(after: 0)
         }
         applying = false
         let length = (text as NSString).length

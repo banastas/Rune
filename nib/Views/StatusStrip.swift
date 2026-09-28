@@ -53,8 +53,7 @@ struct StatusStrip: View {
     }
 
     private var position: String {
-        let syntax = document.url.pathExtension.lowercased() == "md" ? "MARKDOWN" : "PLAIN TEXT"
-        return "LN \(document.cursor.line), COL \(document.cursor.column) · \(syntax) · \(document.format.encoding.label) · \(document.format.lineEnding.label)"
+        return "LN \(document.cursor.line), COL \(document.cursor.column) · \(document.syntaxName) · \(document.format.encoding.label) · \(document.format.lineEnding.label)"
     }
 
     /// The precise meaning, in sentence case (PRD §4.5, "tooltips carry the precise meaning").
@@ -78,7 +77,7 @@ struct StripMenu: View {
 
     var body: some View {
         Button("Save Now") { Task { await document.flush(reason: "strip") } }
-        Button("Show History") { openWindow(id: "history") }
+        Button("Show History") { openWindow(id: "history", value: document.url) }
         Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([document.url]) }
     }
 }

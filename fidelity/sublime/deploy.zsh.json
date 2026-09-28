@@ -1,0 +1,3905 @@
+{
+"file": "deploy.zsh",
+"syntax": "Zsh",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "#!/usr/bin/env zsh\n# Deploy the vendor review site, then tell the team.\nset -euo pipefail\n\nreadonly HOST=\"me@seedbox\"\nreadonly DEST=\"~/www\"\ntypeset -a FILES=(dist/*.html dist/*.css)\nlocal count=0\n\nlog() {\n  print -P \"%F{cyan}[$(date +%H:%M:%S)]%f $*\"\n}\n\ncheck_disk() {\n  local free\n  free=$(ssh \"$HOST\" \"df -h ${DEST} | awk 'NR==2 {print \\$4}'\")\n  if [[ -z \"$free\" ]]; then\n    log \"couldn't read free space\" >&2\n    return 1\n  fi\n  echo \"$free\"\n}\n\nfor file in \"${FILES[@]}\"; do\n  if [[ -f $file && ! -L $file ]]; then\n    (( count += 1 ))\n  fi\ndone\n\ncase \"${1:-deploy}\" in\n  deploy)\n    log \"deploying $count files ($(check_disk) free)\"\n    rsync -av --delete ./dist/ \"$HOST:$DEST/\" || exit 2\n    ;;\n  dry-run|-n)\n    rsync -avn ./dist/ \"$HOST:$DEST/\"\n    ;;\n  *)\n    echo \"usage: ${0:t} [deploy|dry-run]\" >&2\n    exit 64\n    ;;\nesac\n\ncat <<NOTE | mail -s \"Deployed\" team@example.com\nDeployed ${count} files to ${HOST} at $(date).\nNOTE\n\nexport LAST_DEPLOY=\"$(date +%s)\"\nunset count\n",
+"tokens": [
+[
+0,
+2,
+"source.shell.zsh comment.line.shebang.shell punctuation.definition.comment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+2,
+3,
+"source.shell.zsh comment.line.shebang.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+3,
+6,
+"source.shell.zsh comment.line.shebang.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+6,
+7,
+"source.shell.zsh comment.line.shebang.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+7,
+10,
+"source.shell.zsh comment.line.shebang.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+10,
+11,
+"source.shell.zsh comment.line.shebang.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+11,
+15,
+"source.shell.zsh comment.line.shebang.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+15,
+18,
+"source.shell.zsh comment.line.shebang.shell constant.language.shebang.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+18,
+19,
+"source.shell.zsh comment.line.shebang.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+19,
+20,
+"source.shell.zsh comment.line.number-sign.shell punctuation.definition.comment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+20,
+21,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+21,
+28,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+28,
+32,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+32,
+39,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+39,
+46,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+46,
+52,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+52,
+57,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+57,
+62,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+62,
+66,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+66,
+71,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+71,
+72,
+"source.shell.zsh comment.line.number-sign.shell",
+"#848484",
+null,
+false,
+false
+],
+[
+72,
+75,
+"source.shell.zsh meta.function-call.identifier.shell meta.command.shell support.function.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+75,
+76,
+"source.shell.zsh meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+76,
+77,
+"source.shell.zsh meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+77,
+80,
+"source.shell.zsh meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+80,
+81,
+"source.shell.zsh meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+81,
+89,
+"source.shell.zsh meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+89,
+90,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+90,
+91,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+91,
+99,
+"source.shell.zsh meta.declaration.variable.shell keyword.declaration.variable.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+99,
+100,
+"source.shell.zsh meta.declaration.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+100,
+104,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.l-value.shell variable.language.builtin.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+104,
+105,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.shell keyword.operator.assignment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+105,
+106,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+106,
+116,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+116,
+117,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+117,
+118,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+118,
+126,
+"source.shell.zsh meta.declaration.variable.shell keyword.declaration.variable.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+126,
+127,
+"source.shell.zsh meta.declaration.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+127,
+131,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.l-value.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+131,
+132,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.shell keyword.operator.assignment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+132,
+133,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+133,
+138,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+138,
+139,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+139,
+140,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+140,
+147,
+"source.shell.zsh meta.declaration.variable.shell keyword.declaration.variable.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+147,
+148,
+"source.shell.zsh meta.declaration.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+148,
+149,
+"source.shell.zsh meta.declaration.variable.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+149,
+150,
+"source.shell.zsh meta.declaration.variable.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+150,
+151,
+"source.shell.zsh meta.declaration.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+151,
+156,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.l-value.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+156,
+157,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.shell keyword.operator.assignment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+157,
+158,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell punctuation.section.sequence.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+158,
+163,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+163,
+164,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell meta.string.glob.shell string.unquoted.shell constant.other.wildcard.asterisk.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+164,
+169,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+169,
+170,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+170,
+175,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+175,
+176,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell meta.string.glob.shell string.unquoted.shell constant.other.wildcard.asterisk.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+176,
+180,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+180,
+181,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.sequence.list.shell punctuation.section.sequence.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+181,
+182,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+182,
+187,
+"source.shell.zsh meta.declaration.variable.shell keyword.declaration.variable.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+187,
+188,
+"source.shell.zsh meta.declaration.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+188,
+193,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.l-value.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+193,
+194,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.shell keyword.operator.assignment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+194,
+195,
+"source.shell.zsh meta.declaration.variable.shell meta.assignment.r-value.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+195,
+196,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+196,
+197,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+197,
+200,
+"source.shell.zsh meta.function.identifier.shell entity.name.function.shell",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+200,
+201,
+"source.shell.zsh meta.function.parameters.shell punctuation.section.parameters.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+201,
+202,
+"source.shell.zsh meta.function.parameters.shell punctuation.section.parameters.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+202,
+203,
+"source.shell.zsh meta.function.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+203,
+204,
+"source.shell.zsh meta.function.body.shell meta.block.shell punctuation.section.block.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+204,
+205,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+205,
+207,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+207,
+212,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.identifier.shell meta.command.shell support.function.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+212,
+213,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+213,
+214,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+214,
+215,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+215,
+216,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+216,
+217,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+217,
+226,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+226,
+227,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+227,
+228,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+228,
+232,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+232,
+233,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+233,
+234,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+234,
+242,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+242,
+243,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+243,
+247,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+247,
+248,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.special.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+248,
+249,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.special.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+249,
+250,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+250,
+251,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+251,
+252,
+"source.shell.zsh meta.function.body.shell meta.block.shell punctuation.section.block.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+252,
+253,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+253,
+254,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+254,
+264,
+"source.shell.zsh meta.function.identifier.shell entity.name.function.shell",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+264,
+265,
+"source.shell.zsh meta.function.parameters.shell punctuation.section.parameters.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+265,
+266,
+"source.shell.zsh meta.function.parameters.shell punctuation.section.parameters.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+266,
+267,
+"source.shell.zsh meta.function.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+267,
+268,
+"source.shell.zsh meta.function.body.shell meta.block.shell punctuation.section.block.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+268,
+269,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+269,
+271,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+271,
+276,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.declaration.variable.shell keyword.declaration.variable.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+276,
+277,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.declaration.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+277,
+281,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.declaration.variable.shell meta.assignment.l-value.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+281,
+282,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+282,
+284,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+284,
+288,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.l-value.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+288,
+289,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.shell keyword.operator.assignment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+289,
+290,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+290,
+291,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+291,
+294,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+294,
+295,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+295,
+296,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+296,
+297,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.builtin.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+297,
+301,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.builtin.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+301,
+302,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+302,
+303,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+303,
+304,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+304,
+307,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+307,
+310,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+310,
+311,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+311,
+312,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+312,
+316,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+316,
+317,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+317,
+318,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+318,
+320,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+320,
+324,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+324,
+331,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+331,
+338,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+338,
+340,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell constant.character.escape.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+340,
+343,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+343,
+344,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+344,
+345,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+345,
+346,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+346,
+348,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+348,
+350,
+"source.shell.zsh meta.function.body.shell meta.block.shell keyword.control.conditional.if.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+350,
+351,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+351,
+353,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell punctuation.section.compound.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+353,
+354,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+354,
+355,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+355,
+356,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+356,
+357,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+357,
+358,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+358,
+359,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+359,
+363,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+363,
+364,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+364,
+365,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+365,
+367,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.compound.conditional.shell punctuation.section.compound.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+367,
+368,
+"source.shell.zsh meta.function.body.shell meta.block.shell punctuation.terminator.statement.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+368,
+369,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+369,
+373,
+"source.shell.zsh meta.function.body.shell meta.block.shell keyword.control.conditional.then.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+373,
+374,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+374,
+378,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+378,
+381,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+381,
+382,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+382,
+383,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+383,
+392,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+392,
+397,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+397,
+402,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+402,
+407,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+407,
+408,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+408,
+409,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+409,
+411,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.redirection.shell keyword.operator.assignment.redirection.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+411,
+412,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.redirection.shell meta.file-descriptor.shell meta.number.integer.decimal.shell constant.numeric.value.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+412,
+413,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+413,
+417,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+417,
+423,
+"source.shell.zsh meta.function.body.shell meta.block.shell keyword.control.flow.return.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+423,
+424,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+424,
+425,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.number.integer.decimal.shell constant.numeric.value.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+425,
+426,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+426,
+428,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+428,
+430,
+"source.shell.zsh meta.function.body.shell meta.block.shell keyword.control.conditional.endif.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+430,
+431,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+431,
+433,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+433,
+437,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.identifier.shell support.function.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+437,
+438,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+438,
+439,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+439,
+440,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+440,
+444,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+444,
+445,
+"source.shell.zsh meta.function.body.shell meta.block.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+445,
+446,
+"source.shell.zsh meta.function.body.shell meta.block.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+446,
+447,
+"source.shell.zsh meta.function.body.shell meta.block.shell punctuation.section.block.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+447,
+448,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+448,
+449,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+449,
+452,
+"source.shell.zsh meta.statement.loop.for.shell keyword.control.loop.for.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+452,
+453,
+"source.shell.zsh meta.statement.loop.for.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+453,
+457,
+"source.shell.zsh meta.statement.loop.for.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+457,
+458,
+"source.shell.zsh meta.statement.loop.for.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+458,
+460,
+"source.shell.zsh meta.statement.loop.for.shell keyword.control.loop.in.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+460,
+461,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+461,
+462,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+462,
+463,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+463,
+464,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+464,
+469,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+469,
+470,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell meta.interpolation.parameter.shell meta.item-access.shell punctuation.section.item-access.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+470,
+471,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell meta.interpolation.parameter.shell meta.item-access.shell variable.language.array.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+471,
+472,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell meta.interpolation.parameter.shell meta.item-access.shell punctuation.section.item-access.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+472,
+473,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+473,
+474,
+"source.shell.zsh meta.statement.loop.for.shell meta.sequence.list.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+474,
+475,
+"source.shell.zsh punctuation.terminator.statement.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+475,
+476,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+476,
+478,
+"source.shell.zsh keyword.control.loop.do.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+478,
+479,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+479,
+481,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+481,
+483,
+"source.shell.zsh keyword.control.conditional.if.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+483,
+484,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+484,
+486,
+"source.shell.zsh meta.compound.conditional.shell punctuation.section.compound.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+486,
+487,
+"source.shell.zsh meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+487,
+488,
+"source.shell.zsh meta.compound.conditional.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+488,
+489,
+"source.shell.zsh meta.compound.conditional.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+489,
+490,
+"source.shell.zsh meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+490,
+491,
+"source.shell.zsh meta.compound.conditional.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+491,
+495,
+"source.shell.zsh meta.compound.conditional.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+495,
+496,
+"source.shell.zsh meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+496,
+498,
+"source.shell.zsh meta.compound.conditional.shell keyword.operator.logical.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+498,
+499,
+"source.shell.zsh meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+499,
+500,
+"source.shell.zsh meta.compound.conditional.shell keyword.operator.logical.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+500,
+501,
+"source.shell.zsh meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+501,
+502,
+"source.shell.zsh meta.compound.conditional.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+502,
+503,
+"source.shell.zsh meta.compound.conditional.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+503,
+504,
+"source.shell.zsh meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+504,
+505,
+"source.shell.zsh meta.compound.conditional.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+505,
+509,
+"source.shell.zsh meta.compound.conditional.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+509,
+510,
+"source.shell.zsh meta.compound.conditional.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+510,
+512,
+"source.shell.zsh meta.compound.conditional.shell punctuation.section.compound.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+512,
+513,
+"source.shell.zsh punctuation.terminator.statement.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+513,
+514,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+514,
+518,
+"source.shell.zsh keyword.control.conditional.then.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+518,
+519,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+519,
+523,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+523,
+525,
+"source.shell.zsh meta.compound.arithmetic.shell punctuation.section.compound.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+525,
+526,
+"source.shell.zsh meta.compound.arithmetic.shell meta.arithmetic.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+526,
+531,
+"source.shell.zsh meta.compound.arithmetic.shell meta.arithmetic.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+531,
+532,
+"source.shell.zsh meta.compound.arithmetic.shell meta.arithmetic.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+532,
+534,
+"source.shell.zsh meta.compound.arithmetic.shell meta.arithmetic.shell keyword.operator.assignment.augmented.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+534,
+535,
+"source.shell.zsh meta.compound.arithmetic.shell meta.arithmetic.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+535,
+536,
+"source.shell.zsh meta.compound.arithmetic.shell meta.arithmetic.shell meta.number.integer.decimal.shell constant.numeric.value.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+536,
+537,
+"source.shell.zsh meta.compound.arithmetic.shell meta.arithmetic.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+537,
+539,
+"source.shell.zsh meta.compound.arithmetic.shell punctuation.section.compound.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+539,
+540,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+540,
+542,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+542,
+544,
+"source.shell.zsh keyword.control.conditional.endif.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+544,
+545,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+545,
+549,
+"source.shell.zsh keyword.control.loop.end.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+549,
+550,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+550,
+551,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+551,
+555,
+"source.shell.zsh meta.statement.conditional.case.shell keyword.control.conditional.case.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+555,
+556,
+"source.shell.zsh meta.statement.conditional.case.word.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+556,
+557,
+"source.shell.zsh meta.statement.conditional.case.word.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+557,
+558,
+"source.shell.zsh meta.statement.conditional.case.word.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+558,
+559,
+"source.shell.zsh meta.statement.conditional.case.word.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+559,
+560,
+"source.shell.zsh meta.statement.conditional.case.word.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.positional.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+560,
+562,
+"source.shell.zsh meta.statement.conditional.case.word.shell meta.string.glob.shell meta.interpolation.parameter.shell keyword.operator.assignment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+562,
+568,
+"source.shell.zsh meta.statement.conditional.case.word.shell meta.string.glob.shell meta.interpolation.parameter.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+568,
+569,
+"source.shell.zsh meta.statement.conditional.case.word.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+569,
+570,
+"source.shell.zsh meta.statement.conditional.case.word.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+570,
+571,
+"source.shell.zsh meta.statement.conditional.case.word.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+571,
+573,
+"source.shell.zsh meta.statement.conditional.case.shell keyword.control.conditional.in.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+573,
+574,
+"source.shell.zsh meta.statement.conditional.case.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+574,
+576,
+"source.shell.zsh meta.statement.conditional.case.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+576,
+582,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.patterns.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+582,
+583,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.patterns.shell punctuation.section.patterns.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+583,
+584,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+584,
+588,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+588,
+591,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+591,
+592,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+592,
+593,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+593,
+603,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+603,
+604,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+604,
+609,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+609,
+610,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+610,
+616,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+616,
+617,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+617,
+618,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+618,
+619,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+619,
+629,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+629,
+630,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+630,
+631,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+631,
+636,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+636,
+637,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+637,
+638,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+638,
+642,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+642,
+647,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+647,
+648,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+648,
+649,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+649,
+651,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+651,
+652,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+652,
+654,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+654,
+660,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+660,
+661,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+661,
+668,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+668,
+669,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+669,
+670,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+670,
+671,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.builtin.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+671,
+675,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.builtin.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+675,
+676,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.separator.sequence.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+676,
+677,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+677,
+681,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+681,
+682,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+682,
+683,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+683,
+684,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+684,
+686,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell keyword.operator.logical.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+686,
+687,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+687,
+691,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell keyword.control.flow.exit.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+691,
+692,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+692,
+693,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.number.integer.decimal.shell constant.numeric.value.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+693,
+694,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+694,
+698,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+698,
+700,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.shell punctuation.terminator.clause.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+700,
+701,
+"source.shell.zsh meta.statement.conditional.case.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+701,
+703,
+"source.shell.zsh meta.statement.conditional.case.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+703,
+710,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.patterns.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+710,
+711,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.patterns.shell keyword.operator.logical.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+711,
+713,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.patterns.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+713,
+714,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.patterns.shell punctuation.section.patterns.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+714,
+715,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+715,
+719,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+719,
+724,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+724,
+725,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+725,
+726,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+726,
+729,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+729,
+730,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+730,
+737,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+737,
+738,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+738,
+739,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+739,
+740,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.builtin.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+740,
+744,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.builtin.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+744,
+745,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.separator.sequence.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+745,
+746,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+746,
+750,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+750,
+751,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+751,
+752,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+752,
+753,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+753,
+757,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+757,
+759,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.shell punctuation.terminator.clause.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+759,
+760,
+"source.shell.zsh meta.statement.conditional.case.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+760,
+762,
+"source.shell.zsh meta.statement.conditional.case.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+762,
+763,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.patterns.shell meta.string.glob.shell string.unquoted.shell constant.other.wildcard.asterisk.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+763,
+764,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.patterns.shell punctuation.section.patterns.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+764,
+765,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+765,
+769,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+769,
+773,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.identifier.shell support.function.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+773,
+774,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+774,
+775,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+775,
+782,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+782,
+783,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+783,
+784,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+784,
+785,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell variable.language.positional.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+785,
+786,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.separator.modifier.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+786,
+787,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell storage.modifier.glob.shell.zsh",
+"#ec475d",
+null,
+false,
+false
+],
+[
+787,
+788,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.parameter.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+788,
+789,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+789,
+790,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+790,
+805,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+805,
+806,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+806,
+807,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+807,
+809,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.redirection.shell keyword.operator.assignment.redirection.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+809,
+810,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.function-call.arguments.shell meta.redirection.shell meta.file-descriptor.shell meta.number.integer.decimal.shell constant.numeric.value.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+810,
+811,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+811,
+815,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+815,
+819,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell keyword.control.flow.exit.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+819,
+820,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+820,
+822,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell meta.number.integer.decimal.shell constant.numeric.value.shell",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+822,
+823,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+823,
+827,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+827,
+829,
+"source.shell.zsh meta.statement.conditional.case.body.shell meta.clause.shell punctuation.terminator.clause.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+829,
+830,
+"source.shell.zsh meta.statement.conditional.case.body.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+830,
+834,
+"source.shell.zsh meta.statement.conditional.case.end.shell keyword.control.conditional.endcase.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+834,
+835,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+835,
+836,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+836,
+839,
+"source.shell.zsh meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+839,
+840,
+"source.shell.zsh meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+840,
+842,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell keyword.operator.assignment.redirection.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+842,
+846,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.tag.heredoc.begin.shell entity.name.tag.heredoc.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+846,
+847,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+847,
+848,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell keyword.operator.assignment.pipe.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+848,
+849,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+849,
+853,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+853,
+854,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+854,
+855,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+855,
+856,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+856,
+857,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+857,
+858,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+858,
+866,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+866,
+867,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+867,
+868,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+868,
+884,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+884,
+885,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+885,
+894,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell string.unquoted.heredoc.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+894,
+895,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.parameter.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+895,
+896,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.parameter.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+896,
+901,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.parameter.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+901,
+902,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.parameter.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+902,
+903,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell string.unquoted.heredoc.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+903,
+909,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell string.unquoted.heredoc.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+909,
+912,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell string.unquoted.heredoc.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+912,
+913,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.parameter.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+913,
+914,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.parameter.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+914,
+918,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.parameter.shell variable.language.builtin.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+918,
+919,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.parameter.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+919,
+920,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell string.unquoted.heredoc.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+920,
+923,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell string.unquoted.heredoc.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+923,
+924,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.command.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+924,
+925,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.command.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+925,
+929,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.command.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+929,
+930,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell meta.interpolation.command.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+930,
+931,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell string.unquoted.heredoc.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+931,
+932,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.string.heredoc.shell string.unquoted.heredoc.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+932,
+936,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.tag.heredoc.end.shell entity.name.tag.heredoc.shell",
+"#ec475d",
+null,
+false,
+false
+],
+[
+936,
+937,
+"source.shell.zsh meta.function-call.arguments.shell meta.redirection.shell meta.tag.heredoc.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+937,
+938,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+938,
+944,
+"source.shell.zsh meta.function-call.identifier.shell support.function.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+944,
+945,
+"source.shell.zsh meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+945,
+956,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.l-value.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+956,
+957,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.shell keyword.operator.assignment.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+957,
+958,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+958,
+959,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.definition.variable.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+959,
+960,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.section.interpolation.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+960,
+964,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+964,
+965,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+965,
+966,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+966,
+968,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+968,
+969,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell meta.interpolation.command.shell punctuation.section.interpolation.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+969,
+970,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.r-value.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+970,
+971,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+971,
+976,
+"source.shell.zsh meta.function-call.identifier.shell support.function.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+976,
+977,
+"source.shell.zsh meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+977,
+982,
+"source.shell.zsh meta.function-call.arguments.shell meta.assignment.l-value.shell variable.other.readwrite.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+982,
+983,
+"source.shell.zsh",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

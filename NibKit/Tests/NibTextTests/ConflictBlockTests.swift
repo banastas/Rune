@@ -78,6 +78,13 @@ import Testing
         #expect(d == [.same, .same, .same])
     }
 
+    @Test func maskingBlanksTheMarkersOnly() {
+        let masked = ConflictText.masked(text)
+        #expect((masked as NSString).length == (text as NSString).length)
+        #expect(masked == "intro\n                   \nFriday.\n       \nThursday.\n                    \noutro\n")
+        #expect(ConflictText.masked("plain\n") == "plain\n")
+    }
+
     @Test func notBlocks() {
         #expect(ConflictText.blocks(in: "plain\ntext\n").isEmpty)
         #expect(ConflictText.blocks(in: "<<<<<<< X\nno end\n=======\nstill none\n").isEmpty)

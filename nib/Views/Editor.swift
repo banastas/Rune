@@ -4,6 +4,7 @@
 // Nothing here touches `layoutManager`, which would silently switch it to TextKit 1.
 
 import AppKit
+import NibSyntax
 import NibText
 
 @MainActor
@@ -51,6 +52,11 @@ final class Editor: NSObject, NSTextViewDelegate {
         textView.onEscape = { [weak self] in self?.document?.hideBanner() ?? false }
         textView.setAccessibilityLabel("Scratch")
         scrollView.documentView = textView
+        // Scrolling brings new text into view: render it.
+        scrollView.contentView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.render() }
+        }
     }
 
     func undoManager(for view: NSTextView) -> UndoManager? { undo }
@@ -58,19 +64,13 @@ final class Editor: NSObject, NSTextViewDelegate {
     private var highlighted: [ConflictBlock] = []
 
     /// Conflict blocks (§5.4): the text view draws each as a HUD frame on a panel, and the
-    /// marker lines' own text is hidden under it with a TextKit 2 rendering attribute, so the
-    /// file keeps plain markers that any editor can read.
+    /// marker lines' own text is hidden under it (in render), so the file keeps plain markers
+    /// that any editor can read.
     func highlight(_ blocks: [ConflictBlock]) {
-        guard !(blocks.isEmpty && highlighted.isEmpty), let layout = textView.textLayoutManager else { return }
+        guard !(blocks.isEmpty && highlighted.isEmpty) else { return }
         highlighted = blocks
         textView.conflictBlocks = blocks
-        layout.removeRenderingAttribute(.foregroundColor, for: layout.documentRange)
-        for block in blocks {
-            for marker in block.markers {
-                if let range = textView.textRange(marker) { layout.addRenderingAttribute(.foregroundColor, value: NSColor.clear, for: range) }
-            }
-        }
-        textView.needsDisplay = true
+        render(force: true)
     }
 
     /// For an editor with no document (the merge view's result): told of changes and caret moves.
@@ -80,6 +80,101 @@ final class Editor: NSObject, NSTextViewDelegate {
     func textDidChange(_ notification: Notification) {
         document?.textDidChange()
         onChange?()
+        scheduleHighlight()
+    }
+
+    /// Before each change: the colors move with the text until the next highlight, so typing
+    /// doesn't shift them a character off for a moment.
+    func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString text: String?) -> Bool {
+        let inserted = (text as NSString?)?.length ?? 0, change = inserted - range.length
+        guard change != 0 || range.length > 0 else { return true }
+        styles = styles.compactMap { item in
+            var (r, style) = item
+            let end = NSMaxRange(r), editEnd = NSMaxRange(range)
+            if r.location >= editEnd {
+                r.location += change                                    // after the edit: moves
+            } else if r.location <= range.location, end >= editEnd {
+                r.length += change                                      // holds the edit: grows or shrinks
+            } else if r.location < range.location {
+                r.length = range.location - r.location                  // cut by it: what came before
+            } else {
+                r = NSRange(location: range.location + inserted, length: end - editEnd)   // its tail, after the new text
+            }
+            return r.length > 0 ? (r, style) : nil
+        }
+        return true
+    }
+
+    // MARK: Highlighting (HL1, §6.3)
+
+    /// The file's syntax, from its name and first line; nil is plain text. Set once the text is in.
+    var syntax: (language: SyntaxLanguage, root: String)? {
+        didSet { scheduleHighlight(after: 0) }
+    }
+    private var styles: [(range: NSRange, style: Style)] = []
+    private var highlightTask: Task<Void, Never>?
+    private var edits = 0
+    private var rendered = NSRange(location: 0, length: 0)
+    static let theme = Theme.anOldHopeNib
+
+    /// The whole text parsed and styled off the main thread, a moment after typing pauses; up to
+    /// 5 MB (ED9: larger files aren't highlighted).
+    func scheduleHighlight(after delay: Double = 0.08) {
+        edits += 1
+        highlightTask?.cancel()
+        let text = ConflictText.masked(textView.string, blocks: textView.conflictBlocks), version = edits, theme = Self.theme
+        guard let syntax, (text as NSString).length <= 5_000_000 else {
+            if !styles.isEmpty { styles = []; render() }
+            return
+        }
+        highlightTask = Task { [weak self] in
+            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+            guard !Task.isCancelled else { return }
+            let result = await Task.detached(priority: .userInitiated) {
+                Highlighter.styles(text, language: syntax.language, root: syntax.root, theme: theme)
+            }.value
+            guard let self, !Task.isCancelled, version == self.edits else { return }
+            self.styles = result
+            self.render(force: true)
+        }
+    }
+
+    /// The text in view, and a margin, as rendering attributes (§6.3: never the text storage,
+    /// undo or layout): syntax colors, then the conflict frames' hidden marker lines.
+    func render(force: Bool = false) {
+        guard let layout = textView.textLayoutManager else { return }
+        let length = (textView.string as NSString).length
+        let view = visibleRange()
+        let wanted = NSIntersectionRange(NSRange(location: max(0, view.location - 3_000), length: view.length + 6_000), NSRange(location: 0, length: length))
+        if !force, NSIntersectionRange(wanted, rendered).length == wanted.length, wanted.length > 0 { return }
+        guard let whole = textView.textRange(wanted) else { return }
+        layout.removeRenderingAttribute(.foregroundColor, for: whole)
+        layout.removeRenderingAttribute(.backgroundColor, for: whole)
+        layout.removeRenderingAttribute(.underlineStyle, for: whole)
+        let plain = Self.theme.foreground
+        for (range, style) in styles {
+            let part = NSIntersectionRange(range, wanted)
+            guard part.length > 0, let text = textView.textRange(part) else { continue }
+            if style.foreground != plain { layout.addRenderingAttribute(.foregroundColor, value: NSColor(style.foreground), for: text) }
+            if let background = style.background { layout.addRenderingAttribute(.backgroundColor, value: NSColor(background), for: text) }
+            if style.underline { layout.addRenderingAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, for: text) }
+        }
+        for block in textView.conflictBlocks {
+            for marker in block.markers {
+                let part = NSIntersectionRange(marker, wanted)
+                if part.length > 0, let text = textView.textRange(part) { layout.addRenderingAttribute(.foregroundColor, value: NSColor.clear, for: text) }
+            }
+        }
+        rendered = wanted
+        textView.needsDisplay = true
+    }
+
+    /// The characters TextKit 2 has in its viewport now.
+    private func visibleRange() -> NSRange {
+        guard let layout = textView.textLayoutManager, let content = layout.textContentManager,
+              let viewport = layout.textViewportLayoutController.viewportRange else { return NSRange(location: 0, length: 0) }
+        let start = content.offset(from: content.documentRange.location, to: viewport.location)
+        return NSRange(location: start, length: content.offset(from: viewport.location, to: viewport.endLocation))
     }
 
     func textViewDidChangeSelection(_ notification: Notification) {
@@ -355,5 +450,11 @@ extension NibTextView: @preconcurrency NSAccessibilityCustomRotorItemSearchDeleg
         result.targetRange = block.range
         result.customLabel = "Conflict: \(block.firstLabel), or \(block.secondLabel)"
         return result
+    }
+}
+
+extension NSColor {
+    convenience init(_ color: RGBA) {
+        self.init(srgbRed: color.r, green: color.g, blue: color.b, alpha: color.a)
     }
 }

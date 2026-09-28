@@ -4,6 +4,28 @@
 <dict>
 	<!-- Merged into the generated Info.plist. The container shows in iCloud Drive as "Nib",
 	     beside other apps' folders. iCloud caches this: raise CFBundleVersion when it changes. -->
+	<!-- Text files, so Nib is in Finder's Open With and takes files dropped on its Dock icon
+	     (ED2), as an alternative, never taking over as the default app. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Text</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.text</string>
+				<string>public.plain-text</string>
+				<string>public.source-code</string>
+				<string>public.script</string>
+				<string>public.json</string>
+				<string>net.daringfireball.markdown</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.com.banastas.nib</key>

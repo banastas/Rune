@@ -1,0 +1,22 @@
+{
+  "name": "vendor-review",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Totals by month, and a note for the sheet",
+  "threshold": 2500.75,
+  "currency": "USD",
+  "owners": ["Sam", "Alex"],
+  "notify": {
+    "email": "team@example.com",
+    "onWarning": true,
+    "onError": false,
+    "quietHours": { "from": "22:00", "to": "07:00" }
+  },
+  "months": [
+    { "month": "2026-07", "total": 1840.5, "approved": true },
+    { "month": "2026-08", "total": 2710, "approved": false, "note": null },
+    { "month": "2026-09", "total": 0, "approved": true, "tags": [] }
+  ],
+  "escaped": "Quote: \"ship Friday\"\tand a tab, é",
+  "exponent": -1.5e-3
+}

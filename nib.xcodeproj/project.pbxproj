@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A1B0C0DE00000000000000A1 /* NibSync in Frameworks */ = {isa = PBXBuildFile; productRef = A1B0C0DE00000000000000B1 /* NibSync */; };
 		A1B0C0DE00000000000000A2 /* NibText in Frameworks */ = {isa = PBXBuildFile; productRef = A1B0C0DE00000000000000B2 /* NibText */; };
+		A1B0C0DE00000000000000A3 /* NibSyntax in Frameworks */ = {isa = PBXBuildFile; productRef = A1B0C0DE00000000000000B3 /* NibSyntax */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 			files = (
 				A1B0C0DE00000000000000A1 /* NibSync in Frameworks */,
 				A1B0C0DE00000000000000A2 /* NibText in Frameworks */,
+				A1B0C0DE00000000000000A3 /* NibSyntax in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				A1B0C0DE00000000000000B1 /* NibSync */,
 				A1B0C0DE00000000000000B2 /* NibText */,
+				A1B0C0DE00000000000000B3 /* NibSyntax */,
 			);
 			productName = nib;
 			productReference = A1B0C0DE00000000000000C1 /* Nib.app */;
@@ -270,6 +273,10 @@
 		A1B0C0DE00000000000000B2 /* NibText */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = NibText;
+		};
+		A1B0C0DE00000000000000B3 /* NibSyntax */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NibSyntax;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

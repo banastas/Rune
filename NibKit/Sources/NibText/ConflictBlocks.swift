@@ -74,6 +74,24 @@ extension ConflictText {
         return kept
     }
 
+    /// The text with each block's marker lines blanked (spaces, line breaks kept): for parsing
+    /// around the blocks, since `=======` would underline a Markdown heading and `>>>>>>>`
+    /// start a quote. Offsets are unchanged.
+    public static func masked(_ text: String, blocks: [ConflictBlock]? = nil) -> String {
+        let found = blocks ?? self.blocks(in: text)
+        guard !found.isEmpty else { return text }
+        let s = NSMutableString(string: text)
+        for block in found {
+            for marker in block.markers {
+                let part = s.substring(with: marker) as NSString
+                var blank = ""
+                for i in 0..<part.length { blank += part.character(at: i) == 0x0A ? "\n" : " " }
+                s.replaceCharacters(in: marker, with: blank)
+            }
+        }
+        return s as String
+    }
+
     /// Each side's whole text: every block resolved to its first version, and to its second.
     public static func sides(of text: String) -> (first: String, second: String) {
         var first = text as NSString, second = text as NSString

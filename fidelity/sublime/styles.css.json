@@ -1,0 +1,4166 @@
+{
+"file": "styles.css",
+"syntax": "CSS",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "/* Vendor review · shared styles */\n@import url(\"fonts.css\");\n\n:root {\n  --bg: #1c1d21;\n  --text: #f8f8f2;\n  --accent: #50b4d8;\n  --radius: 4px;\n}\n\n*,\n*::before,\n*::after {\n  box-sizing: border-box;\n}\n\nhtml, body {\n  height: 100%;\n  background-color: var(--bg);\n  color: var(--text);\n}\n\n.card {\n  display: grid;\n  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));\n  gap: 1.5rem 2em;\n  border: 1px solid rgba(255, 255, 255, 0.08);\n  border-radius: var(--radius);\n  transition: transform 150ms ease-in-out, opacity .2s;\n}\n\n.card:hover,\n.card:focus-within {\n  transform: translateY(-2px) scale(1.01);\n}\n\n#summary > h1::first-letter {\n  font-weight: 700;\n  font-size: 2.4em;\n  text-transform: uppercase;\n}\n\na[href^=\"https://\"]:not(.plain) {\n  text-decoration: underline dotted;\n  color: hsl(197, 64%, 58%);\n}\n\ninput[type=\"checkbox\"]:checked + label {\n  opacity: 0.5 !important;\n}\n\n@media (prefers-reduced-motion: reduce) {\n  .card { transition: none; }\n}\n\n@keyframes pulse {\n  from { opacity: 1; }\n  50% { opacity: 0.4; }\n  to { opacity: 1; }\n}\n",
+"tokens": [
+[
+0,
+2,
+"source.css comment.block.css punctuation.definition.comment.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+2,
+3,
+"source.css comment.block.css",
+"#848484",
+null,
+false,
+false
+],
+[
+3,
+10,
+"source.css comment.block.css",
+"#848484",
+null,
+false,
+false
+],
+[
+10,
+17,
+"source.css comment.block.css",
+"#848484",
+null,
+false,
+false
+],
+[
+17,
+19,
+"source.css comment.block.css",
+"#848484",
+null,
+false,
+false
+],
+[
+19,
+26,
+"source.css comment.block.css",
+"#848484",
+null,
+false,
+false
+],
+[
+26,
+33,
+"source.css comment.block.css",
+"#848484",
+null,
+false,
+false
+],
+[
+33,
+35,
+"source.css comment.block.css punctuation.definition.comment.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+35,
+36,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+36,
+37,
+"source.css meta.at-rule.import.css keyword.control.directive.css punctuation.definition.keyword.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+37,
+43,
+"source.css meta.at-rule.import.css keyword.control.directive.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+43,
+44,
+"source.css meta.at-rule.import.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+44,
+47,
+"source.css meta.at-rule.import.css meta.function-call.identifier.css support.function.url.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+47,
+48,
+"source.css meta.at-rule.import.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+48,
+49,
+"source.css meta.at-rule.import.css meta.function-call.arguments.css meta.group.css meta.string.css string.quoted.double.css punctuation.definition.string.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+49,
+58,
+"source.css meta.at-rule.import.css meta.function-call.arguments.css meta.group.css meta.path.url.css meta.string.css string.quoted.double.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+58,
+59,
+"source.css meta.at-rule.import.css meta.function-call.arguments.css meta.group.css meta.string.css string.quoted.double.css punctuation.definition.string.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+59,
+60,
+"source.css meta.at-rule.import.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+60,
+61,
+"source.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+61,
+62,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+62,
+63,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+63,
+64,
+"source.css meta.selector.css punctuation.definition.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+64,
+68,
+"source.css meta.selector.css entity.other.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+68,
+69,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+69,
+70,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+70,
+71,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+71,
+73,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+73,
+75,
+"source.css meta.property-list.css meta.block.css meta.property-name.css entity.other.custom-property.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+75,
+77,
+"source.css meta.property-list.css meta.block.css meta.property-name.css entity.other.custom-property.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+77,
+78,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+78,
+79,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+79,
+80,
+"source.css meta.property-list.css meta.block.css meta.property-value.css constant.other.color.rgb-value.css punctuation.definition.constant.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+80,
+86,
+"source.css meta.property-list.css meta.block.css meta.property-value.css constant.other.color.rgb-value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+86,
+87,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+87,
+88,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+88,
+90,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+90,
+92,
+"source.css meta.property-list.css meta.block.css meta.property-name.css entity.other.custom-property.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+92,
+96,
+"source.css meta.property-list.css meta.block.css meta.property-name.css entity.other.custom-property.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+96,
+97,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+97,
+98,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+98,
+99,
+"source.css meta.property-list.css meta.block.css meta.property-value.css constant.other.color.rgb-value.css punctuation.definition.constant.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+99,
+105,
+"source.css meta.property-list.css meta.block.css meta.property-value.css constant.other.color.rgb-value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+105,
+106,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+106,
+107,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+107,
+109,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+109,
+111,
+"source.css meta.property-list.css meta.block.css meta.property-name.css entity.other.custom-property.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+111,
+117,
+"source.css meta.property-list.css meta.block.css meta.property-name.css entity.other.custom-property.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+117,
+118,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+118,
+119,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+119,
+120,
+"source.css meta.property-list.css meta.block.css meta.property-value.css constant.other.color.rgb-value.css punctuation.definition.constant.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+120,
+126,
+"source.css meta.property-list.css meta.block.css meta.property-value.css constant.other.color.rgb-value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+126,
+127,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+127,
+128,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+128,
+130,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+130,
+132,
+"source.css meta.property-list.css meta.block.css meta.property-name.css entity.other.custom-property.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+132,
+138,
+"source.css meta.property-list.css meta.block.css meta.property-name.css entity.other.custom-property.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+138,
+139,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+139,
+140,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+140,
+141,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+141,
+143,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+143,
+144,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+144,
+145,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+145,
+146,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+146,
+147,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+147,
+148,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+148,
+149,
+"source.css meta.selector.css constant.other.wildcard.asterisk.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+149,
+150,
+"source.css meta.selector.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+150,
+151,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+151,
+152,
+"source.css meta.selector.css constant.other.wildcard.asterisk.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+152,
+154,
+"source.css meta.selector.css punctuation.definition.pseudo-element.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+154,
+160,
+"source.css meta.selector.css entity.other.pseudo-element.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+160,
+161,
+"source.css meta.selector.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+161,
+162,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+162,
+163,
+"source.css meta.selector.css constant.other.wildcard.asterisk.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+163,
+165,
+"source.css meta.selector.css punctuation.definition.pseudo-element.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+165,
+170,
+"source.css meta.selector.css entity.other.pseudo-element.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+170,
+171,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+171,
+172,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+172,
+173,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+173,
+175,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+175,
+185,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+185,
+186,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+186,
+187,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+187,
+197,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+197,
+198,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+198,
+199,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+199,
+200,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+200,
+201,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+201,
+202,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+202,
+206,
+"source.css meta.selector.css entity.name.tag.html.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+206,
+207,
+"source.css meta.selector.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+207,
+208,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+208,
+212,
+"source.css meta.selector.css entity.name.tag.html.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+212,
+213,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+213,
+214,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+214,
+215,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+215,
+217,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+217,
+223,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+223,
+224,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+224,
+225,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+225,
+228,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+228,
+229,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+229,
+230,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+230,
+231,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+231,
+233,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+233,
+249,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+249,
+250,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+250,
+251,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+251,
+254,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.identifier.css support.function.var.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+254,
+255,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+255,
+259,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css variable.other.custom-property.css",
+"#78bc65",
+null,
+false,
+false
+],
+[
+259,
+260,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+260,
+261,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+261,
+262,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+262,
+264,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+264,
+269,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+269,
+270,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+270,
+271,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+271,
+274,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.identifier.css support.function.var.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+274,
+275,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+275,
+281,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css variable.other.custom-property.css",
+"#78bc65",
+null,
+false,
+false
+],
+[
+281,
+282,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+282,
+283,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+283,
+284,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+284,
+285,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+285,
+286,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+286,
+287,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+287,
+288,
+"source.css meta.selector.css entity.other.attribute-name.class.css punctuation.definition.entity.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+288,
+292,
+"source.css meta.selector.css entity.other.attribute-name.class.css",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+292,
+293,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+293,
+294,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+294,
+295,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+295,
+297,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+297,
+304,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+304,
+305,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+305,
+306,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+306,
+310,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+310,
+311,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+311,
+312,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+312,
+314,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+314,
+335,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+335,
+336,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+336,
+337,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+337,
+343,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.identifier.css support.function.grid.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+343,
+344,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+344,
+353,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css keyword.other.grid.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+353,
+354,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+354,
+355,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+355,
+361,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.identifier.css support.function.grid.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+361,
+362,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+362,
+365,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+365,
+367,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+367,
+368,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.arguments.css meta.group.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+368,
+369,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.arguments.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+369,
+370,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+370,
+372,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+372,
+373,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+373,
+374,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+374,
+375,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+375,
+376,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+376,
+378,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+378,
+381,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+381,
+382,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+382,
+383,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+383,
+384,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+384,
+385,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css punctuation.separator.decimal.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+385,
+386,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+386,
+389,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+389,
+390,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+390,
+391,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+391,
+393,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+393,
+394,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+394,
+395,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+395,
+397,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+397,
+403,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+403,
+404,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+404,
+405,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+405,
+406,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+406,
+408,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+408,
+409,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+409,
+414,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+414,
+415,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+415,
+419,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.identifier.css support.function.color.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+419,
+420,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+420,
+423,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+423,
+424,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+424,
+425,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+425,
+428,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+428,
+429,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+429,
+430,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+430,
+433,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+433,
+434,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+434,
+435,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+435,
+436,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+436,
+437,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.float.decimal.css constant.numeric.value.css punctuation.separator.decimal.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+437,
+439,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+439,
+440,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+440,
+441,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+441,
+442,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+442,
+444,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+444,
+457,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+457,
+458,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+458,
+459,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+459,
+462,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.identifier.css support.function.var.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+462,
+463,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+463,
+471,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css variable.other.custom-property.css",
+"#78bc65",
+null,
+false,
+false
+],
+[
+471,
+472,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+472,
+473,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+473,
+474,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+474,
+476,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+476,
+486,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+486,
+487,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+487,
+488,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+488,
+497,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+497,
+498,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+498,
+501,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+501,
+503,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+503,
+504,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+504,
+515,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+515,
+516,
+"source.css meta.property-list.css meta.block.css meta.property-value.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+516,
+517,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+517,
+524,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+524,
+525,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+525,
+526,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css punctuation.separator.decimal.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+526,
+527,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+527,
+528,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+528,
+529,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+529,
+530,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+530,
+531,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+531,
+532,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+532,
+533,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+533,
+534,
+"source.css meta.selector.css entity.other.attribute-name.class.css punctuation.definition.entity.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+534,
+538,
+"source.css meta.selector.css entity.other.attribute-name.class.css",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+538,
+539,
+"source.css meta.selector.css punctuation.definition.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+539,
+544,
+"source.css meta.selector.css entity.other.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+544,
+545,
+"source.css meta.selector.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+545,
+546,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+546,
+547,
+"source.css meta.selector.css entity.other.attribute-name.class.css punctuation.definition.entity.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+547,
+551,
+"source.css meta.selector.css entity.other.attribute-name.class.css",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+551,
+552,
+"source.css meta.selector.css punctuation.definition.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+552,
+564,
+"source.css meta.selector.css entity.other.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+564,
+565,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+565,
+566,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+566,
+567,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+567,
+569,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+569,
+578,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+578,
+579,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+579,
+580,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+580,
+590,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.identifier.css support.function.transform.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+590,
+591,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+591,
+592,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css keyword.operator.arithmetic.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+592,
+593,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+593,
+595,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+595,
+596,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+596,
+597,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+597,
+602,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.identifier.css support.function.transform.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+602,
+603,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+603,
+604,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+604,
+605,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.float.decimal.css constant.numeric.value.css punctuation.separator.decimal.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+605,
+607,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+607,
+608,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+608,
+609,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+609,
+610,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+610,
+611,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+611,
+612,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+612,
+613,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+613,
+614,
+"source.css meta.selector.css entity.other.attribute-name.id.css punctuation.definition.entity.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+614,
+621,
+"source.css meta.selector.css entity.other.attribute-name.id.css",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+621,
+622,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+622,
+623,
+"source.css meta.selector.css keyword.operator.combinator.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+623,
+624,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+624,
+626,
+"source.css meta.selector.css entity.name.tag.html.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+626,
+628,
+"source.css meta.selector.css punctuation.definition.pseudo-element.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+628,
+640,
+"source.css meta.selector.css entity.other.pseudo-element.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+640,
+641,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+641,
+642,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+642,
+643,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+643,
+645,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+645,
+656,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+656,
+657,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+657,
+658,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+658,
+661,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+661,
+662,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+662,
+663,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+663,
+665,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+665,
+674,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+674,
+675,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+675,
+676,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+676,
+677,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+677,
+678,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css punctuation.separator.decimal.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+678,
+679,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+679,
+681,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+681,
+682,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+682,
+683,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+683,
+685,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+685,
+699,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+699,
+700,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+700,
+701,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+701,
+710,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+710,
+711,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+711,
+712,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+712,
+713,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+713,
+714,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+714,
+715,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+715,
+716,
+"source.css meta.selector.css entity.name.tag.html.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+716,
+717,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css punctuation.section.brackets.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+717,
+721,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css entity.other.attribute-name.css",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+721,
+723,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css keyword.operator.logical.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+723,
+724,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css meta.string.css string.quoted.double.css punctuation.definition.string.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+724,
+732,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css meta.string.css string.quoted.double.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+732,
+733,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css meta.string.css string.quoted.double.css punctuation.definition.string.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+733,
+734,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css punctuation.section.brackets.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+734,
+735,
+"source.css meta.selector.css punctuation.definition.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+735,
+738,
+"source.css meta.selector.css meta.function-call.identifier.css entity.other.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+738,
+739,
+"source.css meta.selector.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+739,
+740,
+"source.css meta.selector.css meta.function-call.arguments.css meta.group.css entity.other.attribute-name.class.css punctuation.definition.entity.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+740,
+745,
+"source.css meta.selector.css meta.function-call.arguments.css meta.group.css entity.other.attribute-name.class.css",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+745,
+746,
+"source.css meta.selector.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+746,
+747,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+747,
+748,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+748,
+749,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+749,
+751,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+751,
+766,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+766,
+767,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+767,
+768,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+768,
+777,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+777,
+778,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+778,
+784,
+"source.css meta.property-list.css meta.block.css meta.property-value.css support.constant.property-value.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+784,
+785,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+785,
+786,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+786,
+788,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+788,
+793,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+793,
+794,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+794,
+795,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+795,
+798,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.identifier.css support.function.color.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+798,
+799,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+799,
+802,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+802,
+803,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+803,
+804,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+804,
+806,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+806,
+807,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+807,
+808,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.separator.sequence.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+808,
+809,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+809,
+811,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+811,
+812,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+812,
+813,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.function-call.arguments.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+813,
+814,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+814,
+815,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+815,
+816,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+816,
+817,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+817,
+818,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+818,
+823,
+"source.css meta.selector.css entity.name.tag.html.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+823,
+824,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css punctuation.section.brackets.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+824,
+828,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css entity.other.attribute-name.css",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+828,
+829,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css keyword.operator.logical.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+829,
+830,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css meta.string.css string.quoted.double.css punctuation.definition.string.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+830,
+838,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css meta.string.css string.quoted.double.css",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+838,
+839,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css meta.string.css string.quoted.double.css punctuation.definition.string.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+839,
+840,
+"source.css meta.selector.css meta.attribute-selector.css meta.brackets.css punctuation.section.brackets.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+840,
+841,
+"source.css meta.selector.css punctuation.definition.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+841,
+848,
+"source.css meta.selector.css entity.other.pseudo-class.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+848,
+849,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+849,
+850,
+"source.css meta.selector.css keyword.operator.combinator.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+850,
+851,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+851,
+856,
+"source.css meta.selector.css entity.name.tag.html.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+856,
+857,
+"source.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+857,
+858,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+858,
+859,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+859,
+861,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+861,
+868,
+"source.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+868,
+869,
+"source.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+869,
+870,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+870,
+871,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+871,
+872,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css punctuation.separator.decimal.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+872,
+873,
+"source.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+873,
+874,
+"source.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+874,
+884,
+"source.css meta.property-list.css meta.block.css meta.property-value.css keyword.other.important.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+884,
+885,
+"source.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+885,
+886,
+"source.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+886,
+887,
+"source.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+887,
+888,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+888,
+889,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+889,
+890,
+"source.css meta.at-rule.media.css keyword.control.directive.css punctuation.definition.keyword.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+890,
+895,
+"source.css meta.at-rule.media.css keyword.control.directive.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+895,
+896,
+"source.css meta.at-rule.media.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+896,
+897,
+"source.css meta.at-rule.media.css meta.group.css punctuation.section.group.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+897,
+919,
+"source.css meta.at-rule.media.css meta.group.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+919,
+920,
+"source.css meta.at-rule.media.css meta.group.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+920,
+921,
+"source.css meta.at-rule.media.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+921,
+927,
+"source.css meta.at-rule.media.css meta.group.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+927,
+928,
+"source.css meta.at-rule.media.css meta.group.css punctuation.section.group.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+928,
+929,
+"source.css meta.at-rule.media.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+929,
+930,
+"source.css meta.at-rule.media.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+930,
+931,
+"source.css meta.at-rule.media.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+931,
+933,
+"source.css meta.at-rule.media.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+933,
+934,
+"source.css meta.at-rule.media.css meta.block.css meta.selector.css entity.other.attribute-name.class.css punctuation.definition.entity.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+934,
+938,
+"source.css meta.at-rule.media.css meta.block.css meta.selector.css entity.other.attribute-name.class.css",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+938,
+939,
+"source.css meta.at-rule.media.css meta.block.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+939,
+940,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+940,
+941,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+941,
+951,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+951,
+952,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+952,
+953,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+953,
+957,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css constant.language.null.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+957,
+958,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+958,
+959,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+959,
+960,
+"source.css meta.at-rule.media.css meta.block.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+960,
+961,
+"source.css meta.at-rule.media.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+961,
+962,
+"source.css meta.at-rule.media.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+962,
+963,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+963,
+964,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+964,
+965,
+"source.css meta.at-rule.keyframe.css keyword.control.directive.css punctuation.definition.keyword.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+965,
+974,
+"source.css meta.at-rule.keyframe.css keyword.control.directive.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+974,
+975,
+"source.css meta.at-rule.keyframe.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+975,
+980,
+"source.css meta.at-rule.keyframe.css entity.other.animation-name.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+980,
+981,
+"source.css meta.at-rule.keyframe.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+981,
+982,
+"source.css meta.at-rule.keyframe.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+982,
+983,
+"source.css meta.at-rule.keyframe.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+983,
+985,
+"source.css meta.at-rule.keyframe.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+985,
+989,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.selector.css keyword.other.selector.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+989,
+990,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+990,
+991,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+991,
+992,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+992,
+999,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+999,
+1000,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1000,
+1001,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1001,
+1002,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1002,
+1003,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1003,
+1004,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1004,
+1005,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1005,
+1006,
+"source.css meta.at-rule.keyframe.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1006,
+1008,
+"source.css meta.at-rule.keyframe.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1008,
+1010,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.selector.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1010,
+1011,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.selector.css meta.number.integer.decimal.css constant.numeric.suffix.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1011,
+1012,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1012,
+1013,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1013,
+1014,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1014,
+1021,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1021,
+1022,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1022,
+1023,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1023,
+1024,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1024,
+1025,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css punctuation.separator.decimal.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1025,
+1026,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css meta.number.float.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1026,
+1027,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1027,
+1028,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1028,
+1029,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1029,
+1030,
+"source.css meta.at-rule.keyframe.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1030,
+1032,
+"source.css meta.at-rule.keyframe.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1032,
+1034,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.selector.css keyword.other.selector.css",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1034,
+1035,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.selector.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1035,
+1036,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.section.block.begin.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1036,
+1037,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1037,
+1044,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-name.css support.type.property-name.css",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1044,
+1045,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.separator.key-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1045,
+1046,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1046,
+1047,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css meta.property-value.css meta.number.integer.decimal.css constant.numeric.value.css",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1047,
+1048,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.terminator.rule.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1048,
+1049,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1049,
+1050,
+"source.css meta.at-rule.keyframe.css meta.block.css meta.property-list.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1050,
+1051,
+"source.css meta.at-rule.keyframe.css meta.block.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1051,
+1052,
+"source.css meta.at-rule.keyframe.css meta.block.css punctuation.section.block.end.css",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1052,
+1053,
+"source.css",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

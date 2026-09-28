@@ -1,0 +1,60 @@
+/* Vendor review · shared styles */
+@import url("fonts.css");
+
+:root {
+  --bg: #1c1d21;
+  --text: #f8f8f2;
+  --accent: #50b4d8;
+  --radius: 4px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.card {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem 2em;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  transition: transform 150ms ease-in-out, opacity .2s;
+}
+
+.card:hover,
+.card:focus-within {
+  transform: translateY(-2px) scale(1.01);
+}
+
+#summary > h1::first-letter {
+  font-weight: 700;
+  font-size: 2.4em;
+  text-transform: uppercase;
+}
+
+a[href^="https://"]:not(.plain) {
+  text-decoration: underline dotted;
+  color: hsl(197, 64%, 58%);
+}
+
+input[type="checkbox"]:checked + label {
+  opacity: 0.5 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}
+
+@keyframes pulse {
+  from { opacity: 1; }
+  50% { opacity: 0.4; }
+  to { opacity: 1; }
+}
