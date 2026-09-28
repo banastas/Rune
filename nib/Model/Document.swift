@@ -73,8 +73,10 @@ final class Document {
     @ObservationIgnored private var applying = false
     /// A refresh (hand back, evict, download, hold again) is running (S1b, SY14).
     @ObservationIgnored private var refreshing = false
-    /// A fetch is putting a newer version in place: its own change to the file isn't news.
-    @ObservationIgnored private var fetching = false
+    /// Fetches running, each maybe putting a newer version in place: their own change to the
+    /// file isn't news. A count, not a flag: fetches overlap (upload refused, coming forward,
+    /// every 30 s), and one ending mustn't let the file watch deliver another's download too.
+    @ObservationIgnored private var fetches = 0
     /// Announced versions already dealt with, by SHA-256.
     @ObservationIgnored private var handledAnnouncements: Set<String> = []
     /// Direct file-system watches, behind iCloud's presenters: writers that don't coordinate
@@ -424,8 +426,8 @@ final class Document {
         guard held else { await diskMayHaveChanged(); return }
         guard !uploading else { return }   // the upload itself is refused if the server is newer
         let url = self.url
-        fetching = true
-        defer { fetching = false }
+        fetches += 1
+        defer { fetches -= 1 }
         do {
             let result = try await CloudControl.fetchLatest(url)
             switch result {
@@ -457,7 +459,7 @@ final class Document {
 
     /// The presenter or a check found the file different: look at what's there (§4.4 Check).
     func diskMayHaveChanged() async {
-        guard ready, locked == nil, !saving, !refreshing, !fetching else { return }
+        guard ready, locked == nil, !saving, !refreshing, fetches == 0 else { return }
         let url = self.url
         let presenter = self.presenter
         guard FileManager.default.fileExists(atPath: url.path),
@@ -474,6 +476,16 @@ final class Document {
 
     /// A version nib didn't write. No local edits: it replaces the buffer. Edits: a conflict.
     private func incoming(_ data: Data, fingerprint: Fingerprint?, from source: String, fromServer: Bool = false) {
+        // Not news: the version the buffer's edits start from, or the one the conflict sheet
+        // is about. The two-Mac test at 13:22 merged one version twice, then its own save.
+        if let sha = fingerprint?.sha256 {
+            if sha == conflict?.theirsFingerprint?.sha256 { return }
+            if sha == baseFingerprint?.sha256 {
+                baseFingerprint = fingerprint
+                if fromServer { uploadedSHA = sha }
+                return
+            }
+        }
         let theirs = TextFile.decode(data).text
         let mine = editor.textView.string
         if theirs == mine {

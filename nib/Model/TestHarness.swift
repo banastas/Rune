@@ -270,7 +270,11 @@ enum TestHarness {
         document.becameActive()   // as if you looked at this Mac again
         await until(125)
         let text = view.string
-        log.check(text.contains("- clash from a \(marker)") && text.contains("- clash from b \(marker)"), "\(role): both clash lines are here")
+        // Once each: at 13:22 a version merged twice, then a save merged with itself, and
+        // both lines were there three and two times over, nested.
+        func count(_ line: String) -> Int { text.components(separatedBy: line).count - 1 }
+        let clashes = (a: count("- clash from a \(marker)"), b: count("- clash from b \(marker)"))
+        log.check(clashes == (1, 1), "\(role): both clash lines are here, once each (a \(clashes.a)×, b \(clashes.b)×)")
         let expected = TextFile.encode(text, as: document.format)
         log.check((try? Data(contentsOf: document.url)) == expected, "\(role): the file holds exactly the buffer")
         log.check(isSynced(document), "\(role): synced (state \(document.state.line))")
