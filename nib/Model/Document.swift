@@ -21,6 +21,9 @@ private struct Unproven {
     var theirs: ConflictText.Side
     var theirsSHA: String
     var written: String
+    /// What this Mac had uploaded before the merge: the note's parent must be that one (it may
+    /// have uploaded the merge itself by the time the note comes; the two-Mac test at 20:55).
+    var uploadedBefore: String?
 }
 
 @MainActor
@@ -134,6 +137,8 @@ final class Document {
     /// Newer versions a fetch has brought, counted: did a refused upload's fetch find it?
     @ObservationIgnored private var newerFetched = 0
     @ObservationIgnored private var forcedRefresh: Date?
+    /// A version with no proof yet of the version both had, held while its note is awaited.
+    @ObservationIgnored private var waitingForNote: (sha: String, data: Data, fingerprint: Fingerprint?, source: String, fromServer: Bool)?
     @ObservationIgnored private var pausing = false
     @ObservationIgnored private var closing = false
     @ObservationIgnored private var noteWatch: DispatchSourceFileSystemObject?
@@ -587,6 +592,9 @@ final class Document {
             return
         }
         guard !saving else { scheduleSave(after: 0.2); return }
+        // Not while the file is being refreshed (a save then went into a file being evicted,
+        // at 20:55), nor while a merge waits for a note (the file holds the other version).
+        guard !refreshing, waitingForNote == nil else { scheduleSave(after: 0.5); return }
         saving = true
         var uploadNow: Bool?
         let text = editor.textView.string
@@ -617,6 +625,8 @@ final class Document {
                 record("save", detail: "refused: the file changed on disk since it was loaded")
                 saving = false
                 incoming(onDisk, fingerprint: fingerprint, from: "the file")
+                if dirty { scheduleSave() }   // what's still unsaved: saved again (it sat unsaved until quit at 20:55)
+                return
             }
         } catch {
             state = .problem("COULDN'T SAVE \(url.lastPathComponent.uppercased()) · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
@@ -642,6 +652,15 @@ final class Document {
             return
         }
         guard !uploading else { uploadAgain = true; return }
+        guard !refreshing else {
+            uploadTask?.cancel()
+            uploadTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                await self?.upload(now: now)
+            }
+            return
+        }
         let spacing = now ? 0 : max(0, 3 - Date().timeIntervalSince(lastUploadStart))
         if spacing > 0 {
             uploadTask?.cancel()
@@ -676,6 +695,9 @@ final class Document {
         } catch where CloudControl.isConflict(error) {
             record("upload", ms: ms(since: started), detail: "refused: the server has a newer version")
             uploading = false
+            // Closing: the quit's own hand-back deals with it (journal, then the server's version);
+            // a fetch or refresh now would run alongside it (a suite run at 21:20).
+            guard !closing else { return }
             let fetched = newerFetched
             await fetchLatest(reason: "upload refused")
             // The refusal proves the server has a newer version, but iCloud can still answer
@@ -728,7 +750,7 @@ final class Document {
 
     /// A held file doesn't download by itself: ask the server (§4.4).
     func fetchLatest(reason: String) async {
-        guard ready, locked == nil else { return }
+        guard ready, locked == nil, !closing else { return }
         guard held else { await diskMayHaveChanged(); return }
         guard !uploading else { return }   // the upload itself is refused if the server is newer
         let url = self.url
@@ -744,6 +766,11 @@ final class Document {
             })
             #if DEBUG
             if TestHarness.staleFetches > 0 { TestHarness.staleFetches -= 1; result = .current }   // iCloud saying "nothing newer"
+            if let data = TestHarness.fakeNewer {   // another Mac's version, put in place as a fetch does
+                TestHarness.fakeNewer = nil
+                try? data.write(to: url)
+                result = .newer(data: data, savedBy: nil, modified: Date())
+            }
             #endif
             switch result {
             case .skipped(let sha):
@@ -801,7 +828,7 @@ final class Document {
     }
 
     /// A version nib didn't write. No local edits: it replaces the buffer. Edits: a conflict.
-    private func incoming(_ data: Data, fingerprint: Fingerprint?, from source: String, fromServer: Bool = false) {
+    private func incoming(_ data: Data, fingerprint: Fingerprint?, from source: String, fromServer: Bool = false, noteWaited: Bool = false) {
         // Not news: the version the buffer's edits start from, or one already taken in (merged,
         // or between markers). The two-Mac test at 13:22 merged one version twice, then its own save.
         if let sha = fingerprint?.sha256 {
@@ -855,12 +882,24 @@ final class Document {
         // the places both changed go between markers (§4.8 B). Without that proof, both whole
         // versions go between markers: a guessed base can undo edits without a trace.
         let proven = provenBase(for: fingerprint?.sha256)
+        if proven == nil, !noteWaited, fromServer, let sha = fingerprint?.sha256 {
+            // A version from iCloud with no proof yet of the version both had: its note usually comes
+            // a few seconds after the version (another app's change on this Mac has none, so no wait) (at 20:55 it came 5 s later, after both whole versions had gone between
+            // markers, been uploaded, and been kept both, doubling the text). Wait up to 10 s for
+            // it, saving nothing meanwhile (the file holds theirs; typing is in the journal).
+            if waitingForNote?.sha == sha { return }
+            waitingForNote = (sha, data, fingerprint, source, fromServer)
+            record("merge", sha: sha, detail: "from \(source): waiting up to 10 s for its note, to merge from the version both had")
+            show("‖ A NEWER VERSION FROM ANOTHER MAC · WAITING FOR ITS NOTE TO MERGE IT", for: 10)
+            Task { await awaitNote(for: sha) }
+            return
+        }
         let clock = SyncState.clock.string(from: Date())
-        let who = proven?.device ?? source.capitalized
+        let who = proven?.device ?? source.prefix(1).uppercased() + source.dropFirst()
         let mySide = ConflictText.Side(text: mine, label: "\(device) · \(clock)")
         let theirSide = ConflictText.Side(text: theirs, label: "\(who) · \(clock)")
         let sha = fingerprint?.sha256
-        let conflictBy = "changed by \(who) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have"): "
+        let conflictBy = "changed by \(proven?.device ?? source) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have"): "
         if let proven {
             let result = Merge.threeWay(base: proven.text, mySide, theirSide)
             if result.isClean {
@@ -872,13 +911,14 @@ final class Document {
         } else {
             writeBlocks(ConflictText.keepBoth(mySide, theirSide), places: 1, merged: false, from: who)
             record("conflict", sha: sha, detail: conflictBy + "no version both had is known, so both whole versions, between markers")
-            if let sha { unproven = Unproven(mine: mySide, theirs: theirSide, theirsSHA: sha, written: editor.textView.string) }
+            if let sha { unproven = Unproven(mine: mySide, theirs: theirSide, theirsSHA: sha, written: editor.textView.string, uploadedBefore: uploadedSHA) }
         }
         // Either way the file holds theirs now; with a proven base, so does the server, and the
         // result is made from it: the next merge starts there.
         baseFingerprint = fingerprint
         if proven != nil { uploadedSHA = sha }
         if let sha { incorporated.insert(sha) }
+        if waitingForNote?.sha == sha { waitingForNote = nil }   // merged by another way meanwhile
     }
 
     /// Both versions of the places both changed, between markers in the text, where they sync
@@ -893,7 +933,7 @@ final class Document {
     /// Blocks were written two-way, and now a note proves the base: if the text is as it was
     /// written, the three-way merge replaces them (clean, or with smaller blocks).
     private func upgradeIfProven() {
-        guard let pending = unproven, let proven = provenBase(for: pending.theirsSHA) else { return }
+        guard let pending = unproven, let proven = provenBase(for: pending.theirsSHA, uploaded: pending.uploadedBefore) else { return }
         unproven = nil
         guard editor.textView.string == pending.written else { return }   // edited since: left as written
         var theirs = pending.theirs
@@ -947,6 +987,31 @@ final class Document {
             await journalQueue.run { work(history) }
             historyChanged += 1
         }
+    }
+
+    /// The note for a version waiting to be merged, for 10 s: as the note folder's watch reads
+    /// it, and fresh from the server every 2 s (a fresh read evicts and downloads it: a second
+    /// or more). Then the merge, from the version both had if the note proves it, else both
+    /// whole versions between markers as before.
+    private func awaitNote(for sha: String) async {
+        let url = self.url, deadline = Date().addingTimeInterval(10)
+        var lastFresh = Date.distantPast
+        while Date() < deadline {
+            if lastNote?.sha256 == sha { break }
+            if Date().timeIntervalSince(lastFresh) >= 2 {
+                lastFresh = Date()
+                if let note = await io.run({ Announcement.read(for: url, fresh: true) }), note.sha256 == sha {
+                    lastNote = note
+                    break
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(250))
+            guard waitingForNote?.sha == sha else { return }   // a newer version came meanwhile
+        }
+        guard let pending = waitingForNote, pending.sha == sha else { return }
+        waitingForNote = nil
+        incoming(pending.data, fingerprint: pending.fingerprint, from: pending.source, fromServer: pending.fromServer, noteWaited: true)
+        if dirty { scheduleSave(after: 0) }
     }
 
     /// Revert To (SY13): a version from History back in the buffer as one edit (⌘Z undoes it).
@@ -1053,9 +1118,9 @@ final class Document {
     /// The base for a three-way merge with version `sha`, when its note proves one: `sha`
     /// was made from the version this Mac last had on the server, and this Mac still has
     /// that version's text. That version is also where this Mac's edits start.
-    private func provenBase(for sha: String?) -> (text: String, device: String)? {
+    private func provenBase(for sha: String?, uploaded: String? = nil) -> (text: String, device: String)? {
         guard let sha, let note = lastNote, note.sha256 == sha, note.device != device,
-              let parent = note.parent, parent == uploadedSHA,
+              let parent = note.parent, parent == (uploaded ?? uploadedSHA),
               let text = versions[parent] ?? history.data(parent).map({ TextFile.decode($0).text }) else { return nil }
         return (text, note.device)
     }
@@ -1145,13 +1210,19 @@ final class Document {
     /// the note decides. No edits here: refresh. Edits: nothing to do, since the next
     /// upload is refused and the merge runs.
     func checkAnnouncement(reason: String) async {
-        guard ready, locked == nil, !refreshing else { return }
+        guard ready, locked == nil, !refreshing, !closing else { return }
         let url = self.url
         guard let note = await io.run({ Announcement.read(for: url, fresh: true) }) else { return }
         lastNote = note
         upgradeIfProven()
         guard note.device != device, !handledAnnouncements.contains(note.sha256),
               note.sha256 != baseFingerprint?.sha256, note.sha256 != uploadedSHA else { return }
+        if incorporated.contains(note.sha256) || superseded.contains(note.sha256) || waitingForNote?.sha == note.sha256 {
+            // Already taken in (merged, or between markers), or waited on right now: not news. (At
+            // 20:55 a note put off for unsent work led to a refresh after its version was merged.)
+            if waitingForNote?.sha != note.sha256 { handledAnnouncements.insert(note.sha256) }
+            return
+        }
         if loggedAnnouncements.insert(note.sha256).inserted {
             record("announce", sha: note.sha256, detail: "\(note.device) uploaded a version this Mac doesn't have (\(reason))")
         }
@@ -1165,6 +1236,7 @@ final class Document {
     /// Brings down the server's version of the held file (§4.4): hand it back taking the
     /// server's version, evict, download, hold again. About a second (S1b: 0.6-1.3 s).
     private func refresh(announced note: Announcement?) async {
+        guard !closing else { return }
         if let note { lastNote = note }
         refreshing = true
         let started = Date()

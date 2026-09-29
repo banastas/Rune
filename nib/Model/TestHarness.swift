@@ -25,6 +25,9 @@ enum TestHarness {
     /// and the next fetches answered "nothing newer", as iCloud can for a held file.
     static var refuseUploads = 0
     static var staleFetches = 0
+    /// The next fetch brings this, as if another Mac had uploaded it (the `merge` scenario's
+    /// -NibNoteTiming variants: versions from iCloud are the ones that wait for their note).
+    static var fakeNewer: Data?
     /// -NibFailResumes n: the next hand-backs fail as when iCloud's helper doesn't answer;
     /// -NibUnsupportedPauses n (with -NibFailPausesFor): the next holds answer "not supported".
     static var failResumes = UserDefaults.standard.integer(forKey: "NibFailResumes")
@@ -242,19 +245,64 @@ enum TestHarness {
         await endOfEvent(view)
         let saved = await waitFor(8) { fileText(document).contains("merge mine \(marker)") && !document.dirty }
         log.check(saved && document.unsent, "this Mac's line is saved, not uploaded")
-        // The other Mac's version, the base plus a line at the end; its note comes first, as from iCloud.
+        // The other Mac's version, the base plus a line at the end. Its note comes first, as it
+        // mostly does from iCloud; or (-NibNoteTiming after) 3 s after the version, as at 20:55; or
+        // (never) not at all.
+        let timing = UserDefaults.standard.string(forKey: "NibNoteTiming") ?? "before"
         let theirs = TextFile.encode(baseText + "- merge theirs \(marker)\n", as: document.format)
-        try? Announcement(sha256: Digest.sha256(theirs), parent: base, device: "Test Mac", size: theirs.count).write(for: document.url)
-        try? await Task.sleep(for: .seconds(3))
+        let note = Announcement(sha256: Digest.sha256(theirs), parent: base, device: "Test Mac", size: theirs.count)
+        if timing == "before" {
+            try? note.write(for: document.url)
+            try? await Task.sleep(for: .seconds(3))
+        }
         let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
         let before = events.read().count
-        try? theirs.write(to: document.url)   // in place, as a fetch puts it there
+        if timing == "before" {
+            try? theirs.write(to: document.url)   // in place, as a fetch puts it there
+        } else {
+            fakeNewer = theirs                    // from iCloud, by a fetch: those wait for their note
+            Task { await document.fetchLatest(reason: "test") }
+        }
+        func count(_ line: String) -> Int { view.string.components(separatedBy: line).count - 1 }
+        if timing == "after" {
+            try? await Task.sleep(for: .seconds(3))
+            let waiting = events.read().dropFirst(before).contains { $0.event == "merge" && $0.detail?.contains("waiting up to 10 s for its note") == true }
+            log.check(waiting && ours(document, marker).isEmpty && count("- merge theirs \(marker)") == 0,
+                      "the version came before its note: the merge waits for it, nothing between markers yet")
+            try? note.write(for: document.url)
+        }
+        if timing == "never" || timing == "late" {
+            let whole = await waitFor(15) { !ours(document, marker).isEmpty }
+            let line = events.read().dropFirst(before).last { $0.event == "conflict" }
+            log.check(whole && line?.detail?.contains("no version both had is known") == true,
+                      "no note in 10 s: both whole versions between markers, as before (\(line?.detail ?? "no conflict line"))")
+            UserDefaults.standard.register(defaults: ["NibHoldUploads": false])
+            if timing == "never" {
+                let resolved = await keepBoth(document, marker)
+                log.check(resolved, "and Keep Both resolves it")
+                return
+            }
+            // late: that merge goes up to iCloud first, then the note comes (20:55): it's still
+            // proof of the version both had, and the blocks narrow to what both changed (nothing).
+            await document.flush(reason: "test")
+            let up = await waitFor(20) { isSynced(document) }
+            try? await Task.sleep(for: .seconds(4))   // its own note written after each upload, then the other Mac's
+            try? note.write(for: document.url)
+            func upgrade() -> SyncEvent? { events.read().dropFirst(before).last { $0.event == "merge" && $0.detail?.hasPrefix("its note arrived") == true } }
+            let narrowed = await waitFor(15) { upgrade() != nil && ours(document, marker).isEmpty }
+            let upgrade = upgrade()
+            log.check(up && narrowed && upgrade != nil && count("- merge mine \(marker)") == 1 && count("- merge theirs \(marker)") == 1,
+                      "uploaded, then its note: merged from the version both had after all (\(upgrade?.detail ?? "no upgrade"))")
+            let settled = await waitFor(30) { isSynced(document) && fileText(document) == view.string }
+            let after = events.read().dropFirst(before).filter { ["upload", "fetch", "refresh", "reload"].contains($0.event) }.suffix(6)
+            log.check(settled, "and that's saved and uploaded (\(document.state.line); \(after.map { $0.word }.joined(separator: ", ")))")
+            return
+        }
         var sheet = false
-        let arrived = await waitFor(10) {
+        let arrived = await waitFor(15) {
             if !ours(document, marker).isEmpty { sheet = true }
             return view.string.contains("merge theirs \(marker)")
         }
-        func count(_ line: String) -> Int { view.string.components(separatedBy: line).count - 1 }
         let lines = (mine: count("- merge mine \(marker)"), theirs: count("- merge theirs \(marker)"))
         log.check(arrived && !sheet && ours(document, marker).isEmpty && lines == (1, 1),
                   "merged with no conflict block: both lines, once each (mine \(lines.mine)×, theirs \(lines.theirs)×)")

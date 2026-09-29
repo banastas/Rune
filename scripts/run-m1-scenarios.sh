@@ -61,6 +61,12 @@ run recover -NibMarker "$marker"
 run external -NibSaveIdle 600 -NibSaveMax 600
 run unsent -NibHoldUploads YES
 run merge
+cp "$LOGS/merge.log" "$LOGS/merge-note-first.log"
+run merge -NibNoteTiming never
+cp "$LOGS/merge.log" "$LOGS/merge-no-note.log"
+run merge -NibNoteTiming late
+cp "$LOGS/merge.log" "$LOGS/merge-late-note.log"
+run merge -NibNoteTiming after
 run mergeview
 run duplicates
 run conflictversions
@@ -84,7 +90,7 @@ run refresh
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard undo crash recover external unsent merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return bigfile refusal untitled untitled-return untitled-quit refresh; do   # this run's logs only
+for name in type clipboard undo crash recover external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return bigfile refusal untitled untitled-return untitled-quit refresh; do   # this run's logs only
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi
