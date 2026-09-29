@@ -65,6 +65,9 @@ run palette
 run gutter
 run tidy
 run menubar
+# Another app holding a global shortcut, for the first run's warning (SC2).
+swiftc -O -o build/hotkey-holder scripts/hotkey-holder.swift 2>/dev/null || true
+run firstrun -NibFakeLoginItem YES -NibHotKeyHolder "$PWD/build/hotkey-holder"
 run undo
 run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"

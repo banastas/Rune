@@ -3,7 +3,6 @@
 // on test files only until M1 has passed (the safety rule, §8).
 
 import AppKit
-import Carbon.HIToolbox
 import NibText
 import SwiftUI
 
@@ -98,33 +97,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let document = Self.document
+        // First run (AP5): with no scratch file yet, none is made until the welcome window says so.
+        let firstRun = FirstRun.needed
+        let waitForChoice = firstRun && !FileManager.default.fileExists(atPath: document.url.path)
+        if waitForChoice { document.awaitFirstRun() }
         Task {
             await Document.settlePausedFiles(except: document.url)
-            await document.open()
+            if !waitForChoice { await document.open() }
             ClosedItems.shared.sweep()
             Untitled.restore()   // hot exit (ED3): the untitled buffers from before
             #if DEBUG
             TestHarness.runIfRequested(document)
             #endif
         }
-        // Show Scratch (SC2): ⌥Space, toggling. ⌃Space and ⌃⌥Space are macOS's input-source keys.
-        if !HotKey.register(id: 1, keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey), action: { Self.toggleScratch() }) {
-            NSLog("Nib: ⌥Space is taken by another app")
-        }
-        // Clean Clipboard (PT4): ⌃⌥⌘V, from any app, with no window.
-        if !HotKey.register(id: 2, keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(controlKey | optionKey | cmdKey), action: { Self.cleanClipboard() }) {
-            NSLog("Nib: ⌃⌥⌘V is taken by another app")
-        }
+        // Show Scratch (SC2, ⌥Space), Clean Clipboard (PT4, ⌃⌥⌘V) and Append Clipboard to
+        // Scratch (SC6, none), from any app, as Settings › General has them.
+        GlobalShortcuts.shared.registerAll()
         observeSystem()
         MenuBarController.shared.start()   // the menu bar extra (§5.7), AppKit's own status item
         // ⌘K opens Go to File too (A6), as ⌘K "Go to…" does in Blit; a menu item takes only one key.
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
                   event.charactersIgnoringModifiers == "k", NSApp.keyWindow?.isSheet != true,
-                  NSApp.keyWindow?.attachedSheet == nil else { return event }
+                  NSApp.keyWindow?.attachedSheet == nil,
+                  !(NSApp.keyWindow?.firstResponder is ShortcutRecorder) else { return event }   // new keys being typed
             MainActor.assumeIsolated { Self.showPalette(.files, in: nil) }
             return nil
         }
+        // After SwiftUI has put up the scratch window, so the welcome window is in front of it.
+        if firstRun { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { FirstRun.shared.show() } }
     }
 
     func applicationDidBecomeActive(_ notification: Notification) { Documents.all.forEach { $0.becameActive() } }
@@ -155,6 +156,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     static var scratchWindow: NSWindow? { document.editor.textView.window }
+
+    /// Quits and opens again, once this one has handed its files back (a new scratch file, SC1).
+    static func relaunch() {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; /usr/bin/open \"$0\"",
+                          Bundle.main.bundlePath]
+        do {
+            try task.run()
+        } catch {
+            NSLog("Nib: couldn't set up the relaunch: \(error)")
+        }
+        NSApp.terminate(nil)
+    }
 
     /// Settings, as the app menu's item opens it (the menu bar panel has no scene to ask).
     static func openSettings() {
@@ -289,8 +304,9 @@ struct NibCommands: Commands {
             Button("Delete") { send(#selector(NSText.delete(_:))) }
             Button("Select All") { send(#selector(NSText.selectAll(_:))) }.keyboardShortcut("a")
             Divider()
-            Button("Clean Clipboard") { AppDelegate.cleanClipboard() }.keyboardShortcut("v", modifiers: [.command, .option, .control])
-            Button("Append Clipboard to Scratch") { AppDelegate.appendClipboard() }
+            // With their global shortcuts, as Settings › General has them.
+            Button("Clean Clipboard") { AppDelegate.cleanClipboard() }.globalShortcut(GlobalShortcuts.shared.shortcut(.cleanClipboard))
+            Button("Append Clipboard to Scratch") { AppDelegate.appendClipboard() }.globalShortcut(GlobalShortcuts.shared.shortcut(.appendClipboard))
         }
         // Find and replace (ED7, KB1): Nib's own bar, on the Mac's keys and Sublime's. The
         // window's document when there is one (its find field may have focus), else the text
@@ -330,9 +346,25 @@ struct NibCommands: Commands {
             Button("Go to Line…") { document?.goingToLine = true }.keyboardShortcut("g", modifiers: .control).disabled(document == nil)
         }
         CommandMenu("Conflicts") { ConflictMenuItems(document: document) }
+        // The first run again (AP5), in place of the Help Book Nib doesn't have.
+        CommandGroup(replacing: .help) {
+            Button("Welcome to Nib") { FirstRun.shared.show() }
+        }
         CommandGroup(before: .windowArrangement) {
             Button("Sync Log") { openWindow(id: "sync-log") }
                 .keyboardShortcut("l", modifiers: [.command, .option])
+        }
+    }
+}
+
+extension View {
+    /// A menu item's keys, when they're one of Nib's global shortcuts (which may be none).
+    @ViewBuilder
+    func globalShortcut(_ shortcut: Shortcut?) -> some View {
+        if let shortcut, let key = shortcut.keyEquivalent {
+            keyboardShortcut(key, modifiers: shortcut.eventModifiers)
+        } else {
+            self
         }
     }
 }

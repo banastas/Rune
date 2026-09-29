@@ -8,8 +8,10 @@
 
 #if DEBUG
 import AppKit
+import Carbon.HIToolbox
 import NibSync
 import NibText
+import ServiceManagement
 import SwiftUI
 
 @MainActor
@@ -76,6 +78,7 @@ enum TestHarness {
             case "gutter": await gutterScenario(log, marker)
             case "tidy": await tidyScenario(log, marker)
             case "menubar": await menuBarScenario(Documents.scratch, log, marker)
+            case "firstrun": await firstRunScenario(Documents.scratch, log, marker)
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -770,6 +773,191 @@ enum TestHarness {
         let back = await waitFor(5) { statusButton() != nil }
         log.check(gone && back, "Settings › General takes it out of the menu bar and puts it back (gone \(gone), back \(back))")
         await document.flush(reason: "test")
+    }
+
+    /// The first run (AP5, AP2, SC2): the welcome window at launch; the scratch step finding the
+    /// file, refusing one outside the test folder and taking another for when Nib reopens; the
+    /// look step's summary of Sublime's settings; the shortcut fields (new keys, Escape, Delete,
+    /// ⇧ alone refused, keys another action has refused) with their warnings (another app holds
+    /// them, macOS's own); the Edit menu showing the keys; open at login (a stand-in: the real one
+    /// would add this build to the Mac's Login Items); Done; and a scratch file not made until
+    /// the welcome window says so. This Mac's own settings are put back after.
+    static func firstRunScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        let defaults = UserDefaults.standard
+        let kept = [FirstRun.doneKey, "scratchPath", "settingsTab"] + GlobalShortcuts.Action.allCases.map { "shortcut." + $0.rawValue }
+        let saved = kept.map { ($0, defaults.object(forKey: $0)) }
+        defer {
+            for (key, value) in saved { if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) } }
+            GlobalShortcuts.shared.registerAll()
+        }
+        let folder = URL(fileURLWithPath: log.path).deletingLastPathComponent()
+        let model = FirstRun.shared
+        let shortcuts = GlobalShortcuts.shared
+        func picture(_ name: String) async {
+            try? await Task.sleep(for: .milliseconds(400))
+            guard let view = model.window?.contentView, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+            view.cacheDisplay(in: view.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("\(name).png"))
+        }
+
+        // Step 1: the scratch file.
+        let shown = await waitFor(5) { model.window?.isVisible == true }
+        log.check(shown && model.step == .scratch, "the welcome window at the first launch, at step 1")
+        _ = await waitFor(12) { model.scratchFound != nil }
+        log.check(model.scratchFound == true && model.scratchReady && !document.awaitingFirstRun,
+                  "step 1 finds the scratch file: \(document.url.lastPathComponent) in \(ScratchLocation.place(of: document.url))")
+        await picture("firstrun-1")
+        model.use(URL(fileURLWithPath: NSHomeDirectory() + "/Documents/scratch-\(marker).md"))   // a path only: never read
+        log.check(model.chosen == nil && model.message?.contains("only test files") == true, "a file outside the test folder is refused: \(model.message ?? "no message")")
+        let other = document.url.deletingLastPathComponent().appendingPathComponent("firstrun-\(marker).md")
+        model.use(other)
+        log.check(model.chosen == other && model.message == nil, "another test file is taken, for when Nib reopens")
+        await picture("firstrun-1-chosen")
+        model.keepCurrent()
+        model.use(document.url)
+        log.check(model.chosen == nil && model.scratchReady, "and Keep, or choosing the one open, goes back to it")
+
+        // Step 2: the look.
+        model.step = .look
+        await picture("firstrun-2")
+        log.check(model.sublime.found != nil || model.sublime.failure != nil, "step 2 says what Sublime Text has: \(model.sublime.found ?? model.sublime.failure ?? "")")
+
+        // Step 3: the keys.
+        model.step = .keys
+        await picture("firstrun-3")
+        for action in GlobalShortcuts.Action.allCases { shortcuts.reset(action) }
+        log.check(shortcuts.shortcut(.showScratch)?.description == "⌥Space" && shortcuts.shortcut(.cleanClipboard)?.description == "⌃⌥⌘V"
+                  && shortcuts.shortcut(.appendClipboard) == nil && HotKey.registered == [1, 2],
+                  "Nib's own keys: ⌥Space and ⌃⌥⌘V, none for Append, and both registered (\(HotKey.registered.sorted()))")
+        func recorder(_ action: GlobalShortcuts.Action) -> ShortcutRecorder? {
+            func find(_ view: NSView) -> ShortcutRecorder? {
+                if let field = view as? ShortcutRecorder, field.shortcutAction == action { return field }
+                return view.subviews.lazy.compactMap(find).first
+            }
+            return model.window?.contentView.flatMap(find)
+        }
+        func key(_ code: Int, _ flags: NSEvent.ModifierFlags, _ characters: String) -> NSEvent {
+            NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: model.window?.windowNumber ?? 0,
+                             context: nil, characters: characters, charactersIgnoringModifiers: characters, isARepeat: false, keyCode: UInt16(code))!
+        }
+        let controlOptionShiftK = Shortcut(keyCode: UInt32(kVK_ANSI_K), modifiers: UInt32(controlKey | optionKey | shiftKey))
+        if let field = recorder(.showScratch) {
+            field.performClick(nil)
+            log.check(field.recording && field.title == "Type the keys…" && HotKey.registered.isEmpty, "a click on Show Scratch's field listens, with Nib's shortcuts off meanwhile")
+            field.keyDown(with: key(kVK_ANSI_K, .shift, "K"))
+            log.check(field.recording && shortcuts.shortcut(.showScratch)?.description == "⌥Space", "⇧K alone isn't taken: it would take a capital K from every app")
+            field.keyDown(with: key(kVK_ANSI_K, [.control, .option, .shift], "K"))
+            log.check(!field.recording && shortcuts.shortcut(.showScratch) == controlOptionShiftK && field.title == "⌃⌥⇧K" && HotKey.registered == [1, 2],
+                      "⌃⌥⇧K pressed: Show Scratch's new keys, registered, shown as \(field.title)")
+            field.performClick(nil)
+            field.keyDown(with: key(kVK_Escape, [], "\u{1B}"))
+            log.check(!field.recording && shortcuts.shortcut(.showScratch) == controlOptionShiftK, "Escape keeps them")
+            field.performClick(nil)
+            field.keyDown(with: key(kVK_Delete, [], "\u{7F}"))
+            log.check(shortcuts.shortcut(.showScratch) == nil && field.title == "None" && HotKey.registered == [2], "Delete clears them: none, and not registered")
+            shortcuts.reset(.showScratch)
+        } else {
+            log.check(false, "Show Scratch's field is in the window")
+        }
+        shortcuts.set(GlobalShortcuts.Action.cleanClipboard.standard, for: .showScratch)
+        log.check(shortcuts.shortcut(.showScratch)?.description == "⌥Space" && shortcuts.warnings[.showScratch]?.contains("Clean Clipboard already uses ⌃⌥⌘V") == true,
+                  "keys another action has are refused: \(shortcuts.warnings[.showScratch] ?? "no warning")")
+        shortcuts.reset(.showScratch)
+
+        // Another app holding the keys.
+        if let holder = defaults.string(forKey: "NibHotKeyHolder"), FileManager.default.isExecutableFile(atPath: holder) {
+            let keys = Shortcut(keyCode: UInt32(kVK_ANSI_J), modifiers: UInt32(controlKey | optionKey | shiftKey))
+            let process = Process()
+            let output = Pipe()
+            process.executableURL = URL(fileURLWithPath: holder)
+            process.arguments = ["\(keys.keyCode)", "\(keys.modifiers)", "20"]
+            process.standardOutput = output
+            try? process.run()
+            let held = await Task.detached { String(data: output.fileHandleForReading.availableData, encoding: .utf8) ?? "" }.value
+            shortcuts.set(keys, for: .appendClipboard)
+            await picture("firstrun-3-taken")
+            log.check(held.hasPrefix("held") && shortcuts.warnings[.appendClipboard]?.hasPrefix("Another app holds ⌃⌥⇧J") == true && !HotKey.registered.contains(3),
+                      "keys another app holds: \(shortcuts.warnings[.appendClipboard] ?? "no warning") (the other app: \(held.trimmingCharacters(in: .whitespacesAndNewlines)))")
+            process.terminate()
+            shortcuts.reset(.appendClipboard)
+        } else {
+            log.line("skipped: keys another app holds (no -NibHotKeyHolder)")
+        }
+        // macOS's own: Spotlight's ⌘Space, where it's on.
+        let spotlight = Shortcut(keyCode: UInt32(kVK_Space), modifiers: UInt32(cmdKey))
+        if HotKey.usedByMacOS(spotlight) {
+            shortcuts.set(spotlight, for: .appendClipboard)
+            log.check(shortcuts.warnings[.appendClipboard]?.hasPrefix("macOS uses ⌘Space itself") == true, "keys macOS keeps: \(shortcuts.warnings[.appendClipboard] ?? "no warning")")
+            shortcuts.reset(.appendClipboard)
+        } else {
+            log.line("skipped: macOS doesn't keep ⌘Space on this Mac")
+        }
+        log.check(shortcuts.warnings.isEmpty && HotKey.registered == [1, 2], "back to Nib's own keys, with nothing in their way")
+
+        // The Edit menu shows Clean Clipboard's keys, whatever they are.
+        func editItem(_ title: String) -> NSMenuItem? {
+            guard let menu = NSApp.mainMenu?.items.first(where: { $0.title == "Edit" })?.submenu else { return nil }
+            PaletteSession.refresh(menu)
+            return menu.items.first { $0.title == title }
+        }
+        let standardKeys = editItem("Clean Clipboard").flatMap(PaletteSession.keys(of:))
+        shortcuts.set(Shortcut(keyCode: UInt32(kVK_ANSI_B), modifiers: UInt32(controlKey | optionKey | cmdKey)), for: .cleanClipboard)
+        _ = await waitFor(3) { editItem("Clean Clipboard").flatMap(PaletteSession.keys(of:)) == "⌃⌥⌘B" }
+        let changedKeys = editItem("Clean Clipboard").flatMap(PaletteSession.keys(of:))
+        shortcuts.reset(.cleanClipboard)
+        log.check(standardKeys == "⌃⌥⌘V" && changedKeys == "⌃⌥⌘B", "Edit › Clean Clipboard shows its keys: \(standardKeys ?? "none"), then \(changedKeys ?? "none")")
+
+        // Open at login.
+        let login = LoginItem.shared
+        login.set(true)
+        let on = login.enabled
+        login.set(false)
+        log.check(on && !login.enabled && login.failure == nil, "Open Nib when you log in turns on and off (a stand-in; macOS says this build's login item is \(["not registered", "on", "waiting for approval", "not found"][min(3, SMAppService.mainApp.status.rawValue)]))")
+
+        // Done.
+        model.finish()
+        let done = await waitFor(3) { model.window == nil && AppDelegate.scratchWindow?.isVisible == true }
+        log.check(done && defaults.integer(forKey: FirstRun.doneKey) == 1, "Done: the welcome window goes, the scratch window shows, and it's done on this Mac")
+        model.show()
+        let again = await waitFor(3) { model.window?.isVisible == true }
+        model.window?.close()
+        log.check(again && model.window == nil, "Help › Welcome to Nib shows it again")
+
+        // Settings › General has them too, with Append's.
+        defaults.set("general", forKey: "settingsTab")
+        AppDelegate.openSettings()
+        func fields(in view: NSView) -> [ShortcutRecorder] {
+            if let field = view as? ShortcutRecorder { return [field] }
+            return view.subviews.flatMap { fields(in: $0) }
+        }
+        func settingsWindow() -> NSWindow? {
+            NSApp.windows.first { $0.isVisible && $0 !== model.window && !fields(in: $0.contentView ?? NSView()).isEmpty }
+        }
+        _ = await waitFor(5) { settingsWindow().map { fields(in: $0.contentView!).count == GlobalShortcuts.Action.allCases.count } ?? false }
+        let found = settingsWindow().map { fields(in: $0.contentView!).map(\.shortcutAction) } ?? []
+        if let window = settingsWindow(), let view = window.contentView {
+            try? await Task.sleep(for: .milliseconds(400))
+            if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("settings-general.png"))
+            }
+            window.close()
+        }
+        log.check(Set(found) == Set(GlobalShortcuts.Action.allCases), "Settings › General has the three shortcuts' fields: \(found.map(\.title).joined(separator: ", "))")
+
+        // No scratch file yet: nothing is made until the welcome window says so.
+        try? FileManager.default.removeItem(at: other)
+        let fresh = Document(url: other)
+        fresh.awaitFirstRun()
+        try? await Task.sleep(for: .milliseconds(300))
+        let waiting = !FileManager.default.fileExists(atPath: other.path) && fresh.state.line.contains("NO SCRATCH FILE YET") && !fresh.editor.textView.isEditable
+        await fresh.open()
+        _ = await waitFor(10) { fresh.ready }
+        log.check(waiting && FileManager.default.fileExists(atPath: other.path) && fresh.editor.textView.isEditable && fresh.ready,
+                  "no scratch file: none made while the welcome window waits, then made when it says so")
+        await fresh.close()
+        try? FileManager.default.removeItem(at: other)
     }
 
     /// The clipboard jobs (PT3-PT5, SC5, SC6): Paste Clean, an HTML-only clipboard pasted as

@@ -242,9 +242,10 @@ struct NibMenuBarPanel: View {
             }
             Divider()
             VStack(spacing: 0) {
-                PanelRow("Show Scratch", keys: "⌥Space") { close(); AppDelegate.showScratch() }
-                PanelRow("Clean Clipboard", keys: "⌃⌥⌘V") { message = Clipboard.cleanInPlace() }
-                PanelRow("Append Clipboard to Scratch") { message = Clipboard.appendToScratch() }
+                let shortcuts = GlobalShortcuts.shared
+                PanelRow("Show Scratch", keys: shortcuts.shortcut(.showScratch)?.description) { close(); AppDelegate.showScratch() }
+                PanelRow("Clean Clipboard", keys: shortcuts.shortcut(.cleanClipboard)?.description) { message = Clipboard.cleanInPlace() }
+                PanelRow("Append Clipboard to Scratch", keys: shortcuts.shortcut(.appendClipboard)?.description) { message = Clipboard.appendToScratch() }
             }
             // Not the scratch file (Show Scratch is above), nor files gone since.
             let scratch = Documents.scratch.url.standardizedFileURL.path

@@ -1,0 +1,389 @@
+// First run (PRD AP5, §5.9): one window, three steps, native controls (V1). The scratch file,
+// found or made (only once the user says so, so two Macs' first runs don't each make one), with
+// what macOS may ask before it asks; the look, with Import from Sublime Text; the global
+// shortcuts and Open Nib when you log in (AP2). Help › Welcome to Nib shows it again.
+
+import AppKit
+import NibSync
+import NibText
+import SwiftUI
+
+@MainActor
+@Observable
+final class FirstRun: NSObject, NSWindowDelegate {
+    enum Step: Int, CaseIterable {
+        case scratch, look, keys
+
+        var title: String {
+            switch self {
+            case .scratch: "Scratch File"
+            case .look: "Look"
+            case .keys: "Keys"
+            }
+        }
+    }
+
+    static let shared = FirstRun()
+    static let doneKey = "firstRunDone"
+
+    var step: Step = .scratch
+    /// Whether the scratch file is there; nil while Nib looks (iCloud can take a few seconds
+    /// to list Nib's folder on a Mac that's new to it).
+    private(set) var scratchFound: Bool?
+    /// A file chosen in place of the one open now, used once Nib reopens.
+    private(set) var chosen: URL?
+    private(set) var creating = false
+    /// Why the last choice or creation didn't work, in a sentence.
+    private(set) var message: String?
+    /// What Import from Sublime Text would bring, or why there's nothing.
+    private(set) var sublime: (found: String?, failure: String?) = (nil, nil)
+    private(set) var imported = false
+    @ObservationIgnored private(set) var window: NSWindow?
+
+    /// Not yet done on this Mac. The scenarios never see it, but for their own.
+    static var needed: Bool {
+        #if DEBUG
+        if let scenario = UserDefaults.standard.string(forKey: "NibScenario") { return scenario == "firstrun" }
+        #endif
+        return UserDefaults.standard.integer(forKey: doneKey) < 1
+    }
+
+    /// The scratch file is settled: there, or chosen.
+    var scratchReady: Bool { chosen != nil || scratchFound == true }
+
+    func show() {
+        NSApp.activate()
+        if let window {
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        step = .scratch
+        chosen = nil
+        message = nil
+        imported = false
+        sublime = Schemes.shared.sublimePreview()
+        let window = NSWindow(contentViewController: NSHostingController(rootView: FirstRunView(model: self)))
+        window.styleMask = [.titled, .closable]
+        window.title = "Welcome to Nib"
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        self.window = window
+        Task { await look() }
+    }
+
+    /// Is the scratch file there? Nib's folder is asked for first, which sets it up on a new Mac.
+    func look() async {
+        let document = Documents.scratch
+        if chosen == nil { scratchFound = nil }
+        let url = document.url
+        if ScratchLocation.inContainer(url) {
+            _ = await CloudControl.containerAvailable(ScratchLocation.containerID, within: 10)
+        }
+        let exists = await Task.detached { FileManager.default.fileExists(atPath: url.path) }.value
+        scratchFound = exists
+        if exists, document.awaitingFirstRun { await document.open() }
+    }
+
+    /// Makes the scratch file where Nib looked: opening it creates it, empty.
+    func create() async {
+        let document = Documents.scratch
+        guard document.awaitingFirstRun else { await look(); return }
+        creating = true
+        message = nil
+        await document.open()
+        creating = false
+        scratchFound = FileManager.default.fileExists(atPath: document.url.path)
+        if scratchFound != true { message = "Nib couldn't make it: \(document.state.line.lowercased())." }
+    }
+
+    func choose() {
+        if let url = ScratchChoice.ask() { use(url) }
+    }
+
+    /// Another file as the scratch file, if Nib may open it (§8).
+    func use(_ url: URL) {
+        message = ScratchChoice.refusal(url)
+        guard message == nil else { return }
+        let same = ScratchChoice.isCurrent(url)
+        chosen = same ? nil : url
+        if same { Task { await look() } }
+    }
+
+    func keepCurrent() {
+        chosen = nil
+        message = nil
+    }
+
+    func importSublime() {
+        Schemes.shared.importFromSublime()
+        imported = true
+    }
+
+    /// Done: the scratch window, or Nib reopened with the chosen file.
+    func finish() {
+        UserDefaults.standard.set(1, forKey: Self.doneKey)
+        let chosen = chosen
+        window?.close()
+        guard let chosen else { AppDelegate.showScratch(); return }
+        ScratchChoice.use(chosen)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        // Closed before the end: done if the scratch file is settled, or it comes back next
+        // time (and the scratch window's strip says where to look).
+        if scratchFound == true, chosen == nil { UserDefaults.standard.set(1, forKey: Self.doneKey) }
+        window = nil
+    }
+}
+
+/// Another scratch file (SC1), from the first run or Settings › General: Nib reopens with it,
+/// having handed the old one back to iCloud. The old file stays where it is.
+@MainActor
+enum ScratchChoice {
+    static func ask() -> URL? {
+        let panel = NSOpenPanel()
+        panel.message = "Choose the file to use as your scratch file."
+        panel.prompt = "Use as Scratch"
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = Documents.scratch.url.deletingLastPathComponent()
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    /// Why Nib won't use it, in a sentence (the safety rule, §8).
+    static func refusal(_ url: URL) -> String? {
+        guard ScratchLocation.refusal(for: url) != nil else { return nil }
+        return "Until M1 has passed, Nib opens only test files, in iCloud Drive › Nib › Test. \(url.lastPathComponent) isn't one."
+    }
+
+    static func isCurrent(_ url: URL) -> Bool {
+        url.standardizedFileURL.resolvingSymlinksInPath().path == Documents.scratch.url.standardizedFileURL.resolvingSymlinksInPath().path
+    }
+
+    static func use(_ url: URL) {
+        if url.standardizedFileURL.path == ScratchLocation.standardURL.standardizedFileURL.path {
+            UserDefaults.standard.removeObject(forKey: "scratchPath")
+        } else {
+            UserDefaults.standard.set(url.path, forKey: "scratchPath")
+        }
+        AppDelegate.relaunch()
+    }
+}
+
+struct FirstRunView: View {
+    let model: FirstRun
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Form {
+                switch model.step {
+                case .scratch: ScratchStep(model: model)
+                case .look: LookStep(model: model)
+                case .keys: KeysStep()
+                }
+            }
+            .formStyle(.grouped)
+            .scrollDisabled(true)
+            Spacer(minLength: 0)
+            Divider()
+            HStack {
+                Text("Step \(model.step.rawValue + 1) of \(FirstRun.Step.allCases.count)")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if model.step != .scratch {
+                    Button("Back") { model.step = FirstRun.Step(rawValue: model.step.rawValue - 1) ?? .scratch }
+                }
+                if model.step == .keys {
+                    Button(model.chosen == nil ? "Done" : "Reopen Nib") { model.finish() }
+                        .keyboardShortcut(.defaultAction)
+                } else {
+                    Button("Continue") { model.step = FirstRun.Step(rawValue: model.step.rawValue + 1) ?? .keys }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(model.step == .scratch && !model.scratchReady)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+        }
+        .frame(width: 560, height: 580)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 56, height: 56)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Welcome to Nib").font(.title2.weight(.semibold))
+                    Text("Three things to set up. Each can be changed later in Settings.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            HStack(spacing: 18) {
+                ForEach(FirstRun.Step.allCases, id: \.self) { step in
+                    let current = step == model.step
+                    let past = step.rawValue < model.step.rawValue
+                    HStack(spacing: 6) {
+                        Image(systemName: past ? "checkmark.circle.fill" : "\(step.rawValue + 1).circle\(current ? ".fill" : "")")
+                            .foregroundStyle(current || past ? Color.accentColor : .secondary)
+                        Text(step.title)
+                            .fontWeight(current ? .semibold : .regular)
+                            .foregroundStyle(current ? .primary : .secondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Step \(step.rawValue + 1), \(step.title)\(current ? ", current" : past ? ", done" : "")")
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+    }
+}
+
+/// Step 1: where the scratch file is, or making it; and what macOS may ask.
+private struct ScratchStep: View {
+    let model: FirstRun
+
+    var body: some View {
+        let current = Documents.scratch.url
+        let name = current.lastPathComponent
+        let place = ScratchLocation.place(of: current)
+        Section("Where's your scratch file?") {
+            Group {
+                if let chosen = model.chosen {
+                    Label("Nib will use \(chosen.lastPathComponent) in \(ScratchLocation.place(of: chosen)) once it reopens, at the end.",
+                          systemImage: "arrow.triangle.2.circlepath")
+                } else if model.scratchFound == nil {
+                    Label { Text("Looking in \(place)…") } icon: { ProgressView().controlSize(.small) }
+                } else if model.scratchFound == true {
+                    Label { Text("Found \(name) in \(place).") } icon: {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    }
+                } else {
+                    Label("There's no \(name) in \(place) yet.", systemImage: "doc.badge.plus")
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                if model.chosen != nil {
+                    Button("Keep \(name)") { model.keepCurrent() }
+                } else if model.scratchFound == false {
+                    Button("Create “\(name)”") { Task { await model.create() } }
+                        .disabled(model.creating)
+                } else if model.scratchFound == true {
+                    Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([current]) }
+                }
+                Button(model.scratchFound == false && model.chosen == nil ? "Choose…" : "Choose Another…") { model.choose() }
+                    .disabled(model.scratchFound == nil)
+            }
+            if let message = model.message {
+                Label { Text(message).fixedSize(horizontal: false, vertical: true) } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
+                }
+            }
+            firstRunNote("The scratch file is where everything you jot down goes. It's in Nib's own folder in iCloud Drive, so every Mac signed in to your Apple Account opens the same file, and Nib keeps them the same. If one Mac already has it, this finds it; make it only on the first Mac.")
+            if ScratchLocation.safetyRule {
+                firstRunNote("Until M1 has passed, Nib opens only test files, in iCloud Drive › Nib › Test, so for now this is its test file.")
+            }
+        }
+        Section("What macOS may ask") {
+            firstRunNote("Nothing, for Nib's own iCloud Drive folder, and nothing for its global shortcuts, which need no Accessibility access. If you choose a scratch file in Documents, on the Desktop or elsewhere in iCloud Drive, macOS may ask once whether Nib can open files there: Nib only opens the files you choose. If you have Nib open when you log in (the last step), macOS says so in a notification.")
+        }
+    }
+}
+
+/// Step 2: the color scheme Nib uses, and Import from Sublime Text.
+private struct LookStep: View {
+    let model: FirstRun
+
+    var body: some View {
+        let schemes = Schemes.shared
+        Section("Look") {
+            Text("Nib uses \(schemes.current.name), in \(schemes.fontFace.isEmpty ? "SF Mono" : schemes.fontFace) \(schemes.fontSize.formatted(.number.precision(.fractionLength(0...1)))) pt, and it's always dark.")
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        Section("Your Sublime Text settings") {
+            if let found = model.sublime.found {
+                if model.imported, let report = schemes.report {
+                    Text("Imported:")
+                    hudBlock(report)
+                } else {
+                    Text("Use Sublime's font and tab settings? Sublime Text has:")
+                    hudBlock(found)
+                    Button("Import from Sublime Text") { model.importSublime() }
+                }
+                firstRunNote("Import reads Sublime's color scheme, font, tab width, line numbers and invisibles, and its ⌘S tidying. Sublime's files are only read, never changed. Continue skips it; Settings › Themes can import later.")
+            } else {
+                Text(model.sublime.failure == SublimeImport.Failure.noSublime.description
+                     ? "Sublime Text isn't on this Mac, so there's nothing to import."
+                     : "Nib couldn't read Sublime Text's settings: \(model.sublime.failure?.lowercased() ?? "").")
+                    .fixedSize(horizontal: false, vertical: true)
+                firstRunNote("Settings › Themes can import a .tmTheme or .sublime-color-scheme file later, and Settings › Editor has the font.")
+            }
+        }
+    }
+
+    private func hudBlock(_ text: String) -> some View {
+        Text(text)
+            .font(HUDFont.terminal(15))
+            .foregroundStyle(HUDColor.bright)
+            .textSelection(.enabled)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(HUDColor.background)
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(HUDColor.border, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .accessibilityLabel(text.lowercased())
+    }
+}
+
+/// Step 3: the two global shortcuts, and Open Nib when you log in.
+private struct KeysStep: View {
+    var body: some View {
+        Section("Global shortcuts") {
+            ShortcutRow(action: .showScratch)
+            ShortcutRow(action: .cleanClipboard)
+            firstRunNote("They work from any app. Show Scratch brings the scratch window forward, and pressed again goes back to the app you were in. Clean Clipboard makes what you copied plain text, in place. Click one and press new keys; Settings › General has them too.")
+        }
+        Section {
+            LoginToggle()
+        }
+    }
+}
+
+/// Open Nib when you log in (AP2), with what macOS says about it.
+struct LoginToggle: View {
+    var body: some View {
+        let login = LoginItem.shared
+        Toggle("Open Nib when you log in", isOn: Binding(get: { login.enabled || login.needsApproval }, set: { login.set($0) }))
+            .onAppear { login.refresh() }
+        if login.needsApproval {
+            HStack {
+                Text("macOS is waiting for your OK in System Settings › General › Login Items.")
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Open Login Items") { login.openSystemSettings() }
+            }
+        }
+        if let failure = login.failure {
+            Label { Text(failure).fixedSize(horizontal: false, vertical: true) } icon: {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
+            }
+        }
+        firstRunNote("So Show Scratch works from the moment you log in. macOS confirms it in a notification and lists Nib in System Settings › General › Login Items, where you can turn it off too.")
+    }
+}
+
+private func firstRunNote(_ text: String) -> some View {
+    Text(text)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+}

@@ -148,6 +148,37 @@ final class Schemes {
 
     // MARK: Import (HL2-HL4)
 
+    /// Sublime Text's settings and scheme as found, nothing changed yet.
+    private func findSublime() throws -> SublimeImport.Found {
+        let data = defaults.string(forKey: "NibSublimeFolder").map { URL(fileURLWithPath: $0) } ?? SublimeImport.dataFolder()
+        let packages = defaults.string(forKey: "NibSublimePackages").map { URL(fileURLWithPath: $0) }
+            ?? (NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.sublimetext.4")
+                ?? URL(fileURLWithPath: "/Applications/Sublime Text.app")).appendingPathComponent("Contents/MacOS/Packages")
+        guard let data else { throw SublimeImport.Failure.noSublime }
+        return try SublimeImport(data: data, appPackages: packages).run()
+    }
+
+    /// What Import from Sublime Text would bring, for the first run's Look step (§5.9):
+    /// "MENLO 13 · TAB SIZE 2 · SPACES · MONOKAI", or why there's nothing (HUD words, W1).
+    func sublimePreview() -> (found: String?, failure: String?) {
+        do {
+            let found = try findSublime()
+            var parts: [String] = []
+            if let size = found.fontSize {
+                let face = found.fontFace ?? ""
+                parts.append("\(face.isEmpty ? "SF MONO" : face.uppercased()) \(size.formatted(.number.precision(.fractionLength(0...1))))")
+            }
+            if let tab = found.tabSize { parts.append("TAB SIZE \(tab)") }
+            if let spaces = found.translateTabsToSpaces { parts.append(spaces ? "SPACES" : "TABS") }
+            parts.append(found.scheme.isOriginalAnOldHope ? "\(found.scheme.name.uppercased()) (NIB KEEPS ITS OWN EDITION)" : found.scheme.name.uppercased())
+            return (parts.joined(separator: " · "), nil)
+        } catch let failure as SublimeImport.Failure {
+            return (nil, failure.description)
+        } catch {
+            return (nil, "COULDN'T READ SUBLIME TEXT'S SETTINGS · \(error.localizedDescription.uppercased())")
+        }
+    }
+
     /// A `.tmTheme` or `.sublime-color-scheme` from anywhere: kept, used, and reported on.
     @discardableResult
     func importFile(_ url: URL) -> Bool {
@@ -168,13 +199,8 @@ final class Schemes {
     /// with -NibSublimeFolder and -NibSublimePackages.
     @discardableResult
     func importFromSublime() -> Bool {
-        let data = defaults.string(forKey: "NibSublimeFolder").map { URL(fileURLWithPath: $0) } ?? SublimeImport.dataFolder()
-        let packages = defaults.string(forKey: "NibSublimePackages").map { URL(fileURLWithPath: $0) }
-            ?? (NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.sublimetext.4")
-                ?? URL(fileURLWithPath: "/Applications/Sublime Text.app")).appendingPathComponent("Contents/MacOS/Packages")
-        guard let data else { setReport([SublimeImport.Failure.noSublime.description]); return false }
         do {
-            let found = try SublimeImport(data: data, appPackages: packages).run()
+            let found = try findSublime()
             var facts: [String]
             if found.scheme.isOriginalAnOldHope {
                 use(Self.builtIn)

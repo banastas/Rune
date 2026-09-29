@@ -72,6 +72,9 @@ final class Document {
     private(set) var ready = false
     /// Why the file isn't open for editing, when it isn't (the M1 safety rule, §8).
     private(set) var locked: String?
+    /// The first run (AP5) with no scratch file yet: none is made until the welcome window says
+    /// where, or two Macs each making one on their first run leave a "scratch 2.md" (§4.6 C).
+    private(set) var awaitingFirstRun = false
     private(set) var cursor = (line: 1, column: 1)
 
     let editor: Editor
@@ -200,12 +203,24 @@ final class Document {
 
     // MARK: - Opening
 
+    /// Not opened yet: the welcome window will say which file, or make it (AP5).
+    func awaitFirstRun() {
+        awaitingFirstRun = true
+        state = .waiting("NO SCRATCH FILE YET · SEE THE WELCOME WINDOW")
+        editor.textView.isEditable = false
+    }
+
     func open() async {
         if let reason = ScratchLocation.refusal(for: url) {
             locked = reason
             state = .problem(reason)
             editor.textView.isEditable = false
             return
+        }
+        if awaitingFirstRun {
+            awaitingFirstRun = false
+            editor.textView.isEditable = true
+            state = .opening
         }
         let url = self.url
         let presenter = self.presenter
@@ -1802,10 +1817,26 @@ enum ScratchLocation {
         return SecTaskCopyValueForEntitlement(task, "com.apple.developer.ubiquity-container-identifiers" as CFString, nil) != nil
     }()
 
+    /// The scratch file: the one Settings or the first run chose (SC1, AP5), or the standard one.
     static var url: URL {
+        #if DEBUG
+        // The scenarios use the test file the runner starts afresh, never the one this Mac uses.
+        if UserDefaults.standard.string(forKey: "NibScenario") != nil { return testURL }
+        #endif
         if let path = UserDefaults.standard.string(forKey: "scratchPath") { return URL(fileURLWithPath: path) }
-        return (hasContainer ? testFolder : unsignedTestFolder).appendingPathComponent("scratch-test.md")
+        return standardURL
     }
+
+    /// iCloud Drive/Nib/scratch.md (SC1) once the safety rule is lifted; the test file until then.
+    static var standardURL: URL {
+        if hasContainer, UserDefaults.standard.bool(forKey: "allowLiveScratch") { return folder.appendingPathComponent("scratch.md") }
+        return testURL
+    }
+
+    static var testURL: URL { (hasContainer ? testFolder : unsignedTestFolder).appendingPathComponent("scratch-test.md") }
+
+    /// Until M1 has passed, Nib opens only test files (§8).
+    static var safetyRule: Bool { !UserDefaults.standard.bool(forKey: "allowLiveScratch") }
 
     static func inContainer(_ url: URL) -> Bool { url.standardizedFileURL.path.hasPrefix(folder.path + "/") }
 

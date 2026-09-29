@@ -1,8 +1,8 @@
 // Settings (PRD §5.8, V12, W7): tabs, grouped forms that size to fit, 480 pt wide, and a
-// plain note under each control saying what it does and doesn't do. General (the menu bar
-// extra), Editor (the font and size, indentation, line numbers, invisibles, ⌘S tidying,
-// Paste Clean) and Themes (the scheme, Import from Sublime Text, Import File…, and the last
-// import's report, HL2-HL4).
+// plain note under each control saying what it does and doesn't do. General (open at login,
+// the global shortcuts, the menu bar extra, the scratch file), Editor (the font and size,
+// indentation, line numbers, invisibles, ⌘S tidying, Paste Clean) and Themes (the scheme,
+// Import from Sublime Text, Import File…, and the last import's report, HL2-HL4).
 
 import AppKit
 import SwiftUI
@@ -28,18 +28,54 @@ struct SettingsView: View {
     }
 }
 
-/// Settings › General: the menu bar extra (AP3).
+/// Settings › General: open at login (AP2), the global shortcuts (SC2, PT4, SC6), the menu
+/// bar extra (AP3) and the scratch file (SC1).
 private struct GeneralSettings: View {
     @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
+    @State private var refusal: String?
 
     var body: some View {
         Form {
             Section {
+                LoginToggle()
+            }
+            Section("Global shortcuts") {
+                ForEach(GlobalShortcuts.Action.allCases) { ShortcutRow(action: $0) }
+                note("They work from any app, with no Accessibility access, so macOS doesn't ask for any. Click one and press the new keys: with ⌘, ⌃ or ⌥, or a function key. Delete clears it; Escape keeps it. Append Clipboard to Scratch adds what you copied to the end of the scratch file without bringing Nib forward.")
+            }
+            Section {
                 Toggle("Show Nib in the menu bar", isOn: $showMenuBarExtra)
-                note("The nib in the menu bar shows the scratch file's sync at a glance: still when all's well, its line marching while an upload takes more than a few seconds, a red ✕ beside it when something needs a look. Click it for the scratch file's state, Clean Clipboard, Append Clipboard to Scratch and recent files. ⌥Space and ⌃⌥⌘V work either way.")
+                note("The nib in the menu bar shows the scratch file's sync at a glance: still when all's well, its line marching while an upload takes more than a few seconds, a red ✕ beside it when something needs a look. Click it for the scratch file's state, Clean Clipboard, Append Clipboard to Scratch and recent files. The global shortcuts work either way.")
+            }
+            Section("Scratch file") {
+                let url = Documents.scratch.url
+                LabeledContent(url.lastPathComponent, value: ScratchLocation.place(of: url))
+                HStack {
+                    Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+                    Button("Change…") { change() }
+                }
+                if let refusal {
+                    Label { Text(refusal).fixedSize(horizontal: false, vertical: true) } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
+                    }
+                }
+                note("Changing it reopens Nib with the new file. The old one stays where it is, with its History.")
             }
         }
         .formStyle(.grouped)
+        .scrollDisabled(true)
+    }
+
+    private func change() {
+        refusal = nil
+        guard let url = ScratchChoice.ask(), !ScratchChoice.isCurrent(url) else { return }
+        if let why = ScratchChoice.refusal(url) { refusal = why; return }
+        let alert = NSAlert()
+        alert.messageText = "Use “\(url.lastPathComponent)” as the scratch file?"
+        alert.informativeText = "Nib reopens to use it, in \(ScratchLocation.place(of: url)). \(Documents.scratch.url.lastPathComponent) stays where it is."
+        alert.addButton(withTitle: "Reopen Nib")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn { ScratchChoice.use(url) }
     }
 }
 
