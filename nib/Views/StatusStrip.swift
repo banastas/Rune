@@ -84,13 +84,17 @@ struct StatusStrip: View {
     }
 }
 
-/// Right-click on the strip (PRD §5.2): Save Now, Show History, Reveal in Finder.
+/// Right-click on the strip (PRD §5.2): Save Now, Show Sync Log (on this file), Show
+/// History, Reveal in Finder.
 struct StripMenu: View {
     let document: Document
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Button("Save Now") { Task { await document.flush(reason: "strip") } }
+        if !document.untitled {   // untitled buffers stay out of the Sync Log (ED3)
+            Button("Show Sync Log") { SyncLogModel.shared.show(file: document.url, openWindow: openWindow) }
+        }
         Button("Show History") { openWindow(id: "history", value: document.url) }
         Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([document.url]) }
     }

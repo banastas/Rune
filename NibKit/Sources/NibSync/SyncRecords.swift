@@ -56,6 +56,8 @@ public struct SyncEvent: Codable, Sendable, Equatable {
 public final class SyncLog: Sendable {
     public let url: URL
     private let lock = NSLock()
+    /// Posted after each line is written (on the writer's thread), for the Sync Log window.
+    public static let didAppend = Notification.Name("NibSyncLogDidAppend")
 
     public init(url: URL) {
         self.url = url
@@ -81,6 +83,7 @@ public final class SyncLog: Sendable {
         } else {
             try? line.write(to: url)
         }
+        NotificationCenter.default.post(name: Self.didAppend, object: nil)
     }
 
     public func read() -> [SyncEvent] {

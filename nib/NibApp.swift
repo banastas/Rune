@@ -36,6 +36,11 @@ struct NibApp: App {
         }
         .defaultSize(width: 820, height: 520)
         .commands { NibCommands() }
+        Window("Sync Log", id: "sync-log") {
+            SyncLogView()
+        }
+        .defaultSize(width: 1080, height: 560)
+        .commandsRemoved()   // listed in the Window menu by NibCommands, with its shortcut
         Settings { SettingsView() }
     }
 }
@@ -182,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 /// acting on the document of the window in front.
 struct NibCommands: Commands {
     @FocusedValue(\.nibDocument) private var document
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -211,6 +217,10 @@ struct NibCommands: Commands {
                 .disabled(document == nil)
         }
         CommandMenu("Conflicts") { ConflictMenuItems(document: document) }
+        CommandGroup(before: .windowArrangement) {
+            Button("Sync Log") { openWindow(id: "sync-log") }
+                .keyboardShortcut("l", modifiers: [.command, .option])
+        }
     }
 }
 

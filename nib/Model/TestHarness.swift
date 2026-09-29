@@ -44,6 +44,7 @@ enum TestHarness {
             case "syntax": await syntaxScenario(log, marker)
             case "themes": await themes(log, marker)
             case "untitled": await untitledScenario(log, marker)
+            case "synclog": await syncLogScenario(document, log, marker)
             case "untitled-return": await untitledReturn(log, marker)
             case "untitled-quit": await untitledQuit(log, marker)
             case "two-mac": await twoMac(document, log, marker)
@@ -787,6 +788,48 @@ enum TestHarness {
             _ = await waitFor(10) { Documents.existing(for: url) == nil }
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
         }
+    }
+
+    /// The Sync Log window (SY13, A13): Window › Sync Log (⌥⌘L), newest first, following the
+    /// log as it grows, searchable by SHA-256 and by file (the strip's Show Sync Log), filtered.
+    static func syncLogScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        let model = SyncLogModel.shared
+        let menu = NSApp.mainMenu?.items.first { $0.title == "Window" }?.submenu
+        let item = menu?.items.first { $0.title == "Sync Log" }
+        log.check(item?.keyEquivalent == "l" && item?.keyEquivalentModifierMask.intersection(.deviceIndependentFlagsMask) == [.command, .option],
+                  "Window › Sync Log, ⌥⌘L")
+        if let menu, let index = menu.items.firstIndex(where: { $0.title == "Sync Log" }) { menu.performActionForItem(at: index) }
+        func window() -> NSWindow? { NSApp.windows.first { $0.title == "Sync Log" && $0.isVisible } }
+        let opened = await waitFor(5) { window() != nil && model.loaded }
+        log.check(opened && !model.rows.isEmpty, "it opens on this Mac's log (\(model.rows.count) events)")
+        let shown = model.shown
+        log.check(zip(shown, shown.dropFirst()).allSatisfy { $0.time >= $1.time }, "newest first")
+
+        let start = Date().addingTimeInterval(-1)
+        await type("\n- sync log \(marker)\n", into: document)
+        let arrived = await waitFor(10) { model.rows.contains { $0.event.event == "save" && $0.event.path == document.url.path && $0.time >= start } }
+        log.check(arrived && model.shown.first?.time ?? .distantPast >= start, "a save made while it's open appears, at the top")
+        if let sha = model.rows.last(where: { $0.event.event == "save" && $0.event.path == document.url.path })?.event.sha256 {
+            model.search = String(sha.prefix(10))
+            let found = model.shown
+            log.check(!found.isEmpty && found.allSatisfy { $0.event.sha256?.hasPrefix(String(sha.prefix(10))) == true },
+                      "search by SHA-256: \(found.count) line\(found.count == 1 ? "" : "s") with \(sha.prefix(10))…")
+        }
+        model.search = document.url.lastPathComponent   // what the strip's Show Sync Log does
+        let file = model.shown
+        log.check(!file.isEmpty && file.allSatisfy { $0.name == document.url.lastPathComponent }, "on one file: \(file.count) lines, all \(document.url.lastPathComponent)")
+        model.search = ""
+        model.filter = .problems
+        let problems = model.shown
+        log.check(problems.allSatisfy { $0.event.needsLook }, "Problems: \(problems.count) lines, all conflicts, refusals or failures")
+        model.filter = .all
+        try? await Task.sleep(for: .milliseconds(500))
+        if let window = window(), let frame = window.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("snapshot-synclog.png"))
+        }
+        window()?.close()
     }
 
     /// History (SY13): each saved version is kept; Revert To puts one back as an edit, and the

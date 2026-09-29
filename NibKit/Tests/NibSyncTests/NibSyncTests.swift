@@ -250,3 +250,65 @@ func scratchFolder() -> URL {
         #expect(Duplicates.beside(folder.appendingPathComponent("scratch.md")).map(\.lastPathComponent) == ["scratch 2.md", "scratch 3.md"])
     }
 }
+
+/// The Sync Log window's words, glyphs, filters and search (SY13, A13, V3, V4), on the
+/// details Document actually writes.
+@Suite struct SyncLogDisplayTests {
+    func event(_ name: String, detail: String? = nil, sha: String? = nil) -> SyncEvent {
+        SyncEvent(name, path: "/iCloud/Nib/scratch.md", device: "Air", sha256: sha, detail: detail)
+    }
+
+    @Test func wordsAndGlyphs() {
+        #expect(event("save").word == "Saved" && event("save").glyph == "=")
+        #expect(event("upload", sha: "ab").word == "Uploaded" && event("upload", sha: "ab").glyph == "▲")
+        let refused = event("upload", detail: "refused: the server has a newer version")
+        #expect(refused.word == "Upload refused" && refused.glyph == "‖" && !refused.failed && refused.needsLook)
+        let failed = event("upload", detail: "failed: The operation couldn't be completed")
+        #expect(failed.word == "Upload failed" && failed.glyph == "✕" && failed.failed)
+        #expect(event("upload", detail: "no answer in 15 s; retrying").word == "Upload unanswered")
+        #expect(event("fetch", detail: "newer, saved by Studio (open)").glyph == "▼")
+        #expect(event("merge").word == "Merged" && event("merge").glyph == "✓")
+        #expect(event("conflict", detail: "merged from the version both had, 1 place between markers").glyph == "✕")
+        #expect(event("problem", detail: "the file was deleted or moved away").failed)
+        #expect(event("pause").word == "Held" && event("pause", detail: "not offered: iCloud uploads on its own schedule").word == "Not held")
+        #expect(event("pause", detail: "failed, running unheld: x").failed)
+        #expect(event("resume").word == "Handed back" && event("quit").word == "Closed")
+        #expect(event("merge view").word == "Merge view" && event("something new").word == "Something new")
+    }
+
+    @Test func filters() {
+        let lines = [event("save"), event("upload", sha: "ab"), event("fetch"), event("merge"), event("conflict"),
+                     event("problem", detail: "save: disk full"), event("upload", detail: "refused: the server has a newer version")]
+        func names(_ filter: SyncEvent.Category) -> [String] { lines.filter { $0.belongs(to: filter) }.map(\.word) }
+        #expect(names(.all).count == lines.count)
+        #expect(names(.saves) == ["Saved", "Uploaded", "Upload refused"])
+        #expect(names(.arrivals) == ["Fetched", "Merged", "Conflict"])
+        #expect(names(.problems) == ["Conflict", "Problem", "Upload refused"])
+    }
+
+    @Test func search() {
+        let line = SyncEvent("fetch", path: "/iCloud/Nib/notes.md", device: "Studio", sha256: "7cfab3c0deadbeef", detail: "newer, saved by Air (activated)")
+        #expect(line.matches(""))
+        #expect(line.matches("notes"))
+        #expect(line.matches("NOTES.MD air"))       // every word, any field, any case
+        #expect(line.matches("fetched"))
+        #expect(line.matches("7cfab3"))             // the SHA-256 from its start
+        #expect(!line.matches("fab3c0") && !line.matches("scratch"))
+    }
+
+    @Test func appendingIsAnnounced() async {
+        let log = SyncLog(url: scratchFolder().appendingPathComponent("sync.jsonl"))
+        let counter = Counter()
+        let observer = NotificationCenter.default.addObserver(forName: SyncLog.didAppend, object: nil, queue: nil) { _ in counter.bump() }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        log.append(SyncEvent("save", path: "/a", device: "Air"))
+        #expect(counter.value >= 1)
+    }
+
+    final class Counter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var count = 0
+        func bump() { lock.withLock { count += 1 } }
+        var value: Int { lock.withLock { count } }
+    }
+}
