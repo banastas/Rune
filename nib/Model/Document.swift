@@ -46,6 +46,18 @@ final class Document {
     private(set) var indentation: Indentation = .tabs(width: 4)
     /// The strip's line slot is a field for Go to Line (⌃G).
     var goingToLine = false
+    /// Go to File or the command palette, over this window (KB2, KB3).
+    var palette: PaletteSession? {
+        didSet {
+            if let palette { shownPalette = palette }
+            // Gone: what was chosen runs when the sheet's dismissal says so, or else in a moment
+            // (SwiftUI skips that call for a sheet closed while still coming in).
+            if palette == nil, let old = oldValue {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { old.finish() }
+            }
+        }
+    }
+    @ObservationIgnored private var shownPalette: PaletteSession?
     private(set) var detectedSyntax: SyntaxLanguage?
     /// The conflict blocks in the buffer (§5.4), kept current as it changes, and the one the
     /// caret is in: ⌘1, ⌘2 and ⌘3 resolve it.
@@ -1560,6 +1572,19 @@ extension Document {
         }
     }
 
+    /// ⌘P, ⌘K, ⇧⌘P: the palette over this window. The commands are listed now, as the menus
+    /// are with this window in front, before the sheet takes the focus.
+    func showPalette(_ kind: PaletteSession.Kind) {
+        guard merge == nil, palette == nil else { NSSound.beep(); return }
+        palette = PaletteSession(kind, for: self)
+    }
+
+    /// The palette has gone: what was chosen in it, if anything.
+    func finishPalette() {
+        shownPalette?.finish()
+        shownPalette = nil
+    }
+
     /// Go to Line: "12", or "12:5" for a column too. False if it isn't a line number.
     @discardableResult
     func goToLine(_ answer: String) -> Bool {
@@ -1683,6 +1708,18 @@ enum ScratchLocation {
     }
 
     static func inContainer(_ url: URL) -> Bool { url.standardizedFileURL.path.hasPrefix(folder.path + "/") }
+
+    /// Where a file is, as Finder would name its folder: "iCloud Drive › Nib › Test" (Nib's own
+    /// folder), "iCloud Drive › nib-spike", or the path from ~.
+    static func place(of url: URL) -> String {
+        let folder = url.deletingLastPathComponent().path
+        for (root, name) in [(Self.folder.path, "iCloud Drive › Nib"), (NibPaths.iCloudDrive.path, "iCloud Drive")]
+        where folder == root || folder.hasPrefix(root + "/") {
+            let rest = folder.dropFirst(root.count).split(separator: "/")
+            return ([name] + rest.map(String.init)).joined(separator: " › ")
+        }
+        return (folder as NSString).abbreviatingWithTildeInPath
+    }
 
     static func refusal(for url: URL) -> String? {
         if UserDefaults.standard.bool(forKey: "allowLiveScratch") { return nil }

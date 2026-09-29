@@ -68,6 +68,7 @@ enum TestHarness {
             case "cleantext": await cleanText(document, log, marker)
             case "lines": await lineCommands(log, marker)
             case "find": await findScenario(log, marker)
+            case "palette": await paletteScenario(log, marker)
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -373,6 +374,130 @@ enum TestHarness {
         view.cancelOperation(nil)
         try? await Task.sleep(for: .seconds(1))
         log.check(NSApp.windows.filter(\.isVisible).count == before && view.string == original, "Escape with nothing open: nothing happens")
+
+        await document.flush(reason: "test")
+        log.check(fileText(document) == original, "and the file is as it was")
+        view.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil }
+    }
+
+    /// Go to File and the command palette (KB2, KB3, A6): the menus and their keys (no Print
+    /// holding ⌘P); Go to File's groups in order, each file once, the Nib folder's files coming
+    /// in; Blit's scoring; choosing a file brings it forward; ":3" goes to line 3; the command
+    /// palette's commands with their menus and keys; one chosen runs once the sheet has gone;
+    /// ⌘K opens Go to File too.
+    static func paletteScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("palette-\(marker).js")
+        let original = "const one = 1;\nconst two = 2;\nconst three = 3;\n"
+        try? Data(original.utf8).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened"); return }
+        let view = document.editor.textView
+
+        // The menus.
+        func item(_ menu: String, _ title: String) -> NSMenuItem? { NSApp.mainMenu?.item(withTitle: menu)?.submenu?.item(withTitle: title) }
+        let files = item("File", "Go to File…").flatMap(PaletteSession.keys), commands = item("View", "Command Palette…").flatMap(PaletteSession.keys)
+        let print = NSApp.mainMenu?.item(withTitle: "File")?.submenu?.items.contains { $0.title.hasPrefix("Print") } ?? true
+        log.check(files == "⌘P" && commands == "⇧⌘P" && !print, "File › Go to File… \(files ?? "none"), View › Command Palette… \(commands ?? "none"), no Print")
+
+        // Go to File.
+        NSApp.activate(ignoringOtherApps: true)
+        view.window?.makeKeyAndOrderFront(nil)
+        _ = await waitFor(3) { view.window?.isKeyWindow == true }
+        func sheet(_ up: Bool) async -> Bool { await waitFor(3) { (view.window?.attachedSheet != nil) == up } }
+        /// The sheet as a picture beside the log, to look at.
+        func picture(_ name: String) async {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let frame = view.window?.attachedSheet?.contentView?.superview,
+                  let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) else { return }
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("palette-\(name).png"))
+        }
+        AppDelegate.showPalette(.files, in: document)
+        guard let session = document.palette, await sheet(true) else { log.check(false, "Go to File opened, a sheet on the window"); return }
+        let folder = await waitFor(5) { session.entries.contains { $0.group == "Nib Folder" } }
+        await picture("files")
+        let groups = session.entries.map(\.group).reduce(into: [String]()) { if $0.last != $1 { $0.append($1) } }
+        let ids = session.entries.map(\.id)
+        log.check(groups.first == "Scratch" && groups.prefix(2).last == "Open" && Set(ids).count == ids.count && folder
+                  && session.entries.first { $0.name == url.lastPathComponent }?.group == "Open",
+                  "Go to File: \(groups.joined(separator: ", ")), each file once (\(ids.count)), this file under Open")
+        let ranked = CommandPalette.results(for: "palette-", in: session.entries)
+        let letters = CommandPalette.results(for: "pltt", in: session.entries).first?.name
+        log.check(ranked.first?.name == url.lastPathComponent && CommandPalette.score("scr", "scratch-test.md") == 3
+                  && CommandPalette.score("test", "scratch-test.md") == 2 && CommandPalette.score("sct", "scratch-test.md") == 1
+                  && letters == url.lastPathComponent, "Blit's scoring: a prefix, then a substring, then letters in order (\(letters ?? "none"))")
+        let line = session.lineEntry(":3")
+        log.check(line.first?.name == "Go to Line 3" && session.lineEntry(":x").isEmpty, ":3 is a line to go to")
+
+        // Choosing: the line, once the sheet has gone.
+        if let entry = line.first { session.choose(entry) }
+        document.palette = nil
+        _ = await sheet(false)
+        let went = await waitFor(3) { document.cursor.line == 3 }
+        log.check(went && document.palette == nil, "choosing :3 closes the palette, then goes to line 3 (LN \(document.cursor.line))")
+
+        // Choosing a file: the scratch file's window comes forward.
+        AppDelegate.showPalette(.files, in: document)
+        _ = await sheet(true)
+        if let session = document.palette, let scratch = session.entries.first(where: { $0.group == "Scratch" }) { session.choose(scratch) }
+        document.palette = nil
+        let scratchFront = await waitFor(3) { AppDelegate.scratchWindow?.isVisible == true && (NSApp.keyWindow === AppDelegate.scratchWindow || !NSApp.isActive) }
+        log.check(scratchFront, "choosing the scratch file brings its window forward")
+        view.window?.makeKeyAndOrderFront(nil)
+        _ = await waitFor(3) { view.window?.isKeyWindow == true || !NSApp.isActive }
+
+        // The command palette.
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        view.window?.makeFirstResponder(view)
+        AppDelegate.showPalette(.commands, in: document)
+        guard let palette = document.palette, await sheet(true) else { log.check(false, "the command palette opened"); return }
+        await picture("commands")
+        func entry(_ name: String) -> PaletteEntry? { palette.entries.first { $0.name == name } }
+        let listed = [("Toggle Comment", "Text", "⌘/"), ("Duplicate Line", "Text", "⇧⌘D"), ("Find…", "Edit › Find", "⌘F"),
+                      ("Paste Clean", "Edit", "⌥⇧⌘V"), ("Sync Log", "Window", "⌥⌘L"), ("Move Line Up", "Text", "⌃⌘↑")]
+            .filter { name, menu, keys in entry(name)?.detail == menu && entry(name)?.shortcut == keys }.map(\.0)
+        let own = palette.entries.contains { ["Go to File…", "Command Palette…"].contains($0.name) }
+        let windows = palette.entries.contains { $0.name == url.lastPathComponent }
+        log.check(listed.count == 6 && !own && !windows,
+                  "the command palette: every command with its menu and keys (\(listed.count) of 6 checked), not its own or the window list (\(palette.entries.count) commands)")
+        let front = NSApp.isActive && view.window?.isKeyWindow == true
+        if front, let duplicate = entry("Duplicate Line") {
+            palette.choose(duplicate)
+            document.palette = nil
+            _ = await sheet(false)
+            let ran = await waitFor(3) { view.string.hasPrefix("const one = 1;\nconst one = 1;\n") }
+            log.check(ran, "Duplicate Line, chosen: it runs on the text once the palette has gone")
+            view.undoManager?.undo()
+            await endOfEvent(view)
+        } else {
+            // macOS didn't let Nib come forward: a command that needs no window in front.
+            if let syncLog = entry("Sync Log") { palette.choose(syncLog) }
+            document.palette = nil
+            _ = await sheet(false)
+            let ran = await waitFor(3) { NSApp.windows.contains { $0.identifier?.rawValue.contains("sync-log") == true && $0.isVisible } }
+            log.check(ran, "Sync Log, chosen: its window opens once the palette has gone (Nib not in front, so not a text command)")
+            NSApp.windows.first { $0.identifier?.rawValue.contains("sync-log") == true }?.performClose(nil)
+        }
+
+        // ⌘K.
+        _ = await waitFor(2) { document.palette == nil }
+        if let window = view.window, let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: .command, timestamp: ProcessInfo.processInfo.systemUptime,
+                                                                  windowNumber: window.windowNumber, context: nil, characters: "k", charactersIgnoringModifiers: "k",
+                                                                  isARepeat: false, keyCode: 40) {
+            NSApp.postEvent(event, atStart: false)
+        }
+        let byK = await waitFor(3) { Documents.all.contains { $0.palette?.kind == .files } }
+        log.check(byK, "⌘K opens Go to File too")
+        for open in Documents.all { open.palette = nil }
+        _ = await waitFor(2) { Documents.all.allSatisfy { $0.palette == nil } }
 
         await document.flush(reason: "test")
         log.check(fileText(document) == original, "and the file is as it was")

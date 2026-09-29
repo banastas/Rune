@@ -116,6 +116,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("Nib: ⌃⌥⌘V is taken by another app")
         }
         observeSystem()
+        // ⌘K opens Go to File too (A6), as ⌘K "Go to…" does in Blit; a menu item takes only one key.
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+                  event.charactersIgnoringModifiers == "k", NSApp.keyWindow?.isSheet != true,
+                  NSApp.keyWindow?.attachedSheet == nil else { return event }
+            MainActor.assumeIsolated { Self.showPalette(.files, in: nil) }
+            return nil
+        }
     }
 
     func applicationDidBecomeActive(_ notification: Notification) { Documents.all.forEach { $0.becameActive() } }
@@ -146,6 +154,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     static var scratchWindow: NSWindow? { document.editor.textView.window }
+
+    /// Go to File or the command palette over the window in front; from a window with no file
+    /// (Settings, the Sync Log), over the scratch window.
+    static func showPalette(_ kind: PaletteSession.Kind, in document: Document?) {
+        let key = NSApp.keyWindow
+        if let target = document ?? Documents.all.first(where: { $0.editor.textView.window === key && key != nil }) {
+            target.showPalette(kind)
+            return
+        }
+        showScratch()
+        DispatchQueue.main.async { Self.document.showPalette(kind) }
+    }
 
     /// Clean Clipboard (PT4): in place, confirmed on screen whichever app is in front.
     static func cleanClipboard() {
@@ -217,6 +237,8 @@ struct NibCommands: Commands {
             Button("Open…") { AppDelegate.showOpenPanel() }
                 .keyboardShortcut("o")
             OpenRecentMenu()
+            // Go to File (KB2, A6): ⌘P as in Sublime; ⌘K too, for the family (AppDelegate).
+            Button("Go to File…") { AppDelegate.showPalette(.files, in: document) }.keyboardShortcut("p")
             Divider()
             Button("Reopen Closed File") { ClosedItems.shared.reopenLast() }
                 .keyboardShortcut("t", modifiers: [.command, .shift])
@@ -233,10 +255,16 @@ struct NibCommands: Commands {
                 .disabled(document == nil)
             if let document { RevertToMenu(document: document) } else { Menu("Revert To") {}.disabled(true) }
         }
+        CommandGroup(before: .toolbar) {
+            Button("Command Palette…") { AppDelegate.showPalette(.commands, in: document) }.keyboardShortcut("p", modifiers: [.command, .shift])
+            Divider()
+        }
         CommandGroup(after: .toolbar) {
             Menu("Syntax") { SyntaxMenuItems(document: document) }
                 .disabled(document == nil)
         }
+        // Nib doesn't print; ⌘P and ⇧⌘P are Sublime's palette keys.
+        CommandGroup(replacing: .printItem) {}
         // Edit's clipboard commands (PT1-PT4, SC5, SC6), sent to whatever has focus.
         CommandGroup(replacing: .pasteboard) {
             Button("Cut") { send(#selector(NSText.cut(_:))) }.keyboardShortcut("x")

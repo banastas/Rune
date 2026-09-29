@@ -37,6 +37,11 @@ struct DocumentView: View {
         .sheet(isPresented: Binding(get: { document.merge != nil }, set: { if !$0 { document.closeMerge(done: false) } })) {
             if let session = document.merge { MergeView(document: document, session: session) }
         }
+        // Go to File and the command palette (KB2, KB3): what was chosen runs once it's gone.
+        .sheet(item: Binding(get: { document.palette }, set: { document.palette = $0 }),
+               onDismiss: { document.finishPalette() }) { session in
+            CommandPalette(entries: session.entries, prompt: session.prompt, extra: session.lineEntry) { session.choose($0) }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { note in
             guard isOwnWindow(note.object) else { return }
             Task { await document.flush(reason: "window lost focus") }
@@ -52,17 +57,9 @@ struct DocumentView: View {
         return window === document.editor.textView.window
     }
 
-    /// "iCloud Drive › Nib › Test" (Nib's own folder) or "iCloud Drive › nib-spike", as Finder
-    /// would name the folder.
+    /// "iCloud Drive › Nib › Test", as Finder would name the folder.
     private var subtitle: String {
-        if document.untitled { return "On this Mac only" }
-        let folder = document.url.deletingLastPathComponent().path
-        for (root, name) in [(ScratchLocation.folder.path, "iCloud Drive › Nib"), (NibPaths.iCloudDrive.path, "iCloud Drive")]
-        where folder == root || folder.hasPrefix(root + "/") {
-            let rest = folder.dropFirst(root.count).split(separator: "/")
-            return ([name] + rest.map(String.init)).joined(separator: " › ")
-        }
-        return (folder as NSString).abbreviatingWithTildeInPath
+        document.untitled ? "On this Mac only" : ScratchLocation.place(of: document.url)
     }
 }
 

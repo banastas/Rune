@@ -40,7 +40,9 @@ enum Toast {
                              userInfo: [.announcement: text.lowercased(), .priority: NSAccessibilityPriorityLevel.high.rawValue])
         hide?.cancel()
         let work = DispatchWorkItem {
-            NSAnimationContext.runAnimationGroup({ $0.duration = 0.3; panel.animator().alphaValue = 0 }, completionHandler: { panel.orderOut(nil) })
+            NSAnimationContext.runAnimationGroup({ $0.duration = 0.3; panel.animator().alphaValue = 0 }, completionHandler: {
+                MainActor.assumeIsolated { panel.orderOut(nil) }   // AppKit calls it on the main thread
+            })
         }
         hide = work
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
