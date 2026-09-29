@@ -106,8 +106,9 @@ final class Document {
     /// file isn't news. A count, not a flag: fetches overlap (upload refused, coming forward,
     /// every 30 s), and one ending mustn't let the file watch deliver another's download too.
     @ObservationIgnored private var fetches = 0
-    /// Announced versions already dealt with, by SHA-256.
+    /// Announced versions already dealt with, and already in the Sync Log, by SHA-256.
     @ObservationIgnored private var handledAnnouncements: Set<String> = []
+    @ObservationIgnored private var loggedAnnouncements: Set<String> = []
     /// The last note read: which version is on the server, and what it was made from.
     @ObservationIgnored private var lastNote: Announcement?
     /// Texts of the last few versions this Mac has had, by SHA-256: merge bases (§4.6).
@@ -130,6 +131,9 @@ final class Document {
     /// Holding again after iCloud's helper didn't answer, in the background (§4.3); a hold
     /// in flight; and closing, which waits for it so a file is never left paused.
     @ObservationIgnored private var holdRetry: Task<Void, Never>?
+    /// Newer versions a fetch has brought, counted: did a refused upload's fetch find it?
+    @ObservationIgnored private var newerFetched = 0
+    @ObservationIgnored private var forcedRefresh: Date?
     @ObservationIgnored private var pausing = false
     @ObservationIgnored private var closing = false
     @ObservationIgnored private var noteWatch: DispatchSourceFileSystemObject?
@@ -615,6 +619,13 @@ final class Document {
         if !dirty { state = .uploading(lastSaved) }
         let started = Date()
         do {
+            #if DEBUG
+            if TestHarness.refuseUploads > 0 {   // the `refusal` scenario: as when another Mac uploaded first
+                TestHarness.refuseUploads -= 1
+                try? await Task.sleep(for: .seconds(1))
+                throw NSError(domain: NSCocoaErrorDomain, code: 512, userInfo: [NSUnderlyingErrorKey: NSError(domain: "NSFileProviderErrorDomain", code: -2015)])
+            }
+            #endif
             _ = try await CloudControl.upload(url)
             let parent = uploadedSHA
             uploadedSHA = sha
@@ -626,7 +637,30 @@ final class Document {
         } catch where CloudControl.isConflict(error) {
             record("upload", ms: ms(since: started), detail: "refused: the server has a newer version")
             uploading = false
+            let fetched = newerFetched
             await fetchLatest(reason: "upload refused")
+            // The refusal proves the server has a newer version, but iCloud can still answer
+            // "nothing newer" for a held file (§4.4; the two-Mac test at 20:02: 48 s with the other
+            // Mac's line nowhere, until this Mac came forward). Then a forced refresh fetches it:
+            // the file is handed back taking the server's version, and the buffer's text, kept
+            // in the journal meanwhile, is merged with it. Not with unsaved typing: its own save's
+            // upload is refused in turn and comes back here.
+            if newerFetched == fetched, !dirty, !saving, !refreshing {
+                if let last = forcedRefresh, Date().timeIntervalSince(last) < 20 {
+                    // One forced refresh at most every 20 s, should iCloud keep answering stale.
+                    record("fetch", detail: "iCloud says there's nothing newer, but it refused the upload: trying the upload again in 20 s")
+                    uploadTask = Task { [weak self] in
+                        try? await Task.sleep(for: .seconds(20))
+                        guard !Task.isCancelled else { return }
+                        await self?.upload(now: true)
+                    }
+                } else {
+                    forcedRefresh = Date()
+                    record("fetch", detail: "iCloud says there's nothing newer, but it refused the upload: refreshing")
+                    await writeJournal()
+                    await refresh(announced: lastNote)
+                }
+            }
             return
         } catch {
             let noAnswer = CloudControl.isNoAnswer(error)
@@ -666,9 +700,12 @@ final class Document {
             // moved past is iCloud lagging, not news (the two-Mac test at 14:20 showed an old
             // version for 24 s). Later it's taken as before; another Mac going back to it comes
             // with its note anyway.
-            let result = try await CloudControl.fetchLatest(url, skipping: { [weak self] in
+            var result = try await CloudControl.fetchLatest(url, skipping: { [weak self] in
                 await MainActor.run { self?.staleVersions() ?? [] }
             })
+            #if DEBUG
+            if TestHarness.staleFetches > 0 { TestHarness.staleFetches -= 1; result = .current }   // iCloud saying "nothing newer"
+            #endif
             switch result {
             case .skipped(let sha):
                 record("fetch", sha: sha, detail: "iCloud offered a version this Mac had moved past, just after uploading: left as is (\(reason))")
@@ -679,6 +716,7 @@ final class Document {
                     state = .synced(Date())
                 }
             case .newer(let data, let savedBy, _):
+                newerFetched += 1
                 let fingerprint = try? await io.run { () -> Fingerprint in
                     var fingerprint = try FileAccess.stat(url)
                     fingerprint.sha256 = Digest.sha256(data)
@@ -733,6 +771,16 @@ final class Document {
             if sha == baseFingerprint?.sha256 {
                 baseFingerprint = fingerprint
                 if fromServer { uploadedSHA = sha }
+                return
+            }
+            if sha == uploadedSHA, unsent {
+                // The version this Mac last uploaded, which its unsent work starts from (a stale
+                // answer, or a refresh after a refusal bringing just that): nothing to merge. It's
+                // what's in the file now, so the buffer is saved over it again and uploaded.
+                record("reload", sha: sha, detail: "from \(source): the version this Mac last uploaded, which its unsent work starts from; saving that work again")
+                baseFingerprint = fingerprint
+                editCount += 1
+                scheduleSave(after: 0)
                 return
             }
         }
@@ -1063,16 +1111,21 @@ final class Document {
         upgradeIfProven()
         guard note.device != device, !handledAnnouncements.contains(note.sha256),
               note.sha256 != baseFingerprint?.sha256, note.sha256 != uploadedSHA else { return }
-        handledAnnouncements.insert(note.sha256)
-        record("announce", sha: note.sha256, detail: "\(note.device) uploaded a version this Mac doesn't have (\(reason))")
+        if loggedAnnouncements.insert(note.sha256).inserted {
+            record("announce", sha: note.sha256, detail: "\(note.device) uploaded a version this Mac doesn't have (\(reason))")
+        }
+        // Unsent work here: the next upload is refused, and that merges. Not marked handled
+        // until acted on, so a later check takes it up if that doesn't happen (20:02).
         guard !unsent, !saving, !uploading else { return }
+        handledAnnouncements.insert(note.sha256)
         await refresh(announced: note)
     }
 
     /// Brings down the server's version of the held file (§4.4): hand it back taking the
     /// server's version, evict, download, hold again. About a second (S1b: 0.6-1.3 s).
-    private func refresh(announced note: Announcement) async {
-        lastNote = note
+    private func refresh(announced note: Announcement?) async {
+        if let note { lastNote = note }
+        let who = note?.device ?? "iCloud"
         refreshing = true
         let started = Date()
         let url = self.url
@@ -1089,11 +1142,11 @@ final class Document {
             let (data, fingerprint) = try await CloudControl.refetch(url, wasPaused: held)
             held = false
             record("refresh", size: data.count, sha: fingerprint.sha256, ms: ms(since: started),
-                   detail: fingerprint.sha256 == note.sha256 ? "got \(note.device)'s version" : "the server has another version than the one announced")
+                   detail: note == nil ? "got the server's version" : fingerprint.sha256 == note?.sha256 ? "got \(who)'s version" : "the server has another version than the one announced")
             await holdAgain()
             refreshing = false
             if fingerprint.sha256 != baseFingerprint?.sha256 {
-                incoming(data, fingerprint: fingerprint, from: note.device, fromServer: true)
+                incoming(data, fingerprint: fingerprint, from: who, fromServer: true)
             } else {
                 uploadedSHA = fingerprint.sha256
             }

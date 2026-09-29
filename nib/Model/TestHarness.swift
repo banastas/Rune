@@ -21,6 +21,10 @@ enum TestHarness {
     /// as they do when iCloud's helper doesn't answer (the `holdretry` scenario).
     static var failPauses = UserDefaults.standard.integer(forKey: "NibFailPauses")
     static let failPausesFor = UserDefaults.standard.string(forKey: "NibFailPausesFor")
+    /// The `refusal` scenario: the next uploads refused as if another Mac had uploaded first,
+    /// and the next fetches answered "nothing newer", as iCloud can for a held file.
+    static var refuseUploads = 0
+    static var staleFetches = 0
 
     static func runIfRequested(_ document: Document) {
         let defaults = UserDefaults.standard
@@ -51,6 +55,7 @@ enum TestHarness {
             case "synclog": await syncLogScenario(document, log, marker)
             case "holdretry": await holdRetryScenario(log, marker)
             case "bigfile": await bigFile(log, marker)
+            case "refusal": await refusal(document, log, marker)
             case "untitled-return": await untitledReturn(log, marker)
             case "untitled-quit": await untitledQuit(log, marker)
             case "two-mac": await twoMac(document, log, marker)
@@ -818,6 +823,31 @@ enum TestHarness {
         let closed = await waitFor(15) { Documents.existing(for: url) == nil && !PausedFiles(url: NibPaths.support.appendingPathComponent("paused.json")).all().contains(url.path) }
         log.check(closed, "closing hands it back to iCloud")
         if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+    }
+
+    /// An upload refused while iCloud says there's nothing newer (the two-Mac test at 20:02):
+    /// Nib refreshes anyway, and the typing survives it, into the file and uploaded.
+    static func refusal(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
+        let before = events.read().count
+        refuseUploads = 1
+        staleFetches = 1
+        await type("\n- typed before a refused upload \(marker)\n", into: document)
+        let refreshed = await waitFor(30) { events.read().dropFirst(before).contains { $0.event == "refresh" } }
+        let lines = events.read().dropFirst(before).filter { ["upload", "fetch", "refresh", "merge", "update"].contains($0.event) }
+        log.check(refreshed && lines.contains { $0.detail?.hasPrefix("iCloud says there's nothing newer") == true },
+                  "refused, and iCloud says nothing's newer: Nib refreshes anyway (\(lines.map { $0.word }.joined(separator: ", ")))")
+        let kept = await waitFor(30) {
+            fileText(document).contains("typed before a refused upload \(marker)") && isSynced(document)
+                && document.editor.textView.string.contains("typed before a refused upload \(marker)")
+        }
+        log.check(kept, "the typing survives the refresh: in the buffer and the file, uploaded (\(document.state.line))")
+        let after = events.read().dropFirst(before)
+        log.check(!after.contains { $0.event == "conflict" } && !fileText(document).contains("<<<<<<< ") ,
+                  "and the refresh brought back only what this Mac had uploaded: nothing between markers (\(after.map { $0.word }.joined(separator: ", ")))")
+        log.check(refuseUploads == 0 && staleFetches == 0, "and the pretend refusal and stale answer were both used")
     }
 
     /// The highlighting color drawn at a character (a rendering attribute, §6.3), as hex.
