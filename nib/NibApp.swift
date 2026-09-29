@@ -242,16 +242,29 @@ struct OpenRecentMenu: View {
 @Observable
 final class RecentFiles {
     static let shared = RecentFiles()
-    private(set) var urls = NSDocumentController.shared.recentDocumentURLs
+    private(set) var urls: [URL]
+    private let key = "recentFiles"
+
+    /// Nib's own list, not the system's: reading that waits on a helper that can stop answering,
+    /// and did (a launch at 21:50 stuck for good in -[NSDocumentController recentDocumentURLs],
+    /// the File menu asking for it). The system still hears of each file, for the Dock's menu.
+    private init() {
+        urls = (UserDefaults.standard.stringArray(forKey: key) ?? []).map { URL(fileURLWithPath: $0) }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
 
     func add(_ url: URL) {
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
-        urls = NSDocumentController.shared.recentDocumentURLs
+        urls.removeAll { $0.standardizedFileURL.path == url.standardizedFileURL.path }
+        urls.insert(url, at: 0)
+        if urls.count > 10 { urls.removeLast(urls.count - 10) }
+        UserDefaults.standard.set(urls.map(\.path), forKey: key)
     }
 
     func clear() {
         NSDocumentController.shared.clearRecentDocuments(nil)
         urls = []
+        UserDefaults.standard.removeObject(forKey: key)
     }
 }
 

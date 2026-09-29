@@ -20,6 +20,9 @@ public enum CloudControl {
         public var downloading = false
         /// "current", "stale" (a newer version exists), "notDownloaded" (evicted), or "none".
         public var downloadStatus = "none"
+
+        /// Nothing known: not ubiquitous, nothing offered.
+        public init() {}
     }
 
     public enum FetchResult: Sendable, Equatable {
@@ -89,6 +92,30 @@ public enum CloudControl {
         default: status.downloadStatus = "none"
         }
         return status
+    }
+
+    /// Whether the app's iCloud folder is there (setting it up on first use), or nil if iCloud
+    /// doesn't answer in time: the call waits on iCloud Drive's daemon, and after a 2.4 MB file
+    /// came and went a launch in the suite waited on it for good.
+    public static func containerAvailable(_ id: String, within seconds: Double) async -> Bool? {
+        try? await within(seconds) {
+            await withCheckedContinuation { continuation in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    continuation.resume(returning: FileManager.default.url(forUbiquityContainerIdentifier: id) != nil)
+                }
+            }
+        }
+    }
+
+    /// The file's iCloud state, or nil if iCloud doesn't answer in time: asking can wait on iCloud's
+    /// file provider for good (a launch in the suite, after a 2.4 MB file came and went, waited
+    /// in `status` until it was killed). Asked on a thread of its own, left to finish there.
+    public static func status(_ url: URL, within seconds: Double) async -> Status? {
+        try? await within(seconds) {
+            await withCheckedContinuation { continuation in
+                DispatchQueue.global(qos: .userInitiated).async { continuation.resume(returning: status(url)) }
+            }
+        }
     }
 
     /// Pauses iCloud's syncing of `url`. iCloud answers "resource busy" while it's still
@@ -181,8 +208,16 @@ public enum CloudControl {
         try await within(15) { try await fetchLatestUnbounded(url, skipping: skipping) }
     }
     private static func fetchLatestUnbounded(_ url: URL, skipping: @Sendable () async -> Set<String>) async throws -> FetchResult {
-        let version = try await FileManager.default.fetchLatestRemoteVersionOfItem(at: url)
-        guard version.url.standardizedFileURL.path != url.standardizedFileURL.path else { return .current }
+        // The completion-handler form: iCloud can answer with neither a version nor an error,
+        // and the async form traps on that (a crash at 21:15, M2). No version: nothing newer.
+        // (The version only passes through here, one step after another: the box just carries it.)
+        struct Answer: @unchecked Sendable { let version: NSFileVersion? }
+        let answer: Answer = try await withCheckedThrowingContinuation { continuation in
+            FileManager.default.fetchLatestRemoteVersionOfItem(at: url) { version, error in
+                if let error { continuation.resume(throwing: error) } else { continuation.resume(returning: Answer(version: version)) }
+            }
+        }
+        guard let version = answer.version, version.url.standardizedFileURL.path != url.standardizedFileURL.path else { return .current }
         let data = try FileAccess.read(version.url).data
         let sha = Digest.sha256(data)
         if await skipping().contains(sha) { return .skipped(sha256: sha) }

@@ -43,7 +43,7 @@ run() {   # run <name> [args…]: one scenario, killed after 120 s if it hangs
   ( sleep 120; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 & local guard=$!
   disown "$guard"
   wait "$pid" 2>/dev/null || true
-  pkill -P "$guard" sleep 2>/dev/null; kill "$guard" 2>/dev/null || true
+  pkill -P "$guard" sleep 2>/dev/null || true; kill "$guard" 2>/dev/null || true   # (a launch that dies at once leaves no sleep yet)
   echo "==> $name"
   grep -E "PASS|FAIL|after the last" "$LOGS/$name.log" || echo "FAIL no output"
 }
@@ -80,17 +80,19 @@ cp "$LOGS/holdretry.log" "$LOGS/holdretry-4099.log"
 run holdretry -NibUnsupportedPauses 1 -NibFailPausesFor hold-
 run handback
 run handback-return -NibFailResumes 1
-run bigfile
 run refusal
 umarker="untitled-$(date +%s)"
 run untitled -NibMarker "$umarker" -NibSaveIdle 600 -NibSaveMax 600
 run untitled-return -NibMarker "$umarker"
 run untitled-quit -NibMarker "$umarker"
 run refresh
+# Last: making, uploading and deleting a 2.4 MB file leaves iCloud's daemons on this Mac slow to
+# answer for minutes (PRD §8), which the launches after it would wait on.
+run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard undo crash recover external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return bigfile refusal untitled untitled-return untitled-quit refresh; do   # this run's logs only
+for name in type clipboard undo crash recover external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi

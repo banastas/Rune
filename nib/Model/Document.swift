@@ -178,9 +178,11 @@ final class Document {
         let url = self.url
         let presenter = self.presenter
         if ScratchLocation.inContainer(url) {
-            // Sets up nib's iCloud folder on first use; nil when iCloud Drive is off. Can block.
-            let container = await io.run { FileManager.default.url(forUbiquityContainerIdentifier: ScratchLocation.containerID) }
-            guard container != nil else {
+            // Sets up nib's iCloud folder on first use; false when iCloud Drive is off. iCloud may not
+            // answer at all: then, with the file already here, open it anyway.
+            let container = await CloudControl.containerAvailable(ScratchLocation.containerID, within: 10)
+            if container == nil { record("open", detail: "iCloud didn't answer about Nib's folder in 10 s: opening the file anyway") }
+            guard container != false, container == true || FileManager.default.fileExists(atPath: url.path) else {
                 state = .problem("NIB'S ICLOUD FOLDER ISN'T AVAILABLE · IS ICLOUD DRIVE ON? · NOTHING WAS OPENED")
                 record("problem", detail: "url(forUbiquityContainerIdentifier:) returned nil")
                 return
@@ -198,7 +200,11 @@ final class Document {
                 return
             }
         }
-        let status = await io.run { CloudControl.status(url) }
+        // iCloud may not answer (its file provider can stall): then open it anyway, and hold it once
+        // iCloud answers (the background retry).
+        let answered = await CloudControl.status(url, within: 10)
+        if answered == nil { record("open", detail: "iCloud didn't say how the file stands in 10 s: opening it anyway, and holding it once iCloud answers") }
+        let status = answered ?? CloudControl.Status()
         if status.downloadStatus == "notDownloaded" {
             state = .notDownloaded
             try? FileManager.default.startDownloadingUbiquitousItem(at: url)
@@ -243,7 +249,7 @@ final class Document {
             return
         }
         watchNetwork()
-        await hold(status)
+        if answered == nil { scheduleHoldRetry() } else { await hold(status) }
         if held {
             // Paused, iCloud's uploaded flag stops meaning anything (M0). A file left paused
             // by a crash may hold saves iCloud never got: upload it before trusting it.
@@ -343,7 +349,7 @@ final class Document {
     /// (pausing a paused file answers so, M1), so it's held as it is.
     private func heldAlready(_ error: Error) async -> Bool {
         let url = self.url
-        guard (error as? CloudControl.ControlError) == .unsupported, await io.run({ CloudControl.status(url).paused }) == true else { return false }
+        guard (error as? CloudControl.ControlError) == .unsupported, await CloudControl.status(url, within: 10)?.paused == true else { return false }
         held = true
         pausedFiles.add(url.path)
         record("pause", detail: "already paused, by this Mac: holding it as it is")
@@ -410,7 +416,7 @@ final class Document {
         guard !saving, !refreshing, fetches == 0 else { return false }   // not in the middle of those: next time
         await diskMayHaveChanged()   // whatever iCloud put there while it wasn't held
         let url = self.url
-        let status = await io.run { CloudControl.status(url) }
+        guard let status = await CloudControl.status(url, within: 10) else { return false }   // not answering: next time
         guard status.ubiquitous, status.canPause, status.canFailOnConflict else {
             record("pause", detail: "not offered any more: iCloud uploads on its own schedule")
             return true
@@ -794,7 +800,7 @@ final class Document {
                 record("fetch", size: data.count, sha: fingerprint?.sha256,
                        detail: own ? "this Mac's own version back from iCloud (\(reason))" : "newer\(savedBy.map { ", iCloud says saved by \($0)" } ?? "") (\(reason))")
                 // Replacing the local file may have ended the pause: hold it again.
-                if CloudControl.status(url).paused != true {
+                if await CloudControl.status(url, within: 5)?.paused != true {
                     try? await CloudControl.pause(url)
                 }
                 // Which Mac saved it: the note, when it names this version. iCloud's own answer
@@ -1266,7 +1272,7 @@ final class Document {
             }
         } catch {
             record("refresh", ms: ms(since: started), detail: "failed: \(CloudControl.describe(error))")
-            if CloudControl.status(url).paused != true { held = false; await holdAgain() }
+            if await CloudControl.status(url, within: 5)?.paused != true { held = false; await holdAgain() }
             refreshing = false
         }
     }
@@ -1321,8 +1327,11 @@ final class Document {
     /// Unheld files: iCloud's own upload state, pushed through the presenter.
     func cloudAttributesChanged() {
         guard ready, !held, !dirty else { return }
-        let status = CloudControl.status(url)
-        if status.uploading { state = .uploading(lastSaved) } else if status.uploaded { state = .synced(Date()) }
+        let url = self.url
+        Task {
+            guard let status = await CloudControl.status(url, within: 5), ready, !held, !dirty else { return }
+            if status.uploading { state = .uploading(lastSaved) } else if status.uploaded { state = .synced(Date()) }
+        }
     }
 
     func fileWasDeleted() {
