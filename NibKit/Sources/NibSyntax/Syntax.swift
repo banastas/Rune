@@ -3,6 +3,8 @@
 // the scheme's rules (NibText's Theme) color it as Sublime does. Embedded languages (HTML's
 // <script> and <style>, Markdown's inline text and fenced code) are parsed apart and nested
 // inside the host's scopes, under the embedded root Sublime uses (`source.js.embedded.html`).
+// A document's tree is kept across edits and styles are worked out for the stretch on screen
+// (`SyntaxDocument`, §6.3); `runs` and `styles` do a whole text at once.
 
 import Foundation
 import NibText
@@ -118,17 +120,36 @@ public enum Highlighter {
         return tree.rootNode?.sExpressionString ?? ""
     }
 
-    /// Every character's scopes, as runs covering the whole text.
-    public static func runs(_ text: String, language: SyntaxLanguage, root: String? = nil) -> [ScopeRun] {
+    /// Every character's scopes, as runs covering the whole text (or only `window` of it).
+    public static func runs(_ text: String, language: SyntaxLanguage, root: String? = nil, in window: NSRange? = nil) -> [ScopeRun] {
         let source = text as NSString
+        let whole = NSRange(location: 0, length: source.length)
+        let window = window.map { NSIntersectionRange($0, whole) } ?? whole
         var spans: [Span] = []
-        collect(source, NSRange(location: 0, length: source.length), language, roots: [root ?? language.rootScope].compactMap { $0 }, into: &spans)
-        return sweep(spans, length: source.length)
+        collect(source, whole, language, roots: [root ?? language.rootScope].compactMap { $0 }, window: window, string: text, into: &spans)
+        return sweep(spans, window: window)
     }
 
     /// Each run's style from the scheme.
     public static func styles(_ text: String, language: SyntaxLanguage, root: String? = nil, theme: Theme) -> [(range: NSRange, style: Style)] {
-        runs(text, language: language, root: root).map { ($0.range, theme.style(for: $0.scopes)) }
+        var cache = StyleCache(theme: theme)
+        return runs(text, language: language, root: root).map { ($0.range, cache.style(for: $0.scopes)) }
+    }
+
+    /// A scope stack's style, worked out once: a file has a few hundred distinct stacks among
+    /// a million runs (5 MB of JavaScript: 12.7 s resolving each run, 0.15 s each stack once).
+    struct StyleCache {
+        let theme: Theme
+        var known: [[String]: Style] = [:]
+
+        init(theme: Theme) { self.theme = theme }
+
+        mutating func style(for scopes: [String]) -> Style {
+            if let style = known[scopes] { return style }
+            let style = theme.style(for: scopes)
+            known[scopes] = style
+            return style
+        }
     }
 
     struct Span {
@@ -139,15 +160,29 @@ public enum Highlighter {
         var order: (level: Int, pattern: Int, seq: Int)
     }
 
-    /// The language's captures within `range`, then its embedded languages, recursively.
-    static func collect(_ text: NSString, _ range: NSRange, _ language: SyntaxLanguage, roots: [String], level: Int = 0, into spans: inout [Span]) {
+    /// The language's captures within `range` that touch `window`, then its embedded languages
+    /// there, recursively. A tree already parsed for `range` (a `SyntaxDocument`'s) is used as
+    /// is; embedded languages are parsed on the spot (a paragraph, a fence, a script).
+    static func collect(_ text: NSString, _ range: NSRange, _ language: SyntaxLanguage, roots: [String], level: Int = 0,
+                        window: NSRange, tree given: MutableTree? = nil, string: String? = nil, into spans: inout [Span]) {
+        guard intersects(range, window) || (range.length == 0 && window.length == 0) else { return }
         for (i, root) in roots.enumerated() { spans.append(Span(range: range, scope: root, order: (level, -roots.count + i, spans.count))) }
-        let part = text.substring(with: range)
-        let parser = Parser()
-        guard (try? parser.setLanguage(language.tsLanguage)) != nil, let tree = parser.parse(part), let root = tree.rootNode else { return }
+        let part = string ?? text.substring(with: range)
+        var parsed = given
+        if parsed == nil {
+            let parser = Parser()
+            guard (try? parser.setLanguage(language.tsLanguage)) != nil else { return }
+            parsed = parser.parse(part)
+        }
+        guard let tree = parsed, let root = tree.rootNode else { return }
+        // The window in this part's own terms.
+        let local = NSRange(location: max(0, window.location - range.location),
+                            length: max(0, min(NSMaxRange(window), NSMaxRange(range)) - max(window.location, range.location)))
         if let query = language.query {
             var captured: [(span: Span, only: Bool)] = [], marks: [Span] = []
-            for match in query.execute(in: tree).resolve(with: .init(string: part)) {
+            let cursor = query.execute(in: tree)
+            cursor.setRange(local)
+            for match in cursor.resolve(with: .init(string: part)) {
                 for capture in match.captures {
                     guard var name = capture.name, !name.hasPrefix("_"), capture.range.length > 0 else { continue }
                     let whole = NSRange(location: capture.range.location + range.location, length: capture.range.length)
@@ -168,10 +203,15 @@ public enum Highlighter {
             spans += captured.filter { $0.only || !onlyRanges.contains(NSStringFromRange($0.span.range)) }.map(\.span)
             spans += marks
         }
-        for injection in Injections.find(in: root, text: part as NSString, language: language) {
+        for injection in Injections.find(in: root, text: part as NSString, language: language, window: local) {
             let inner = NSRange(location: injection.range.location + range.location, length: injection.range.length)
-            collect(text, inner, injection.language, roots: injection.scopes, level: level + 1, into: &spans)
+            collect(text, inner, injection.language, roots: injection.scopes, level: level + 1, window: window, into: &spans)
         }
+    }
+
+    /// Two ranges share at least one character.
+    static func intersects(_ a: NSRange, _ b: NSRange) -> Bool {
+        a.location < NSMaxRange(b) && b.location < NSMaxRange(a)
     }
 
     /// A `clear.` scope (marked with \u{1}) drops the string scopes outside it; the mark goes.
@@ -280,12 +320,16 @@ public enum Highlighter {
         return out
     }
 
-    /// Spans into runs: at each boundary, the spans covering the stretch, outer (longer) first,
-    /// and in the order they were found where they cover the same text.
-    static func sweep(_ spans: [Span], length: Int) -> [ScopeRun] {
-        var cuts = Set([0, length])
-        for span in spans { cuts.insert(span.range.location); cuts.insert(NSMaxRange(span.range)) }
-        let bounds = cuts.filter { $0 >= 0 && $0 <= length }.sorted()
+    /// Spans into runs across `window`: at each boundary, the spans covering the stretch, outer
+    /// (longer, measured whole, not cut to the window) first, and in the order they were found
+    /// where they cover the same text.
+    static func sweep(_ spans: [Span], window: NSRange) -> [ScopeRun] {
+        let start = window.location, end = NSMaxRange(window)
+        var cuts = Set([start, end])
+        for span in spans {
+            for cut in [span.range.location, NSMaxRange(span.range)] where cut > start && cut < end { cuts.insert(cut) }
+        }
+        let bounds = cuts.sorted()
         let byStart = spans.sorted { $0.range.location < $1.range.location }
         var runs: [ScopeRun] = [], active: [Span] = [], next = 0
         for (a, b) in zip(bounds, bounds.dropFirst()) where b > a {
@@ -318,9 +362,11 @@ enum Injections {
         var scopes: [String]
     }
 
-    static func find(in root: Node, text: NSString, language: SyntaxLanguage) -> [Injection] {
+    /// The embedded languages that touch `window` (a whole text when it's all of it).
+    static func find(in root: Node, text: NSString, language: SyntaxLanguage, window: NSRange? = nil) -> [Injection] {
         var found: [Injection] = []
         func walk(_ node: Node) {
+            if let window, !Highlighter.intersects(node.range, window) { return }   // nothing of it on screen
             switch (language, node.nodeType) {
             case (.html, "script_element"?), (.html, "style_element"?):
                 let script = node.nodeType == "script_element"

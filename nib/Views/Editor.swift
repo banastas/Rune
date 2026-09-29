@@ -9,7 +9,7 @@ import NibSyntax
 import NibText
 
 @MainActor
-final class Editor: NSObject, NSTextViewDelegate {
+final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     let scrollView: NSScrollView
     let textView: NibTextView
     weak var document: Document?
@@ -50,6 +50,7 @@ final class Editor: NSObject, NSTextViewDelegate {
         textView.selectedTextAttributes = [.backgroundColor: Scheme.selection]
         textView.typingAttributes = [.font: Scheme.font, .foregroundColor: Scheme.foreground]
         textView.delegate = self
+        textView.textStorage?.delegate = self   // the caret's line count follows edits (position(of:))
         textView.onEscape = { [weak self] in self?.document?.hideBanner() ?? false }
         textView.setAccessibilityLabel("Scratch")
         scrollView.documentView = textView
@@ -113,10 +114,18 @@ final class Editor: NSObject, NSTextViewDelegate {
 
     /// The file's syntax, from its name and first line; nil is plain text. Set once the text is in.
     var syntax: (language: SyntaxLanguage, root: String)? {
-        didSet { scheduleHighlight(after: 0) }
+        didSet {
+            syntaxDocument = syntax.map { SyntaxDocument(language: $0.language, root: $0.root) }
+            scheduleHighlight(after: 0)
+        }
     }
+    /// The tree, kept across edits, and the styles worked out for `styled`: the text in view
+    /// with a wider margin than `render` draws, so scrolling a little needs nothing new (§6.3).
+    private var syntaxDocument: SyntaxDocument?
     private var styles: [(range: NSRange, style: Style)] = []
+    private var styled = NSRange(location: 0, length: 0)
     private var highlightTask: Task<Void, Never>?
+    private var highlightPending = false
     private var edits = 0
     private var rendered = NSRange(location: 0, length: 0)
 
@@ -139,26 +148,40 @@ final class Editor: NSObject, NSTextViewDelegate {
         textView.needsDisplay = true
     }
 
-    /// The whole text parsed and styled off the main thread, a moment after typing pauses; up to
-    /// 5 MB (ED9: larger files aren't highlighted).
+    /// A moment after typing pauses, off the main thread: the tree brought up to the text (an
+    /// incremental parse: 30-110 ms at 2.4-5 MB, a whole one only when a file opens), then the
+    /// styles of the text in view and a margin (7-28 ms). Up to 5 MB (ED9: larger files
+    /// aren't highlighted).
     func scheduleHighlight(after delay: Double = 0.08) {
         edits += 1
         highlightTask?.cancel()
-        let text = ConflictText.masked(textView.string, blocks: textView.conflictBlocks), version = edits, theme = Scheme.theme
-        guard let syntax, (text as NSString).length <= 5_000_000 else {
-            if !styles.isEmpty { styles = []; render(force: true) }
+        let version = edits
+        guard let syntaxDocument, (textView.string as NSString).length <= 5_000_000 else {
+            highlightPending = false
+            if !styles.isEmpty { styles = []; styled = NSRange(location: 0, length: 0); render(force: true) }
             return
         }
+        highlightPending = true
         highlightTask = Task { [weak self] in
             if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
-            guard !Task.isCancelled else { return }
-            let result = await Task.detached(priority: .userInitiated) {
-                Highlighter.styles(text, language: syntax.language, root: syntax.root, theme: theme)
-            }.value
-            guard let self, !Task.isCancelled, version == self.edits else { return }
+            guard let self, !Task.isCancelled else { return }
+            // The text as it is now, masked for parsing (a snapshot: typing goes on meanwhile).
+            let text = ConflictText.masked(self.textView.string, blocks: self.textView.conflictBlocks)
+            let window = self.styleWindow(), theme = Scheme.theme
+            await syntaxDocument.update(text)
+            let result = await syntaxDocument.styles(in: window, theme: theme)
+            guard !Task.isCancelled, version == self.edits else { return }   // a newer one is on its way
+            self.highlightPending = false
             self.styles = result
+            self.styled = window
             self.render(force: true)
         }
+    }
+
+    /// The text in view, with 12,000 characters either side (`render` draws 3,000 either side).
+    private func styleWindow() -> NSRange {
+        let view = visibleRange(), length = (textView.string as NSString).length
+        return NSIntersectionRange(NSRange(location: max(0, view.location - 12_000), length: view.length + 24_000), NSRange(location: 0, length: length))
     }
 
     /// The text in view, and a margin: syntax colors and backgrounds as rendering attributes
@@ -170,6 +193,11 @@ final class Editor: NSObject, NSTextViewDelegate {
         let view = visibleRange()
         let wanted = NSIntersectionRange(NSRange(location: max(0, view.location - 3_000), length: view.length + 6_000), NSRange(location: 0, length: length))
         if !force, NSIntersectionRange(wanted, rendered).length == wanted.length, wanted.length > 0 { return }
+        // Scrolled past what's styled: that stretch's styles, from the tree as it is (no parse).
+        // (Not while one is on its way: it renders again when it lands, and asks then if need be.)
+        if syntaxDocument != nil, !highlightPending, NSIntersectionRange(wanted, styled).length < wanted.length {
+            scheduleHighlight(after: 0)
+        }
         guard let whole = textView.textRange(wanted) else { return }
         layout.removeRenderingAttribute(.foregroundColor, for: whole)
         layout.removeRenderingAttribute(.backgroundColor, for: whole)
@@ -261,8 +289,11 @@ final class Editor: NSObject, NSTextViewDelegate {
 
     /// The characters TextKit 2 has in its viewport now.
     private func visibleRange() -> NSRange {
-        guard let layout = textView.textLayoutManager, let content = layout.textContentManager,
-              let viewport = layout.textViewportLayoutController.viewportRange else { return NSRange(location: 0, length: 0) }
+        guard let layout = textView.textLayoutManager, let content = layout.textContentManager else { return NSRange(location: 0, length: 0) }
+        // Just scrolled, the viewport isn't laid out yet and would still say where it was:
+        // lay it out now (TextKit 2's own call; nothing touches `layoutManager`).
+        layout.textViewportLayoutController.layoutViewport()
+        guard let viewport = layout.textViewportLayoutController.viewportRange else { return NSRange(location: 0, length: 0) }
         let start = content.offset(from: content.documentRange.location, to: viewport.location)
         return NSRange(location: start, length: content.offset(from: viewport.location, to: viewport.endLocation))
     }
@@ -311,24 +342,47 @@ final class Editor: NSObject, NSTextViewDelegate {
     }
 
     /// Line and column (1-based) of a UTF-16 offset, counting in chunks: a few ms at 2.4 MB.
+    /// Line and column at a location (the strip's LN, COL), counted on from the last place
+    /// asked: typing moves the caret a character at a time, and counting from the top was
+    /// 255 ms a keystroke at the end of a 2.4 MB file (Debug). The count stays good through an
+    /// edit that starts on its line or after it (`textStorage(_:didProcessEditing:…)`).
     func position(of location: Int) -> (Int, Int) {
         guard let storage = textView.textStorage else { return (1, 1) }
         let string = storage.string as NSString
-        let end = min(location, string.length)
-        var line = 1
-        var lastBreak = -1
-        var buffer = [unichar](repeating: 0, count: 65_536)
-        var offset = 0
-        while offset < end {
-            let count = min(buffer.count, end - offset)
-            string.getCharacters(&buffer, range: NSRange(location: offset, length: count))
-            for i in 0..<count where buffer[i] == 0x0A {
-                line += 1
-                lastBreak = offset + i
+        let target = min(location, string.length)
+        var (at, line, lineStart) = lineCache.map { ($0.location, $0.line, $0.lineStart) } ?? (0, 1, 0)
+        if at > string.length || target < lineStart { (at, line, lineStart) = (0, 1, 0) }   // before its line: from the top
+        if target >= at {
+            var buffer = [unichar](repeating: 0, count: 4_096)
+            var offset = at
+            while offset < target {
+                let count = min(buffer.count, target - offset)
+                string.getCharacters(&buffer, range: NSRange(location: offset, length: count))
+                buffer.withUnsafeBufferPointer { units in
+                    for i in 0..<count where units[i] == 0x0A { line += 1; lineStart = offset + i + 1 }
+                }
+                offset += count
             }
-            offset += count
         }
-        return (line, end - lastBreak)
+        lineCache = (target, line, lineStart)
+        return (line, target - lineStart + 1)
+    }
+
+    private var lineCache: (location: Int, line: Int, lineStart: Int)?
+    /// The last change to the characters, in the text as it is now.
+    private(set) var lastEdit: NSRange?
+
+    /// Every change to the characters, typed or not (a merge, a reload): the line count up to
+    /// an edit's start still holds if the edit starts on the counted line or after it.
+    nonisolated func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
+        guard editedMask.contains(.editedCharacters) else { return }
+        MainActor.assumeIsolated {
+            lastEdit = editedRange
+            guard let cache = lineCache else { return }
+            lineCache = editedRange.location >= cache.lineStart
+                ? (min(cache.location, editedRange.location), cache.line, cache.lineStart)
+                : nil
+        }
     }
 
     // MARK: Caret per Mac (SC3): local, never synced

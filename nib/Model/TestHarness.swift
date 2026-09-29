@@ -50,6 +50,7 @@ enum TestHarness {
             case "untitled": await untitledScenario(log, marker)
             case "synclog": await syncLogScenario(document, log, marker)
             case "holdretry": await holdRetryScenario(log, marker)
+            case "bigfile": await bigFile(log, marker)
             case "untitled-return": await untitledReturn(log, marker)
             case "untitled-quit": await untitledQuit(log, marker)
             case "two-mac": await twoMac(document, log, marker)
@@ -549,17 +550,7 @@ enum TestHarness {
             guard let c = color?.usingColorSpace(.sRGB) else { return "none" }
             return String(format: "#%02X%02X%02X", Int((c.redComponent * 255).rounded()), Int((c.greenComponent * 255).rounded()), Int((c.blueComponent * 255).rounded()))
         }
-        /// The highlighting color drawn at a character (a rendering attribute, §6.3).
-        func drawn(at location: Int) -> String {
-            guard let layout = view.textLayoutManager, let content = layout.textContentManager,
-                  let start = content.location(content.documentRange.location, offsetBy: location) else { return "none" }
-            var found: NSColor?
-            layout.enumerateRenderingAttributes(from: start, reverse: false) { _, attributes, range in
-                if range.contains(start) { found = attributes[.foregroundColor] as? NSColor }
-                return false
-            }
-            return hex(found)
-        }
+        func drawn(at location: Int) -> String { drawnColor(view, at: location) }
         let heading = 2   // "Generated", in the heading
         _ = await waitFor(5) { drawn(at: heading) == "#E7CE57" }
         log.check(schemes.currentID == before && drawn(at: heading) == "#E7CE57", "the heading in An Old Hope · Nib's yellow (\(drawn(at: heading)))")
@@ -827,6 +818,87 @@ enum TestHarness {
         let closed = await waitFor(15) { Documents.existing(for: url) == nil && !PausedFiles(url: NibPaths.support.appendingPathComponent("paused.json")).all().contains(url.path) }
         log.check(closed, "closing hands it back to iCloud")
         if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+    }
+
+    /// The highlighting color drawn at a character (a rendering attribute, §6.3), as hex.
+    static func drawnColor(_ view: NSTextView, at location: Int) -> String {
+        guard let layout = view.textLayoutManager, let content = layout.textContentManager,
+              let start = content.location(content.documentRange.location, offsetBy: location) else { return "none" }
+        var found: NSColor?
+        layout.enumerateRenderingAttributes(from: start, reverse: false) { _, attributes, range in
+            if range.contains(start) { found = attributes[.foregroundColor] as? NSColor }
+            return false
+        }
+        guard let c = found?.usingColorSpace(.sRGB) else { return "none" }
+        return String(format: "#%02X%02X%02X", Int((c.redComponent * 255).rounded()), Int((c.greenComponent * 255).rounded()), Int((c.blueComponent * 255).rounded()))
+    }
+
+    /// A scratch-sized file (§6.5: 2.4 MB of Markdown): colors soon after it opens, at the end
+    /// once scrolled there, and on a heading typed there; typing isn't held up meanwhile.
+    static func bigFile(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("big-\(marker).md")
+        var text = "# Big file \(marker)\n", n = 0
+        while text.utf8.count < 2_400_000 {
+            n += 1
+            switch n % 200 {
+            case 0: text += "```bash\nrsync -av --progress ./dist/ me@seedbox:~/www/ && echo \"done \(n)\"\n```\n"
+            case 50: text += "## Notes for \(n)\n"
+            default:
+                if n % 25 == 0 { text += String(repeating: "A long email paragraph that wraps, pasted from the thread about item \(n), ", count: 5) + "\n" }
+                else if n % 3 == 0 { text += "- item \(n) with `code` and **bold** text\n" }
+                else { text += "Line \(n): see https://example.com/\(n) and the config.json file.\n" }
+            }
+        }
+        text += "## The last heading \(marker)\n"
+        try? Data(text.utf8).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        }
+        let opened = Date()
+        AppDelegate.openFile(url)
+        _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened"); return }
+        let view = document.editor.textView
+        let yellow = "#E7CE57"
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        view.scrollRangeToVisible(NSRange(location: 0, length: 0))
+        let top = await waitFor(10) { drawnColor(view, at: 2) == yellow }
+        log.check(top, "\(text.utf8.count / 1000) KB, \(n) lines: the heading at the top colored \(Int(Date().timeIntervalSince(opened) * 1000)) ms after asking to open it")
+        let length = (view.string as NSString).length
+        let last = (view.string as NSString).range(of: "## The last heading").location
+        let scrolled = Date()
+        view.scrollRangeToVisible(NSRange(location: length, length: 0))
+        let bottom = await waitFor(5) { drawnColor(view, at: last + 3) == yellow }
+        log.check(bottom, "scrolled to the end: the last heading colored \(Int(Date().timeIntervalSince(scrolled) * 1000)) ms later")
+        view.setSelectedRange(NSRange(location: length, length: 0))
+        var slowest = 0.0
+        for character in "## Typed \(marker)\n" {
+            let start = Date()
+            view.insertText(String(character), replacementRange: view.selectedRange())
+            slowest = max(slowest, Date().timeIntervalSince(start))
+            try? await Task.sleep(for: .milliseconds(30))
+        }
+        let stopped = Date()
+        let typed = (view.string as NSString).range(of: "## Typed \(marker)").location
+        let colored = await waitFor(5) { drawnColor(view, at: typed + 3) == yellow }
+        log.check(colored, "a heading typed at the end: colored \(Int(Date().timeIntervalSince(stopped) * 1000)) ms after typing stopped")
+        log.check(slowest < 0.05, "the slowest keystroke took \(String(format: "%.1f", slowest * 1000)) ms on the main thread")
+        // LN, COL counted on from the last place, through typing and an edit above the caret.
+        func counted(_ location: Int) -> (Int, Int) {
+            let ns = view.string as NSString, before = ns.substring(to: location)
+            let line = before.components(separatedBy: "\n").count
+            return (line, location - ((before as NSString).range(of: "\n", options: .backwards).location == NSNotFound ? 0 : (before as NSString).range(of: "\n", options: .backwards).location + 1) + 1)
+        }
+        let caret = view.selectedRange().location
+        log.check(document.cursor == counted(caret), "the strip's LN, COL after typing: \(document.cursor) (counted \(counted(caret)))")
+        view.textStorage?.replaceCharacters(in: NSRange(location: 10, length: 0), with: "\n\n")   // above the caret, not typed
+        let moved = view.selectedRange().location
+        log.check(document.editor.position(of: moved) == counted(moved), "and after an edit above the caret: \(document.editor.position(of: moved)) (counted \(counted(moved)))")
+        view.window?.performClose(nil)
+        _ = await waitFor(20) { Documents.existing(for: url) == nil }
     }
 
     /// The Sync Log window (SY13, A13): Window › Sync Log (⌥⌘L), newest first, following the

@@ -155,6 +155,8 @@ public struct Theme: Sendable {
     }
 
     public var name: String
+    /// Which scheme this is, for caches of its styles: a copy shares it, a new import doesn't.
+    public private(set) var id = UUID()
     /// The globals by `.sublime-color-scheme`'s names (a `.tmTheme`'s `lineHighlight` is
     /// `line_highlight`), colors as hex; options such as `brackets_options` as written.
     public var globals: [String: String]

@@ -406,6 +406,13 @@ final class Document {
     /// Finds the blocks again after any change to the buffer (a scan, and only when a
     /// marker is there at all: a few ms at 2.4 MB).
     private func updateBlocks() {
+        // With no blocks, only an edit on a marker line can make one: don't search the whole
+        // text on every keystroke (14 ms at 2.4 MB).
+        if blocks.isEmpty, let edit = editor.lastEdit, let storage = editor.textView.textStorage {
+            let text = storage.string as NSString
+            let lines = text.lineRange(for: NSIntersectionRange(edit, NSRange(location: 0, length: text.length)))
+            guard ["<<<<<<<", "|||||||", "=======", ">>>>>>>"].contains(where: { text.range(of: $0, range: lines).location != NSNotFound }) else { return }
+        }
         let found = ConflictText.blocks(in: editor.textView.string)
         if found.count != blocks.count { bannerHidden = false }
         if found != blocks { blocks = found }
@@ -523,6 +530,9 @@ final class Document {
     func flush(reason: String) async {
         guard ready, locked == nil else { return }
         saveTask?.cancel()
+        // A save already running (the app switch's, say) would make this one step aside and
+        // return before the file has the text: wait for it, then save what's still unsaved.
+        for _ in 0..<250 where saving { try? await Task.sleep(for: .milliseconds(20)) }
         if dirty { await save(reason: reason) }
         if held, uploadedSHA != baseFingerprint?.sha256 { await upload(now: true) }
     }
