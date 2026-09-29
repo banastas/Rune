@@ -127,6 +127,11 @@ final class Document {
     /// Direct file-system watches, behind iCloud's presenters: writers that don't coordinate
     /// (`echo >> file`) went unnoticed by the presenter while a save waited to upload (M1).
     @ObservationIgnored private var fileWatch: DispatchSourceFileSystemObject?
+    /// Holding again after iCloud's helper didn't answer, in the background (§4.3); a hold
+    /// in flight; and closing, which waits for it so a file is never left paused.
+    @ObservationIgnored private var holdRetry: Task<Void, Never>?
+    @ObservationIgnored private var pausing = false
+    @ObservationIgnored private var closing = false
     @ObservationIgnored private var noteWatch: DispatchSourceFileSystemObject?
 
     var dirty: Bool { editCount != savedEditCount }
@@ -302,13 +307,80 @@ final class Document {
             }
         }
         do {
-            try await CloudControl.pause(url)
+            try await pauseFile()
             held = true
             pausedFiles.add(url.path)
             record("pause")
+        } catch CloudControl.ControlError.unsupported {
+            record("pause", detail: "failed, running unheld: iCloud doesn't support pausing this file")
         } catch {
-            record("pause", detail: "failed, running unheld: \(CloudControl.describe(error))")
+            record("pause", detail: "not held yet: \(CloudControl.describe(error)); trying again in 2 s")
+            scheduleHoldRetry()
         }
+    }
+
+    /// Pauses iCloud's syncing of the file. iCloud's helper often doesn't answer for a file
+    /// created moments before (M2: 9 of 20 new test files, "Couldn't communicate with a helper
+    /// application"), so a failed hold is tried again in the background: 2, 5, 10, 20 and 40 s
+    /// later, then every minute while the file is open. Meanwhile it runs unheld, synced by
+    /// iCloud on its own schedule, and Nib's saves go on as before.
+    private func pauseFile() async throws {
+        pausing = true
+        defer { pausing = false }
+        #if DEBUG
+        if TestHarness.failPauses > 0, let prefix = TestHarness.failPausesFor, url.lastPathComponent.hasPrefix(prefix) {
+            TestHarness.failPauses -= 1
+            throw NSError(domain: NSCocoaErrorDomain, code: 4099, userInfo: [NSLocalizedDescriptionKey: "Couldn't communicate with a helper application. (a test)"])
+        }
+        #endif
+        try await CloudControl.pause(url)
+    }
+
+    private func scheduleHoldRetry() {
+        guard holdRetry == nil, !closing, !untitled else { return }
+        holdRetry = Task { [weak self] in
+            let started = Date(), delays: [Double] = [2, 5, 10, 20, 40]
+            var tries = 1
+            while true {
+                try? await Task.sleep(for: .seconds(tries <= delays.count ? delays[tries - 1] : 60))
+                guard let self, !Task.isCancelled, !self.closing, !self.held else { return }
+                tries += 1
+                if await self.retryHold(tries: tries, since: started) { break }
+                if tries == delays.count + 1 {
+                    self.record("pause", detail: "still failing after \(tries) tries: running unheld, trying every minute while it's open")
+                }
+            }
+            self?.holdRetry = nil
+        }
+    }
+
+    /// One more try at holding the file; true once it's held or iCloud stops offering it.
+    private func retryHold(tries: Int, since: Date) async -> Bool {
+        guard !saving, !refreshing, fetches == 0 else { return false }   // not in the middle of those: next time
+        await diskMayHaveChanged()   // whatever iCloud put there while it wasn't held
+        let url = self.url
+        let status = await io.run { CloudControl.status(url) }
+        guard status.ubiquitous, status.canPause, status.canFailOnConflict else {
+            record("pause", detail: "not offered any more: iCloud uploads on its own schedule")
+            return true
+        }
+        do {
+            try await pauseFile()
+        } catch CloudControl.ControlError.unsupported {
+            record("pause", detail: "failed, running unheld: iCloud doesn't support pausing this file")
+            return true
+        } catch {
+            return false
+        }
+        held = true
+        pausedFiles.add(url.path)
+        record("pause", ms: ms(since: since), detail: "held on try \(tries)")
+        guard !closing else { return true }   // closing waits for this, then hands it back
+        // iCloud may not have the latest save: upload it, refused if the server has a newer
+        // version, which is then merged (§4.3, §4.6), as when a file is first held.
+        await upload(now: true)
+        await checkAnnouncement(reason: "held")
+        return true
     }
 
     // MARK: - Editing
@@ -1058,10 +1130,12 @@ final class Document {
 
     private func holdAgain() async {
         do {
-            try await CloudControl.pause(url)
+            try await pauseFile()
             held = true
         } catch {
-            record("pause", detail: "couldn't hold the file again, running unheld: \(CloudControl.describe(error))")
+            pausedFiles.remove(url.path)   // not paused: nothing for the next launch to hand back
+            record("pause", detail: "not held yet, after a refresh: \(CloudControl.describe(error)); trying again in 2 s")
+            scheduleHoldRetry()
         }
     }
 
@@ -1129,6 +1203,9 @@ final class Document {
 
     /// Quitting: save, upload, hand the file back to iCloud (§4.3; a pause outlives the app).
     func close() async {
+        closing = true
+        holdRetry?.cancel()
+        for _ in 0..<200 where pausing { try? await Task.sleep(for: .milliseconds(100)) }   // a hold in flight (≤ 20 s)
         let started = Date()
         record("quit", detail: "closing")
         editor.saveSelection(for: url)

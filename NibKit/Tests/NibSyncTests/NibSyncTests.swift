@@ -272,6 +272,10 @@ func scratchFolder() -> URL {
         #expect(event("problem", detail: "the file was deleted or moved away").failed)
         #expect(event("pause").word == "Held" && event("pause", detail: "not offered: iCloud uploads on its own schedule").word == "Not held")
         #expect(event("pause", detail: "failed, running unheld: x").failed)
+        let notYet = event("pause", detail: "not held yet: NSCocoaErrorDomain 4099; trying again in 2 s")
+        #expect(notYet.word == "Not held" && notYet.glyph == "‖" && !notYet.failed && notYet.needsLook)
+        #expect(event("pause", detail: "held on try 3").word == "Held" && event("pause", detail: "held on try 3").glyph == "·")
+        #expect(event("pause", detail: "still failing after 6 tries: running unheld, trying every minute while it's open").glyph == "✕")
         #expect(event("resume").word == "Handed back" && event("quit").word == "Closed")
         #expect(event("merge view").word == "Merge view" && event("something new").word == "Something new")
     }

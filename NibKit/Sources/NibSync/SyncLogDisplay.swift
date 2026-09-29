@@ -32,13 +32,14 @@ extension SyncEvent {
         if event == "problem" { return true }
         guard let detail = detail?.lowercased() else { return false }
         return detail.hasPrefix("failed") || detail.contains(": failed") || detail.hasPrefix("couldn't") || detail.contains("running unheld")
+            || detail.hasPrefix("still failing")
     }
 
     /// A conflict, or a step iCloud refused or didn't answer: in "Conflicts and problems".
     public var needsLook: Bool {
         if failed || event == "conflict" { return true }
         guard let detail = detail?.lowercased() else { return false }
-        return detail.hasPrefix("refused") || detail.contains("no answer")
+        return detail.hasPrefix("refused") || detail.contains("no answer") || detail.hasPrefix("not held yet")
     }
 
     public var category: Category {
@@ -93,7 +94,7 @@ extension SyncEvent {
         case "resolve": return "Resolved"
         case "revert": return "Reverted"
         case "recover": return "Recovered"
-        case "pause": return detail == nil ? "Held" : "Not held"
+        case "pause": return detail == nil || detail?.hasPrefix("held") == true ? "Held" : "Not held"
         case "resume": return "Handed back"
         case "quit": return "Closed"
         case "problem": return "Problem"
