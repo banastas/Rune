@@ -1417,6 +1417,10 @@ final class Document {
                 record("resume", detail: "upload refused at quit, taking the server's version; this Mac's text is in the journal: \(CloudControl.describe(error))")
                 handedBack = (try? await resumeFile(.takeServerVersion)) != nil
                 break
+            } catch where CloudControl.isUnsupported(error) {
+                // "Not supported": it isn't paused (any more), so there's nothing to hand back.
+                handedBack = true
+                break
             } catch {
                 // Passing (iCloud's helper not answering, say): once more, then leave it paused and
                 // listed, for the next launch to hand back. Never the server's version for this.

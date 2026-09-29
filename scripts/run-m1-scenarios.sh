@@ -37,6 +37,7 @@ mkdir -p "$LOGS"
 
 run() {   # run <name> [args…]: one scenario, killed after 120 s if it hangs
   local name=$1; shift
+  rm -f "$LOGS/$name.log"   # a launch that never gets going must say so, not show an earlier run's log
   "$APP" -NibScenario "$name" -NibScenarioLog "$PWD/$LOGS/$name.log" "$@" >/dev/null 2>&1 &
   local pid=$!
   # The guard's output goes nowhere, or its sleep would hold a pipe open for 120 s.
