@@ -43,6 +43,9 @@ enum TestHarness {
             case "files": await files(log, marker)
             case "syntax": await syntaxScenario(log, marker)
             case "themes": await themes(log, marker)
+            case "untitled": await untitledScenario(log, marker)
+            case "untitled-return": await untitledReturn(log, marker)
+            case "untitled-quit": await untitledQuit(log, marker)
             case "two-mac": await twoMac(document, log, marker)
             default: log.line("FAIL unknown scenario")
             }
@@ -643,6 +646,147 @@ enum TestHarness {
         for (key, value) in saved { if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) } }
         view.window?.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: url) == nil }
+    }
+
+    /// Untitled buffers (ED3), first launch: ⌘N, journaled and saved on this Mac only, out of
+    /// the Sync Log; closing one keeps it in History and ⇧⌘T brings it back; an empty one just
+    /// goes; Save… makes one a file (in the test folders only). Then typing that only the
+    /// journal has, and a crash: `untitled-return` checks what comes back. Saving waits
+    /// (-NibSaveIdle 600) so only the journal has that typing.
+    static func untitledScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let journal = Journal(directory: NibPaths.support.appendingPathComponent("Journal"))
+        func newBuffer() async -> Document? {
+            let known = Set(Untitled.all().map(\.path))
+            AppDelegate.newUntitled()
+            var found: Document?
+            _ = await waitFor(10) {
+                found = Untitled.all().first { !known.contains($0.path) }.flatMap { Documents.existing(for: $0) }
+                return found?.ready == true && found?.editor.textView.window?.isVisible == true
+            }
+            return found
+        }
+        func close(_ document: Document) async {
+            let url = document.url
+            document.editor.textView.window?.performClose(nil)
+            _ = await waitFor(10) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+        }
+        func onDisk(_ url: URL) -> String { (try? String(contentsOf: url, encoding: .utf8)) ?? "" }
+        guard let one = await newBuffer() else { log.check(false, "⌘N opened an untitled buffer"); return }
+        let name = one.url.lastPathComponent
+        log.check(one.untitled && name.hasPrefix("Untitled") && one.editor.textView.window?.title == name,
+                  "⌘N: a new untitled buffer, “\(name)”, in a window of its own")
+        await type("untitled one \(marker)\n", into: one)
+        let journaled = await waitFor(3) { journal.read(path: one.url.path)?.text.contains("untitled one \(marker)") == true }
+        log.check(journaled, "its typing is in the journal within a moment")
+        await one.flush(reason: "test")
+        log.check(onDisk(one.url).contains("untitled one \(marker)") && one.state.line.hasPrefix("= ON THIS MAC ONLY"),
+                  "and saved in Nib's own folder, on this Mac only (\(one.state.line))")
+        let syncLog = (try? String(contentsOf: NibPaths.support.appendingPathComponent("sync.jsonl"), encoding: .utf8)) ?? ""
+        log.check(!syncLog.contains(Untitled.folder.path), "nothing about it in the Sync Log: it never syncs")
+
+        guard let two = await newBuffer() else { log.check(false, "a second untitled buffer"); return }
+        let twoURL = two.url, twoName = twoURL.lastPathComponent
+        _ = await waitFor(3) { one.editor.textView.window?.tabGroup?.windows.contains { $0 === two.editor.textView.window } == true }
+        log.check(twoName != name && one.editor.textView.window?.tabGroup?.windows.contains { $0 === two.editor.textView.window } == true,
+                  "a second one, “\(twoName)”, is a tab beside it")
+        await type("untitled two \(marker)\n", into: two)
+        if let window = two.editor.textView.window, let frame = window.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            try? await Task.sleep(for: .milliseconds(500))
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("snapshot-untitled.png"))
+        }
+        await close(two)
+        let history = History(root: NibPaths.support.appendingPathComponent("History"), path: twoURL.path)
+        let kept = history.entries().last.flatMap { history.data($0.sha256) }.map { TextFile.decode($0).text } ?? ""
+        log.check(!FileManager.default.fileExists(atPath: twoURL.path) && kept.contains("untitled two \(marker)")
+                  && ClosedItems.shared.items.first?.path == twoURL.path,
+                  "closing it asks nothing: its text is in History and on Reopen Closed File (\(history.entries().last?.source ?? "none"))")
+        ClosedItems.shared.reopenLast()
+        let back = await waitFor(10) { Documents.existing(for: twoURL)?.ready == true && Documents.existing(for: twoURL)?.editor.textView.string.contains("untitled two \(marker)") == true }
+        log.check(back && ClosedItems.shared.items.first?.path != twoURL.path, "⇧⌘T brings it back, “\(twoName)” as it was")
+
+        guard let three = await newBuffer() else { log.check(false, "a third untitled buffer"); return }
+        let threeURL = three.url
+        await close(three)
+        log.check(!FileManager.default.fileExists(atPath: threeURL.path) && !ClosedItems.shared.items.contains { $0.path == threeURL.path },
+                  "an empty one just goes: nothing kept")
+
+        guard let four = await newBuffer() else { log.check(false, "a fourth untitled buffer"); return }
+        let fourURL = four.url
+        await type("saved as a file \(marker)\n", into: four)
+        let outside = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("nib-untitled-\(marker).txt")
+        let refused = await Untitled.save(four, to: outside)
+        log.check(!refused && !FileManager.default.fileExists(atPath: outside.path) && four.notice?.contains("NIB OPENS ONLY TEST FILES") == true,
+                  "Save… outside the test folders: refused, nothing written (\(four.notice ?? "no notice"))")
+        let target = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("untitled-saved-\(marker).txt")
+        defer { try? FileManager.default.removeItem(at: target) }
+        let saved = await Untitled.save(four, to: target)
+        let opened = await waitFor(10) { Documents.existing(for: target)?.ready == true && Documents.existing(for: fourURL) == nil }
+        log.check(saved && opened && onDisk(target) == "saved as a file \(marker)\n" && !FileManager.default.fileExists(atPath: fourURL.path)
+                  && !ClosedItems.shared.items.contains { $0.path == fourURL.path },
+                  "Save…: the text in the file, the file open in its place, the untitled buffer gone")
+        Documents.existing(for: target)?.editor.textView.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: target) == nil }
+        if let item = ClosedItems.shared.items.first(where: { $0.path == target.path }) { ClosedItems.shared.forget(item) }
+
+        // Typing only the journal has, then a crash.
+        await type("after the save \(marker)\n", into: one)
+        let inJournal = await waitFor(3) { journal.read(path: one.url.path)?.text.contains("after the save \(marker)") == true }
+        log.check(inJournal && !onDisk(one.url).contains("after the save"), "more typing: in the journal, not yet in the file")
+        log.line("SIGKILL")
+        kill(getpid(), SIGKILL)
+    }
+
+    /// The launch after `untitled`: both untitled buffers are back (hot exit), the first with
+    /// the typing only the journal had. Then they're closed and forgotten, History and all.
+    static func untitledReturn(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        var mine: [Document] = []
+        _ = await waitFor(15) {
+            mine = Untitled.all().compactMap { Documents.existing(for: $0) }.filter { $0.ready && $0.editor.textView.string.contains(marker) }
+            return mine.count >= 2 && mine.contains { $0.editor.textView.string.contains("after the save \(marker)") }
+        }
+        let one = mine.first { $0.editor.textView.string.contains("untitled one \(marker)") }
+        let two = mine.first { $0.editor.textView.string.contains("untitled two \(marker)") }
+        log.check(one?.editor.textView.string.contains("after the save \(marker)") == true && one?.editor.textView.window?.isVisible == true,
+                  "after a crash, the untitled buffer is back with the typing only the journal had (\(one?.notice ?? "no notice"))")
+        log.check(two?.editor.textView.window?.isVisible == true, "and the one ⇧⌘T brought back is too")
+        let saved = await waitFor(10) { one.map { ((try? String(contentsOf: $0.url, encoding: .utf8)) ?? "").contains("after the save \(marker)") } ?? false }
+        log.check(saved, "and the recovered typing is saved")
+        for document in mine {
+            let url = document.url
+            document.editor.textView.window?.performClose(nil)
+            _ = await waitFor(10) { Documents.existing(for: url) == nil }
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        }
+        log.check(mine.allSatisfy { !FileManager.default.fileExists(atPath: $0.url.path) }, "closed and forgotten, History and all")
+        // One more, left open for an ordinary quit: `untitled-quit` checks it comes back.
+        AppDelegate.newUntitled()
+        var last: Document?
+        _ = await waitFor(10) {
+            last = Untitled.all().compactMap { Documents.existing(for: $0) }.first { $0.ready && $0.editor.textView.string.isEmpty }
+            return last != nil
+        }
+        if let last { await type("left open at quit \(marker)\n", into: last) }
+        log.check(last != nil, "one more left open, then an ordinary quit")
+    }
+
+    /// The launch after `untitled-return`'s ordinary quit: the untitled buffer left open is back.
+    static func untitledQuit(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        var back: Document?
+        _ = await waitFor(15) {
+            back = Untitled.all().compactMap { Documents.existing(for: $0) }.first { $0.ready && $0.editor.textView.string.contains("left open at quit \(marker)") }
+            return back?.editor.textView.window?.isVisible == true
+        }
+        log.check(back != nil, "after quitting, the untitled buffer left open is back (\(back?.url.lastPathComponent ?? "not found"))")
+        if let back {
+            let url = back.url
+            back.editor.textView.window?.performClose(nil)
+            _ = await waitFor(10) { Documents.existing(for: url) == nil }
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        }
     }
 
     /// History (SY13): each saved version is kept; Revert To puts one back as an edit, and the

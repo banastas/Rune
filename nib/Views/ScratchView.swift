@@ -53,6 +53,7 @@ struct DocumentView: View {
     /// "iCloud Drive › Nib › Test" (Nib's own folder) or "iCloud Drive › nib-spike", as Finder
     /// would name the folder.
     private var subtitle: String {
+        if document.untitled { return "On this Mac only" }
         let folder = document.url.deletingLastPathComponent().path
         for (root, name) in [(ScratchLocation.folder.path, "iCloud Drive › Nib"), (NibPaths.iCloudDrive.path, "iCloud Drive")]
         where folder == root || folder.hasPrefix(root + "/") {

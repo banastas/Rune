@@ -68,11 +68,15 @@ run history
 run files
 run syntax
 run themes
+umarker="untitled-$(date +%s)"
+run untitled -NibMarker "$umarker" -NibSaveIdle 600 -NibSaveMax 600
+run untitled-return -NibMarker "$umarker"
+run untitled-quit -NibMarker "$umarker"
 run refresh
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard undo crash recover external unsent merge mergeview duplicates conflictversions history files syntax themes refresh; do   # this run's logs only
+for name in type clipboard undo crash recover external unsent merge mergeview duplicates conflictversions history files syntax themes untitled untitled-return untitled-quit refresh; do   # this run's logs only
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi

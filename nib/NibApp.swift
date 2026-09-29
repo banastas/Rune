@@ -24,10 +24,9 @@ struct NibApp: App {
             if let url {
                 FileWindow(url: url)
             } else {
-                // The tab bar's + (a window with no file): the Open panel instead, until
-                // untitled buffers (ED3) exist.
+                // The tab bar's + (a window with no file): a new untitled buffer instead (ED3).
                 Color.clear.background(WindowConfigurator { window in
-                    DispatchQueue.main.async { window.close(); AppDelegate.showOpenPanel() }
+                    DispatchQueue.main.async { window.close(); AppDelegate.newUntitled() }
                 })
             }
         }
@@ -51,10 +50,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         didSet { if openFileWindow != nil { let waiting = pendingFiles; pendingFiles = []; waiting.forEach(openFile) } }
     }
     private static var pendingFiles: [URL] = []
+    /// Quitting: windows closing now keep their untitled buffers for the next launch (ED3).
+    static var terminating = false
+
+    /// File › New, ⌘N (ED3).
+    static func newUntitled() {
+        guard let url = Untitled.create() else { NSSound.beep(); return }
+        openFile(url)
+    }
 
     /// ⌘O, Open Recent, Finder's Open With, the Dock (ED2): the file's window, a tab beside the others.
     static func openFile(_ url: URL) {
-        RecentFiles.shared.add(url)
+        if !Untitled.contains(url) { RecentFiles.shared.add(url) }
         if let document = Documents.existing(for: url) {
             if document === Documents.scratch { showScratch(); return }
             if let window = document.editor.textView.window {
@@ -89,6 +96,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             await Document.settlePausedFiles(except: document.url)
             await document.open()
+            ClosedItems.shared.sweep()
+            Untitled.restore()   // hot exit (ED3): the untitled buffers from before
             #if DEBUG
             TestHarness.runIfRequested(document)
             #endif
@@ -111,6 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Quitting: save, upload, hand every file back to iCloud; a watchdog makes sure it ends.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        Self.terminating = true
         Task {
             await withTaskGroup(of: Void.self) { group in
                 for document in Documents.all { group.addTask { await document.close() } }
@@ -175,13 +185,23 @@ struct NibCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
+            Button("New") { AppDelegate.newUntitled() }
+                .keyboardShortcut("n")
             Button("Open…") { AppDelegate.showOpenPanel() }
                 .keyboardShortcut("o")
             OpenRecentMenu()
+            Divider()
+            Button("Reopen Closed File") { ClosedItems.shared.reopenLast() }
+                .keyboardShortcut("t", modifiers: [.command, .shift])
+                .disabled(ClosedItems.shared.items.isEmpty)
         }
         CommandGroup(replacing: .saveItem) {
-            // Everything saves by itself; ⌘S saves and uploads now.
-            Button("Save") { if let document { Task { await document.flush(reason: "⌘S") } } }
+            // Everything saves by itself; ⌘S saves and uploads now. An untitled buffer asks
+            // where to put it (W3).
+            Button(document?.untitled == true ? "Save…" : "Save") {
+                guard let document else { return }
+                if document.untitled { Untitled.saveAs(document) } else { Task { await document.flush(reason: "⌘S") } }
+            }
                 .keyboardShortcut("s")
                 .disabled(document == nil)
             if let document { RevertToMenu(document: document) } else { Menu("Revert To") {}.disabled(true) }

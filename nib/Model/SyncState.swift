@@ -12,6 +12,8 @@ enum SyncState: Equatable {
     /// In the file on this Mac; iCloud doesn't have this version yet.
     case saved(Date)
     case uploading(Date)
+    /// An untitled buffer (ED3): in Nib's own folder on this Mac, never synced.
+    case local(Date)
     /// iCloud has this exact version (the upload call returned it, or iCloud reported it).
     case synced(Date)
     /// Nothing wrong, just waiting on something outside nib (W4, L6: never red).
@@ -32,6 +34,7 @@ enum SyncState: Equatable {
         case .editing: "· EDITING"
         case .saved(let time): "= SAVED LOCALLY · \(Self.clock.string(from: time))"
         case .uploading(let time): "▲ UPLOADING · SAVED \(Self.clock.string(from: time))"
+        case .local(let time): "= ON THIS MAC ONLY · \(Self.clock.string(from: time))"
         case .synced(let time): "✓ SYNCED · \(Self.clock.string(from: time))"
         case .waiting(let why): "‖ \(why)"
         case .problem(let why): why
@@ -61,6 +64,7 @@ enum SyncState: Equatable {
         case .editing: "Editing"
         case .saved(let time): "Saved on this Mac at \(Self.clock.string(from: time)), not in iCloud yet"
         case .uploading: "Uploading to iCloud"
+        case .local(let time): "Kept on this Mac only, at \(Self.clock.string(from: time))"
         case .synced(let time): "Synced at \(Self.clock.string(from: time))"
         case .waiting(let why): "Waiting: \(why.lowercased())"
         case .problem(let why): "Problem: \(why.lowercased())"

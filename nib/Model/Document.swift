@@ -27,6 +27,8 @@ private struct Unproven {
 @Observable
 final class Document {
     let url: URL
+    /// An untitled buffer (ED3): a file of Nib's own on this Mac, never synced.
+    let untitled: Bool
     let device = Host.current().localizedName ?? "This Mac"
     private(set) var state: SyncState = .opening
     private(set) var format = FileFormat.standard
@@ -137,6 +139,7 @@ final class Document {
 
     init(url: URL) {
         self.url = url
+        untitled = Untitled.contains(url)
         let defaults = UserDefaults.standard
         schedule = SaveSchedule(idle: defaults.object(forKey: "NibSaveIdle") as? TimeInterval ?? 1,
                                 maxWait: defaults.object(forKey: "NibSaveMax") as? TimeInterval ?? 5)
@@ -205,18 +208,27 @@ final class Document {
         applying = false
         editor.restoreSelection(for: url)
         updateBlocks()
-        NSFileCoordinator.addFilePresenter(presenter)
-        try? FileManager.default.createDirectory(at: Announcement.url(for: url).deletingLastPathComponent(), withIntermediateDirectories: true)
-        NSFileCoordinator.addFilePresenter(notePresenter)
-        watchFile()
-        watchNoteFolder()
+        if !untitled {
+            NSFileCoordinator.addFilePresenter(presenter)
+            try? FileManager.default.createDirectory(at: Announcement.url(for: url).deletingLastPathComponent(), withIntermediateDirectories: true)
+            NSFileCoordinator.addFilePresenter(notePresenter)
+            watchFile()
+            watchNoteFolder()
+        }
         record("open", size: text.utf8.count, sha: baseFingerprint?.sha256)
         recoverFromJournal(fileText: text)
         pickedSyntax = UserDefaults.standard.string(forKey: "syntax:" + url.path).flatMap(SyntaxPick.init(stored:))
         applySyntax()
-        watchNetwork()
-        state = status.uploaded ? .synced(Date()) : .saved(Date())
+        state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : .saved(Date())
         ready = true
+        if untitled {
+            // Nothing to hold, fetch or announce: it's on this Mac only.
+            let history = self.history
+            Task { await journalQueue.run { history.thin() } }
+            if dirty { scheduleSave() }
+            return
+        }
+        watchNetwork()
         await hold(status)
         if held {
             // Paused, iCloud's uploaded flag stops meaning anything (M0). A file left paused
@@ -473,7 +485,7 @@ final class Document {
                     schedule.saved()
                     journal.clear(path: url.path)
                 }
-                state = dirty ? .editing : .saved(lastSaved)
+                state = dirty ? .editing : untitled ? .local(lastSaved) : .saved(lastSaved)
                 record("save", size: data.count, sha: fingerprint.sha256, ms: ms(since: started), detail: reason)
                 uploadNow = reason != "debounce"
             case .diskChanged(let onDisk, let fingerprint):
@@ -1076,6 +1088,7 @@ final class Document {
 
     /// nib came forward: check the server now, then every 30 s while it stays in front.
     func becameActive() {
+        guard !untitled else { return }   // on this Mac only: nothing to check
         Task {
             if held { await diskMayHaveChanged() }   // another app on this Mac may have written it
             await checkAnnouncement(reason: "activated")
@@ -1158,7 +1171,7 @@ final class Document {
 
     // MARK: - Helpers
 
-    private func show(_ text: String, for seconds: Double) {
+    func show(_ text: String, for seconds: Double) {
         notice = text
         noticeTask?.cancel()
         noticeTask = Task { [weak self] in
@@ -1169,6 +1182,7 @@ final class Document {
     }
 
     private func record(_ event: String, size: Int? = nil, sha: String? = nil, ms: Int? = nil, detail: String? = nil) {
+        guard !untitled else { return }   // the Sync Log is about syncing; untitled buffers never do
         log.append(SyncEvent(event, path: url.path, device: device, size: size, sha256: sha, ms: ms, detail: detail))
     }
 
@@ -1292,6 +1306,7 @@ enum ScratchLocation {
 
     static func refusal(for url: URL) -> String? {
         if UserDefaults.standard.bool(forKey: "allowLiveScratch") { return nil }
+        if Untitled.contains(url) { return nil }   // Nib's own, on this Mac only (ED3)
         let path = url.standardizedFileURL.path
         guard path.hasPrefix(testFolder.path + "/") || path.hasPrefix(unsignedTestFolder.path + "/") else {
             return "NIB OPENS ONLY TEST FILES (ICLOUD DRIVE › NIB › TEST) UNTIL M1 HAS PASSED (PRD §8)"
