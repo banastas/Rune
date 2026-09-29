@@ -40,6 +40,13 @@ enum Scheme {
     static var markupDeleted: NSColor { theme.style(for: "markup.deleted").background.map(NSColor.init) ?? color(0x420E09) }
     static var markupChanged: NSColor { theme.style(for: "markup.changed").background.map(NSColor.init) ?? color(0x4A4A0F) }
     static var comment: NSColor { NSColor(theme.style(for: "comment").foreground) }
+    /// Line numbers (ED6): the gutter, its numbers (at least 4.5:1, unless the scheme sets its
+    /// own), and the caret's line's number in the text color.
+    static var gutter: NSColor { NSColor(theme.gutter) }
+    static var gutterForeground: NSColor { NSColor(theme.gutterForeground) }
+    static var gutterForegroundHighlight: NSColor { global("gutter_foreground_highlight") ?? foreground }
+    /// Show Invisibles (ED6): the scheme's `invisibles` (An Old Hope's #3B3A32, faint on purpose).
+    static var invisibles: NSColor { global("invisibles") ?? foreground.withAlphaComponent(0.3) }
     /// Find's other matches (ED7): the scheme's `find_highlight` behind them, and its
     /// `find_highlight_foreground` if it sets one (An Old Hope · Nib's: black on #FFE792).
     static var findHighlight: NSColor { global("find_highlight") ?? color(0xFFE792) }
@@ -193,6 +200,12 @@ final class Schemes {
             if let spaces = found.translateTabsToSpaces { defaults.set(spaces, forKey: "editorSpaces") }
             if found.tabSize != nil || found.translateTabsToSpaces != nil {
                 facts.append([found.tabSize.map { "TAB SIZE \($0)" }, found.translateTabsToSpaces.map { $0 ? "SPACES" : "TABS" }].compactMap { $0 }.joined(separator: " · "))
+            }
+            // Line numbers and invisibles (ED6), as Sublime shows them.
+            if let numbers = found.lineNumbers { defaults.set(numbers, forKey: "editorLineNumbers") }
+            if let invisibles = found.invisibles { defaults.set(invisibles, forKey: "editorInvisibles") }
+            if found.lineNumbers != nil || found.invisibles != nil {
+                facts.append([found.lineNumbers.map { "LINE NUMBERS \($0 ? "ON" : "OFF")" }, found.invisibles.map { "INVISIBLES \($0 ? "ON" : "OFF")" }].compactMap { $0 }.joined(separator: " · "))
             }
             var unused: [String] = []
             if let wrap = found.wordWrap { unused.append("WORD WRAP \(wrap.uppercased())"); defaults.set(wrap, forKey: "editorWordWrap") }

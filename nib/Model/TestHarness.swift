@@ -25,6 +25,9 @@ enum TestHarness {
     /// and the next fetches answered "nothing newer", as iCloud can for a held file.
     static var refuseUploads = 0
     static var staleFetches = 0
+    /// Hands the file back for real, taking the server's version, just before the next forced
+    /// refresh: the hold lost as a hand-back a moment before can lose it (`refusal-lost-hold`).
+    static var loseHoldBeforeRefresh = UserDefaults.standard.bool(forKey: "NibLoseHold")
     /// The next fetch brings this, as if another Mac had uploaded it (the `merge` scenario's
     /// -NibNoteTiming variants: versions from iCloud are the ones that wait for their note).
     static var fakeNewer: Data?
@@ -69,6 +72,7 @@ enum TestHarness {
             case "lines": await lineCommands(log, marker)
             case "find": await findScenario(log, marker)
             case "palette": await paletteScenario(log, marker)
+            case "gutter": await gutterScenario(log, marker)
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -502,6 +506,110 @@ enum TestHarness {
         await document.flush(reason: "test")
         log.check(fileText(document) == original, "and the file is as it was")
         view.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil }
+    }
+
+    /// Line numbers and invisibles (ED6): TextKit 2 kept; one number a line, a wrapped line
+    /// numbered once, the empty last line too, the caret's brighter; LN, COL from the line
+    /// index matching a count from the top, through edits; the gutter widening past 999 lines;
+    /// the View menu turning each off and on; dots and arrows for spaces and tabs. The window
+    /// is saved as a picture beside the log.
+    static func gutterScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let defaults = UserDefaults.standard
+        let saved = (defaults.object(forKey: "editorLineNumbers"), defaults.object(forKey: "editorInvisibles"))
+        defaults.removeObject(forKey: "editorLineNumbers")
+        defaults.removeObject(forKey: "editorInvisibles")
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("gutter-\(marker).txt")
+        let long = String(repeating: "a long line that wraps across the window ", count: 12)
+        let original = "alpha \(marker)\n\tbeta  gamma\n\(long)\n\nlast line\n"
+        try? Data(original.utf8).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+            for (key, value) in [("editorLineNumbers", saved.0), ("editorInvisibles", saved.1)] {
+                if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) }
+            }
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url), let window = document.editor.textView.window else { log.check(false, "the file opened"); return }
+        let editor = document.editor, view = editor.textView
+        window.setFrame(NSRect(x: 120, y: 160, width: 640, height: 420), display: true)
+        func redraw() async {
+            editor.ruler?.display()
+            view.display()
+            try? await Task.sleep(for: .milliseconds(150))
+        }
+        func picture(_ name: String) {
+            guard let frame = window.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) else { return }
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("gutter-\(name).png"))
+        }
+        view.setSelectedRange(NSRange(location: (view.string as NSString).range(of: "last line").location, length: 0))
+        await redraw()
+        guard let ruler = editor.ruler else { log.check(false, "line numbers are on by default"); return }
+        log.check(view.textLayoutManager != nil && editor.scrollView.rulersVisible, "line numbers on by default, the text view still on TextKit 2")
+        log.check(ruler.drawn == [1, 2, 3, 4, 5, 6] && ruler.drawnCurrent == 5,
+                  "one number a line, the wrapped line once, the empty last line too, the caret's brighter: \(ruler.drawn), bright \(ruler.drawnCurrent.map(String.init) ?? "none")")
+        picture("numbers")
+
+        // LN, COL from the index, through edits, against a count from the top.
+        func counted(_ location: Int) -> (Int, Int) {
+            let before = (view.string as NSString).substring(to: location)
+            let lines = before.components(separatedBy: "\n")
+            return (lines.count, (lines.last! as NSString).length + 1)
+        }
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        view.insertText("new first line\n\n", replacementRange: NSRange(location: 0, length: 0))
+        let probes = [0, 5, 20, (view.string as NSString).length / 2, (view.string as NSString).length]
+        let agree = probes.allSatisfy { editor.position(of: $0) == counted($0) }
+        await redraw()
+        log.check(agree && editor.lineIndex.lineCount == 8 && ruler.drawn.first == 1 && ruler.drawn.last == 8,
+                  "LN, COL from the line index match a count from the top, after an edit (\(editor.lineIndex.lineCount) lines, drawn \(ruler.drawn.first ?? 0)-\(ruler.drawn.last ?? 0))")
+        let thin = ruler.ruleThickness
+        view.insertText(String(repeating: "x\n", count: 1_000), replacementRange: NSRange(location: 0, length: 0))
+        await redraw()
+        let wider = ruler.ruleThickness > thin
+        view.undoManager?.undo()
+        await endOfEvent(view)
+        view.undoManager?.undo()
+        await endOfEvent(view)
+        await redraw()
+        log.check(wider && editor.lineIndex.lineCount == 6 && view.string == original,
+                  "past 999 lines the gutter widens (\(Int(thin)) to wider), and undo puts it all back (\(editor.lineIndex.lineCount) lines)")
+
+        // The View menu.
+        let viewMenu = NSApp.mainMenu?.item(withTitle: "View")?.submenu
+        func choose(_ title: String) async -> Bool {
+            guard let menu = viewMenu else { return false }
+            PaletteSession.refresh(menu)   // as when the menu opens: SwiftUI names the items afresh
+            guard let item = menu.item(withTitle: title) else { return false }
+            menu.performActionForItem(at: menu.index(of: item))
+            try? await Task.sleep(for: .milliseconds(300))
+            return true
+        }
+        let hid = await choose("Hide Line Numbers")
+        let off = !editor.scrollView.rulersVisible && editor.ruler == nil && !defaults.bool(forKey: "editorLineNumbers")
+        let showed = await choose("Show Line Numbers")
+        log.check(hid && off && showed && editor.ruler != nil && editor.scrollView.rulersVisible && view.textLayoutManager != nil,
+                  "View › Hide Line Numbers, then Show Line Numbers")
+
+        // Invisibles.
+        let shown = await choose("Show Invisibles")
+        await redraw()
+        picture("invisibles")
+        let marks = view.invisiblesDrawn
+        let spaces = (original as NSString).components(separatedBy: " ").count - 1
+        log.check(shown && view.showsInvisibles && marks.arrows == 1 && marks.dots == spaces,
+                  "View › Show Invisibles: \(marks.dots) dots for \(spaces) spaces, \(marks.arrows) arrow for the tab")
+        _ = await choose("Hide Invisibles")
+        log.check(!view.showsInvisibles, "and Hide Invisibles")
+
+        await document.flush(reason: "test")
+        log.check(fileText(document) == original, "and the file is as it was (nothing drawn is in the text)")
+        window.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: url) == nil }
     }
 
@@ -1749,6 +1857,7 @@ enum TestHarness {
             let end = UserDefaults.standard.bool(forKey: "NibSnapshotEnd") ? (file.editor.textView.string as NSString).length : 0
             file.editor.textView.setSelectedRange(NSRange(location: end, length: 0))
             file.editor.textView.scrollRangeToVisible(NSRange(location: end, length: 0))
+            log.line("window \(window.windowNumber)")   // for `screencapture -l`: this window alone, even under others
             try? await Task.sleep(for: .milliseconds(1200))
             for (suffix, wait) in [("", 300), ("-later", 2000)] {
                 try? await Task.sleep(for: .milliseconds(wait))

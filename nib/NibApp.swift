@@ -223,6 +223,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 /// acting on the document of the window in front.
 struct NibCommands: Commands {
     @FocusedValue(\.nibDocument) private var document
+    @AppStorage("editorLineNumbers") private var lineNumbers = true
+    @AppStorage("editorInvisibles") private var invisibles = false
     @Environment(\.openWindow) private var openWindow
 
     private func send(_ action: Selector) { NSApp.sendAction(action, to: nil, from: nil) }
@@ -262,6 +264,9 @@ struct NibCommands: Commands {
         CommandGroup(after: .toolbar) {
             Menu("Syntax") { SyntaxMenuItems(document: document) }
                 .disabled(document == nil)
+            // Line numbers and invisibles (ED6), for every window; Settings › Editor too.
+            Button(lineNumbers ? "Hide Line Numbers" : "Show Line Numbers") { lineNumbers.toggle() }
+            Button(invisibles ? "Hide Invisibles" : "Show Invisibles") { invisibles.toggle() }
         }
         // Nib doesn't print; ⌘P and ⇧⌘P are Sublime's palette keys.
         CommandGroup(replacing: .printItem) {}

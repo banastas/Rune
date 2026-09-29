@@ -22,6 +22,10 @@ public struct SublimeImport: Sendable {
         public var translateTabsToSpaces: Bool?
         /// "auto", "true" or "false".
         public var wordWrap: String?
+        /// `line_numbers`, and whether `draw_white_space` is "all" (ED6; Sublime's "selection"
+        /// shows them only in the selection, which Nib doesn't do: off).
+        public var lineNumbers: Bool? = nil
+        public var invisibles: Bool? = nil
     }
 
     public enum Failure: Error, CustomStringConvertible {
@@ -92,7 +96,18 @@ public struct SublimeImport: Sendable {
                      linePaddingTop: number("line_padding_top"), linePaddingBottom: number("line_padding_bottom"),
                      tabSize: number("tab_size").map { Int($0) },
                      translateTabsToSpaces: (settings["translate_tabs_to_spaces"] as? NSNumber).map(\.boolValue),
-                     wordWrap: wrap)
+                     wordWrap: wrap,
+                     lineNumbers: (settings["line_numbers"] as? NSNumber).map(\.boolValue),
+                     invisibles: Self.drawsAllWhiteSpace(settings["draw_white_space"]))
+    }
+
+    /// `draw_white_space`: "all" (or a list with "all" in it, as Sublime 4 allows) is on.
+    static func drawsAllWhiteSpace(_ value: Any?) -> Bool? {
+        switch value {
+        case let text as String: text == "all"
+        case let list as [Any]: list.contains { ($0 as? String) == "all" }
+        default: nil
+        }
     }
 
     /// Sublime's preferences as it sees them: later files win.

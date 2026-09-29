@@ -121,7 +121,7 @@ final class PaletteSession: Identifiable {
     }
 
     private func walk(_ menu: NSMenu, path: [String]) {
-        menu.update()
+        Self.refresh(menu)
         for (index, item) in menu.items.enumerated() where !item.isSeparatorItem && !item.isHidden && !item.title.isEmpty {
             if let submenu = item.submenu {
                 guard !["Services", "Open Recent"].contains(item.title) else { continue }
@@ -144,10 +144,18 @@ final class PaletteSession: Identifiable {
         for name in path {
             menu = menu?.items.first { ($0.title.isEmpty ? "Nib" : $0.title) == name }?.submenu
         }
-        guard let menu, let item = menu.items.first(where: { $0.title == title }) else { NSSound.beep(); return }
-        menu.update()
+        guard let menu else { NSSound.beep(); return }
+        refresh(menu)
+        guard let item = menu.items.first(where: { $0.title == title }) else { NSSound.beep(); return }
         guard item.isEnabled else { NSSound.beep(); return }
         menu.performActionForItem(at: menu.index(of: item))
+    }
+
+    /// The menu as it would open now: SwiftUI names its items afresh ("Hide Line Numbers") only
+    /// when AppKit says the menu is about to open, then AppKit checks which can be chosen.
+    static func refresh(_ menu: NSMenu) {
+        menu.delegate?.menuNeedsUpdate?(menu)
+        menu.update()
     }
 
     /// A menu item's keys as the menu shows them: ⌃⌥⇧⌘, then the key.

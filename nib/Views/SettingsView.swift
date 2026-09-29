@@ -36,6 +36,8 @@ struct EditorSettings: View {
     @AppStorage("pasteStraightensQuotes") private var straightenQuotes = false
     @AppStorage("editorTabSize") private var tabSize = 4
     @AppStorage("editorSpaces") private var spaces = false
+    @AppStorage("editorLineNumbers") private var lineNumbers = true
+    @AppStorage("editorInvisibles") private var invisibles = false
     private static let families: [String] = {
         let manager = NSFontManager.shared
         return manager.availableFontFamilies.filter { family in
@@ -63,6 +65,11 @@ struct EditorSettings: View {
                 Stepper(value: $tabSize, in: 1...16) { LabeledContent("Tab width", value: "\(tabSize)") }
                 Toggle("Indent with spaces", isOn: $spaces)
                 note("For files that don't show their own. A file indented with tabs, or with spaces, keeps its own; the strip says which. Import from Sublime Text sets these to Sublime's.")
+            }
+            Section {
+                Toggle("Show line numbers", isOn: $lineNumbers)
+                Toggle("Show invisibles", isOn: $invisibles)
+                note("Line numbers in a gutter down the left, the caret's line brighter. Invisibles are spaces as dots and tabs as arrows, in the color scheme's own faint color. Both are in the View menu too, and Import from Sublime Text sets them to Sublime's.")
             }
             Section {
                 Toggle("Paste Clean straightens quotes and dashes", isOn: $straightenQuotes)

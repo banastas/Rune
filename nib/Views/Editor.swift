@@ -64,11 +64,19 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.onFlash = { [weak self] in self?.flash($0) }
         textView.commentStyle = { [weak self] in self?.commentStyle }
         textView.setAccessibilityLabel("Scratch")
+        textView.usesRuler = false   // the gutter is Nib's own ruler; the text view's ruler support stays out of it
         scrollView.documentView = textView
+        applyDisplaySettings()
+        NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.applyDisplaySettings() }
+        }
         // Scrolling brings new text into view: render it.
         scrollView.contentView.postsBoundsChangedNotifications = true
         NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.render() }
+            MainActor.assumeIsolated {
+                self?.render()
+                self?.ruler?.needsDisplay = true
+            }
         }
         NotificationCenter.default.addObserver(forName: .nibSchemeChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.applyScheme() }
@@ -194,6 +202,8 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.textColor = Scheme.foreground
         textView.typingAttributes = [.font: Scheme.font, .foregroundColor: Scheme.foreground]
         applyTabWidth()   // a font's space width sets it
+        ruler?.fit()
+        ruler?.needsDisplay = true
         rendered = NSRange(location: 0, length: 0)
         scheduleHighlight(after: 0)
         render(force: true)
@@ -404,6 +414,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
     func textViewDidChangeSelection(_ notification: Notification) {
         textView.needsDisplay = true   // the current-line highlight follows the caret
+        ruler?.needsDisplay = true     // and the gutter's bright number
         if !shownMatches.isEmpty {
             find.selectionChanged()
             render(force: true)        // the selected match shows as the selection, the one before as a match
@@ -449,48 +460,66 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.window?.makeFirstResponder(textView)
     }
 
-    /// Line and column (1-based) of a UTF-16 offset, counting in chunks: a few ms at 2.4 MB.
-    /// Line and column at a location (the strip's LN, COL), counted on from the last place
-    /// asked: typing moves the caret a character at a time, and counting from the top was
-    /// 255 ms a keystroke at the end of a 2.4 MB file (Debug). The count stays good through an
-    /// edit that starts on its line or after it (`textStorage(_:didProcessEditing:…)`).
+    /// Line and column (1-based) at a UTF-16 offset: the strip's LN, COL, from the line index.
+    /// (Counting from the top was 255 ms a keystroke at the end of a 2.4 MB file, Debug.)
     func position(of location: Int) -> (Int, Int) {
-        guard let storage = textView.textStorage else { return (1, 1) }
-        let string = storage.string as NSString
-        let target = min(location, string.length)
-        var (at, line, lineStart) = lineCache.map { ($0.location, $0.line, $0.lineStart) } ?? (0, 1, 0)
-        if at > string.length || target < lineStart { (at, line, lineStart) = (0, 1, 0) }   // before its line: from the top
-        if target >= at {
-            var buffer = [unichar](repeating: 0, count: 4_096)
-            var offset = at
-            while offset < target {
-                let count = min(buffer.count, target - offset)
-                string.getCharacters(&buffer, range: NSRange(location: offset, length: count))
-                buffer.withUnsafeBufferPointer { units in
-                    for i in 0..<count where units[i] == 0x0A { line += 1; lineStart = offset + i + 1 }
-                }
-                offset += count
-            }
-        }
-        lineCache = (target, line, lineStart)
-        return (line, target - lineStart + 1)
+        let target = min(max(0, location), textView.textStorage?.length ?? 0)
+        let line = lineIndex.line(at: target)
+        return (line, target - (lineIndex.start(ofLine: line) ?? 0) + 1)
     }
 
-    private var lineCache: (location: Int, line: Int, lineStart: Int)?
+    /// Where each line starts (ED6), kept current edit by edit: LN, COL and the gutter.
+    private(set) var lineIndex = LineIndex()
     /// The last change to the characters, in the text as it is now.
     private(set) var lastEdit: NSRange?
 
-    /// Every change to the characters, typed or not (a merge, a reload): the line count up to
-    /// an edit's start still holds if the edit starts on the counted line or after it.
+    /// Every change to the characters, typed or not (a merge, a reload): the line index looks
+    /// at the changed characters only (the storage's own string, not a copy of it).
     nonisolated func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
         guard editedMask.contains(.editedCharacters) else { return }
         MainActor.assumeIsolated {
             lastEdit = editedRange
-            guard let cache = lineCache else { return }
-            lineCache = editedRange.location >= cache.lineStart
-                ? (min(cache.location, editedRange.location), cache.line, cache.lineStart)
-                : nil
+            if let storage = textView.textStorage { lineIndex.update(storage.mutableString, edited: editedRange, delta: delta) }
+            ruler?.needsDisplay = true
+            // A wider gutter re-tiles the scroll view, which lays the text out: not while the
+            // storage is mid-edit (TextKit 2 throws), but once it's done.
+            guard !fitPending else { return }
+            fitPending = true
+            DispatchQueue.main.async { [weak self] in
+                self?.fitPending = false
+                self?.ruler?.fit()
+            }
         }
+    }
+
+    private var fitPending = false
+
+    // MARK: Line numbers and invisibles (ED6)
+
+    /// The gutter, while line numbers are on.
+    private(set) var ruler: LineNumberRuler?
+
+    /// Settings › Editor and the View menu: line numbers (on unless turned off), invisibles
+    /// (off unless turned on), for every editor at once.
+    func applyDisplaySettings() {
+        let defaults = UserDefaults.standard
+        let numbers = defaults.object(forKey: "editorLineNumbers") == nil || defaults.bool(forKey: "editorLineNumbers")   // "NO" from the command line too
+        let invisibles = defaults.bool(forKey: "editorInvisibles")
+        if numbers != (ruler != nil && scrollView.rulersVisible) {
+            if numbers {
+                let gutter = ruler ?? LineNumberRuler(scrollView: scrollView, editor: self)
+                ruler = gutter
+                scrollView.verticalRulerView = gutter
+                scrollView.hasVerticalRuler = true
+                scrollView.rulersVisible = true
+                gutter.fit()
+            } else {
+                scrollView.rulersVisible = false
+                scrollView.hasVerticalRuler = false
+                ruler = nil
+            }
+        }
+        if textView.showsInvisibles != invisibles { textView.showsInvisibles = invisibles }
     }
 
     // MARK: Caret per Mac (SC3): local, never synced
@@ -513,6 +542,12 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 final class NibTextView: NSTextView {
     /// Escape: true if it closed something (the conflict banner, then the find bar).
     var onEscape: (() -> Bool)?
+    /// Show Invisibles (ED6): spaces as dots, tabs as arrows, in the scheme's `invisibles`.
+    var showsInvisibles = false { didSet { needsDisplay = true } }
+    #if DEBUG
+    /// Dots and arrows drawn last, for the `gutter` scenario.
+    private(set) var invisiblesDrawn = (dots: 0, arrows: 0)
+    #endif
     /// Conflict blocks, drawn as HUD frames behind the text (§5.4), and a VoiceOver rotor.
     var conflictBlocks: [ConflictBlock] = [] {
         didSet { if oldValue.isEmpty != conflictBlocks.isEmpty { NSAccessibility.post(element: self, notification: .layoutChanged) } }
@@ -675,6 +710,56 @@ final class NibTextView: NSTextView {
         }
         for (block, frame) in zip(conflictBlocks, frames) {
             if let frame, frame.box.insetBy(dx: 0, dy: -12).intersects(rect) { drawFrame(block, frame) }
+        }
+        if showsInvisibles { drawInvisibles(in: rect) }
+    }
+
+    /// Spaces (and no-break spaces) as a dot at the middle of the space, a tab as an arrow
+    /// across it, under the text, for the lines in `rect`: each row's own character positions
+    /// (TextKit 2's line fragments), so wrapped lines and wide tabs come out right.
+    private func drawInvisibles(in rect: NSRect) {
+        guard let layout = textLayoutManager, let content = layout.textContentManager else { return }
+        let origin = textContainerOrigin
+        let font = self.font ?? Scheme.font
+        guard let first = layout.textLayoutFragment(for: CGPoint(x: 0, y: max(0, rect.minY - origin.y)))
+                ?? layout.textLayoutFragment(for: content.documentRange.location) else { return }
+        Scheme.invisibles.set()
+        let dot = max(1.5, (font.pointSize / 9).rounded())
+        #if DEBUG
+        invisiblesDrawn = (0, 0)
+        #endif
+        layout.enumerateTextLayoutFragments(from: first.rangeInElement.location, options: [.ensuresLayout]) { fragment in
+            let frame = fragment.layoutFragmentFrame
+            guard origin.y + frame.minY <= rect.maxY else { return false }
+            for row in fragment.textLineFragments {
+                let text = row.attributedString.string as NSString
+                let range = row.characterRange
+                guard range.length > 0, NSMaxRange(range) <= text.length else { continue }
+                let rowOrigin = NSPoint(x: origin.x + frame.minX + row.typographicBounds.minX, y: origin.y + frame.minY + row.typographicBounds.minY)
+                let middle = rowOrigin.y + row.glyphOrigin.y - font.xHeight / 2
+                for i in range.location..<NSMaxRange(range) {
+                    let c = text.character(at: i)
+                    guard c == 0x20 || c == 0x09 || c == 0xA0 else { continue }
+                    let x0 = rowOrigin.x + row.locationForCharacter(at: i).x
+                    let x1 = rowOrigin.x + row.locationForCharacter(at: i + 1).x
+                    #if DEBUG
+                    if c == 0x09 { invisiblesDrawn.arrows += 1 } else { invisiblesDrawn.dots += 1 }
+                    #endif
+                    if c == 0x09 {
+                        let path = NSBezierPath()
+                        path.lineWidth = 1
+                        path.move(to: NSPoint(x: x0 + 2, y: middle))
+                        path.line(to: NSPoint(x: max(x0 + 4, x1 - 3), y: middle))
+                        path.move(to: NSPoint(x: max(x0 + 4, x1 - 3) - 3, y: middle - 3))
+                        path.line(to: NSPoint(x: max(x0 + 4, x1 - 3), y: middle))
+                        path.line(to: NSPoint(x: max(x0 + 4, x1 - 3) - 3, y: middle + 3))
+                        path.stroke()
+                    } else {
+                        NSBezierPath(ovalIn: NSRect(x: (x0 + x1) / 2 - dot / 2, y: middle - dot / 2, width: dot, height: dot)).fill()
+                    }
+                }
+            }
+            return true
         }
     }
 

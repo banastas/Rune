@@ -335,3 +335,21 @@ let namedColors: [String: RGBA] = {
     for pair in stride(from: 0, to: words.count - 1, by: 2) { out[String(words[pair])] = RGBA(hex: "#" + words[pair + 1]) }
     return out
 }()
+
+extension Theme {
+    /// The gutter behind line numbers (ED6): the scheme's `gutter`, or the background.
+    public var gutter: RGBA { color("gutter") ?? background }
+
+    /// Line numbers (ED6): the scheme's `gutter_foreground`, or else the text color dimmed
+    /// toward the gutter as far as it stays at least 4.5:1 on it (Nib's own floor, A-series).
+    public var gutterForeground: RGBA {
+        if let set = color("gutter_foreground") { return set }
+        let text = foreground, behind = gutter
+        for step in stride(from: 12, through: 0, by: -1) {   // 60% toward the gutter, then less
+            let t = Double(step) * 0.05
+            let dimmed = RGBA(r: text.r + (behind.r - text.r) * t, g: text.g + (behind.g - text.g) * t, b: text.b + (behind.b - text.b) * t)
+            if dimmed.contrast(behind) >= 4.5 { return dimmed }
+        }
+        return text
+    }
+}

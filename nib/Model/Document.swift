@@ -160,14 +160,23 @@ final class Document {
     @ObservationIgnored private var noteWatch: DispatchSourceFileSystemObject?
 
     var dirty: Bool { editCount != savedEditCount }
-    /// Saves begun, for a disk check to tell whether one ran while it read the file.
+    /// Saves and refreshes begun, for a disk check to tell whether one ran while it read the file.
     @ObservationIgnored private var saves = 0
+    @ObservationIgnored private var refreshes = 0
 
     /// Work on this Mac that no other Mac has: unsaved edits, or, for a held file, a saved
     /// version iCloud hasn't taken yet. Only a buffer with nothing unsent may be replaced by
     /// another version; anything else is merged with it. (Two-Mac test, 09:25: a
-    /// saved-but-refused version counted as clean and was replaced, losing its line.)
-    var unsent: Bool { dirty || (held && uploadedSHA != baseFingerprint?.sha256) }
+    /// saved-but-refused version counted as clean and was replaced, losing its line.) A version
+    /// saved while the file was held stays unsent if the hold is lost before it's uploaded:
+    /// the suite (2026-09-29, `refusal`) lost a hold a moment after the previous launch handed
+    /// the file back, iCloud then put the server's older copy in the file, and the buffer,
+    /// thought clean, took it, the typing left only in the journal.
+    var unsent: Bool {
+        dirty || (uploadedSHA != baseFingerprint?.sha256 && (held || (savedWhileHeld != nil && savedWhileHeld == baseFingerprint?.sha256)))
+    }
+    /// The last version saved while the file was held (§4.3).
+    @ObservationIgnored private var savedWhileHeld: String?
 
     init(url: URL) {
         self.url = url
@@ -671,6 +680,7 @@ final class Document {
             switch outcome {
             case .written(let fingerprint):
                 baseFingerprint = fingerprint
+                if held { savedWhileHeld = fingerprint.sha256 }
                 remember(text, sha: fingerprint.sha256)
                 recordHistory { history in try? history.record(data, parent: base?.sha256, source: "saved") }
                 if !pendingResolved.isEmpty || !pendingTrash.isEmpty { settleOthers() }
@@ -878,7 +888,7 @@ final class Document {
         guard ready, locked == nil, !saving, !refreshing, fetches == 0 else { return }
         let url = self.url
         let presenter = self.presenter
-        let saves = self.saves
+        let saves = self.saves, refreshes = self.refreshes
         guard FileManager.default.fileExists(atPath: url.path),
               let current = try? await io.run({ try FileAccess.stat(url) }) else { return }
         if let base = baseFingerprint, current.sameStat(as: base) { return }
@@ -887,7 +897,10 @@ final class Document {
         // took it as the base (the suite, 2026-09-29: Nib merged its own saves with its buffer
         // 30 times over). The save's compare-and-swap sees any other change; a later one comes
         // with its own notice.
-        guard saves == self.saves, !saving else { return }
+        // Nor after a refresh began: it ends by looking at the file itself, and this read may be
+        // from before it, its answer acted on while the hold was down (the suite, `refusal`:
+        // the buffer, thought clean, took the server's older copy).
+        guard saves == self.saves, refreshes == self.refreshes, !saving, !refreshing else { return }
         if fingerprint.sha256 == baseFingerprint?.sha256 {
             baseFingerprint = fingerprint
             return
@@ -1314,6 +1327,7 @@ final class Document {
         guard !closing else { return }
         if let note { lastNote = note }
         refreshing = true
+        refreshes += 1
         let started = Date()
         let url = self.url
         // nib's own presenter and file watch count as users of the file, and eviction
@@ -1325,6 +1339,13 @@ final class Document {
             NSFileCoordinator.addFilePresenter(presenter)
             watchFile()
         }
+        #if DEBUG
+        if TestHarness.loseHoldBeforeRefresh {   // `refusal-lost-hold`: iCloud takes the file back meanwhile
+            TestHarness.loseHoldBeforeRefresh = false
+            try? await CloudControl.resume(url, .takeServerVersion)
+            try? await Task.sleep(for: .seconds(2))
+        }
+        #endif
         do {
             let (data, fingerprint) = try await CloudControl.refetch(url, wasPaused: held)
             held = false
@@ -1345,6 +1366,9 @@ final class Document {
             record("refresh", ms: ms(since: started), detail: "failed: \(CloudControl.describe(error))")
             if await CloudControl.status(url, within: 5)?.paused != true { held = false; await holdAgain() }
             refreshing = false
+            // Whatever iCloud put in the file while the hold was down (a hand-back moments before
+            // can end a hold): looked at now, with the saved work still counted as unsent.
+            await diskMayHaveChanged()
         }
     }
 

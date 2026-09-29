@@ -207,8 +207,8 @@ import Testing
     @Test func theOriginalAnOldHope() {
         let facts = ThemeReport.facts(for: Self.original)
         #expect(facts == [
-            "IMPORTED AN-OLD-HOPE", "6 RULES", "8 GLOBALS USED",
-            "12 NOT DRAWN YET (BRACKETS, TAGS, GUIDES, SELECTION BORDER, SHADOW, INVISIBLES)",
+            "IMPORTED AN-OLD-HOPE", "6 RULES", "9 GLOBALS USED",
+            "11 NOT DRAWN YET (BRACKETS, TAGS, GUIDES, SELECTION BORDER, SHADOW)",
             "4 COLORS UNDER 4.5:1: #767676 COMMENT 3.7, #7851A9 NUMBER 2.8, #EB3D54 KEYWORD 4.3, #F8F8F0 ON #F92672 INVALID 3.5",
         ], "\(facts)")
         #expect(Self.original.isOriginalAnOldHope && !ThemeTests.theme.isOriginalAnOldHope)
@@ -358,3 +358,14 @@ final class Scratch {
         }
     }
 }
+
+@Suite struct GutterTests {
+    @Test func lineNumbersStayReadable() throws {
+        let plain = try Theme(sublimeColorScheme: Data(##"{"globals": {"foreground": "#FFFFFF", "background": "#000000"}}"##.utf8))
+        let dimmed = plain.gutterForeground
+        #expect(dimmed.contrast(plain.gutter) >= 4.5 && dimmed.contrast(plain.gutter) < 21 && plain.gutter == plain.background)
+        let set = try Theme(sublimeColorScheme: Data(##"{"globals": {"foreground": "#FFFFFF", "background": "#000000", "gutter": "#101010", "gutter_foreground": "#505050"}}"##.utf8))
+        #expect(set.gutterForeground.hex == "#505050" && set.gutter.hex == "#101010")   // the scheme's own, as set
+    }
+}
+
