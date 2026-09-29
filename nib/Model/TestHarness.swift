@@ -651,13 +651,17 @@ enum TestHarness {
             _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window != nil }
             guard let file = Documents.existing(for: url), let window = file.editor.textView.window else { log.line("FAIL \(name) didn't open"); return }
             window.setFrame(NSRect(x: 80, y: 120, width: 820, height: 640), display: true)
+            let end = UserDefaults.standard.bool(forKey: "NibSnapshotEnd") ? (file.editor.textView.string as NSString).length : 0
+            file.editor.textView.setSelectedRange(NSRange(location: end, length: 0))
+            file.editor.textView.scrollRangeToVisible(NSRange(location: end, length: 0))
             try? await Task.sleep(for: .milliseconds(1200))
-            file.editor.render(force: true)
-            try? await Task.sleep(for: .milliseconds(300))
-            if let frame = window.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
-                frame.cacheDisplay(in: frame.bounds, to: rep)
-                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("snapshot-\(name).png"))
-                log.line("rendered snapshot-\(name).png")
+            for (suffix, wait) in [("", 300), ("-later", 2000)] {
+                try? await Task.sleep(for: .milliseconds(wait))
+                if let frame = window.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+                    frame.cacheDisplay(in: frame.bounds, to: rep)
+                    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("snapshot-\(name)\(suffix).png"))
+                    log.line("rendered snapshot-\(name)\(suffix).png")
+                }
             }
             window.performClose(nil)
             _ = await waitFor(10) { Documents.existing(for: url) == nil }

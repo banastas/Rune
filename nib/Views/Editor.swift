@@ -139,8 +139,9 @@ final class Editor: NSObject, NSTextViewDelegate {
         }
     }
 
-    /// The text in view, and a margin, as rendering attributes (§6.3: never the text storage,
-    /// undo or layout): syntax colors, then the conflict frames' hidden marker lines.
+    /// The text in view, and a margin: syntax colors and backgrounds as rendering attributes
+    /// (§6.3: never the text storage, undo or layout), then the conflict frames' hidden marker
+    /// lines; bold, italic and underline, which rendering attributes can't carry, as faces.
     func render(force: Bool = false) {
         guard let layout = textView.textLayoutManager else { return }
         let length = (textView.string as NSString).length
@@ -150,14 +151,12 @@ final class Editor: NSObject, NSTextViewDelegate {
         guard let whole = textView.textRange(wanted) else { return }
         layout.removeRenderingAttribute(.foregroundColor, for: whole)
         layout.removeRenderingAttribute(.backgroundColor, for: whole)
-        layout.removeRenderingAttribute(.underlineStyle, for: whole)
         let plain = Self.theme.foreground
         for (range, style) in styles {
             let part = NSIntersectionRange(range, wanted)
             guard part.length > 0, let text = textView.textRange(part) else { continue }
             if style.foreground != plain { layout.addRenderingAttribute(.foregroundColor, value: NSColor(style.foreground), for: text) }
             if let background = style.background { layout.addRenderingAttribute(.backgroundColor, value: NSColor(background), for: text) }
-            if style.underline { layout.addRenderingAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, for: text) }
         }
         for block in textView.conflictBlocks {
             for marker in block.markers {
@@ -165,8 +164,75 @@ final class Editor: NSObject, NSTextViewDelegate {
                 if part.length > 0, let text = textView.textRange(part) { layout.addRenderingAttribute(.foregroundColor, value: NSColor.clear, for: text) }
             }
         }
+        applyFaces(in: wanted)
         rendered = wanted
         textView.needsDisplay = true
+    }
+
+    /// The editor font's faces (HL5): the font's own bold and italic; slanted if it has no
+    /// italic, and left regular if it has no bold (the system monospaced font has both).
+    private lazy var faces: (regular: NSFont, bold: NSFont, italic: NSFont, boldItalic: NSFont) = {
+        let regular = OldHope.font, manager = NSFontManager.shared
+        func face(_ trait: NSFontTraitMask, from font: NSFont) -> NSFont {
+            let converted = manager.convert(font, toHaveTrait: trait)
+            if manager.traits(of: converted).contains(trait) { return converted }
+            if trait == .italicFontMask {
+                return NSFont(descriptor: font.fontDescriptor, textTransform: AffineTransform(m11: 1, m12: 0, m21: 0.21, m22: 1, tX: 0, tY: 0)) ?? font
+            }
+            return font
+        }
+        let bold = face(.boldFontMask, from: regular)
+        return (regular, bold, face(.italicFontMask, from: regular), face(.italicFontMask, from: bold))
+    }()
+
+    private func face(_ style: Style) -> NSFont {
+        switch (style.bold, style.italic) {
+        case (true, true): faces.boldItalic
+        case (true, false): faces.bold
+        case (false, true): faces.italic
+        case (false, false): faces.regular
+        }
+    }
+
+    /// Bold, italic and underline as attributes on the text storage, only where they differ from
+    /// what's there. Attribute changes aren't edits: nothing is journaled, saved or undoable,
+    /// and copying stays plain text.
+    private func applyFaces(in wanted: NSRange) {
+        guard let storage = textView.textStorage, wanted.length > 0, NSMaxRange(wanted) <= storage.length else { return }
+        var desired: [(range: NSRange, font: NSFont, underline: Bool)] = []
+        var at = wanted.location
+        for (range, style) in styles where NSMaxRange(range) > wanted.location && range.location < NSMaxRange(wanted) {
+            let part = NSIntersectionRange(range, wanted)
+            guard part.length > 0, part.location >= at else { continue }
+            if part.location > at { desired.append((NSRange(location: at, length: part.location - at), faces.regular, false)) }
+            desired.append((part, face(style), style.underline))
+            at = NSMaxRange(part)
+        }
+        if at < NSMaxRange(wanted) { desired.append((NSRange(location: at, length: NSMaxRange(wanted) - at), faces.regular, false)) }
+        var changes: [(NSRange, NSFont?, Bool?)] = []
+        for (range, font, underline) in desired {
+            storage.enumerateAttributes(in: range) { attributes, part, _ in
+                let fontDiffers = (attributes[.font] as? NSFont) != font
+                let hasUnderline = (attributes[.underlineStyle] as? Int ?? 0) != 0
+                if fontDiffers || hasUnderline != underline { changes.append((part, fontDiffers ? font : nil, hasUnderline != underline ? underline : nil)) }
+            }
+        }
+        guard !changes.isEmpty else { return }
+        storage.beginEditing()
+        for (range, font, underline) in changes {
+            if let font { storage.addAttribute(.font, value: font, range: range) }
+            if let underline {
+                if underline { storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range) }
+                else { storage.removeAttribute(.underlineStyle, range: range) }
+            }
+        }
+        storage.endEditing()
+    }
+
+    /// Typing next to a bold or italic word doesn't carry its face on.
+    func textView(_ textView: NSTextView, shouldChangeTypingAttributes oldTypingAttributes: [String: Any],
+                  toAttributes newTypingAttributes: [NSAttributedString.Key: Any]) -> [NSAttributedString.Key: Any] {
+        [.font: OldHope.font, .foregroundColor: OldHope.foreground]
     }
 
     /// The characters TextKit 2 has in its viewport now.
