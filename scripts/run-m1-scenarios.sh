@@ -16,14 +16,7 @@ echo "==> NibKit tests"
 # SIGN=adhoc: no account needed, no iCloud container; tests run in iCloud Drive/nib-spike/.
 SIGN=${SIGN:-team}
 echo "==> Building nib (Debug, $SIGN signing)"
-if [[ $SIGN == adhoc ]]; then
-  xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
-    -destination "platform=macOS" CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
-    CODE_SIGN_ENTITLEMENTS= -quiet build
-else
-  xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
-    -destination "platform=macOS" -allowProvisioningUpdates -quiet build
-fi
+scripts/build-nib.sh "$SIGN"   # and checks the app is newer than every source file
 APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
 
 # A fresh test file (generated text): earlier runs leave conflict blocks in it, and the
@@ -68,6 +61,10 @@ run menubar
 # Another app holding a global shortcut, for the first run's warning (SC2).
 swiftc -O -o build/hotkey-holder scripts/hotkey-holder.swift 2>/dev/null || true
 run firstrun -NibFakeLoginItem YES -NibHotKeyHolder "$PWD/build/hotkey-holder"
+# The `nib` command-line tool (AP4), against the running scenario (it never starts or fronts Nib).
+(cd NibKit && swift build --product nib 2>&1 | grep -E "error" || true)
+run cli -NibCLI "$PWD/NibKit/.build/debug/nib"
+run fileops
 run undo
 run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"
@@ -109,7 +106,8 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard cleantext lines find palette gutter tidy menubar undo crash recover crash-blocks recover-blocks external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
+for name in type clipboard cleantext lines find palette gutter tidy menubar firstrun cli fileops undo crash recover crash-blocks recover-blocks external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
+  [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi

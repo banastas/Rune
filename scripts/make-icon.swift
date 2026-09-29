@@ -2,8 +2,7 @@
 // (PRD §5.11, V11): a solid near-black fill plus one full-bleed pixel-art layer, glass off,
 // on Blit's 14×12 grid. The art is a fountain-pen nib, diagonal, with its breather hole and
 // slit, writing on the same bottom row as Blit's icon, the family mark. macOS applies the
-// icon shape itself. The same script as Blit's scripts/make-icon.swift but for the art and
-// the name, until the shared package (§7) holds one copy.
+// icon shape itself. Blit's scripts/make-icon.swift, copied, with Nib's art and name (§7).
 //
 //   swift scripts/make-icon.swift nib/AppIcon.icon [preview.png]
 import AppKit

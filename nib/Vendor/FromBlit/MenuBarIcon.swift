@@ -1,6 +1,6 @@
 // Copied from Blit at 6d417b0 (Blit/Views/PixelArt.swift: `draw`, `image`; Blit/Views/
 // MenuBarIcon.swift: the fixed-width template image and `failureMark`) for M2. Nib's own art
-// is in nib/Views/MenuBar.swift. Replaced by the shared package (FamilyKit › PixelUI, PRD §7).
+// is in nib/Views/MenuBar.swift. Nib's own now (no shared package, PRD §7).
 
 import AppKit
 

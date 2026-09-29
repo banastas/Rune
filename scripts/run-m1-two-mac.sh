@@ -21,14 +21,7 @@ T0=$(date -j -f "%H:%M:%S" "$at:00" +%s)
 
 SIGN=${SIGN:-team}   # as in run-m1-scenarios.sh; both Macs must use the same
 echo "==> Building nib (Debug, $SIGN signing)"
-if [[ $SIGN == adhoc ]]; then
-  xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
-    -destination "platform=macOS" CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
-    CODE_SIGN_ENTITLEMENTS= -quiet build
-else
-  xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath build/DerivedData \
-    -destination "platform=macOS" -allowProvisioningUpdates -quiet build
-fi
+scripts/build-nib.sh "$SIGN"   # and checks the app is newer than every source file
 APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
 mkdir -p build/scenarios
 LOG=$PWD/build/scenarios/two-mac-$role.log

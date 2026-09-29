@@ -106,7 +106,19 @@ final class MenuBarController: NSObject {
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.apply() }
         }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refresh() }
+        }
         track()
+    }
+
+    /// System Settings › Accessibility › Display › Reduce Motion (A16). The scenarios can say
+    /// so with -NibReduceMotion.
+    static var reduceMotion: Bool {
+        #if DEBUG
+        if UserDefaults.standard.object(forKey: "NibReduceMotion") != nil { return UserDefaults.standard.bool(forKey: "NibReduceMotion") }
+        #endif
+        return NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
     /// In the menu bar or not, as Settings › General says (on unless turned off).
@@ -152,7 +164,8 @@ final class MenuBarController: NSObject {
         let look = documents.contains(where: MenuBarState.needsLook)
         if pending { pendingSince = pendingSince ?? Date() } else { pendingSince = nil }
         let marching = pendingSince.map { Date().timeIntervalSince($0) > 3 } ?? false
-        button.image = NibMark.image(frame: marching ? frame : nil, failure: look)
+        // With Reduce Motion (A16, AX3) the line doesn't march: it stays in dashes while it waits.
+        button.image = NibMark.image(frame: marching ? (Self.reduceMotion ? 0 : frame) : nil, failure: look)
         let spoken = "Nib, " + Documents.scratch.state.spoken.lowercased() + (look ? "; something needs a look" : "")
         button.setAccessibilityLabel(spoken)
         button.toolTip = "Nib · " + Documents.scratch.state.line + (look ? " · SOMETHING NEEDS A LOOK" : "")
@@ -160,7 +173,7 @@ final class MenuBarController: NSObject {
             ticker = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated {
                     guard let self else { return }
-                    if self.pendingSince.map({ Date().timeIntervalSince($0) > 3 }) == true { self.frame = (self.frame + 1) % 3 }
+                    if !Self.reduceMotion, self.pendingSince.map({ Date().timeIntervalSince($0) > 3 }) == true { self.frame = (self.frame + 1) % 3 }
                     self.refresh()
                 }
             }

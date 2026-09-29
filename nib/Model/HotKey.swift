@@ -1,6 +1,6 @@
 // Global shortcuts (PRD SC2, PT4, SC6, §5.8, §6.3): Carbon's RegisterEventHotKey, which needs
-// no Accessibility permission. About a hundred lines instead of a dependency (T7); moves into
-// the shared package's AppShell (§7). Each can be changed in Settings › General and in the
+// no Accessibility permission. About a hundred lines instead of a dependency (T7), for Blit
+// to copy if it wants them (§7). Each can be changed in Settings › General and in the
 // first run (AP5), which say when the keys won't work: another app holds them, macOS keeps
 // them, or a launcher that's running uses them by default.
 

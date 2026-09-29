@@ -27,11 +27,13 @@ enum Untitled {
             .compactMap { (try? fm.contentsOfDirectory(at: $0, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]))?.first }
     }
 
-    /// A new untitled buffer's file, named "Untitled", "Untitled 2"… (the lowest number free).
-    static func create(text: String = "") -> URL? {
+    /// A new untitled buffer's file, named "Untitled", "Untitled 2"… (the lowest number free), or
+    /// as asked ("notes copy.md", then "notes copy 2.md").
+    static func create(text: String = "", name wanted: String = "Untitled") -> URL? {
         let taken = Set(all().map(\.lastPathComponent))
-        var name = "Untitled", n = 1
-        while taken.contains(name) { n += 1; name = "Untitled \(n)" }
+        let base = (wanted as NSString).deletingPathExtension, ext = (wanted as NSString).pathExtension
+        var name = wanted, n = 1
+        while taken.contains(name) { n += 1; name = ext.isEmpty ? "\(base) \(n)" : "\(base) \(n).\(ext)" }
         let file = folder.appendingPathComponent(UUID().uuidString, isDirectory: true).appendingPathComponent(name)
         do {
             try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -69,15 +71,22 @@ enum Untitled {
         try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
     }
 
-    /// Buffers just saved as files: their text is in the file, so closing them keeps nothing.
+    /// Buffers just saved as files (or renamed, as a new buffer): their text is elsewhere, so
+    /// closing them keeps nothing.
     private static var savedAway: Set<String> = []
+
+    /// Its text lives on in another buffer (Rename…, ED4): closing it keeps nothing.
+    static func letGo(_ url: URL) {
+        savedAway.insert(url.path)
+    }
 
     // MARK: Save… (W3: the first save of an untitled document asks where)
 
     static func saveAs(_ document: Document) {
         let panel = NSSavePanel()
         panel.title = "Save “\(document.url.lastPathComponent)”"
-        panel.nameFieldStringValue = document.url.lastPathComponent + ".txt"
+        let name = document.url.lastPathComponent
+        panel.nameFieldStringValue = (name as NSString).pathExtension.isEmpty ? name + ".txt" : name   // "notes copy.md" as it is
         panel.directoryURL = ScratchLocation.url.deletingLastPathComponent()   // the test folder, until M1 passes (§8)
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let target = panel.url else { return }

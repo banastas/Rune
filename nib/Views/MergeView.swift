@@ -68,7 +68,10 @@ final class MergeSession {
     func resolve(_ choice: ConflictBlock.Choice) {
         guard let index = caretBlock, index < blocks.count else { NSSound.beep(); return }
         editor.resolve(blocks[index], choice)
-        // On to the next block, as the merge view is for going through them.
+        // On to the next block, as the merge view is for going through them: by the blocks as
+        // they are now (the editor's change notice can come later, and the old ranges put the
+        // caret between blocks, so a quick second ⌘1 only beeped).
+        update()
         if !blocks.isEmpty { editor.go(forward: true, in: blocks) }
     }
 }

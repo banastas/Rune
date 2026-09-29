@@ -578,6 +578,46 @@ final class NibTextView: NSTextView {
 
     override func pasteAsRichText(_ sender: Any?) { paste(sender) }
 
+    // MARK: Files dragged in (ED2)
+
+    /// Files dragged onto a window open, each in its tab, as in Sublime; text dragged in (or
+    /// moved inside the view) goes in as ever. To put a file's path in the text, copy the file
+    /// in Finder and paste (PT5).
+    override var acceptableDragTypes: [NSPasteboard.PasteboardType] {
+        super.acceptableDragTypes + [.fileURL]
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        Self.droppedFiles(sender).isEmpty ? super.draggingEntered(sender) : .copy
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        Self.droppedFiles(sender).isEmpty ? super.draggingUpdated(sender) : .copy
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        Self.openFiles(Self.droppedFiles(sender)) || super.performDragOperation(sender)
+    }
+
+    /// Files (not folders) from another app's drag: Finder's, say.
+    private static func droppedFiles(_ drag: NSDraggingInfo) -> [URL] {
+        guard drag.draggingSource == nil else { return [] }
+        return files(on: drag.draggingPasteboard)
+    }
+
+    static func files(on pasteboard: NSPasteboard) -> [URL] {
+        let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+        return urls.filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) != true }
+    }
+
+    /// Opens them (the M1 safety rule shows its refusal in the window, as for ⌘O). False if none.
+    @discardableResult
+    static func openFiles(_ urls: [URL]) -> Bool {
+        guard !urls.isEmpty else { return false }
+        urls.forEach(AppDelegate.openFile)
+        return true
+    }
+
     /// Copy Block (⇧⌘C, SC5): the fenced code block at the caret, without its fences, or else
     /// its paragraph; with a selection, the selection. It flashes once.
     @objc func copyBlock(_ sender: Any?) {
@@ -907,7 +947,9 @@ extension NibTextView: @preconcurrency NSAccessibilityCustomRotorItemSearchDeleg
         guard let block else { return nil }
         let result = NSAccessibilityCustomRotor.ItemResult(targetElement: self)
         result.targetRange = block.range
-        result.customLabel = "Conflict: \(block.firstLabel), or \(block.secondLabel)"
+        // "Air · 10:42" read as "Air, 10:42", not with the dot.
+        func said(_ label: String) -> String { label.replacingOccurrences(of: " · ", with: ", ") }
+        result.customLabel = "Conflict: \(said(block.firstLabel)), or \(said(block.secondLabel))"
         return result
     }
 }

@@ -571,6 +571,9 @@ final class Document {
         }
         let found = ConflictText.blocks(in: editor.textView.string)
         if found.count != blocks.count { bannerHidden = false }
+        if !blocks.isEmpty, found.isEmpty, editor.textView.window?.isVisible == true {
+            Announce.sentence("No conflicts left in \(url.lastPathComponent).")   // AX2
+        }
         if found != blocks { blocks = found }
         if blocks.isEmpty { mergedAroundBlocks = false }
         editor.highlight(blocks)
@@ -1643,6 +1646,8 @@ final class Document {
 
     func show(_ text: String, for seconds: Double) {
         notice = text
+        // Said as well as shown, while the window is up (AX2: conflicts and merges announced).
+        if editor.textView.window?.isVisible == true { Announce.hud(text, urgent: text.hasPrefix("✕")) }
         noticeTask?.cancel()
         noticeTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(seconds))

@@ -99,9 +99,9 @@ The review (`qa/blit-qa-ux-review.md`) found problems whose shape recurs in an e
 - **L5 (F9, stale badge):** a ✓ outlived the bytes it described. Nib ties "synced" to a content hash, not to a path.
 - **L6 (F10, advisory treated as failure):** a warning made a good copy fail. "iCloud hasn't uploaded yet" is a waiting state, not a red one.
 
-### Reusable pieces (the shared package's inventory)
+### Reusable pieces (from Blit)
 
-Tokens (`HUDColor`, `Color.failure`/`failureText`, plus literals the QA review and this read found inline: panel border `Color(white: 0.23)` at `TransferHUD.swift:389` and `:520`, row highlight 0.12 at `:557`, histogram 0.6 at `TransferStrip.swift:361`, Dock tile colors in `DockProgress.swift`, the HUD timing curve repeated three times in `ContentView.swift:78-85`), `HUDFont` and the two bundled fonts, `PixelGlyph` and `hudText`, `PixelArt`, `PixelSpinner`, `PixelMarchingAnts`, `PixelSignal`, `PixelCells`, `PixelHistogram`, `HUDPanel`, `HUDRow`, `HUDButton`, `CRTEffect`/`.crt`, the dashed divider (copied twice), the fixed-width menu bar image composer, the Dock badge renderer, the About window, the ⌘K `CommandPalette` and its scoring, `Updates` (Sparkle), `LicenseManager` (Lemon Squeezy), the Settings `pane`/`note` helpers, `release.sh`, `make-icon.swift`, and the site's CSS tokens and fonts. The plan is in [§7](#7-shared-package-plan).
+Tokens (`HUDColor`, `Color.failure`/`failureText`, plus literals the QA review and this read found inline: panel border `Color(white: 0.23)` at `TransferHUD.swift:389` and `:520`, row highlight 0.12 at `:557`, histogram 0.6 at `TransferStrip.swift:361`, Dock tile colors in `DockProgress.swift`, the HUD timing curve repeated three times in `ContentView.swift:78-85`), `HUDFont` and the two bundled fonts, `PixelGlyph` and `hudText`, `PixelArt`, `PixelSpinner`, `PixelMarchingAnts`, `PixelSignal`, `PixelCells`, `PixelHistogram`, `HUDPanel`, `HUDRow`, `HUDButton`, `CRTEffect`/`.crt`, the dashed divider (copied twice), the fixed-width menu bar image composer, the Dock badge renderer, the About window, the ⌘K `CommandPalette` and its scoring, `Updates` (Sparkle), `LicenseManager` (Lemon Squeezy), the Settings `pane`/`note` helpers, `release.sh`, `make-icon.swift`, and the site's CSS tokens and fonts. Nib copies what it needs ([§7](#7-code-shared-with-blit)).
 
 ### Where Blit's patterns don't fit an editor
 
@@ -122,7 +122,7 @@ Tokens (`HUDColor`, `Color.failure`/`failureText`, plus literals the QA review a
 | **A13** | Transfer Log (⌥⌘L), JSONL, searchable, newest first | Same need, different events | **Sync Log** (⌥⌘L): every save, upload, arrival, merge and conflict, with content hashes. **History**: every saved version, kept locally. |
 | **A14** | ✓ means SHA-256 verified | iCloud offers no server-side checksum | ✓ SYNCED means "iCloud reports *this exact version* (by SHA-256 of what Nib wrote) is uploaded". A further ✓ ON STUDIO means the other Mac's Nib has loaded that version. Neither is claimed without its evidence (W2). |
 | **A15** | Silkscreen/VT323 only for labels and readouts (V5) | Tempting to use VT323 as an editor font | Never in the text area. Code and prose use the user's monospaced font (imported from Sublime, SF Mono otherwise). |
-| **A16** | Blit app ignores Reduce Motion (the site respects it; the app has no `accessibilityReduceMotion` checks) | Nib's marching glyphs and CRT would inherit the gap | The shared package makes every animated component honor Reduce Motion: marching becomes static dashes, the CRT becomes a fade. Blit gets the fix too. |
+| **A16** | Blit app ignores Reduce Motion (the site respects it; the app has no `accessibilityReduceMotion` checks) | Nib's marching glyphs and CRT would inherit the gap | Every animated component in Nib honors Reduce Motion: marching becomes static dashes, the CRT becomes a fade. Blit can take the same checks (§7). |
 | **A17** | Follows the system appearance; nothing is forced except the HUD (V1, V2) | The page is dark (An Old Hope) and always will be; light chrome around a dark page, or a light page, isn't wanted | **Nib is dark only, always** (decided 2026-09-27). The app sets the dark appearance for itself (`NSApp.appearance = .darkAqua`), so title bar, tabs, sheets, menus, alerts, Settings and the menu bar panel are native dark controls whatever the system setting. Blit's rule "the HUD is always dark" extends to the whole app. There is no light scheme and no appearance setting. |
 
 ---
@@ -630,7 +630,7 @@ A sheet on the editor window for more than three conflicts, a duplicate file, or
 
 ### 5.6 Go to File and the command palette (P1)
 
-Blit's `CommandPalette`, generalized in the shared package: native SwiftUI, 520 pt wide, SF Symbols, a group label on the right of each row (V1, V12, A6).
+Blit's `CommandPalette`, copied and generalized (`nib/Vendor/FromBlit/CommandPalette.swift`): native SwiftUI, 520 pt wide, SF Symbols, a group label on the right of each row (V1, V12, A6).
 
 - **Go to File (⌘P, ⌘K):** prompt "Go to a file, a recent file or the scratch". Groups: Scratch, Open, Recent (newest first, Blit's R2.4 default), Nib folder. Empty result: "No matches" (W6).
 - **Commands (⇧⌘P):** every menu item, named as in the menu (W3), with its shortcut on the right.
@@ -679,7 +679,7 @@ Tagline proposal, in the pattern of Blit's "MOVE BIG FILES FAST. VERIFY EVERY BY
 
 ### 5.11 App icon (P2)
 
-Blit's recipe (V11): an Icon Composer `.icon` (`nib/AppIcon.icon`) with a solid near-black fill (0.045) and one pixel layer, glass off, rendered by `scripts/make-icon.swift` (Blit's script with Nib's art and name, until the shared package holds one copy). **Built 2026-09-28:** on Blit's 14×12 grid, a fountain-pen nib, diagonal, with its breather hole and a one-cell slit down to the tip, writing on the family mark:
+Blit's recipe (V11): an Icon Composer `.icon` (`nib/AppIcon.icon`) with a solid near-black fill (0.045) and one pixel layer, glass off, rendered by `scripts/make-icon.swift` (Blit's script with Nib's art and name). **Built 2026-09-28:** on Blit's 14×12 grid, a fountain-pen nib, diagonal, with its breather hole and a one-cell slit down to the tip, writing on the family mark:
 
 ```
 ........####..
@@ -773,7 +773,7 @@ The voice (W1-W7), applied to Nib's common moments.
 ```
 ┌──────────────────────────────── SwiftUI app (nib) ─────────────────────────────────┐
 │ Scratch window · file windows (native tabs) · merge sheet · palettes · Settings    │
-│ Menu bar extra · status strip and sync HUD (PixelUI) · global hotkeys · CLI bridge │
+│ Menu bar extra · status strip and sync HUD (Blit's pixels) · hotkeys · CLI bridge  │
 └──────────────┬─────────────────────────────────────────────────────────────────────┘
                │ @Observable @MainActor models, async/await (T9)
 ┌──────────────▼─────────────────────────────────────────────────────────────────────┐
@@ -819,9 +819,9 @@ The voice (W1-W7), applied to Nib's common moments.
 
 **App lifecycle: SwiftUI `App`, as Blit** (`Window` for scratch, `WindowGroup(for:)` for files, `MenuBarExtra`, `Settings`, `Window` for About and History), with the `NSApplicationDelegate` adaptor for opening files, termination, sleep and Services. S2 measured the cost: first window at a median 201 ms after process start with SwiftUI, 139 ms with plain AppKit, and 25.3 against 22.4 MB idle. About 60 ms and 3 MB, under the 100 ms bar set here, so the SwiftUI lifecycle stays. (The launch that matters is the Show Scratch shortcut into a running app, which S2 didn't measure; M1 does.)
 
-**Global hotkeys: Carbon `RegisterEventHotKey`,** which needs no Accessibility permission, wrapped in about 100 lines in the shared package rather than adding a dependency (T7). **Launch at login:** `SMAppService.mainApp`.
+**Global hotkeys: Carbon `RegisterEventHotKey`,** which needs no Accessibility permission, wrapped in about 100 lines of Nib's own rather than adding a dependency (T7). **Launch at login:** `SMAppService.mainApp`.
 
-**CLI:** `nib` opens files through the running app (launching it if needed). `-w` waits for a distributed notification carrying a one-time token, posted when that file's window closes. Stdin goes to a temp file that opens as an untitled buffer.
+**CLI:** `nib` opens files through the running app (launching it if needed): it leaves a request file with a one-time token in Nib's support folder and says so with a distributed notification, and Nib answers with one. `-w` waits for a distributed notification carrying the token, posted when that file's window has closed and its text is in the file. Standard input travels in the request, and Nib makes an untitled buffer of it (built 2026-09-29, §8).
 
 **Dependencies:** swift-tree-sitter (BSD-3-Clause; `tree-sitter/swift-tree-sitter`, formerly ChimeHQ's SwiftTreeSitter) and the grammars for HTML, CSS, JavaScript, JSON, Markdown and Bash (MIT), Sparkle (only if sold). CSS's and JavaScript's are vendored in `NibKit/Vendor/` (their manifests drop the external scanner under SwiftPM's sandbox; `NibKit/Vendor/README.md`). Everything else is Apple's SDK: CryptoKit for SHA-256, Compression for reading zip entries, Network for path monitoring.
 
@@ -874,80 +874,18 @@ As Blit (T9): `swift test` for NibKit, plus debug-only harnesses in the app driv
 - **iCloud simulation:** a `CloudStatusProvider` protocol faked in tests, to inject conflict versions, `name 2` duplicates, dataless files, upload errors and deletions.
 - **Two-Mac probe:** `scripts/sync-probe.sh` (in the style of Blit's `sftp-probe.sh`) writes numbered versions on one Mac and logs arrival times on the other.
 - **Paste corpus:** saved clipboards from Safari, Mail, Slack, Notes, Word and Preview (PDF), each with a known clean result.
-- **Render harness:** the shared package's pixel art rendered to PNGs and compared byte for byte (§7).
+- **Render harness:** Nib's pixel art (the menu bar item and panel, the welcome window) rendered to PNGs beside the scenario logs, to compare.
 
 Before 1.0, a QA and UX review in the format of Blit's (`qa/blit-qa-ux-review.md`), weighted toward sync and data loss.
 
 ---
 
-## 7. Shared-package plan
+## 7. Code shared with Blit
 
-### What it is
+**Decided 2026-09-29 (the user): no shared package.** Each app's code lives entirely in its own repository. Either may read the other's code and copy or adapt what it needs; a copy's header names where it came from (the repository, the file and the commit), and from then on it's that app's own code, changed as that app needs. Nothing keeps the copies in step: when one app fixes a piece the other copied, the other decides whether to take the fix. (The earlier plan, a `FamilyKit` package in its own repository with `PixelUI` and `AppShell` libraries, Blit switched to it first and then Nib, is dropped; so is open question 20.)
 
-One Swift package in its own repository, used by both apps. **Working name: `FamilyKit`** (open question 20). Two libraries and a tools folder:
-
-```
-FamilyKit/
-├── Package.swift                 swift-tools 6.0, macOS 27; depends on Sparkle
-├── Sources/PixelUI/              everything visual
-│   ├── Tokens.swift              HUDColor (with the inline literals named), failure colors, radii, spacing, Motion.hud
-│   ├── HUDFont.swift             registers fonts from Bundle.module (Blit's version reads Bundle.main)
-│   ├── Resources/Fonts/          Silkscreen, VT323, OFL texts
-│   ├── PixelGlyph.swift          7×7 set, hudText, spoken labels; plus nib's glyph
-│   ├── PixelArt.swift            bitmap renderer, template-image cache
-│   ├── Components/               PixelCells, PixelHistogram, PixelSpinner, PixelMarchingAnts, PixelSignal,
-│   │                             HUDPanel, HUDRow, HUDButton, HUDDivider, HUDStrip (the strip's chrome), CRTEffect
-│   ├── MenuBarImage.swift        fixed-width slot composer (from MenuBarIcon)
-│   ├── DockBadge.swift           pixel badge and cell strip for the Dock tile
-│   └── ReduceMotion.swift        every animated component checks it (A16)
-├── Sources/AppShell/             app plumbing
-│   ├── Updates.swift             Sparkle wrapper, feed URL from Info.plist
-│   ├── License.swift             Lemon Squeezy trial and keys, configured per app (store, product, trial days)
-│   ├── AboutWindow.swift         parameterized: icon, name, tagline, version line
-│   ├── CommandPalette.swift      generic entries and Blit's scoring
-│   ├── SettingsForm.swift        pane() and note() helpers
-│   ├── GlobalHotKey.swift        new, from nib
-│   └── LoginItem.swift           new, from nib
-├── Tests/PixelUITests/           renders every glyph, icon and component to PNG; compares with checked-in snapshots
-└── tools/
-    ├── release.sh                Blit's script with APP, BUNDLE_ID, SITE parameters
-    ├── make-icon.swift           reads the pixel art from a text file
-    └── site/tokens.css, fonts/, favicon generator
-```
-
-### What moves from Blit (source → destination)
-
-| From Blit | To | Change needed |
-|---|---|---|
-| `HUDColor`, `HUDFont` (`TransferStrip.swift:9-46`) | `PixelUI/Tokens`, `HUDFont` | Fonts from `Bundle.module`; name the inline literals |
-| `Color.failure`, `failureText` (`SidebarView.swift:347`) | `PixelUI/Tokens` | none |
-| `PixelSignal` (`SidebarView.swift:326`) | `PixelUI/Components` | public |
-| `PixelCells`, `PixelHistogram` (`TransferStrip.swift:329`, `:348`) | `PixelUI/Components` | histogram grey becomes a token |
-| `PixelGlyph`, `hudText` (`PixelGlyphs.swift`) | `PixelUI` | none |
-| `PixelArt`, `PixelSpinner`, `PixelMarchingAnts` (`PixelArt.swift`) | `PixelUI` | Reduce Motion; Blit's own bitmaps (shield, arrow) stay in Blit |
-| `HUDPanel`, `HUDRow` (private, `TransferHUD.swift:372`, `:394`), `HUDButton` (`:622`), `CRTEffect` and `.crt` (`:415`) | `PixelUI/Components` | public; panel border 0.23 becomes a token |
-| Dashed divider (`TransferStrip.swift:132`, `AboutView.swift:28`) | `HUDDivider` | one component instead of two copies |
-| Timing curve (`ContentView.swift:78-85`, three copies) | `Motion.hud` | none |
-| `MenuBarIcon` slot measuring (`MenuBarIcon.swift:26-41`) | `MenuBarImage` | generic over the app's bitmaps and strings |
-| `DockProgress` drawing (`DockProgress.swift`) | `DockBadge` | Blit keeps its own when-to-show logic |
-| `AboutView` | `AboutWindow` | parameters |
-| `CommandPalette` | `AppShell` | generic over the entry type |
-| `Updates`, `LicenseManager` and `LicenseSection` | `AppShell` | configuration struct per app |
-| Settings `pane()`, `note()` (`MenuBarViews.swift:~313`) | `SettingsForm` | none |
-| `scripts/release.sh`, `scripts/make-icon.swift`, site CSS tokens and fonts | `tools/` | parameters |
-
-**Stays in Blit:** BlitKit (the transfer engine), the transfer strip's and HUD's content, the file browser, `ConflictPrompt` (Finder's Replace / Keep Both, a different problem), `TrashService`. **Stays in Nib:** NibKit, the editor, the merge view.
-
-### How the apps use it
-
-- Both apps depend on the package by git URL with version tags (`from: "1.0.0"`). While working on both at once, Xcode's local package override points at a local checkout.
-- **No visual drift:** the render tests compare every glyph and component with checked-in PNGs, and Blit's existing render harnesses (`UITestHarness.renderStatusIconsIfRequested`, `renderMenuBarIfRequested`, the strip render) must produce byte-identical images before and after Blit switches over. A token changes only when both apps' snapshots are re-rendered in the same commit.
-
-### Order of work
-
-1. **Weekend MVP (M1):** Nib *copies* the handful of files it needs (`HUDColor`, `HUDFont`, fonts, `PixelGlyph`, `hudText`) into `nib/Vendor/FromBlit/`, each with a header naming the Blit commit (`ac3f1ce`). No refactoring of a shipping app on a weekend.
-2. **Daily driver (M2):** create FamilyKit from the table above; switch Blit first (0.2.14, no visible change, verified by the render harnesses), then Nib; delete `Vendor/`.
-3. **Polish (M3):** new shared pieces (hotkeys, login item, Reduce Motion) flow back to Blit.
+- **Nib's copies from Blit:** `nib/Vendor/FromBlit/` (the HUD's colors and fonts, the pixel glyphs, the pixel-art renderer and the fixed-width menu bar image, the command palette, generalized) and `scripts/make-icon.swift` (Blit's script with Nib's art and name). The rest of Blit's inventory ([Reusable pieces](#reusable-pieces-from-blit)) is copied when Nib needs it.
+- **What Blit may want from Nib:** the global shortcuts (`nib/Model/HotKey.swift`: Carbon hot keys, changeable, with the warnings), launch at login (`nib/Model/LoginItem.swift`), the menu bar item made with AppKit's `NSStatusItem` (`nib/Views/MenuBar.swift`; SwiftUI's `MenuBarExtra` on macOS 27 ignores being turned off and shows only its label's first image, §8), and Reduce Motion (A16) once Nib honors it.
 
 ---
 
@@ -961,7 +899,7 @@ Blit's pattern (T3): measure first, give each milestone a "done when", and write
 |---|---|---|---|
 | **M0** | **Spikes** (an evening or two, before the weekend) | **S1 · iCloud probe** (one-Mac half done 2026-09-27, [results](#m0-results); two-Mac half is S1b): save-to-load latency (p50, p95) for small edits and for continuous typing; reproduce on purpose: simultaneous offline edits (conflict versions, or `name 2` files?), sleep before upload, eviction (`brctl evict`) and reading a dataless file, deletion and rename; whether a `#S` extended attribute syncs; whether `NSMetadataQuery` sees files outside Nib's container; the privacy prompt for iCloud Drive; whether iCloud Documents and key-value storage entitlements work with Developer ID signing; whether macOS 27 can keep one file downloaded. **S2 · Text view** (done 2026-09-27, [results](#m0-results)): TextKit 1 vs TextKit 2 at 197 KB and 2.4 MB: open time, typing cost, scrolling, memory; SwiftUI vs AppKit launch. **S3 · Fidelity:** the Sublime dump plugin, An Old Hope · Nib installed in Sublime, six reference files; tree-sitter plus a first scope map. Sublime baselines for §6.5. | Each question has a written answer here. §4.2 and §6.3's open choices are decided. Tree-sitter reaches ≥ 90% on S3 with a first-pass map (≥ 98% is M2's bar) |
 | **M1** | **Weekend MVP** (in progress; one-Mac checks passed 2026-09-27, two-Mac checks 2026-09-28, [progress](#m1-progress)) | All P0: scratch window and Show Scratch shortcut; plain paste and plain copy; `NSTextView` editor with native find; journal; autosave with every trigger; compare-and-swap saves; never writing a clean buffer; reload when clean; the Keep Mine / Keep Theirs / Keep Both safety net; the status strip with sync states (vendored pixel pieces); dark appearance and An Old Hope · Nib's editor colors; nothing on the main thread; stays running with no windows. Installed on both Macs with `release.sh`. | Five scripted scenarios on two Macs lose nothing: stale typing, lid closed before upload, both offline, `kill -9` mid-typing, another app writing the file. Rich text pasted from five sources comes out plain. Scratch has been used on both Macs for a day |
-| **M2** | **Daily driver** | All P1: files, tabs, CLI; tree-sitter highlighting for the six languages; An Old Hope · Nib's rules, theme import (`.tmTheme` and `.sublime-color-scheme`), Import from Sublime, the import report; Sublime keys; find and replace with regex; multiple carets if kept (open question 10); three-way merge, conflict blocks and merge view; duplicates, conflict versions, eviction, deletion, iCloud off, errors; History and Sync Log; receipts; Clean Clipboard, Paste Clean, Copy Block, Append to Scratch; menu bar extra; launch at login; first run; VoiceOver; Reduce Motion; FamilyKit created and adopted by Blit and Nib. | Fidelity ≥ 98%. §6.5 targets met or their gap written down. Sublime not opened for 14 consecutive days (§9) |
+| **M2** | **Daily driver** | All P1: files, tabs, CLI; tree-sitter highlighting for the six languages; An Old Hope · Nib's rules, theme import (`.tmTheme` and `.sublime-color-scheme`), Import from Sublime, the import report; Sublime keys; find and replace with regex; multiple carets if kept (open question 10); three-way merge, conflict blocks and merge view; duplicates, conflict versions, eviction, deletion, iCloud off, errors; History and Sync Log; receipts; Clean Clipboard, Paste Clean, Copy Block, Append to Scratch; menu bar extra; launch at login; first run; VoiceOver; Reduce Motion. | Fidelity ≥ 98%. §6.5 targets met or their gap written down. Sublime not opened for 14 consecutive days (§9) |
 | **M3** | **Polish** | All P2: sync HUD with CRT; pixel app icon and menu bar art; About; Dock ✕ badge; headings list; Services and Shortcuts; hide the Dock icon; performance tuning; QA and UX review; if sold, Sparkle, `nib.banast.as` and licensing. | Notarized release on both Macs; if sold, an update verified end to end through Sparkle, as Blit's 0.2.5 → 0.2.6 was |
 | **V2** | **Faster sync** (conditional) | The express lane from §4.10, LAN or CloudKit per open question 2; Handoff | The decision rule in §4.10 is met. After: save-to-load p95 under 2 s when both Macs are awake |
 
@@ -1185,7 +1123,7 @@ The by-hand checks above were skipped on 2026-09-28 by the user's choice, to mov
 - **Closing one** asks nothing (V8): a non-empty buffer's text goes into its History (source "closed") and onto **File › Reopen Closed File (⇧⌘T, §5.12)**, which brings it back where it was, under its name, for 30 days; after that, a sweep at launch removes it and its History. An empty one just goes. Reopen Closed File also reopens closed files (skipping any deleted since, which opening would recreate empty); it keeps the last 20.
 - **Save… (⌘S on an untitled buffer, W3)** asks where, starting in the test folder, writes the text in place, opens that file in its place and lets the buffer go. Until M1 has passed, only into the test folders: elsewhere it's refused and nothing is written (`NIB OPENS ONLY TEST FILES …`); a file already open in Nib is refused too.
 - **Checks:** three launches. `untitled`: ⌘N, the journal, saved on this Mac only, nothing in the Sync Log, a second one as a tab, closing it into History and the list, ⇧⌘T bringing it back, an empty one leaving nothing, Save… refused outside the test folders and then done inside, and typing only the journal has before a SIGKILL. `untitled-return`: both buffers back, the first with the journal's typing, saved; closed and forgotten; one more left open for an ordinary quit. `untitled-quit`: it's back. Single-Mac suite: 19 scenario runs, 98 checks; 99 NibKit tests.
-- **Not yet:** `cmd | nib` into an untitled buffer (AP4), a way to browse closed untitled buffers beyond ⇧⌘T, and Duplicate, Rename… and Move To… (ED4).
+- **Not yet:** a way to browse closed untitled buffers beyond ⇧⌘T. (`cmd | nib`, and Duplicate, Rename… and Move To…, came later the same day.)
 
 **The Sync Log window (2026-09-28), SY13, A13, §5.2.**
 
@@ -1194,7 +1132,7 @@ The by-hand checks above were skipped on 2026-09-28 by the user's choice, to mov
 - **Not yet:** the log is never trimmed (865 KB after a day of test runs); Export (Blit exports its log as CSV).
 
 **Two-Mac test, eleventh run (2026-09-28, 19:11): passed on both Macs, the same SHA-256** (`60076cd4…`), with everything since the tenth: bold and italic, the syntax menu, theme import and Settings, untitled buffers, the Sync Log window and the hold retry, from one commit on both Macs. a's lead line reached B as soon as B came forward (18.8 s after a added it, the test's wait); the clash wrote one block, Keep Both resolved it and the resolution reached A; in the apart phase B merged a's change onto its own by itself, no block on either Mac; both ended `✓ SYNCED` with the file holding exactly the buffer. B's Sync Log for the run: held at once (no retry needed), two uploads refused while A's version was newer, each followed by the fetch and the merge, as designed.
-- **Not yet for files:** dragging a file onto a window, the `nib` command-line tool (AP4), ⌘1-⌘9 to pick a tab.
+- **Not yet for files:** dragging a file onto a window, the `nib` command-line tool (AP4), ⌘1-⌘9 to pick a tab. (All three came on 2026-09-29.)
 - **Not yet:** a real iCloud conflict version or duplicate produced by two Macs (the M1 by-hand "both offline" test, skipped); the merge view's Keep Both Files for an unrelated duplicate (duplicates are merged into the text instead); the lineage extended attribute (§4.6 base 1), iCloud conflict versions and duplicates (§4.6 3-4), marking the merged ranges (V6, V7).
 
 **Incremental highlighting (2026-09-28), §6.3, §6.5.**
@@ -1339,6 +1277,27 @@ The by-hand checks above were skipped on 2026-09-28 by the user's choice, to mov
 - **What stands in the way, said under the field (SC2):** Nib now registers its shortcuts exclusively. **Found:** Carbon reports another app only if that app registered the keys exclusively too (`eventHotKeyExistsErr`, checked with a second process); a plain registration by another app, as launchers may make, succeeds for both and nothing says so. So Nib says: "Another app holds ⌃⌥⇧J, so Nib can't use it" (an exclusive holder); "macOS uses ⌘Space itself… so it won't reach Nib" (the system's own shortcuts that are on, from `CopySymbolicHotKeys`); and for ⌥Space, Raycast's and Alfred's usual key, when one of them is running, "If Raycast still uses it, the two clash".
 - **Checks:** a `firstrun` scenario (22 checks): the window at the first launch; step 1 finding the scratch file, refusing a path outside the test folder (a path only, never read), taking another test file for when Nib reopens, and Keep; step 2's summary of Sublime's settings; Nib's own keys, registered; Show Scratch's field listening with the shortcuts off, ⇧K refused, ⌃⌥⇧K taken and registered, Escape keeping, Delete clearing; keys another action has refused; keys another app holds (a helper, `scripts/hotkey-holder.swift`, holding ⌃⌥⇧J exclusively); macOS's ⌘Space; the Edit menu showing ⌃⌥⌘V, then ⌃⌥⌘B; open at login turned on and off (a stand-in, `-NibFakeLoginItem`: the real one would add a Debug build to the Mac's Login Items); Done; Help › Welcome to Nib; Settings › General's three fields; and a scratch file not made while the welcome window waits, then made when it says so. The three steps and Settings › General are saved as pictures beside the log. This Mac's own settings (done, shortcuts, the scratch file) are put back after. The suite on everything (14:13): 40 scenario runs and 256 checks, all passing, and 133 NibKit tests (counted by scenario and by check line this time; the earlier "42 runs, 235 checks" counted the runner's other headings and one line twice). No new file provider crash.
 
+**The `nib` command-line tool (2026-09-29), AP4, §6.3.**
+
+- **What it does,** as `subl` does: `nib file…` opens files (a relative path from the shell's folder; `file:12` and `file:12:5` go to a line and column, unless a file has that whole name); `nib -w file…` waits until they're closed, their text in the file by then (for `$EDITOR="nib -w"` and git commit messages); `cmd | nib` (or `nib -`) opens standard input as an untitled buffer (ED3), and `-w` waits for it to close; `cmd | nib -a` appends standard input to the scratch file, cleaned as Append Clipboard to Scratch cleans (SC6), without bringing Nib forward; `nib --scratch`, and `nib` alone, show the scratch window. Exit 0 when done; 1 when Nib says no, says nothing in 30 s, or quits (crashes) before a waited-on file is closed; 2 for a mistake in the arguments. Nothing is printed on success; problems go to standard error as `nib: …`, in sentences.
+- **How it asks Nib:** a NibKit executable (`NibCLI`, product `nib`) that never touches a synced file (the sync controls need an app, §8 M0). It writes the request whole (a rename) to `~/Library/Application Support/nib/Requests/<token>.json`, starts Nib if it isn't running (`open -b com.banastas.nib`, `-g` for `-a`), and posts a distributed notification with the one-time token each second until Nib answers. Nib takes the request by renaming it (once, whichever Nib gets there first), acts, and answers with the token (`ok`, a message, how many files it waits on); a Nib just started takes waiting requests from the folder at launch. **A waited-on file's `closed` notification comes after its window has closed and `close()` has saved and uploaded it**, or when Nib quits, after every file is saved. A request is a file, not a `nib://` URL, so that only a process on this Mac that can write to the user's Library can make one: a web page can open a URL. (§6.3 had standard input going to a temp file; it goes in the request, and Nib makes the untitled buffer from it.)
+- **Under the safety rule** (§8), a file outside the test folders isn't opened at all: the tool says "… isn't a test file: until M1 has passed, Nib opens only files in iCloud Drive › Nib › Test" and exits 1, so a `git commit` with `EDITOR="nib -w"` stops at once with git's own "problem with the editor", rather than waiting on a window that can't be edited. A folder is refused ("… is a folder: Nib opens files"); `-w` on the scratch file doesn't wait (it never closes).
+- **Installing:** `scripts/install-nib-cli.sh [folder]` builds it (release) and copies it to `~/.local/bin/nib` (first on this Mac's PATH; `/usr/local/bin` isn't writable without sudo). It works with whichever Nib.app macOS knows, the Debug build until there's a release.
+- **Checks:** a `cli` scenario (13 checks) running the real binary against the scenario's Nib (told never to start or bring forward Nib): `file:4` with the caret on line 4; `-w` waiting, then returning when the window closes with the typing in the file; standard input as an untitled buffer; `-a` at the end of the scratch file with the caret where it was, then undone; `-a` with nothing piped in; `--scratch`; a path outside the test folder refused with exit 1 (a path only, never read); a folder refused; `-x`, exit 2; a waiting `-w` let go when Nib quits; no request left in the folder. NibKit's `BridgeTests`: paths and lines from arguments, and a request read back as written. The suite at 14:46 (41 scenario runs, 269 checks, all passing, and 135 NibKit tests) turned out to have run an app built at 14:33, before the scenario's requests stopped bringing Nib forward (below). Built as the sources are, and with the fixes below, the suite at 15:36: 41 scenario runs and 269 checks, all passing, and 135 NibKit tests; the focus stayed with the app in front for all 41 runs; no new crash of Nib or the file provider.
+- **Found while checking:** typing on the Mac during a suite run lands in the scenarios' windows. Each scenario's Nib comes forward when it starts, and two `cli` runs had two stray characters in a test file (`…second line\nea`) and a caret moved a line: keystrokes typed on the Mac mini meanwhile. Not a Nib fault, and harmless to the test files, but whatever was typed didn't reach the app it was meant for (the user confirmed typing then). **Fixed:** a scenario's Nib gives the focus back to the app that had it, at launch and whenever it comes forward (`ScenarioFocus`); only `find`, `palette` and `snapshot` take it, for the few seconds they need a key window, and each log's first line names the app keeping the focus. Sampling the front app every 0.25-0.5 s through a scenario, Nib was never in front. The tool's own requests in the scenario don't bring Nib forward either. **And** the runner's final tally didn't count `firstrun` (its results at 14:13 were printed and passed, but a failure wouldn't have failed the run); it counts `firstrun` and `cli` now, and a scenario that wrote no log at all counts as a failure. **And Xcode's build service stopped building:** from 14:33 to 15:16 every `xcodebuild` said "BUILD SUCCEEDED" and compiled nothing, the edits unseen (the volume's clock is right; the likeliest cause is the build service missing file changes on this external volume), so a suite ran an app older than its code. **Fixed:** `scripts/build-nib.sh`, which both scenario scripts use, builds and then checks that the app is newer than every Swift source; if not, it touches them and builds again, and if the app is still older it stops. It caught the next edit at once (FindBar.swift: "the app is older than 1 source file… building again"), so the first build after an edit missing it happens every time here, not now and then.
+- **And ⌘F now and then left the caret in the text:** with Nib no longer in front at a scenario's start, `find` failed once in the suite and once in three runs alone (the bar open, the caret not in its field). The field asked for the caret on the next turn of the run loop, and a bar just opened may not be in its window by then. Now the field keeps the request until it's in a window. Four runs of `find` passed after; the runs that failed had Finder as the app in front, which none of the four had, so that exact case isn't shown fixed.
+
+**Files and tabs, the rest (2026-09-29), ED2, ED4, §5.12.**
+
+- **⌘1…⌘9** pick the window's tab by its number, as in Sublime; with fewer tabs, a beep. With the caret in a conflict block, ⌘1, ⌘2 and ⌘3 stay the Conflicts menu's (§5.4, and §5.12's "except with the caret inside a conflict block"); in a sheet (the merge view, a palette) and in a window with no tabs (the scratch window) the keys are left to the menus. Not in a menu: the Conflicts items already show ⌘1-⌘3.
+- **Files dragged onto a window open**, each in its tab (a folder dragged with them is left out), as in Sublime; text dragged in, or moved inside the view, goes in as ever. To put a file's path in the text, copy it in Finder and paste (PT5).
+- **File › Duplicate (⇧⌘S):** an untitled buffer (ED3) with the same text, named as Apple's apps name a copy (`notes copy.md`, then `notes copy 2.md`); Save… suggests that name, keeping its extension.
+- **File › Rename… and Move To…:** a sheet with the name (its base selected, as in Finder), or a folder panel. The file is saved and uploaded first; if iCloud hasn't taken the last changes within 10 s, nothing moves ("TRY AGAIN IN A MOMENT"). Then it's closed as its window closing would close it (handed back to iCloud, so a held file is never moved, §4.3), moved with a coordinated move (off the main thread, within 20 s), and opened again under the new name. Its History, caret, syntax and known duplicates go with it, and Open Recent lists the new name, not the old. Refused, and said in the strip: another file's name ("… IS ALREADY THERE"), a file open in Nib, a name with "/" or a leading ".", and anywhere outside the test folders under the safety rule. A new name by case alone (`c-` to `C-`, the same file to the Mac's disk) goes through a name in between. An untitled buffer is renamed as a new buffer of the same text and caret, the old one let go with nothing left to reopen; Move To… on one is Save…. The scratch file isn't renamed or moved (Settings › General picks another).
+- **Checks:** a `fileops` scenario (14 checks): four files as four tabs in one window; ⌘2, ⌘9 with four tabs; ⌘1 left to the Conflicts menu with the caret in a block, ⌘4 still a tab; the scratch window's ⌘1 left alone; Duplicate; Rename… with the caret, History and Recent entry carried over; refused onto another file's name; by case alone; Move To… refused outside the test folder (a path only), then into a folder; an untitled buffer renamed; the scratch file not moved; a file and a folder dragged in (the file opens); the File menu's items and keys.
+- **Found by the suite on the way, in the merge view (§5.5):** after ⌘1, ⌘2 or ⌘3 it moves the caret to the next block by its list of blocks, and that list was brought up to date only when the editor's change notice came, which can be later: with the old ranges the caret could land between blocks, and a quick second ⌘1 only beeped (`mergeview`, three blocks resolved in a row, failed once in the suite with two left; it passed alone). Now the list is brought up to date before the caret moves.
+- **The build check earned its keep again:** twice more a build compiled nothing after an edit, and the second time touching the file and building again didn't help either (restarting Xcode's build service didn't, nor did a build with full output). Removing the build system's database (`XCBuildData/build.db`) did, in about 10 s; `scripts/build-nib.sh` now does that when it finds the app older than a source file.
+- **The suite on everything (16:19):** 42 scenario runs and 283 checks, all passing (`mergeview` too, with the fix), and 135 NibKit tests; the focus stayed with the app in front for every run; no new crash of Nib or the file provider.
+
 ---
 
 ## 9. Success criteria
@@ -1376,5 +1335,5 @@ How to know Nib has replaced Sublime:
 17. **Largest files you edit?** Big logs or data dumps would move ED9's thresholds.
 18. **Should caret and scroll positions follow you between Macs?** (Recommended: no; each Mac keeps its own.)
 19. **Blit and Nib together:** should Blit get an "Open in Nib" for text files (its Quick Look already handles `.nfo` and subtitles), or a Nib-backed quick edit for small remote files? Blit lists remote editing as a non-goal, so this would change Blit's PRD too.
-20. **Shared package:** name (FamilyKit is a placeholder), and public or private? Blit is closed source for now.
+20. ~~**Shared package:** name, and public or private?~~ **Decided (2026-09-29):** no shared package; each app keeps its code in its own repository, and either copies from the other what it needs (§7).
 21. ~~**Receipts in the user's folder**~~ **Decided (2026-09-28):** not a hidden folder at the root of iCloud Drive. Nib gets its own visible folder there (`iCloud Drive/Nib/`, §4.2), the scratch file moves into it, and the notes live hidden inside it.

@@ -3,6 +3,7 @@
 // menu bar extra exists (§5.7). VoiceOver hears it too.
 
 import AppKit
+import NibText
 import SwiftUI
 
 @MainActor
@@ -36,8 +37,7 @@ enum Toast {
         }
         panel.alphaValue = 1
         panel.orderFrontRegardless()
-        NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
-                             userInfo: [.announcement: text.lowercased(), .priority: NSAccessibilityPriorityLevel.high.rawValue])
+        Announce.hud(text, urgent: true)
         hide?.cancel()
         let work = DispatchWorkItem {
             NSAnimationContext.runAnimationGroup({ $0.duration = 0.3; panel.animator().alphaValue = 0 }, completionHandler: {
@@ -46,6 +46,29 @@ enum Toast {
         }
         hide = work
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
+    }
+}
+
+/// VoiceOver says it (PRD AX2): the strip's notices, the HUD line, conflicts resolved. HUD
+/// words become a sentence (NibText's Spoken); nothing is said with VoiceOver off.
+@MainActor
+enum Announce {
+    #if DEBUG
+    /// What was said last, for the scenarios.
+    private(set) static var said: [String] = []
+    #endif
+
+    static func hud(_ text: String, urgent: Bool = false) {
+        sentence(Spoken.sentence(text), urgent: urgent)
+    }
+
+    static func sentence(_ text: String, urgent: Bool = false) {
+        #if DEBUG
+        said.append(text)
+        if said.count > 20 { said.removeFirst() }
+        #endif
+        NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
+                             userInfo: [.announcement: text, .priority: (urgent ? NSAccessibilityPriorityLevel.high : .medium).rawValue])
     }
 }
 

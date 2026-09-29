@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "NibSync", targets: ["NibSync"]),
         .library(name: "NibSyntax", targets: ["NibSyntax"]),
         .executable(name: "nib-fidelity", targets: ["NibFidelity"]),
+        .executable(name: "nib", targets: ["NibCLI"]),
     ],
     // tree-sitter and grammars for HL1's languages (§6.3; BSD-3-Clause and MIT); CSS and JavaScript are vendored.
     dependencies: [
@@ -43,6 +44,8 @@ let package = Package(
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         // The fidelity harness's comparison (fidelity/run.sh): Nib's colors against Sublime's dump.
         .executableTarget(name: "NibFidelity", dependencies: ["NibSyntax", "NibText"]),
+        // The `nib` command-line tool (AP4): asks the running app, through NibSync's Bridge.
+        .executableTarget(name: "NibCLI", dependencies: ["NibSync", "NibText"]),
         .testTarget(name: "NibTextTests", dependencies: ["NibText"]),
         .testTarget(name: "NibSyntaxTests", dependencies: ["NibSyntax", "NibText"]),
         .testTarget(name: "NibSyncTests", dependencies: ["NibSync", "NibText"]),

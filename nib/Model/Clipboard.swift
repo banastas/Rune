@@ -49,26 +49,45 @@ enum Clipboard {
     /// stays where it was.
     @discardableResult
     static func appendToScratch() -> String {
+        guard Documents.scratch.ready else { return Appended.notOpen.hud }
+        return append(text() ?? "", action: "Append Clipboard").hud
+    }
+
+    enum Appended: Equatable {
+        case lines(Int), notOpen, empty, readOnly
+
+        /// For the strip, the menu bar panel and the HUD line.
+        var hud: String {
+            switch self {
+            case .lines(let n): "APPENDED \(n) LINE\(n == 1 ? "" : "S") TO SCRATCH"
+            case .notOpen: "COULDN'T APPEND · THE SCRATCH FILE ISN'T OPEN"
+            case .empty: "THE CLIPBOARD HAS NO TEXT · NOTHING APPENDED"
+            case .readOnly: "COULDN'T APPEND · THE SCRATCH FILE IS READ-ONLY"
+            }
+        }
+    }
+
+    /// Text at the end of the scratch file, cleaned as Paste Clean cleans it: the clipboard's
+    /// (SC6), or standard input's (`cmd | nib -a`, AP4).
+    static func append(_ text: String, action: String) -> Appended {
         let document = Documents.scratch
-        guard document.ready, document.locked == nil else { return "COULDN'T APPEND · THE SCRATCH FILE ISN'T OPEN" }
-        guard let text = text() else { return "THE CLIPBOARD HAS NO TEXT · NOTHING APPENDED" }
+        guard document.ready, document.locked == nil else { return .notOpen }
         var clean = PasteCleaner.clean(text, options: options).text
         while clean.hasSuffix("\n") { clean.removeLast() }
-        guard !clean.isEmpty else { return "THE CLIPBOARD HAS NO TEXT · NOTHING APPENDED" }
+        guard !clean.isEmpty else { return .empty }
         let view = document.editor.textView
         let current = view.string as NSString
         let lead = current.length == 0 ? "" : current.hasSuffix("\n\n") ? "" : current.hasSuffix("\n") ? "\n" : "\n\n"
         let addition = lead + clean + "\n"
         let end = NSRange(location: current.length, length: 0)
         let selection = view.selectedRange()
-        guard view.shouldChangeText(in: end, replacementString: addition) else { return "COULDN'T APPEND · THE SCRATCH FILE IS READ-ONLY" }
+        guard view.shouldChangeText(in: end, replacementString: addition) else { return .readOnly }
         view.textStorage?.replaceCharacters(in: end, with: addition)
         view.didChangeText()
-        view.undoManager?.setActionName("Append Clipboard")
+        view.undoManager?.setActionName(action)
         view.setSelectedRange(selection)
-        let lines = clean.components(separatedBy: "\n").count
-        let message = "APPENDED \(lines) LINE\(lines == 1 ? "" : "S") TO SCRATCH"
-        document.show(message, for: 6)
-        return message
+        let appended = Appended.lines(clean.components(separatedBy: "\n").count)
+        document.show(appended.hud, for: 6)
+        return appended
     }
 }

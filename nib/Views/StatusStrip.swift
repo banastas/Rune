@@ -30,7 +30,7 @@ struct StatusStrip: View {
                     .truncationMode(.tail)
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(document.url.lastPathComponent), \(document.state.spoken)")
+            .accessibilityLabel("\(document.url.lastPathComponent), \(Self.spokenState(document))")
             Spacer(minLength: 8)
             HStack(spacing: 0) {
                 if document.goingToLine {
@@ -64,6 +64,7 @@ struct StatusStrip: View {
                 .accessibilityLabel("Syntax, \(document.syntaxName.capitalized)")
                 Text(" · \(document.indentationLabel) · \(document.format.encoding.label) · \(document.format.lineEnding.label)")
                     .help("Indentation (found in the file), encoding and line endings")
+                    .accessibilityLabel("\(document.indentationLabel.lowercased()), \(document.format.encoding.label), \(document.format.lineEnding.label) line endings")
             }
             .font(HUDFont.terminal(16))
             .monospacedDigit()
@@ -80,8 +81,21 @@ struct StatusStrip: View {
         .contextMenu { StripMenu(document: document) }
         .onChange(of: document.goingToLine) { _, open in if open { lineFieldFocused = true } }
         .onChange(of: lineFieldFocused) { _, focused in if !focused, document.goingToLine { document.goingToLine = false } }
+        // One summary, as Blit's strip reads (AX1); its buttons still reachable inside.
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Status")
+        .accessibilityLabel(Self.summary(document))
+    }
+
+    /// "scratch.md, synced at 10:42:21, line 14, column 3, Markdown" (AX1).
+    static func summary(_ document: Document) -> String {
+        "\(document.url.lastPathComponent), \(spokenState(document)), line \(document.cursor.line), column \(document.cursor.column), \(document.syntaxName.capitalized)"
+    }
+
+    /// The notice showing, or else the state, mid-sentence.
+    static func spokenState(_ document: Document) -> String {
+        let said = document.notice.map(Spoken.sentence) ?? document.state.spoken
+        guard let first = said.first else { return said }
+        return first.lowercased() + said.dropFirst()
     }
 
     private var stateColor: Color {

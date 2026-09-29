@@ -93,6 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.appearance = NSAppearance(named: .darkAqua)   // dark only, always (A17)
+        #if DEBUG
+        ScenarioFocus.start()   // a scenario's Nib doesn't take the Mac's focus
+        #endif
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -115,14 +118,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         GlobalShortcuts.shared.registerAll()
         observeSystem()
         MenuBarController.shared.start()   // the menu bar extra (§5.7), AppKit's own status item
+        CLIBridge.start()   // the `nib` command-line tool (AP4)
         // ⌘K opens Go to File too (A6), as ⌘K "Go to…" does in Blit; a menu item takes only one key.
+        // ⌘1…⌘9 pick a tab, as in Sublime (§5.12), but for ⌘1-⌘3 with the caret in a conflict block.
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-                  event.charactersIgnoringModifiers == "k", NSApp.keyWindow?.isSheet != true,
+                  let key = event.charactersIgnoringModifiers, NSApp.keyWindow?.isSheet != true,
                   NSApp.keyWindow?.attachedSheet == nil,
                   !(NSApp.keyWindow?.firstResponder is ShortcutRecorder) else { return event }   // new keys being typed
-            MainActor.assumeIsolated { Self.showPalette(.files, in: nil) }
-            return nil
+            let handled = MainActor.assumeIsolated {
+                if key == "k" { Self.showPalette(.files, in: nil); return true }
+                if let number = Int(key), (1...9).contains(number) { return Self.selectTab(number, in: NSApp.keyWindow) }
+                return false
+            }
+            return handled ? nil : event
         }
         // After SwiftUI has put up the scratch window, so the welcome window is in front of it.
         if firstRun { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { FirstRun.shared.show() } }
@@ -144,6 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await withTaskGroup(of: Void.self) { group in
                 for document in Documents.all { group.addTask { await document.close() } }
             }
+            CLIBridge.quitting()   // every file saved: `nib -w` stops waiting
             sender.reply(toApplicationShouldTerminate: true)
         }
         // A run-loop timer, not a dispatch block: if quit was asked for from inside a
@@ -156,6 +166,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     static var scratchWindow: NSWindow? { document.editor.textView.window }
+
+    /// ⌘1…⌘9: the window's tab by its number (§5.12); false to leave the keys to the menus, as
+    /// with the caret in a conflict block, where ⌘1, ⌘2 and ⌘3 pick a version (§5.4), or a
+    /// window with no tabs.
+    static func selectTab(_ number: Int, in window: NSWindow?) -> Bool {
+        guard let window, !window.isSheet, window.attachedSheet == nil else { return false }
+        if number <= 3, Documents.all.first(where: { $0.editor.textView.window === window })?.activeCaretBlock != nil { return false }
+        guard let tabs = window.tabGroup?.windows, tabs.count > 1 else { return false }
+        guard number <= tabs.count else { NSSound.beep(); return true }
+        tabs[number - 1].makeKeyAndOrderFront(nil)
+        return true
+    }
 
     /// Quits and opens again, once this one has handed its files back (a new scratch file, SC1).
     static func relaunch() {
@@ -279,6 +301,14 @@ struct NibCommands: Commands {
             }
                 .keyboardShortcut("s")
                 .disabled(document == nil)
+            // Apple's autosave model (ED4, W3): a copy to Save… somewhere, a new name, a new folder.
+            Button("Duplicate") { document.map(FileCommands.duplicate) }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
+                .disabled(document == nil)
+            Button("Rename…") { document.map(FileCommands.askRename) }
+                .disabled(!FileCommands.canMove(document))
+            Button("Move To…") { document.map(FileCommands.askMove) }
+                .disabled(!FileCommands.canMove(document))
             if let document { RevertToMenu(document: document) } else { Menu("Revert To") {}.disabled(true) }
         }
         CommandGroup(before: .toolbar) {
@@ -403,6 +433,12 @@ final class RecentFiles {
         urls.removeAll { $0.standardizedFileURL.path == url.standardizedFileURL.path }
         urls.insert(url, at: 0)
         if urls.count > 10 { urls.removeLast(urls.count - 10) }
+        UserDefaults.standard.set(urls.map(\.path), forKey: key)
+    }
+
+    /// Moved or renamed (ED4): its old path isn't a file any more.
+    func remove(_ url: URL) {
+        urls.removeAll { $0.standardizedFileURL.path == url.standardizedFileURL.path }
         UserDefaults.standard.set(urls.map(\.path), forKey: key)
     }
 

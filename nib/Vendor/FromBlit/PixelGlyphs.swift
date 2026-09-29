@@ -1,5 +1,5 @@
 // Copied from Blit at ac3f1ce (Blit/Views/PixelGlyphs.swift) for the weekend MVP.
-// Replaced by the shared package (FamilyKit › PixelUI) in M2 (PRD §7).
+// Nib's own now (no shared package, PRD §7).
 //
 // Pixel glyphs for the HUD. Silkscreen and VT323 have no ✓ ✕ ▲ ▼ →, so the
 // system would draw smooth fallback glyphs; these 7×7 bitmaps keep the HUD

@@ -45,7 +45,7 @@ enum TestHarness {
         let log = HarnessLog(path: defaults.string(forKey: "NibScenarioLog") ?? "/tmp/nib-scenario.log")
         let marker = defaults.string(forKey: "NibMarker") ?? "marker-\(Int(Date().timeIntervalSince1970))"
         Task {
-            log.line("scenario \(scenario) · \(document.url.lastPathComponent) · held \(document.held) · marker \(marker)")
+            log.line("scenario \(scenario) · \(document.url.lastPathComponent) · held \(document.held) · marker \(marker) · the focus stays with \(ScenarioFocus.keeper)")
             switch scenario {
             case "type": await typeAndSync(document, log, marker)
             case "clipboard": await clipboard(document, log)
@@ -79,6 +79,8 @@ enum TestHarness {
             case "tidy": await tidyScenario(log, marker)
             case "menubar": await menuBarScenario(Documents.scratch, log, marker)
             case "firstrun": await firstRunScenario(Documents.scratch, log, marker)
+            case "cli": await cliScenario(Documents.scratch, log, marker)
+            case "fileops": await fileOpsScenario(Documents.scratch, log, marker)
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -278,7 +280,7 @@ enum TestHarness {
         }
         log.check(keys == ["⌘F", "⌥⌘F", "⌘G", "⇧⌘G", "⌘E", "⌥⌘E", "⌃⌥↩"], "on the Mac's keys and Sublime's: \(keys.joined(separator: " "))")
         // The menu acts on the window in front: this one, brought forward as a click would.
-        NSApp.activate(ignoringOtherApps: true)
+        ScenarioFocus.take()
         view.window?.makeKeyAndOrderFront(nil)
         view.window?.makeFirstResponder(view)
         let front = await waitFor(5) { NSApp.isActive && view.window?.isKeyWindow == true }
@@ -418,7 +420,7 @@ enum TestHarness {
         log.check(files == "⌘P" && commands == "⇧⌘P" && !print, "File › Go to File… \(files ?? "none"), View › Command Palette… \(commands ?? "none"), no Print")
 
         // Go to File.
-        NSApp.activate(ignoringOtherApps: true)
+        ScenarioFocus.take()
         view.window?.makeKeyAndOrderFront(nil)
         _ = await waitFor(3) { view.window?.isKeyWindow == true }
         func sheet(_ up: Bool) async -> Bool { await waitFor(3) { (view.window?.attachedSheet != nil) == up } }
@@ -718,6 +720,12 @@ enum TestHarness {
         let a = picture()
         try? await Task.sleep(for: .milliseconds(250))
         log.check(a != nil && a != picture(), "its line marches while an upload has waited more than 3 s (\(document.state.line))")
+        defaults.set(true, forKey: "NibReduceMotion")
+        try? await Task.sleep(for: .milliseconds(400))
+        let calmA = picture(saving: "menubar-item-reduce-motion")
+        try? await Task.sleep(for: .milliseconds(500))
+        log.check(calmA != nil && calmA == picture() && calmA != still, "with Reduce Motion it doesn't march: still, in dashes, while the upload waits")
+        defaults.removeObject(forKey: "NibReduceMotion")
         defaults.removeObject(forKey: "NibHoldUploads")
         await document.flush(reason: "test")
         await waitSynced(document, 20)
@@ -958,6 +966,276 @@ enum TestHarness {
                   "no scratch file: none made while the welcome window waits, then made when it says so")
         await fresh.close()
         try? FileManager.default.removeItem(at: other)
+    }
+
+    /// The `nib` command-line tool (AP4), the real binary (-NibCLI) against this Nib: a file at a
+    /// line; `-w` waiting until the window closes, the typing in the file by then; standard
+    /// input as an untitled buffer, and at the end of the scratch file (undone after);
+    /// `--scratch`; a file outside the test folder refused and a folder refused, with exit 1;
+    /// an unknown option, exit 2; and a waiting `-w` let go when Nib quits.
+    static func cliScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        guard let tool = UserDefaults.standard.string(forKey: "NibCLI"), FileManager.default.isExecutableFile(atPath: tool) else {
+            log.check(false, "the nib tool to run (-NibCLI)")
+            return
+        }
+        let folder = document.url.deletingLastPathComponent()
+        let made = (1...3).map { folder.appendingPathComponent("cli-\(marker)-\($0).txt") }
+        for (n, url) in made.enumerated() {
+            try? Data((1...6).map { "file \(n + 1) line \($0) \(marker)" }.joined(separator: "\n").appending("\n").utf8).write(to: url)
+        }
+        var untitled: URL?
+        defer {
+            for url in made + [untitled].compactMap({ $0 }) {
+                try? FileManager.default.removeItem(at: url)
+                UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+                if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+            }
+        }
+
+        /// Runs the tool; the result once it exits (or nil after `seconds`).
+        func start(_ arguments: [String], input: String? = nil) -> Process {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: tool)
+            process.arguments = arguments
+            process.currentDirectoryURL = folder
+            process.environment = ["NIB_NO_LAUNCH": "1", "NIB_NO_ACTIVATE": "1", "HOME": NSHomeDirectory(), "PATH": "/usr/bin:/bin"]
+            let stdin = Pipe()
+            process.standardInput = stdin
+            process.standardOutput = Pipe()
+            process.standardError = Pipe()
+            try? process.run()
+            if let input { stdin.fileHandleForWriting.write(Data(input.utf8)) }
+            try? stdin.fileHandleForWriting.close()
+            return process
+        }
+        func finish(_ process: Process, _ seconds: Double = 15) async -> (status: Int32, error: String)? {
+            guard await waitFor(seconds, { !process.isRunning }) else { process.terminate(); return nil }
+            let error = (process.standardError as? Pipe).flatMap { String(data: $0.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) } ?? ""
+            return (process.terminationStatus, error.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        func run(_ arguments: [String], input: String? = nil) async -> (status: Int32, error: String)? {
+            await finish(start(arguments, input: input))
+        }
+        func caretLine(_ url: URL) -> Int? {
+            guard let open = Documents.existing(for: url) else { return nil }
+            return open.editor.lineIndex.line(at: open.editor.textView.selectedRange().location)
+        }
+        func close(_ url: URL) async {
+            Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+            _ = await waitFor(15) { Documents.existing(for: url) == nil }
+        }
+
+        // A file at a line, by a path relative to the shell's folder.
+        let atLine = await run([made[0].lastPathComponent + ":4"])
+        _ = await waitFor(10) { caretLine(made[0]) == 4 }
+        log.check(atLine?.status == 0 && Documents.existing(for: made[0])?.ready == true && caretLine(made[0]) == 4,
+                  "nib file:4 opens it with the caret on line 4 (exit \(atLine.map { "\($0.status)" } ?? "none"), line \(caretLine(made[0]) ?? 0))")
+        await close(made[0])
+
+        // -w: waits until the window closes, and the typing is in the file by then.
+        let waiter = start(["-w", made[1].path])
+        _ = await waitFor(10) { Documents.existing(for: made[1])?.ready == true && CLIBridge.waiters(for: made[1]) == 1 }
+        let opened = Documents.existing(for: made[1])
+        try? await Task.sleep(for: .milliseconds(1_500))
+        log.check(opened?.ready == true && waiter.isRunning, "nib -w opens the file and waits")
+        if let opened { await type("typed while nib -w waits \(marker)\n", into: opened) }
+        await close(made[1])
+        let waited = await finish(waiter, 10)
+        let saved = (try? String(contentsOf: made[1], encoding: .utf8)) ?? ""
+        log.check(waited?.status == 0 && saved.contains("typed while nib -w waits \(marker)"),
+                  "and returns when its window closes (exit \(waited.map { "\($0.status)" } ?? "none")), the typing in the file")
+
+        // Standard input as an untitled buffer.
+        let before = Set(Documents.all.map(\.url))
+        let piped = await run([], input: "piped into nib \(marker)\nsecond line\n")
+        _ = await waitFor(10) { Documents.all.contains { !before.contains($0.url) && $0.untitled && $0.ready && !$0.editor.textView.string.isEmpty } }
+        let buffer = Documents.all.first { !before.contains($0.url) && $0.untitled }
+        untitled = buffer?.url
+        log.check(piped?.status == 0 && buffer?.editor.textView.string == "piped into nib \(marker)\nsecond line\n",
+                  "cmd | nib: an untitled buffer with its text (\(buffer?.url.lastPathComponent ?? "none"): exit \(piped.map { "\($0.status) \($0.error)" } ?? "none"), \(buffer?.editor.textView.string.debugDescription ?? "no text"))")
+        if let url = buffer?.url { await close(url) }
+
+        // Standard input at the end of the scratch file, then undone.
+        let length = (document.editor.textView.string as NSString).length
+        let appended = await run(["-a"], input: "appended by nib -a \(marker)\n")
+        _ = await waitFor(5) { document.editor.textView.string.hasSuffix("appended by nib -a \(marker)\n") }
+        log.check(appended?.status == 0 && document.editor.textView.string.hasSuffix("appended by nib -a \(marker)\n")
+                  && document.editor.textView.selectedRange().location <= length,
+                  "cmd | nib -a: at the end of the scratch file, the caret where it was")
+        if document.editor.textView.string.hasSuffix("appended by nib -a \(marker)\n") { document.editor.textView.undoManager?.undo() }
+        log.check((document.editor.textView.string as NSString).length == length, "and ⌘Z takes it out again")
+        let nothing = await run(["-a"], input: "")
+        log.check(nothing?.status == 1 && nothing?.error == "nib: nothing on standard input to append", "nib -a with nothing piped in: \(nothing?.error ?? "no answer")")
+
+        // --scratch.
+        AppDelegate.scratchWindow?.orderOut(nil)
+        let shown = await run(["--scratch"])
+        _ = await waitFor(5) { AppDelegate.scratchWindow?.isVisible == true }
+        log.check(shown?.status == 0 && AppDelegate.scratchWindow?.isVisible == true, "nib --scratch shows the scratch window")
+
+        // Refused: a file outside the test folders (a path only: never read), and a folder.
+        let outside = NSHomeDirectory() + "/Documents/cli-\(marker).txt"
+        let refused = await run([outside])
+        log.check(refused?.status == 1 && refused?.error.contains("isn't a test file") == true && Documents.existing(for: URL(fileURLWithPath: outside)) == nil,
+                  "a file outside the test folder isn't opened: \(refused?.error ?? "no answer") (exit \(refused.map { "\($0.status)" } ?? "none"))")
+        let directory = await run([folder.path])
+        log.check(directory?.status == 1 && directory?.error.contains("is a folder") == true, "nor a folder: \(directory?.error ?? "no answer")")
+        let wrong = await run(["-x"])
+        log.check(wrong?.status == 2 && wrong?.error.hasPrefix("nib: no option -x") == true, "an unknown option: exit 2 and the usage")
+
+        // A waiting -w let go when Nib quits, its file saved first.
+        let quitWaiter = start(["-w", made[2].path])
+        _ = await waitFor(10) { CLIBridge.waiters(for: made[2]) == 1 && Documents.existing(for: made[2])?.ready == true }
+        CLIBridge.quitting()
+        let letGo = await finish(quitWaiter, 10)
+        log.check(letGo?.status == 0, "nib -w returns when Nib quits (exit \(letGo.map { "\($0.status)" } ?? "none"))")
+        await close(made[2])
+        log.check(Bridge.waiting().isEmpty, "no request left in the folder")
+    }
+
+    /// Files and tabs (ED2, ED4, §5.12): ⌘1…⌘9 picking a tab, but ⌘1-⌘3 left to the Conflicts
+    /// menu with the caret in a block; Duplicate as an untitled copy; Rename… (the file, its
+    /// History, caret and Recent entry carried over), refused onto another file, and by case
+    /// alone; Move To… a folder, and refused outside the test folder; an untitled buffer
+    /// renamed; the scratch file not moved; files dragged onto a window opened, folders not.
+    static func fileOpsScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        let fm = FileManager.default
+        let folder = document.url.deletingLastPathComponent()
+        let sub = folder.appendingPathComponent("sub-\(marker)", isDirectory: true)
+        try? fm.createDirectory(at: sub, withIntermediateDirectories: true)
+        let names = ["a", "b", "c", "d", "e"].map { "\($0)-\(marker).txt" }
+        let urls = names.map { folder.appendingPathComponent($0) }
+        for (n, url) in urls.enumerated() {
+            let text = n == 3 ? "<<<<<<< A · 10:00\nours \(marker)\n=======\ntheirs\n>>>>>>> B · 10:00\n" : "file \(names[n])\nsecond line\n"
+            try? Data(text.utf8).write(to: url)
+        }
+        var extra: [URL] = []   // made along the way
+        defer {
+            for open in Documents.all where open !== document { open.editor.textView.window?.performClose(nil) }
+            for url in urls + extra {
+                try? fm.removeItem(at: url)
+                for prefix in ["selection:", "syntax:", "siblings:"] { UserDefaults.standard.removeObject(forKey: prefix + url.path) }
+                if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+                RecentFiles.shared.remove(url)
+            }
+            try? fm.removeItem(at: sub)
+        }
+        func opened(_ url: URL) async -> Document? {
+            _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window != nil }
+            return Documents.existing(for: url)
+        }
+        func text(_ url: URL) -> String? { try? String(contentsOf: url, encoding: .utf8) }
+
+        // Tabs: a, b, c and d (with a conflict block) in one window.
+        for url in urls.prefix(4) { AppDelegate.openFile(url) }
+        var docs: [Document] = []
+        for url in urls.prefix(4) { if let open = await opened(url) { docs.append(open) } }
+        _ = await waitFor(10) { docs.first?.editor.textView.window?.tabGroup?.windows.count == 4 }
+        let windows = docs.compactMap(\.editor.textView.window)
+        let group = windows.first?.tabGroup
+        log.check(docs.count == 4 && group?.windows.count == 4, "four files, four tabs in one window (\(group?.windows.count ?? 0))")
+        if docs.count == 4, let group {
+            let two = AppDelegate.selectTab(2, in: windows[0])
+            let second = group.selectedWindow === group.windows[1]
+            let nine = AppDelegate.selectTab(9, in: windows[0])
+            log.check(two && second && nine && group.selectedWindow === group.windows[1], "⌘2 picks the second tab; ⌘9 with four only beeps")
+            let d = docs[3]
+            if let block = d.blocks.first { d.editor.textView.setSelectedRange(NSRange(location: block.range.location + 2, length: 0)) }
+            let inBlock = d.activeCaretBlock != nil
+            let one = AppDelegate.selectTab(1, in: windows[3]), four = AppDelegate.selectTab(4, in: windows[3])
+            log.check(inBlock && !one && four, "with the caret in a conflict block ⌘1 is left to the Conflicts menu (Use the first version); ⌘4 still picks a tab")
+            log.check(!AppDelegate.selectTab(1, in: AppDelegate.scratchWindow), "the scratch window has no tabs: ⌘1 is left alone")
+        }
+
+        // Duplicate: an untitled copy with the same text.
+        let before = Set(Documents.all.map(\.url))
+        if let a = Documents.existing(for: urls[0]) { FileCommands.duplicate(a) }
+        _ = await waitFor(10) { Documents.all.contains { !before.contains($0.url) && $0.untitled && $0.ready } }
+        let copy = Documents.all.first { !before.contains($0.url) && $0.untitled }
+        if let copy { extra.append(copy.url) }
+        log.check(copy?.url.lastPathComponent == "a-\(marker) copy.txt" && copy?.editor.textView.string == "file \(names[0])\nsecond line\n",
+                  "Duplicate: an untitled buffer “\(copy?.url.lastPathComponent ?? "none")” with the same text")
+
+        // Rename…: the file and what Nib keeps for it go to the new name.
+        let renamed = folder.appendingPathComponent("renamed-\(marker).txt")
+        extra.append(renamed)
+        if let b = Documents.existing(for: urls[1]) {
+            b.editor.textView.setSelectedRange(NSRange(location: 7, length: 0))
+            b.editor.saveSelection(for: b.url)
+            let history = History(root: NibPaths.support.appendingPathComponent("History"), path: urls[1].path).directory
+            let hadHistory = fm.fileExists(atPath: history.path)
+            let why = await FileCommands.rename(b, to: renamed.lastPathComponent)
+            let now = await opened(renamed)
+            let historyMoved = fm.fileExists(atPath: History(root: NibPaths.support.appendingPathComponent("History"), path: renamed.path).directory.path)
+            log.check(why == nil && now != nil && !fm.fileExists(atPath: urls[1].path) && text(renamed) == "file \(names[1])\nsecond line\n"
+                      && Documents.existing(for: urls[1]) == nil && now?.editor.textView.selectedRange().location == 7
+                      && (!hadHistory || historyMoved) && RecentFiles.shared.urls.first?.path == renamed.path && !RecentFiles.shared.urls.contains { $0.path == urls[1].path },
+                      "Rename…: the file under its new name, open, the caret where it was, its History (\(hadHistory ? "moved" : "none")) and Recent entry carried over\(why.map { " (\($0))" } ?? "")")
+            if let now {
+                let clash = await FileCommands.rename(now, to: names[2])
+                log.check(clash?.contains("IS ALREADY THERE") == true && Documents.existing(for: renamed) === now && fm.fileExists(atPath: renamed.path),
+                          "onto another file's name: refused (\(clash ?? "no answer")), nothing moved")
+            }
+        }
+        // By case alone: the same file to the disk, a new name to Nib.
+        let upper = folder.appendingPathComponent("C-\(marker).txt")
+        if let c = Documents.existing(for: urls[2]) {
+            let why = await FileCommands.rename(c, to: upper.lastPathComponent)
+            _ = await opened(upper)
+            let listed = (try? fm.contentsOfDirectory(atPath: folder.path)) ?? []
+            log.check(why == nil && listed.contains(upper.lastPathComponent) && !listed.contains(names[2]) && Documents.existing(for: upper)?.ready == true,
+                      "Rename… by case alone (c- to C-): done, as Finder would\(why.map { " (\($0))" } ?? "")")
+            extra.append(upper)
+        }
+
+        // Move To…: another folder, and not out of the test folders.
+        let moved = sub.appendingPathComponent(names[0])
+        extra.append(moved)
+        if let a = Documents.existing(for: urls[0]) {
+            let outside = URL(fileURLWithPath: NSHomeDirectory() + "/Documents/\(names[0])")   // a path only: nothing is written there
+            let refused = await FileCommands.move(a, to: outside)
+            log.check(refused?.hasPrefix("NOT MOVED · NIB OPENS ONLY TEST FILES") == true && Documents.existing(for: urls[0]) === a && !fm.fileExists(atPath: outside.path),
+                      "Move To… outside the test folder: refused (\(refused ?? "no answer"))")
+            let why = await FileCommands.move(a, to: moved)
+            _ = await opened(moved)
+            log.check(why == nil && fm.fileExists(atPath: moved.path) && !fm.fileExists(atPath: urls[0].path) && Documents.existing(for: moved)?.ready == true,
+                      "Move To… a folder: the file there, open, and gone from here\(why.map { " (\($0))" } ?? "")")
+        }
+
+        // An untitled buffer renamed; the scratch file never.
+        if let copy {
+            let name = "notes-\(marker).md"
+            let why = await FileCommands.rename(copy, to: name)
+            _ = await waitFor(10) { Documents.all.contains { $0.untitled && $0.url.lastPathComponent == name && $0.ready } }
+            let again = Documents.all.first { $0.untitled && $0.url.lastPathComponent == name }
+            _ = await waitFor(10) { Documents.existing(for: copy.url) == nil }
+            if let again { extra.append(again.url) }
+            log.check(why == nil && again?.editor.textView.string == "file \(names[0])\nsecond line\n" && !fm.fileExists(atPath: copy.url.path)
+                      && !ClosedItems.shared.items.contains { $0.path == copy.url.path },
+                      "an untitled buffer renamed: “\(again?.url.lastPathComponent ?? "none")”, the old one gone, nothing left to reopen")
+        }
+        let scratch = await FileCommands.rename(document, to: "elsewhere-\(marker).md")
+        log.check(!FileCommands.canMove(document) && scratch?.hasPrefix("THE SCRATCH FILE STAYS") == true && Documents.scratch.url == document.url,
+                  "the scratch file isn't renamed or moved: \(scratch ?? "no answer")")
+
+        // Files dragged onto a window: files open, folders don't.
+        let pasteboard = NSPasteboard(name: NSPasteboard.Name("nib-scenario-\(marker)"))
+        pasteboard.clearContents()
+        pasteboard.writeObjects([urls[4] as NSURL, sub as NSURL])
+        let dropped = NibTextView.files(on: pasteboard)
+        NibTextView.openFiles(dropped)
+        let droppedOpen = await opened(urls[4])
+        pasteboard.releaseGlobally()
+        log.check(dropped == [urls[4]] && droppedOpen != nil, "a file dragged onto a window opens (\(dropped.map(\.lastPathComponent).joined(separator: ", "))); a folder with it doesn't")
+
+        // The File menu.
+        let file = NSApp.mainMenu?.items.first { $0.title == "File" }?.submenu
+        if let file { PaletteSession.refresh(file) }
+        let duplicateKeys = file?.items.first { $0.title == "Duplicate" }.flatMap(PaletteSession.keys(of:))
+        log.check(duplicateKeys == "⇧⌘S" && file?.items.contains { $0.title == "Rename…" } == true && file?.items.contains { $0.title == "Move To…" } == true,
+                  "File › Duplicate \(duplicateKeys ?? "none"), Rename…, Move To…")
     }
 
     /// The clipboard jobs (PT3-PT5, SC5, SC6): Paste Clean, an HTML-only clipboard pasted as
@@ -2248,7 +2526,7 @@ enum TestHarness {
         guard let window = view.window else { log.line("FAIL no window"); return }
         window.setFrame(NSRect(x: 80, y: 120, width: 760, height: 420), display: true)
         window.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+        ScenarioFocus.take()
         view.scrollRangeToVisible(document.blocks.last.map { NSRange(location: $0.range.location, length: $0.range.length + 30) } ?? view.selectedRange())
         view.needsDisplay = true
         try? await Task.sleep(for: .milliseconds(600))
@@ -2344,6 +2622,42 @@ enum TestHarness {
             return item
         }
         if !restored.isEmpty { pasteboard.writeObjects(restored) }
+    }
+}
+
+/// A scenario's Nib gives the Mac's focus back to the app that had it, at launch and whenever it
+/// comes forward (PRD §8: keystrokes typed meanwhile landed in the test windows), unless the
+/// scenario takes it: find, palette and snapshot need a key window, for a few seconds.
+@MainActor
+enum ScenarioFocus {
+    private static var wanted = false
+    private static var other: NSRunningApplication?
+
+    /// Before Nib has come forward, while the app in front is still the one to give it back to.
+    static func start() {
+        guard UserDefaults.standard.string(forKey: "NibScenario") != nil else { return }
+        let front = NSWorkspace.shared.frontmostApplication
+        other = front == .current ? nil : front
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            MainActor.assumeIsolated {
+                if let app, app != .current { other = app } else { giveBack() }
+            }
+        }
+    }
+
+    /// The name of the app that keeps the focus, for the log.
+    static var keeper: String { other?.localizedName ?? "none" }
+
+    static func take() {
+        wanted = true
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private static func giveBack() {
+        guard !wanted, let other, !other.isTerminated else { return }
+        NSApp.yieldActivation(to: other)
+        other.activate(from: .current, options: [])
     }
 }
 

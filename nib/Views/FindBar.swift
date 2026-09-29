@@ -87,7 +87,7 @@ struct FindField: NSViewRepresentable {
     let onEscape: () -> Void
 
     func makeNSView(context: Context) -> NSTextField {
-        let field = NSTextField()
+        let field = Field()
         field.placeholderString = placeholder
         field.setAccessibilityLabel(label)
         field.font = .monospacedSystemFont(ofSize: NSFont.smallSystemFontSize + 1, weight: .regular)
@@ -112,10 +112,25 @@ struct FindField: NSViewRepresentable {
         }
         if focusRequests > 0, context.coordinator.focused != focusRequests {
             context.coordinator.focused = focusRequests
-            DispatchQueue.main.async {
-                field.window?.makeFirstResponder(field)
-                field.currentEditor()?.selectAll(nil)
-            }
+            DispatchQueue.main.async { (field as? Field)?.takeFocus() }
+        }
+    }
+
+    /// Takes the caret when asked, or as soon as it's in a window: a bar just opened may not be
+    /// in one yet when the request comes (⌘F then left the caret in the text, now and then).
+    final class Field: NSTextField {
+        private var wantsFocus = false
+
+        func takeFocus() {
+            guard let window else { wantsFocus = true; return }
+            wantsFocus = false
+            window.makeFirstResponder(self)
+            currentEditor()?.selectAll(nil)
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if wantsFocus, window != nil { DispatchQueue.main.async { self.takeFocus() } }
         }
     }
 

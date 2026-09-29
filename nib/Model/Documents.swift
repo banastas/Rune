@@ -38,6 +38,7 @@ enum Documents {
         files[key(document.url)] = nil
         MenuBarController.shared.refresh()
         await document.close()
+        CLIBridge.closed(document.url)   // `nib -w` (AP4): its text is in the file now
         guard !AppDelegate.terminating else { return }
         if document.untitled {
             Untitled.discard(document)

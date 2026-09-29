@@ -44,7 +44,7 @@ public enum CloudControl {
 
     /// Runs `work`, giving up after `seconds`. Not a task group: a group waits for every
     /// child, and iCloud's calls can't be cancelled, so the wait would never end.
-    static func within<T: Sendable>(_ seconds: Double, _ work: @escaping @Sendable () async throws -> T) async throws -> T {
+    public static func within<T: Sendable>(_ seconds: Double, _ work: @escaping @Sendable () async throws -> T) async throws -> T {
         let gate = Gate()
         return try await withCheckedThrowingContinuation { continuation in
             Task {

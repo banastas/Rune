@@ -1,6 +1,6 @@
 // Copied from Blit at ac3f1ce (Blit/Views/TransferStrip.swift:9-46 and
-// Blit/Views/SidebarView.swift:347-356) for the weekend MVP. Replaced by the
-// shared package (FamilyKit › PixelUI) in M2 (PRD §7). Keep in step with Blit until then.
+// Blit/Views/SidebarView.swift:347-356) for the weekend MVP. Nib's own now (no shared
+// package, PRD §7): take Blit's later changes to the look when they suit.
 
 import AppKit
 import CoreText

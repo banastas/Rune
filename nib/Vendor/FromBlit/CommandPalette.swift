@@ -1,7 +1,7 @@
 // Copied from Blit at 6d417b0 (Blit/Views/CommandPalette.swift) for M2, and generalized: an
 // entry carries its own group label and, for a command, its keys; what choosing one does is
-// the caller's. Replaced by the shared package's palette (PRD §7, A6). Keep the scoring and
-// the keys in step with Blit until then.
+// the caller's (PRD A6). Nib's own now (no shared package, §7): take Blit's later fixes to
+// the scoring or the keys when they suit.
 
 import SwiftUI
 
