@@ -282,7 +282,9 @@ final class Document {
         }
     }
 
-    /// Pauses iCloud's own syncing of the file, when iCloud offers it (§4.3).
+    /// Pauses iCloud's own syncing of the file, when iCloud offers it (§4.3). Only a real
+    /// conflict takes the server's version; iCloud's other answers can be passing (§8, the
+    /// suite run after 20:25), so they never leave the file unheld for the session.
     private func hold(_ status: CloudControl.Status) async {
         guard status.ubiquitous, status.canPause, status.canFailOnConflict else {
             record("pause", detail: "not offered: iCloud uploads on its own schedule")
@@ -293,13 +295,13 @@ final class Document {
             // again answers "not supported" (M1), so take it back first, then hold it fresh. The
             // file may hold saves iCloud never got: upload them, refusing to overwrite a newer one.
             do {
-                try await CloudControl.resume(url, .uploadFailingOnConflict)
+                try await resumeFile(.uploadFailingOnConflict)
                 record("resume", detail: "left paused by an earlier session; its saves are uploaded")
-            } catch {
+            } catch where CloudControl.isConflict(error) {
                 // The server has something newer. Keep what's here as edits, take the server's
                 // version, and merge the two (with no proven base: both, between markers).
                 let leftover = editor.textView.string
-                try? await CloudControl.resume(url, .takeServerVersion)
+                try? await resumeFile(.takeServerVersion)
                 record("resume", detail: "left paused with unsent saves, and the server has a newer version: \(CloudControl.describe(error))")
                 let presenter = self.presenter
                 let url = self.url
@@ -308,6 +310,16 @@ final class Document {
                     editCount += 1   // the leftover counts as edits, so it's merged, not dropped
                     incoming(data, fingerprint: fingerprint, from: "iCloud", fromServer: true)
                 }
+            } catch where CloudControl.isUnsupported(error) {
+                // "Not supported": it isn't paused after all (iCloud's status a moment behind a
+                // hand-back just before). Hold it fresh, below.
+                record("resume", detail: "iCloud said paused, but it wasn't (a hand-back a moment before): holding it fresh")
+            } catch {
+                // Passing (iCloud's helper not answering): the pause is still this Mac's own.
+                held = true
+                pausedFiles.add(url.path)
+                record("pause", detail: "left paused by an earlier session, and handing it back failed (\(CloudControl.describe(error))): holding it as it is")
+                return
             }
         }
         do {
@@ -315,12 +327,38 @@ final class Document {
             held = true
             pausedFiles.add(url.path)
             record("pause")
-        } catch CloudControl.ControlError.unsupported {
-            record("pause", detail: "failed, running unheld: iCloud doesn't support pausing this file")
         } catch {
-            record("pause", detail: "not held yet: \(CloudControl.describe(error)); trying again in 2 s")
+            if await heldAlready(error) { return }
+            record("pause", detail: "not held yet: \(Self.pauseTrouble(error)); trying again in 2 s")
             scheduleHoldRetry()
         }
+    }
+
+    /// Pausing answered "not supported" and the file is in fact paused: this Mac's own pause
+    /// (pausing a paused file answers so, M1), so it's held as it is.
+    private func heldAlready(_ error: Error) async -> Bool {
+        let url = self.url
+        guard (error as? CloudControl.ControlError) == .unsupported, await io.run({ CloudControl.status(url).paused }) == true else { return false }
+        held = true
+        pausedFiles.add(url.path)
+        record("pause", detail: "already paused, by this Mac: holding it as it is")
+        return true
+    }
+
+    static func pauseTrouble(_ error: Error) -> String {
+        (error as? CloudControl.ControlError) == .unsupported
+            ? "iCloud answered \"not supported\" (it can, a moment after a hand-back)" : CloudControl.describe(error)
+    }
+
+    /// Hands the file back to iCloud (or, in tests, fails as iCloud's helper can).
+    private func resumeFile(_ mode: CloudControl.ResumeMode) async throws {
+        #if DEBUG
+        if TestHarness.failResumes > 0 {
+            TestHarness.failResumes -= 1
+            throw NSError(domain: NSCocoaErrorDomain, code: 4099, userInfo: [NSLocalizedDescriptionKey: "Couldn't communicate with a helper application. (a test)"])
+        }
+        #endif
+        try await CloudControl.resume(url, mode)
     }
 
     /// Pauses iCloud's syncing of the file. iCloud's helper often doesn't answer for a file
@@ -335,6 +373,10 @@ final class Document {
         if TestHarness.failPauses > 0, let prefix = TestHarness.failPausesFor, url.lastPathComponent.hasPrefix(prefix) {
             TestHarness.failPauses -= 1
             throw NSError(domain: NSCocoaErrorDomain, code: 4099, userInfo: [NSLocalizedDescriptionKey: "Couldn't communicate with a helper application. (a test)"])
+        }
+        if TestHarness.unsupportedPauses > 0, let prefix = TestHarness.failPausesFor, url.lastPathComponent.hasPrefix(prefix) {
+            TestHarness.unsupportedPauses -= 1
+            throw CloudControl.ControlError.unsupported
         }
         #endif
         try await CloudControl.pause(url)
@@ -370,11 +412,8 @@ final class Document {
         }
         do {
             try await pauseFile()
-        } catch CloudControl.ControlError.unsupported {
-            record("pause", detail: "failed, running unheld: iCloud doesn't support pausing this file")
-            return true
         } catch {
-            return false
+            return await heldAlready(error)   // otherwise, "not supported" included: next time
         }
         held = true
         pausedFiles.add(url.path)
@@ -726,15 +765,17 @@ final class Document {
                 // the same (the next upload needs it), but it isn't another Mac's.
                 let own = fingerprint?.sha256 != nil && fingerprint?.sha256 == baseFingerprint?.sha256
                 record("fetch", size: data.count, sha: fingerprint?.sha256,
-                       detail: own ? "this Mac's own version back from iCloud (\(reason))" : "newer, saved by \(savedBy ?? "another Mac") (\(reason))")
+                       detail: own ? "this Mac's own version back from iCloud (\(reason))" : "newer\(savedBy.map { ", iCloud says saved by \($0)" } ?? "") (\(reason))")
                 // Replacing the local file may have ended the pause: hold it again.
                 if CloudControl.status(url).paused != true {
                     try? await CloudControl.pause(url)
                 }
-                // iCloud often doesn't say which Mac saved it; the note does.
+                // Which Mac saved it: the note, when it names this version. iCloud's own answer
+                // can name the wrong Mac (at 20:25 it named the Air for the Mac mini's version, on
+                // the Air), and a note can be this Mac's own: then just "another Mac" (W2).
                 let note = await io.run { Announcement.read(for: url) }
                 if let note { lastNote = note }
-                let who = savedBy ?? note?.device ?? "another Mac"
+                let who = note.flatMap { $0.sha256 == fingerprint?.sha256 && $0.device != device ? $0.device : nil } ?? "another Mac"
                 incoming(data, fingerprint: fingerprint, from: who, fromServer: true)
             }
         } catch {
@@ -1125,7 +1166,6 @@ final class Document {
     /// server's version, evict, download, hold again. About a second (S1b: 0.6-1.3 s).
     private func refresh(announced note: Announcement?) async {
         if let note { lastNote = note }
-        let who = note?.device ?? "iCloud"
         refreshing = true
         let started = Date()
         let url = self.url
@@ -1141,6 +1181,8 @@ final class Document {
         do {
             let (data, fingerprint) = try await CloudControl.refetch(url, wasPaused: held)
             held = false
+            // The note's Mac, if the note names this version and isn't this Mac's own (W2).
+            let who = note.flatMap { $0.sha256 == fingerprint.sha256 && $0.device != device ? $0.device : nil } ?? "another Mac"
             record("refresh", size: data.count, sha: fingerprint.sha256, ms: ms(since: started),
                    detail: note == nil ? "got the server's version" : fingerprint.sha256 == note?.sha256 ? "got \(who)'s version" : "the server has another version than the one announced")
             await holdAgain()
@@ -1282,14 +1324,26 @@ final class Document {
         let clean = !dirty && uploadedSHA != nil && uploadedSHA == baseFingerprint?.sha256
         record("quit", ms: ms(since: started), detail: clean ? "everything uploaded; resuming iCloud sync" : "unsent edits; resuming iCloud sync")
         if !clean { await writeJournal() }   // the next launch compares it with the file (§4.8 G)
-        do {
-            try await CloudControl.resume(url, clean ? .takeServerVersion : .uploadFailingOnConflict)
-        } catch {
-            // A newer version on the server and unsent edits here: take the server's; the
-            // journal (and iCloud's alternate version) keep ours for the next launch's sheet.
-            record("resume", detail: "upload refused at quit, taking the server's version; this Mac's text is in the journal: \(CloudControl.describe(error))")
-            try? await CloudControl.resume(url, .takeServerVersion)
+        var handedBack = false
+        for attempt in 1...2 {
+            do {
+                try await resumeFile(clean ? .takeServerVersion : .uploadFailingOnConflict)
+                handedBack = true
+                break
+            } catch where CloudControl.isConflict(error) {
+                // A newer version on the server and unsent edits here: take the server's; the
+                // journal (and iCloud's alternate version) keep ours for the next launch.
+                record("resume", detail: "upload refused at quit, taking the server's version; this Mac's text is in the journal: \(CloudControl.describe(error))")
+                handedBack = (try? await resumeFile(.takeServerVersion)) != nil
+                break
+            } catch {
+                // Passing (iCloud's helper not answering, say): once more, then leave it paused and
+                // listed, for the next launch to hand back. Never the server's version for this.
+                if attempt == 1 { try? await Task.sleep(for: .seconds(1)); continue }
+                record("resume", detail: "handing it back failed twice (\(CloudControl.describe(error))): left paused, for the next launch to hand back")
+            }
         }
+        guard handedBack else { return }
         held = false
         pausedFiles.remove(url.path)
         record("resume", ms: ms(since: started))
@@ -1302,8 +1356,13 @@ final class Document {
             let url = URL(fileURLWithPath: path)
             do {
                 try await CloudControl.resume(url, .uploadFailingOnConflict)
+            } catch where CloudControl.isConflict(error) {
+                // The server is newer: take its version; local changes become an alternate version.
+                guard (try? await CloudControl.resume(url, .takeServerVersion)) != nil else { continue }
+            } catch where CloudControl.isUnsupported(error) {
+                // Not paused after all: nothing to hand back.
             } catch {
-                try? await CloudControl.resume(url, .takeServerVersion)   // local changes become an alternate version
+                continue   // passing: still paused, still listed; the next launch tries again
             }
             list.remove(path)
         }

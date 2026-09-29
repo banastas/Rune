@@ -207,7 +207,7 @@ public enum CloudControl {
         chain(error).contains { $0.domain == "NSFileProviderErrorDomain" && ($0.code == -2008 || $0.code == -2007) }
     }
 
-    static func isUnsupported(_ error: Error) -> Bool {
+    public static func isUnsupported(_ error: Error) -> Bool {
         chain(error).contains { $0.domain == NSCocoaErrorDomain && $0.code == CocoaError.featureUnsupported.rawValue }
     }
 

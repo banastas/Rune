@@ -70,6 +70,10 @@ run syntax
 run themes
 run synclog
 run holdretry -NibFailPauses 2 -NibFailPausesFor hold-
+cp "$LOGS/holdretry.log" "$LOGS/holdretry-4099.log"
+run holdretry -NibUnsupportedPauses 1 -NibFailPausesFor hold-
+run handback
+run handback-return -NibFailResumes 1
 run bigfile
 run refusal
 umarker="untitled-$(date +%s)"
@@ -80,7 +84,7 @@ run refresh
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard undo crash recover external unsent merge mergeview duplicates conflictversions history files syntax themes synclog holdretry bigfile refusal untitled untitled-return untitled-quit refresh; do   # this run's logs only
+for name in type clipboard undo crash recover external unsent merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return bigfile refusal untitled untitled-return untitled-quit refresh; do   # this run's logs only
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi

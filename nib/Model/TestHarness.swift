@@ -25,6 +25,10 @@ enum TestHarness {
     /// and the next fetches answered "nothing newer", as iCloud can for a held file.
     static var refuseUploads = 0
     static var staleFetches = 0
+    /// -NibFailResumes n: the next hand-backs fail as when iCloud's helper doesn't answer;
+    /// -NibUnsupportedPauses n (with -NibFailPausesFor): the next holds answer "not supported".
+    static var failResumes = UserDefaults.standard.integer(forKey: "NibFailResumes")
+    static var unsupportedPauses = UserDefaults.standard.integer(forKey: "NibUnsupportedPauses")
 
     static func runIfRequested(_ document: Document) {
         let defaults = UserDefaults.standard
@@ -56,6 +60,8 @@ enum TestHarness {
             case "holdretry": await holdRetryScenario(log, marker)
             case "bigfile": await bigFile(log, marker)
             case "refusal": await refusal(document, log, marker)
+            case "handback": await handBack(document, log)
+            case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
             case "untitled-quit": await untitledQuit(log, marker)
             case "two-mac": await twoMac(document, log, marker)
@@ -815,7 +821,8 @@ enum TestHarness {
         let held = await waitFor(20) { document.held }
         log.check(held, "held on a later try, \(Int(Date().timeIntervalSince(opened))) s after opening")
         let lines = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().filter { $0.path == url.path && $0.event == "pause" }
-        log.check(lines.first?.detail?.hasPrefix("not held yet") == true && lines.last?.detail == "held on try 3",
+        let expected = 1 + UserDefaults.standard.integer(forKey: "NibFailPauses") + UserDefaults.standard.integer(forKey: "NibUnsupportedPauses")
+        log.check(lines.first?.detail?.hasPrefix("not held yet") == true && lines.last?.detail == "held on try \(expected)",
                   "the Sync Log says so: \(lines.map { $0.detail ?? "held" }.joined(separator: " / "))")
         let uploaded = await waitFor(20) { !document.dirty && document.debugSnapshot.uploadedSHA != nil && document.debugSnapshot.uploadedSHA == document.debugSnapshot.baseSHA }
         log.check(uploaded, "what was saved meanwhile is uploaded (\(document.state.line))")
@@ -848,6 +855,35 @@ enum TestHarness {
         log.check(!after.contains { $0.event == "conflict" } && !fileText(document).contains("<<<<<<< ") ,
                   "and the refresh brought back only what this Mac had uploaded: nothing between markers (\(after.map { $0.word }.joined(separator: ", ")))")
         log.check(refuseUploads == 0 && staleFetches == 0, "and the pretend refusal and stale answer were both used")
+    }
+
+    /// Handing the file back at quit fails twice, as when iCloud's helper doesn't answer: the
+    /// file is left paused and listed, not handed back taking the server's version.
+    /// `handback-return` checks the next launch.
+    static func handBack(_ document: Document, _ log: HarnessLog) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        log.check(document.held, "the file is held (\(document.state.line))")
+        failResumes = 2   // both tries at quit
+    }
+
+    /// The launch after `handback`, run with -NibFailResumes 1: the file was left paused;
+    /// handing it back fails once more, so it's held as it is (the pause is this Mac's own),
+    /// and what's there is uploaded, refusing to overwrite a newer version.
+    static func handBackReturn(_ document: Document, _ log: HarnessLog) async {
+        await waitReady(document)
+        let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().filter { $0.path == document.url.path }
+        let quit = events.last { $0.event == "resume" && $0.detail?.hasPrefix("handing it back failed twice") == true }
+        log.check(quit != nil, "the last quit: \(quit?.detail ?? "no line about it")")
+        let opened = events.last { $0.event == "open" }?.time ?? .distantPast
+        let now = events.filter { $0.time >= opened }
+        let held = now.first { $0.event == "pause" }
+        log.check(document.held && held?.detail?.hasSuffix("holding it as it is") == true,
+                  "left paused, and handing it back fails again: held as it is (\(held?.detail ?? "no pause line"))")
+        let synced = await waitFor(20) { isSynced(document) }
+        let uploads = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().filter { $0.path == document.url.path && $0.time >= opened && $0.event == "upload" }
+        log.check(synced && !uploads.isEmpty, "and uploaded, fail-on-conflict (\(document.state.line))")
+        log.check(PausedFiles(url: NibPaths.support.appendingPathComponent("paused.json")).all().contains(document.url.path), "and listed as paused, for its own quit to hand back")
     }
 
     /// The highlighting color drawn at a character (a rendering attribute, §6.3), as hex.
