@@ -32,7 +32,7 @@ struct ConflictBanner: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(Color(nsColor: OldHope.lineHighlight))
+        .background(Color(nsColor: Scheme.lineHighlight))
         .overlay(alignment: .bottom) { Rectangle().fill(HUDColor.border).frame(height: 0.5) }
         .accessibilityElement(children: .contain)
     }

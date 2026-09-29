@@ -72,16 +72,16 @@ struct VersionText: NSViewRepresentable {
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
         scroll.scrollerStyle = .overlay
-        scroll.backgroundColor = OldHope.background
+        scroll.backgroundColor = Scheme.background
         let view = NSTextView(usingTextLayoutManager: true)
         view.autoresizingMask = [.width]
         view.isVerticallyResizable = true
         view.textContainer?.widthTracksTextView = true
         view.isEditable = false
         view.isRichText = false
-        view.font = OldHope.font
-        view.textColor = OldHope.foreground
-        view.backgroundColor = OldHope.background
+        view.font = Scheme.font
+        view.textColor = Scheme.foreground
+        view.backgroundColor = Scheme.background
         view.textContainerInset = NSSize(width: 8, height: 6)
         scroll.documentView = view
         return scroll

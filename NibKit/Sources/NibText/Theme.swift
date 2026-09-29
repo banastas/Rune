@@ -1,7 +1,8 @@
-// Color schemes (PRD HL2, HL5, HL10): a `.tmTheme`'s globals and scoped rules, and the
-// style a scope gets from them, resolved as Sublime resolves it: each property (text color,
-// background, font style) from the best-ranked rule that sets it, ranked by TextMate's
-// selector specificity, later rules winning ties.
+// Color schemes (PRD HL2, HL5, HL10): a `.tmTheme`'s or a `.sublime-color-scheme`'s globals
+// and scoped rules, and the style a scope gets from them, resolved as Sublime resolves it:
+// each property (text color, background, font style) from the best-ranked rule that sets it,
+// ranked by TextMate's selector specificity, later rules winning ties; a background's
+// `foreground_adjust` then changes the text color under it.
 
 import Foundation
 
@@ -149,36 +150,150 @@ public struct Theme: Sendable {
         public var background: RGBA?
         /// nil: the rule doesn't set it; "" sets it to plain.
         public var fontStyle: String?
+        /// `foreground_adjust`: how the text color changes where this rule's background is drawn.
+        public var foregroundAdjust: [ColorAdjuster] = []
     }
 
     public var name: String
-    /// The globals, as the scheme names them (`background`, `foreground`, `caret`, `lineHighlight`, …).
+    /// The globals by `.sublime-color-scheme`'s names (a `.tmTheme`'s `lineHighlight` is
+    /// `line_highlight`), colors as hex; options such as `brackets_options` as written.
     public var globals: [String: String]
     public var rules: [Rule]
+    /// What was read only approximately ("GRADIENT TEXT AS ITS FIRST COLOR"), and the colors
+    /// that couldn't be read at all, for the import report (HL4).
+    public var approximations: [String] = []
+    public var unread: [String] = []
 
     public var foreground: RGBA { globals["foreground"].flatMap(RGBA.init(hex:)) ?? RGBA(r: 1, g: 1, b: 1) }
     public var background: RGBA { globals["background"].flatMap(RGBA.init(hex:)) ?? RGBA(r: 0, g: 0, b: 0) }
+    /// A global color, if the scheme sets one.
+    public func color(_ global: String) -> RGBA? { globals[global].flatMap(RGBA.init(hex:)) }
 
     public enum ThemeError: Error { case notATheme }
 
     /// A `.tmTheme`: a property list whose `settings` are the globals first, then the rules.
     public init(tmTheme data: Data) throws {
+        try self.init(document: Self.document(tmTheme: data), fallbackName: "Untitled")
+    }
+
+    /// A `.sublime-color-scheme`: JSON with comments and trailing commas; `variables`,
+    /// `globals`, `rules`. Named after the file when it has no `name`.
+    public init(sublimeColorScheme data: Data, fallbackName: String = "Untitled") throws {
+        try self.init(document: Self.document(sublimeColorScheme: data), fallbackName: fallbackName)
+    }
+
+    // MARK: Documents
+    //
+    // Both formats become one shape, `.sublime-color-scheme`'s, before their colors are worked
+    // out: so a `.tmTheme` takes a `.sublime-color-scheme` override as Sublime lets it (HL3),
+    // and Nib keeps every imported scheme as one of these, variables and all.
+
+    public static func document(tmTheme data: Data) throws -> [String: Any] {
         guard let plist = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
               let items = plist["settings"] as? [[String: Any]] else { throw ThemeError.notATheme }
-        name = plist["name"] as? String ?? "Untitled"
-        globals = [:]
-        rules = []
+        var globals: [String: Any] = [:], rules: [[String: Any]] = []
         for item in items {
             guard let settings = item["settings"] as? [String: Any] else { continue }
             guard let scope = item["scope"] as? String else {
-                for (key, value) in settings { if let text = value as? String { globals[key] = text } }
+                for (key, value) in settings { globals[snakeCase(key)] = value }
                 continue
             }
-            rules.append(Rule(name: item["name"] as? String, scope: scope, selector: ScopeSelector(scope),
-                              foreground: (settings["foreground"] as? String).flatMap(RGBA.init(hex:)),
-                              background: (settings["background"] as? String).flatMap(RGBA.init(hex:)),
-                              fontStyle: settings["fontStyle"] as? String))
+            var rule: [String: Any] = ["scope": scope]
+            if let name = item["name"] { rule["name"] = name }
+            if let foreground = settings["foreground"] { rule["foreground"] = foreground }
+            if let background = settings["background"] { rule["background"] = background }
+            if let style = settings["fontStyle"] { rule["font_style"] = style }
+            rules.append(rule)
         }
+        var document: [String: Any] = ["globals": globals, "rules": rules]
+        if let name = plist["name"] { document["name"] = name }
+        if let author = plist["author"] { document["author"] = author }
+        return document
+    }
+
+    public static func document(sublimeColorScheme data: Data) throws -> [String: Any] {
+        let object = try LenientJSON.object(from: data)
+        guard object["rules"] is [Any] || object["globals"] is [String: Any] else { throw ThemeError.notATheme }
+        return object
+    }
+
+    /// Sublime's overrides: the override's variables and globals replace the base's, its
+    /// rules come after the base's (so they win ties).
+    public static func merging(_ base: [String: Any], _ override: [String: Any]) -> [String: Any] {
+        var out = base
+        for key in ["variables", "globals"] {
+            var merged = base[key] as? [String: Any] ?? [:]
+            for (name, value) in override[key] as? [String: Any] ?? [:] { merged[name] = value }
+            out[key] = merged
+        }
+        out["rules"] = (base["rules"] as? [Any] ?? []) + (override["rules"] as? [Any] ?? [])
+        return out
+    }
+
+    static func snakeCase(_ key: String) -> String {
+        var out = ""
+        for c in key {
+            if c.isUppercase { out += "_" + c.lowercased() } else { out.append(c) }
+        }
+        return out
+    }
+
+    /// A scheme from a document in `.sublime-color-scheme`'s shape.
+    public init(document: [String: Any], fallbackName: String) throws {
+        name = (document["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? fallbackName
+        let variables = (document["variables"] as? [String: Any] ?? [:]).compactMapValues { $0 as? String }
+        var colors = SchemeColors(variables: variables)
+        var approximations: Set<String> = [], unread: [String] = []
+        func looksLikeColor(_ text: String) -> Bool { text.hasPrefix("#") || text.contains("(") }
+        func color(_ value: Any?, _ label: String) -> RGBA? {
+            var value = value
+            if let list = value as? [Any] {   // hashed or gradient text: several colors
+                approximations.insert("GRADIENT TEXT AS ITS FIRST COLOR")
+                value = list.first
+            }
+            guard let text = value as? String else { return nil }
+            if let c = colors.color(text) { return c }
+            unread.append("\(label) “\(text)”")
+            return nil
+        }
+        globals = [:]
+        for (key, value) in document["globals"] as? [String: Any] ?? [:] {
+            let text = "\(value)"
+            if let c = colors.color(text) { globals[key] = c.hex }
+            else {
+                if looksLikeColor(text) { unread.append("\(key) “\(text)”") }
+                globals[key] = text
+            }
+        }
+        rules = []
+        for item in document["rules"] as? [Any] ?? [] {
+            guard let rule = item as? [String: Any], let scope = rule["scope"] as? String else { continue }
+            let label = (rule["name"] as? String) ?? scope
+            var style = rule["font_style"] as? String
+            if let words = style?.split(separator: " ").map(String.init) {
+                var kept: [String] = []
+                for word in words {
+                    switch word {
+                    case "bold", "italic", "underline": kept.append(word)
+                    case "stippled_underline", "squiggly_underline":
+                        approximations.insert("STIPPLED AND SQUIGGLY UNDERLINES AS UNDERLINE")
+                        kept.append("underline")
+                    case "glow": approximations.insert("GLOW LEFT OUT")
+                    default: break
+                    }
+                }
+                style = kept.joined(separator: " ")
+            }
+            var adjust: [ColorAdjuster] = []
+            if let text = rule["foreground_adjust"] as? String {
+                if let read = colors.adjusters(text) { adjust = read } else { unread.append("\(label) “\(text)”") }
+            }
+            rules.append(Rule(name: rule["name"] as? String, scope: scope, selector: ScopeSelector(scope),
+                              foreground: color(rule["foreground"], label), background: color(rule["background"], label),
+                              fontStyle: style, foregroundAdjust: adjust))
+        }
+        self.approximations = Array(approximations.union(colors.approximations)).sorted()
+        self.unread = unread
     }
 
     /// The style for a scope stack ("source.js meta.function.js entity.name.function.js").
@@ -187,15 +302,36 @@ public struct Theme: Sendable {
     }
 
     public func style(for stack: [String]) -> Style {
-        var fg: (Double, RGBA)?, bg: (Double, RGBA)?, font: (Double, String)?
-        for rule in rules {
+        var fg: (Double, RGBA)?, bg: (Double, RGBA, Int)?, font: (Double, String)?
+        for (index, rule) in rules.enumerated() {
             guard let score = rule.selector.match(stack) else { continue }
             if let color = rule.foreground, score >= fg?.0 ?? -1 { fg = (score, color) }
-            if let color = rule.background, score >= bg?.0 ?? -1 { bg = (score, color) }
+            if let color = rule.background, score >= bg?.0 ?? -1 { bg = (score, color, index) }
             if let style = rule.fontStyle, score >= font?.0 ?? -1 { font = (score, style) }
         }
+        var text = fg?.1 ?? foreground
+        if let bg { for adjuster in rules[bg.2].foregroundAdjust { text = adjuster.apply(to: text) } }
         let words = Set((font?.1 ?? "").split(separator: " ").map(String.init))
-        return Style(foreground: fg?.1 ?? foreground, background: bg?.1,
+        return Style(foreground: text, background: bg?.1,
                      bold: words.contains("bold"), italic: words.contains("italic"), underline: words.contains("underline"))
+    }
+
+    /// A light background: Nib's windows stay dark anyway (A17, HL4).
+    public var isLight: Bool { background.contrast(RGBA(r: 0, g: 0, b: 0)) > background.contrast(RGBA(r: 1, g: 1, b: 1)) }
+}
+
+extension Theme {
+    /// A scheme file's document, by its extension (`.tmTheme`, `.sublime-color-scheme`, and
+    /// Sublime's `.hidden-tmTheme` and `.hidden-color-scheme`), named after the file if it isn't.
+    public static func document(file data: Data, named fileName: String) throws -> [String: Any] {
+        let ext = (fileName as NSString).pathExtension.lowercased()
+        var document = ext.hasSuffix("tmtheme") ? try document(tmTheme: data) : try document(sublimeColorScheme: data)
+        if (document["name"] as? String)?.isEmpty ?? true { document["name"] = (fileName as NSString).deletingPathExtension }
+        return document
+    }
+
+    /// A document as Nib keeps it: a `.sublime-color-scheme`, variables and all.
+    public static func storable(_ document: [String: Any]) throws -> Data {
+        try JSONSerialization.data(withJSONObject: SublimeImport.jsonSafe(document), options: [.prettyPrinted, .sortedKeys])
     }
 }

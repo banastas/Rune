@@ -4,13 +4,14 @@
 // each file's share, the whole, and the largest mismatches by scope; exits 1 under 98%.
 //
 //   swift run nib-fidelity <fidelity folder> [--all]
+//   swift run nib-fidelity --report [scheme file]   (HL4's import report; Sublime's own scheme by default)
 
 import Foundation
 import NibSyntax
 import NibText
 
 let arguments = CommandLine.arguments
-guard arguments.count > 1 else { print("usage: nib-fidelity <fidelity folder> [--all] | --tree <file>"); exit(2) }
+guard arguments.count > 1 else { print("usage: nib-fidelity <fidelity folder> [--all] | --tree <file> | --runs <file> | --report [scheme]"); exit(2) }
 if arguments[1] == "--tree", arguments.count > 2 {
     // The syntax tree of a file, for writing queries.
     let url = URL(fileURLWithPath: arguments[2])
@@ -18,6 +19,26 @@ if arguments[1] == "--tree", arguments.count > 2 {
     guard let (language, _) = SyntaxLanguage.detect(fileName: url.lastPathComponent, firstLine: text.components(separatedBy: "\n").first) else { exit(2) }
     print(Highlighter.tree(text, language: language).replacingOccurrences(of: ") (", with: ")\n ("))
     exit(0)
+}
+if arguments[1] == "--report" {
+    // The import report for a scheme file, or for what Import from Sublime would find (read only).
+    do {
+        if arguments.count > 2 {
+            let url = URL(fileURLWithPath: arguments[2])
+            let theme = try Theme(document: Theme.document(file: Data(contentsOf: url), named: url.lastPathComponent), fallbackName: url.lastPathComponent)
+            print(ThemeReport.facts(for: theme).joined(separator: " · "))
+        } else {
+            guard let data = SublimeImport.dataFolder() else { print(SublimeImport.Failure.noSublime); exit(1) }
+            let found = try SublimeImport(data: data, appPackages: URL(fileURLWithPath: "/Applications/Sublime Text.app/Contents/MacOS/Packages")).run()
+            print("\(found.source)\(found.override.map { " + \($0)" } ?? "")")
+            print(ThemeReport.facts(for: found.scheme).joined(separator: " · "))
+            print("font \(found.fontFace ?? "-") \(found.fontSize.map { String($0) } ?? "-") · tab size \(found.tabSize.map(String.init) ?? "-") · spaces \(found.translateTabsToSpaces.map { String($0) } ?? "-") · word wrap \(found.wordWrap ?? "-") · line padding \(found.linePaddingTop.map { String($0) } ?? "-")/\(found.linePaddingBottom.map { String($0) } ?? "-")")
+        }
+        exit(0)
+    } catch {
+        print(error)
+        exit(1)
+    }
 }
 if arguments[1] == "--runs", arguments.count > 2 {
     // Each run's text and scopes, for writing queries.

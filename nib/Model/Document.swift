@@ -34,6 +34,10 @@ final class Document {
     private(set) var notice: String?
     /// For the strip: "MARKDOWN", "JAVASCRIPT", "PLAIN TEXT" (HL1).
     private(set) var syntaxName = "PLAIN TEXT"
+    /// The syntax picked from the strip or View › Syntax, which the file keeps; nil follows
+    /// the file's name and first line, which say `detectedSyntax` (nil: plain text).
+    private(set) var pickedSyntax: SyntaxPick?
+    private(set) var detectedSyntax: SyntaxLanguage?
     /// The conflict blocks in the buffer (§5.4), kept current as it changes, and the one the
     /// caret is in: ⌘1, ⌘2 and ⌘3 resolve it.
     private(set) var blocks: [ConflictBlock] = []
@@ -208,9 +212,8 @@ final class Document {
         watchNoteFolder()
         record("open", size: text.utf8.count, sha: baseFingerprint?.sha256)
         recoverFromJournal(fileText: text)
-        let syntax = SyntaxLanguage.detect(fileName: url.lastPathComponent, firstLine: text.prefix(256).components(separatedBy: "\n").first)
-        syntaxName = syntax?.language.name.uppercased() ?? "PLAIN TEXT"
-        editor.syntax = syntax
+        pickedSyntax = UserDefaults.standard.string(forKey: "syntax:" + url.path).flatMap(SyntaxPick.init(stored:))
+        applySyntax()
         watchNetwork()
         state = status.uploaded ? .synced(Date()) : .saved(Date())
         ready = true
@@ -1181,6 +1184,64 @@ final class Document {
         (dirty, uploadedSHA, baseFingerprint?.sha256, held)
     }
     #endif
+}
+
+// MARK: Syntax (HL1)
+
+extension Document {
+    /// Picks the file's syntax from the strip or View › Syntax, kept for the file; nil is
+    /// Automatic. Only the colors change: it isn't an edit.
+    func pickSyntax(_ pick: SyntaxPick?) {
+        pickedSyntax = pick
+        UserDefaults.standard.set(pick?.stored, forKey: "syntax:" + url.path)
+        applySyntax()
+    }
+
+    /// The pick if there is one, else what the file's name and first line say.
+    func applySyntax() {
+        let firstLine = editor.textView.string.prefix(256).components(separatedBy: "\n").first
+        let detected = SyntaxLanguage.detect(fileName: url.lastPathComponent, firstLine: firstLine)
+        detectedSyntax = detected?.language
+        let syntax: (language: SyntaxLanguage, root: String)?
+        switch pickedSyntax {
+        case nil: syntax = detected
+        case .plain: syntax = nil
+        case .language(let language):
+            // Shell keeps zsh's scopes when the file's name or shebang says zsh.
+            syntax = detected?.language == language ? detected : language.rootScope.map { (language, $0) }
+        }
+        syntaxName = syntax?.language.name.uppercased() ?? "PLAIN TEXT"
+        editor.syntax = syntax
+    }
+}
+
+/// A syntax picked by hand (HL1): plain text or one of the languages.
+enum SyntaxPick: Hashable {
+    case plain
+    case language(SyntaxLanguage)
+
+    /// In the menus' order.
+    static let all: [SyntaxPick] = [.plain] + [SyntaxLanguage.html, .css, .javascript, .json, .markdown, .shell].map { .language($0) }
+
+    var name: String {
+        switch self {
+        case .plain: "Plain Text"
+        case .language(let language): language.name
+        }
+    }
+
+    var stored: String {
+        switch self {
+        case .plain: "plain"
+        case .language(let language): language.rawValue
+        }
+    }
+
+    init?(stored: String) {
+        if stored == "plain" { self = .plain; return }
+        guard let language = SyntaxLanguage(rawValue: stored), language != .markdownInline else { return nil }
+        self = .language(language)
+    }
 }
 
 /// A serial queue for blocking file work, awaitable from the main actor.

@@ -37,6 +37,7 @@ struct NibApp: App {
         }
         .defaultSize(width: 820, height: 520)
         .commands { NibCommands() }
+        Settings { SettingsView() }
     }
 }
 
@@ -184,6 +185,10 @@ struct NibCommands: Commands {
                 .keyboardShortcut("s")
                 .disabled(document == nil)
             if let document { RevertToMenu(document: document) } else { Menu("Revert To") {}.disabled(true) }
+        }
+        CommandGroup(after: .toolbar) {
+            Menu("Syntax") { SyntaxMenuItems(document: document) }
+                .disabled(document == nil)
         }
         CommandMenu("Conflicts") { ConflictMenuItems(document: document) }
     }

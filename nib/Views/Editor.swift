@@ -1,6 +1,7 @@
-// The text view (PRD ED1, §6.3): NSTextView on TextKit 2, plain text only, in An
-// Old Hope's colors. One instance lives as long as the document, so closing and
-// reopening the window keeps the buffer, the undo stack and the selection.
+// The text view (PRD ED1, §6.3): NSTextView on TextKit 2, plain text only, in the
+// scheme's colors (HL5), redrawn when the scheme or font changes. One instance lives as
+// long as the document, so closing and reopening the window keeps the buffer, the undo
+// stack and the selection.
 // Nothing here touches `layoutManager`, which would silently switch it to TextKit 1.
 
 import AppKit
@@ -20,7 +21,7 @@ final class Editor: NSObject, NSTextViewDelegate {
         scrollView = NSScrollView()
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = true
-        scrollView.backgroundColor = OldHope.background
+        scrollView.backgroundColor = Scheme.background
         scrollView.scrollerStyle = .overlay
         textView = NibTextView(usingTextLayoutManager: true)
         super.init()
@@ -42,12 +43,12 @@ final class Editor: NSObject, NSTextViewDelegate {
         textView.isAutomaticSpellingCorrectionEnabled = false
         textView.isContinuousSpellCheckingEnabled = false
         textView.smartInsertDeleteEnabled = false
-        textView.font = OldHope.font
-        textView.textColor = OldHope.foreground
-        textView.backgroundColor = OldHope.background
-        textView.insertionPointColor = OldHope.caret
-        textView.selectedTextAttributes = [.backgroundColor: OldHope.selection]
-        textView.typingAttributes = [.font: OldHope.font, .foregroundColor: OldHope.foreground]
+        textView.font = Scheme.font
+        textView.textColor = Scheme.foreground
+        textView.backgroundColor = Scheme.background
+        textView.insertionPointColor = Scheme.caret
+        textView.selectedTextAttributes = [.backgroundColor: Scheme.selection]
+        textView.typingAttributes = [.font: Scheme.font, .foregroundColor: Scheme.foreground]
         textView.delegate = self
         textView.onEscape = { [weak self] in self?.document?.hideBanner() ?? false }
         textView.setAccessibilityLabel("Scratch")
@@ -56,6 +57,9 @@ final class Editor: NSObject, NSTextViewDelegate {
         scrollView.contentView.postsBoundsChangedNotifications = true
         NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.render() }
+        }
+        NotificationCenter.default.addObserver(forName: .nibSchemeChanged, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.applyScheme() }
         }
     }
 
@@ -115,16 +119,34 @@ final class Editor: NSObject, NSTextViewDelegate {
     private var highlightTask: Task<Void, Never>?
     private var edits = 0
     private var rendered = NSRange(location: 0, length: 0)
-    static let theme = Theme.anOldHopeNib
+
+    /// The scheme or the font changed (Settings › Themes, Import from Sublime Text): the new
+    /// colors and font everywhere. Attributes only, so it isn't an edit and nothing is saved.
+    func applyScheme() {
+        scrollView.backgroundColor = Scheme.background
+        textView.backgroundColor = Scheme.background
+        textView.insertionPointColor = Scheme.caret
+        textView.selectedTextAttributes = [.backgroundColor: Scheme.selection]
+        if faces.regular != Scheme.font {
+            faces = Self.faces(of: Scheme.font)
+            textView.font = Scheme.font
+        }
+        textView.textColor = Scheme.foreground
+        textView.typingAttributes = [.font: Scheme.font, .foregroundColor: Scheme.foreground]
+        rendered = NSRange(location: 0, length: 0)
+        scheduleHighlight(after: 0)
+        render(force: true)
+        textView.needsDisplay = true
+    }
 
     /// The whole text parsed and styled off the main thread, a moment after typing pauses; up to
     /// 5 MB (ED9: larger files aren't highlighted).
     func scheduleHighlight(after delay: Double = 0.08) {
         edits += 1
         highlightTask?.cancel()
-        let text = ConflictText.masked(textView.string, blocks: textView.conflictBlocks), version = edits, theme = Self.theme
+        let text = ConflictText.masked(textView.string, blocks: textView.conflictBlocks), version = edits, theme = Scheme.theme
         guard let syntax, (text as NSString).length <= 5_000_000 else {
-            if !styles.isEmpty { styles = []; render() }
+            if !styles.isEmpty { styles = []; render(force: true) }
             return
         }
         highlightTask = Task { [weak self] in
@@ -151,7 +173,7 @@ final class Editor: NSObject, NSTextViewDelegate {
         guard let whole = textView.textRange(wanted) else { return }
         layout.removeRenderingAttribute(.foregroundColor, for: whole)
         layout.removeRenderingAttribute(.backgroundColor, for: whole)
-        let plain = Self.theme.foreground
+        let plain = Scheme.theme.foreground
         for (range, style) in styles {
             let part = NSIntersectionRange(range, wanted)
             guard part.length > 0, let text = textView.textRange(part) else { continue }
@@ -171,8 +193,10 @@ final class Editor: NSObject, NSTextViewDelegate {
 
     /// The editor font's faces (HL5): the font's own bold and italic; slanted if it has no
     /// italic, and left regular if it has no bold (the system monospaced font has both).
-    private lazy var faces: (regular: NSFont, bold: NSFont, italic: NSFont, boldItalic: NSFont) = {
-        let regular = OldHope.font, manager = NSFontManager.shared
+    private var faces = Editor.faces(of: Scheme.font)
+
+    private static func faces(of regular: NSFont) -> (regular: NSFont, bold: NSFont, italic: NSFont, boldItalic: NSFont) {
+        let manager = NSFontManager.shared
         func face(_ trait: NSFontTraitMask, from font: NSFont) -> NSFont {
             let converted = manager.convert(font, toHaveTrait: trait)
             if manager.traits(of: converted).contains(trait) { return converted }
@@ -183,7 +207,7 @@ final class Editor: NSObject, NSTextViewDelegate {
         }
         let bold = face(.boldFontMask, from: regular)
         return (regular, bold, face(.italicFontMask, from: regular), face(.italicFontMask, from: bold))
-    }()
+    }
 
     private func face(_ style: Style) -> NSFont {
         switch (style.bold, style.italic) {
@@ -232,7 +256,7 @@ final class Editor: NSObject, NSTextViewDelegate {
     /// Typing next to a bold or italic word doesn't carry its face on.
     func textView(_ textView: NSTextView, shouldChangeTypingAttributes oldTypingAttributes: [String: Any],
                   toAttributes newTypingAttributes: [NSAttributedString.Key: Any]) -> [NSAttributedString.Key: Any] {
-        [.font: OldHope.font, .foregroundColor: OldHope.foreground]
+        [.font: Scheme.font, .foregroundColor: Scheme.foreground]
     }
 
     /// The characters TextKit 2 has in its viewport now.
@@ -366,11 +390,11 @@ final class NibTextView: NSTextView {
         super.drawBackground(in: rect)
         let frames = conflictBlocks.map { frameGeometry($0) }
         for frame in frames.compactMap({ $0 }) where frame.box.intersects(rect) {
-            OldHope.conflictBlock.setFill()
+            Scheme.conflictBlock.setFill()
             frame.box.intersection(rect).fill()
         }
         if selectedRange().length == 0, let line = currentLineRect() {
-            OldHope.lineHighlight.setFill()
+            Scheme.lineHighlight.setFill()
             line.intersection(rect).fill()
         }
         for (block, frame) in zip(conflictBlocks, frames) {
@@ -401,7 +425,7 @@ final class NibTextView: NSTextView {
     private func drawFrame(_ block: ConflictBlock, _ frame: FrameGeometry) {
         let (top, middle, bottom, left, right) = (frame.top, frame.middle, frame.bottom, frame.left, frame.right)
         let yTop = top.midY.rounded(), yMiddle = middle.midY.rounded(), yBottom = bottom.midY.rounded()
-        OldHope.conflictBar.setFill()
+        Scheme.conflictBar.setFill()
         NSRect(x: left, y: yTop, width: right - left, height: 1).fill()
         NSRect(x: left, y: yMiddle, width: right - left, height: 1).fill()
         NSRect(x: left, y: yBottom, width: right - left, height: 1).fill()
@@ -421,19 +445,19 @@ final class NibTextView: NSTextView {
             let size = string.size()
             let origin = NSPoint(x: x(size.width).rounded(), y: (line.midY - size.height / 2).rounded())
             let cut = NSRect(origin: origin, size: size)
-            OldHope.background.setFill()
+            Scheme.background.setFill()
             NSRect(x: cut.minX, y: cut.minY, width: cut.width, height: line.midY.rounded() - cut.minY).fill()
-            OldHope.conflictBlock.setFill()
+            Scheme.conflictBlock.setFill()
             NSRect(x: cut.minX, y: line.midY.rounded(), width: cut.width, height: cut.maxY - line.midY.rounded()).fill()
             string.draw(at: origin)
         }
-        draw(label, color: OldHope.conflictMarker) { _ in left + 10 }
-        draw(hint, color: OldHope.comment) { width in right - 10 - width }
+        draw(label, color: Scheme.conflictMarker) { _ in left + 10 }
+        draw(hint, color: Scheme.comment) { width in right - 10 - width }
     }
 
     /// The pixel ✕ (Blit's 7×7 glyph, 1 pt a pixel) in the one red.
     private func drawCross(at origin: NSPoint) {
-        OldHope.conflictBar.setFill()
+        Scheme.conflictBar.setFill()
         for (y, row) in PixelGlyph.cross.rows.enumerated() {
             for (x, ch) in row.enumerated() where ch == "#" {
                 NSRect(x: origin.x + CGFloat(x), y: origin.y + CGFloat(y), width: 1, height: 1).fill()
@@ -479,7 +503,12 @@ final class NibTextView: NSTextView {
             guard caret == (string as NSString).length, let last = layout.textLayoutFragment(for: content.documentRange.endLocation)
                     ?? lastFragment(layout) else { return nil }
             let frame = last.layoutFragmentFrame
-            let height = OldHope.font.ascender - OldHope.font.descender + OldHope.font.leading
+            // TextKit 2 lays the empty last line out as the last paragraph's extra line, when it has.
+            if last.textLineFragments.count > 1, let extra = last.textLineFragments.last, extra.characterRange.length == 0 {
+                let bounds = extra.typographicBounds
+                return NSRect(x: 0, y: origin.y + frame.minY + bounds.minY, width: self.bounds.width, height: bounds.height)
+            }
+            let height = Scheme.font.ascender - Scheme.font.descender + Scheme.font.leading
             return NSRect(x: 0, y: origin.y + frame.maxY, width: bounds.width, height: ceil(height))
         }
         let frame = fragment.layoutFragmentFrame

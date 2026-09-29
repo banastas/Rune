@@ -103,7 +103,7 @@ struct MergeView: View {
         }
         .padding(14)
         .frame(minWidth: 760, idealWidth: 900, minHeight: 560, idealHeight: 640)
-        .background(Color(nsColor: OldHope.background))
+        .background(Color(nsColor: Scheme.background))
         .onAppear { session.cancel = { document.closeMerge(done: false) } }
     }
 
@@ -129,7 +129,7 @@ struct HUDBox<Content: View>: View {
                 Text(" \(title) ")
                     .font(HUDFont.label(9))
                     .foregroundStyle(HUDColor.dim)
-                    .background(Color(nsColor: OldHope.background))
+                    .background(Color(nsColor: Scheme.background))
                     .offset(x: 10, y: -6)
             }
             .padding(.top, 6)
@@ -147,14 +147,14 @@ struct SidePane: NSViewRepresentable {
         scroll.hasVerticalScroller = true
         scroll.scrollerStyle = .overlay
         scroll.drawsBackground = true
-        scroll.backgroundColor = OldHope.background
+        scroll.backgroundColor = Scheme.background
         let view = NSTextView(usingTextLayoutManager: true)
         view.autoresizingMask = [.width]
         view.isVerticallyResizable = true
         view.textContainer?.widthTracksTextView = true
         view.isEditable = false
         view.isRichText = true
-        view.backgroundColor = OldHope.background
+        view.backgroundColor = Scheme.background
         view.textContainerInset = NSSize(width: 4, height: 4)
         let (text, firstChange) = attributed()
         view.textStorage?.setAttributedString(text)
@@ -174,7 +174,7 @@ struct SidePane: NSViewRepresentable {
         let out = NSMutableAttributedString()
         // Wrapped lines stay clear of the gutter column.
         let paragraph = NSMutableParagraphStyle()
-        paragraph.headIndent = ("~ " as NSString).size(withAttributes: [.font: OldHope.font]).width
+        paragraph.headIndent = ("~ " as NSString).size(withAttributes: [.font: Scheme.font]).width
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
         var starts: [Int] = [], firstChange: Int?
         for (i, line) in lines.enumerated() {
@@ -183,10 +183,10 @@ struct SidePane: NSViewRepresentable {
             starts.append(out.length)
             if mark != .same, firstChange == nil { firstChange = starts[max(0, starts.count - 4)] }
             let glyph = mark == .changed ? "~ " : mark == .only ? "+ " : "  "
-            var body: [NSAttributedString.Key: Any] = [.font: OldHope.font, .foregroundColor: OldHope.foreground, .paragraphStyle: paragraph]
-            if mark == .changed { body[.backgroundColor] = OldHope.markupChanged }
-            if mark == .only { body[.backgroundColor] = OldHope.markupInserted }
-            out.append(NSAttributedString(string: glyph, attributes: [.font: OldHope.font, .foregroundColor: OldHope.comment, .paragraphStyle: paragraph]))
+            var body: [NSAttributedString.Key: Any] = [.font: Scheme.font, .foregroundColor: Scheme.foreground, .paragraphStyle: paragraph]
+            if mark == .changed { body[.backgroundColor] = Scheme.markupChanged }
+            if mark == .only { body[.backgroundColor] = Scheme.markupInserted }
+            out.append(NSAttributedString(string: glyph, attributes: [.font: Scheme.font, .foregroundColor: Scheme.comment, .paragraphStyle: paragraph]))
             out.append(NSAttributedString(string: line + "\n", attributes: body))
         }
         return (out, firstChange ?? 0)

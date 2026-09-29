@@ -1,0 +1,223 @@
+// The editor's look (PRD HL2-HL6, A1): the color scheme in use and the editor font. An Old
+// Hope · Nib is built in (HL10); imported schemes are kept in
+// ~/Library/Application Support/nib/Themes/ as `.sublime-color-scheme` files, variables and
+// overrides included. Settings › Themes picks one, Import File… and Import from Sublime Text
+// add them (HL3), and each import leaves a report (HL4). The scheme colors the text area
+// only; Nib's windows stay dark (A17). Views read `Scheme`; editors redraw when it changes.
+
+import AppKit
+import NibSyntax
+import NibSync
+import NibText
+
+extension Notification.Name {
+    /// The scheme or the editor font changed.
+    static let nibSchemeChanged = Notification.Name("NibSchemeChanged")
+}
+
+/// The scheme in use, as the views draw it: the scheme's globals (HL5), falling back to An
+/// Old Hope · Nib's where a scheme doesn't set one, and Nib's own conflict colors (V3).
+@MainActor
+enum Scheme {
+    static var theme: Theme { Schemes.shared.current }
+    static var font: NSFont { Schemes.shared.font }
+
+    static var background: NSColor { NSColor(theme.background) }
+    static var foreground: NSColor { NSColor(theme.foreground) }
+    static var caret: NSColor { global("caret") ?? foreground }
+    static var selection: NSColor { global("selection") ?? color(0x49483E) }
+    static var inactiveSelection: NSColor { global("inactive_selection") ?? selection }
+    static var lineHighlight: NSColor { global("line_highlight") ?? background.blended(withFraction: 0.06, of: .white) ?? background }
+    /// Conflict blocks (§5.4): a dark tint of the one red behind the block, and its marker
+    /// lines in the red's text tint (V3, #C98080), so they read as Nib's, not the text's.
+    static var conflictBlock: NSColor {
+        theme.background.hex == "#1C1D21" ? color(0x2B2124) : background.blended(withFraction: 0.1, of: conflictBar) ?? background
+    }
+    static let conflictMarker = color(0xC98080)
+    static let conflictBar = color(0xB35C5C)
+    /// The scheme's own diff backgrounds (`markup.inserted`, `.changed`), for the merge view (§5.5).
+    static var markupInserted: NSColor { theme.style(for: "markup.inserted").background.map(NSColor.init) ?? color(0x253B22) }
+    static var markupDeleted: NSColor { theme.style(for: "markup.deleted").background.map(NSColor.init) ?? color(0x420E09) }
+    static var markupChanged: NSColor { theme.style(for: "markup.changed").background.map(NSColor.init) ?? color(0x4A4A0F) }
+    static var comment: NSColor { NSColor(theme.style(for: "comment").foreground) }
+
+    private static func global(_ name: String) -> NSColor? { theme.color(name).map(NSColor.init) }
+
+    static func color(_ rgb: Int) -> NSColor {
+        NSColor(srgbRed: CGFloat(rgb >> 16 & 0xFF) / 255, green: CGFloat(rgb >> 8 & 0xFF) / 255,
+                blue: CGFloat(rgb & 0xFF) / 255, alpha: 1)
+    }
+}
+
+@MainActor
+@Observable
+final class Schemes {
+    static let shared = Schemes()
+
+    struct Entry: Identifiable, Hashable {
+        /// "built-in", or the file's name in the Themes folder.
+        let id: String
+        let name: String
+    }
+
+    static let builtIn = "built-in"
+    static var folder: URL { NibPaths.support.appendingPathComponent("Themes") }
+
+    private(set) var entries: [Entry] = []
+    private(set) var currentID = builtIn
+    private(set) var current = Theme.anOldHopeNib
+    private(set) var font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+    /// "" is SF Mono, the system's monospaced font.
+    private(set) var fontFace = ""
+    private(set) var fontSize = 13.0
+    /// The last import's report (HL4), in the HUD's words.
+    private(set) var report: String?
+
+    private let defaults = UserDefaults.standard
+
+    private init() {
+        report = defaults.string(forKey: "schemeReport")
+        fontFace = defaults.string(forKey: "editorFontFace") ?? ""
+        fontSize = defaults.object(forKey: "editorFontSize") as? Double ?? 13
+        font = Self.font(face: fontFace, size: fontSize) ?? font
+        reload()
+        if let id = defaults.string(forKey: "scheme"), id != Self.builtIn, let theme = load(id) {
+            currentID = id
+            current = theme
+        }
+    }
+
+    /// The built-in scheme and the imported ones, by name.
+    private func reload() {
+        let files = (try? FileManager.default.contentsOfDirectory(at: Self.folder, includingPropertiesForKeys: nil)) ?? []
+        let imported = files.filter { $0.pathExtension == "sublime-color-scheme" }.compactMap { url in
+            load(url.lastPathComponent).map { Entry(id: url.lastPathComponent, name: $0.name) }
+        }
+        entries = [Entry(id: Self.builtIn, name: Theme.anOldHopeNib.name)] + imported.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    private func load(_ id: String) -> Theme? {
+        if id == Self.builtIn { return .anOldHopeNib }
+        guard let data = try? Data(contentsOf: Self.folder.appendingPathComponent(id)) else { return nil }
+        return try? Theme(sublimeColorScheme: data, fallbackName: (id as NSString).deletingPathExtension)
+    }
+
+    func use(_ id: String) {
+        guard let theme = load(id) else { return }
+        currentID = id
+        current = theme
+        defaults.set(id, forKey: "scheme")
+        NotificationCenter.default.post(name: .nibSchemeChanged, object: nil)
+    }
+
+    /// Takes an imported scheme out of the list, and the file out of the Themes folder.
+    func remove(_ id: String) {
+        guard id != Self.builtIn else { return }
+        if currentID == id { use(Self.builtIn) }
+        try? FileManager.default.removeItem(at: Self.folder.appendingPathComponent(id))
+        reload()
+    }
+
+    /// The editor font: a family or font name, "" for SF Mono.
+    func setFont(face: String, size: Double) {
+        guard let chosen = Self.font(face: face, size: size) else { return }
+        fontFace = face
+        fontSize = size
+        font = chosen
+        defaults.set(face, forKey: "editorFontFace")
+        defaults.set(size, forKey: "editorFontSize")
+        NotificationCenter.default.post(name: .nibSchemeChanged, object: nil)
+    }
+
+    static func font(face: String, size: Double) -> NSFont? {
+        let size = CGFloat(min(72, max(6, size)))
+        if face.isEmpty || face == "SF Mono" || face == "SFMono-Regular" { return .monospacedSystemFont(ofSize: size, weight: .regular) }
+        return NSFontManager.shared.font(withFamily: face, traits: [], weight: 5, size: size) ?? NSFont(name: face, size: size)
+    }
+
+    // MARK: Import (HL2-HL4)
+
+    /// A `.tmTheme` or `.sublime-color-scheme` from anywhere: kept, used, and reported on.
+    @discardableResult
+    func importFile(_ url: URL) -> Bool {
+        do {
+            let document = try Theme.document(file: Data(contentsOf: url), named: url.lastPathComponent)
+            let theme = try Theme(document: document, fallbackName: url.deletingPathExtension().lastPathComponent)
+            try keep(document, named: theme.name)
+            setReport(ThemeReport.facts(for: theme))
+            return true
+        } catch {
+            setReport(["COULDN'T READ “\(url.lastPathComponent.uppercased())” · NOT A COLOR SCHEME NIB CAN READ · NOTHING IMPORTED"])
+            return false
+        }
+    }
+
+    /// Sublime Text's scheme, its override, and its font (HL3), read and never changed. The
+    /// original An Old Hope is kept as the Nib edition (HL10). A test run points it elsewhere
+    /// with -NibSublimeFolder and -NibSublimePackages.
+    @discardableResult
+    func importFromSublime() -> Bool {
+        let data = defaults.string(forKey: "NibSublimeFolder").map { URL(fileURLWithPath: $0) } ?? SublimeImport.dataFolder()
+        let packages = defaults.string(forKey: "NibSublimePackages").map { URL(fileURLWithPath: $0) }
+            ?? (NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.sublimetext.4")
+                ?? URL(fileURLWithPath: "/Applications/Sublime Text.app")).appendingPathComponent("Contents/MacOS/Packages")
+        guard let data else { setReport([SublimeImport.Failure.noSublime.description]); return false }
+        do {
+            let found = try SublimeImport(data: data, appPackages: packages).run()
+            var facts: [String]
+            if found.scheme.isOriginalAnOldHope {
+                use(Self.builtIn)
+                facts = ["SUBLIME TEXT USES \(found.scheme.name.uppercased())",
+                         "KEPT \(Theme.anOldHopeNib.name.uppercased()), ITS CORRECTED EDITION: EVERY COLOR AT LEAST 4.5:1"]
+            } else {
+                try keep(Theme.document(sublimeColorScheme: found.document), named: found.scheme.name)
+                facts = ThemeReport.facts(for: found.scheme)
+            }
+            if let override = found.override { facts.insert("WITH \((override as NSString).lastPathComponent.uppercased())", at: 1) }
+            if let size = found.fontSize {
+                let face = found.fontFace ?? ""
+                let label = "\(face.isEmpty ? "SF MONO" : face.uppercased()) \(size.formatted(.number.precision(.fractionLength(0...1))))"
+                if Self.font(face: face, size: size) != nil {
+                    setFont(face: face, size: size)
+                    facts.append("FONT \(label)")
+                } else {
+                    facts.append("FONT \(label) NOT INSTALLED · KEPT \(fontLabel)")
+                }
+            }
+            var unused: [String] = []
+            if let tab = found.tabSize { unused.append("TAB SIZE \(tab)"); defaults.set(tab, forKey: "editorTabSize") }
+            if let spaces = found.translateTabsToSpaces { unused.append(spaces ? "SPACES" : "TABS"); defaults.set(spaces, forKey: "editorSpaces") }
+            if let wrap = found.wordWrap { unused.append("WORD WRAP \(wrap.uppercased())"); defaults.set(wrap, forKey: "editorWordWrap") }
+            let padding = [found.linePaddingTop ?? 0, found.linePaddingBottom ?? 0]
+            if padding != [0, 0] { unused.append("LINE PADDING \(padding.map { $0.formatted() }.joined(separator: "/"))") }
+            if !unused.isEmpty { facts.append(unused.joined(separator: ", ") + ": NOTED, NOT USED YET") }
+            setReport(facts)
+            return true
+        } catch let failure as SublimeImport.Failure {
+            setReport([failure.description])
+        } catch {
+            setReport(["COULDN'T IMPORT FROM SUBLIME TEXT · \(error.localizedDescription.uppercased())"])
+        }
+        return false
+    }
+
+    var fontLabel: String {
+        "\(fontFace.isEmpty ? "SF MONO" : fontFace.uppercased()) \(fontSize.formatted(.number.precision(.fractionLength(0...1))))"
+    }
+
+    /// Writes the scheme into the Themes folder (replacing one of the same name) and uses it.
+    private func keep(_ document: [String: Any], named name: String) throws {
+        try FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
+        let slug = name.lowercased().map { $0.isLetter || $0.isNumber ? String($0) : "-" }.joined()
+            .split(separator: "-").joined(separator: "-")
+        let id = (slug.isEmpty ? "scheme" : slug) + ".sublime-color-scheme"
+        try Theme.storable(document).write(to: Self.folder.appendingPathComponent(id), options: .atomic)
+        reload()
+        use(id)
+    }
+
+    private func setReport(_ facts: [String]) {
+        report = facts.joined(separator: " · ")
+        defaults.set(report, forKey: "schemeReport")
+    }
+}

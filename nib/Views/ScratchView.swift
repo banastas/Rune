@@ -23,7 +23,11 @@ struct DocumentView: View {
             EditorHost(editor: document.editor)
             StatusStrip(document: document)
         }
-        .background(Color(nsColor: OldHope.background))
+        .background(Color(nsColor: Scheme.background))
+        // The title bar shows the text's background through it; a light scheme's would put
+        // the title in white on white, and the chrome stays dark anyway (A17): Nib's own dark.
+        .toolbarBackground(Color(nsColor: Scheme.color(0x1C1D21)), for: .windowToolbar)
+        .toolbarBackgroundVisibility(Scheme.theme.isLight ? .visible : .automatic, for: .windowToolbar)
         .navigationTitle(document.url.lastPathComponent)
         .navigationSubtitle(subtitle)
         .frame(minWidth: 480, minHeight: 320)

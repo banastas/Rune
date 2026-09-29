@@ -19,7 +19,7 @@ import Testing
     @Test func readsGlobalsAndRules() {
         #expect(Self.theme.background.hex == "#1C1D21")
         #expect(Self.theme.foreground.hex == "#F8F8F2")
-        #expect(Self.theme.globals["lineHighlight"] == "#272B34")
+        #expect(Self.theme.globals["line_highlight"] == "#272B34")
         #expect(Self.theme.rules.count == 42)
     }
 
