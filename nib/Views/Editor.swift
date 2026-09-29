@@ -16,6 +16,8 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// The editor's own undo history (ED1): it lives as long as the buffer, so closing and
     /// reopening the window keeps it. (Inside SwiftUI's window the text view had none.)
     let undo = UndoManager()
+    /// Find and replace (ED7): its bar, its matches, drawn here in the scheme's find colors.
+    let find = FindSession()
 
     override init() {
         scrollView = NSScrollView()
@@ -25,6 +27,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         scrollView.scrollerStyle = .overlay
         textView = NibTextView(usingTextLayoutManager: true)
         super.init()
+        find.editor = self
         textView.autoresizingMask = [.width]
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
@@ -35,8 +38,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.isRichText = false
         textView.importsGraphics = false
         textView.allowsUndo = true
-        textView.usesFindBar = true
-        textView.isIncrementalSearchingEnabled = true
+        textView.usesFindBar = false   // Nib's own bar (ED7): the system's has no regular expressions
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
@@ -51,7 +53,16 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.typingAttributes = [.font: Scheme.font, .foregroundColor: Scheme.foreground]
         textView.delegate = self
         textView.textStorage?.delegate = self   // the caret's line count follows edits (position(of:))
-        textView.onEscape = { [weak self] in self?.document?.hideBanner() ?? false }
+        textView.onEscape = { [weak self] in
+            guard let self else { return false }
+            if self.document?.hideBanner() == true { return true }
+            if self.find.shown { self.find.close(); return true }
+            return false
+        }
+        textView.finder = find
+        textView.onNotice = { [weak self] in self?.document?.show($0, for: 6) }
+        textView.onFlash = { [weak self] in self?.flash($0) }
+        textView.commentStyle = { [weak self] in self?.commentStyle }
         textView.setAccessibilityLabel("Scratch")
         scrollView.documentView = textView
         // Scrolling brings new text into view: render it.
@@ -86,6 +97,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         document?.textDidChange()
         onChange?()
         scheduleHighlight()
+        find.textChanged()
     }
 
     /// Before each change: the colors move with the text until the next highlight, so typing
@@ -107,6 +119,15 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             }
             return r.length > 0 ? (r, style) : nil
         }
+        // Find's matches move with the text too; one the edit touches is gone until the next search.
+        if !findMatches.isEmpty {
+            let editEnd = NSMaxRange(range)
+            shownMatches = shownMatches.compactMap { r in
+                if r.location >= editEnd { return NSRange(location: r.location + change, length: r.length) }
+                return NSMaxRange(r) <= range.location ? r : nil
+            }
+        }
+        find.textWillChange(in: range, change: change)
         return true
     }
 
@@ -129,6 +150,36 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     private var edits = 0
     private var rendered = NSRange(location: 0, length: 0)
 
+    /// Find's matches (ED7), in order: drawn in `render` while its bar is open.
+    var findMatches: [NSRange] {
+        get { shownMatches }
+        set { shownMatches = newValue; render(force: true) }
+    }
+    private var shownMatches: [NSRange] = []
+
+    /// The first of `ranges` (in order) that ends after `location`: a binary search, as there
+    /// can be 10,000 of them.
+    private static func firstEnding(after location: Int, in ranges: [NSRange]) -> Int {
+        var low = 0, high = ranges.count
+        while low < high {
+            let mid = (low + high) / 2
+            if NSMaxRange(ranges[mid]) <= location { low = mid + 1 } else { high = mid }
+        }
+        return low
+    }
+
+    /// A copied range, lit in the selection color for a moment (SC5), then its own colors again.
+    func flash(_ range: NSRange) {
+        guard let layout = textView.textLayoutManager, let text = textView.textRange(range) else { return }
+        layout.addRenderingAttribute(.backgroundColor, value: Scheme.selection, for: text)
+        textView.needsDisplay = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self, let text = self.textView.textRange(NSIntersectionRange(range, NSRange(location: 0, length: (self.textView.string as NSString).length))) else { return }
+            layout.removeRenderingAttribute(.backgroundColor, for: text)
+            self.render(force: true)   // the scheme's own backgrounds back
+        }
+    }
+
     /// The scheme or the font changed (Settings › Themes, Import from Sublime Text): the new
     /// colors and font everywhere. Attributes only, so it isn't an edit and nothing is saved.
     func applyScheme() {
@@ -142,6 +193,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         }
         textView.textColor = Scheme.foreground
         textView.typingAttributes = [.font: Scheme.font, .foregroundColor: Scheme.foreground]
+        applyTabWidth()   // a font's space width sets it
         rendered = NSRange(location: 0, length: 0)
         scheduleHighlight(after: 0)
         render(force: true)
@@ -207,6 +259,20 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             guard part.length > 0, let text = textView.textRange(part) else { continue }
             if style.foreground != plain { layout.addRenderingAttribute(.foregroundColor, value: NSColor(style.foreground), for: text) }
             if let background = style.background { layout.addRenderingAttribute(.backgroundColor, value: NSColor(background), for: text) }
+        }
+        // Find's matches in view (ED7) in the scheme's find colors; the selected one shows as
+        // the selection, so it stands out from the rest.
+        if !shownMatches.isEmpty {
+            let highlight = Scheme.findHighlight, foreground = Scheme.findHighlightForeground
+            let selected = textView.selectedRange()
+            var i = Self.firstEnding(after: wanted.location, in: shownMatches)
+            while i < shownMatches.count, shownMatches[i].location < NSMaxRange(wanted) {
+                let match = shownMatches[i]
+                i += 1
+                guard match != selected, let text = textView.textRange(NSIntersectionRange(match, wanted)) else { continue }
+                layout.addRenderingAttribute(.backgroundColor, value: highlight, for: text)
+                if let foreground { layout.addRenderingAttribute(.foregroundColor, value: foreground, for: text) }
+            }
         }
         for block in textView.conflictBlocks {
             for marker in block.markers {
@@ -284,7 +350,45 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// Typing next to a bold or italic word doesn't carry its face on.
     func textView(_ textView: NSTextView, shouldChangeTypingAttributes oldTypingAttributes: [String: Any],
                   toAttributes newTypingAttributes: [NSAttributedString.Key: Any]) -> [NSAttributedString.Key: Any] {
-        [.font: Scheme.font, .foregroundColor: Scheme.foreground]
+        [.font: Scheme.font, .foregroundColor: Scheme.foreground, .paragraphStyle: tabStyle]
+    }
+
+    // MARK: Indentation (ED6)
+
+    /// The file's indentation, found when it opens: tabs drawn that many spaces wide, Tab and
+    /// Indent adding one unit.
+    var indentation: Indentation = .tabs(width: 4) {
+        didSet { textView.indentation = indentation; applyTabWidth() }
+    }
+
+    private var tabStyle: NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.tabStops = []
+        style.defaultTabInterval = CGFloat(indentation.width) * (" " as NSString).size(withAttributes: [.font: Scheme.font]).width
+        return style
+    }
+
+    /// Tabs as wide as the indentation says (AppKit's default is 28 points), on the whole text:
+    /// an attribute, not an edit.
+    func applyTabWidth() {
+        let style = tabStyle
+        textView.defaultParagraphStyle = style
+        textView.typingAttributes[.paragraphStyle] = style
+        guard let storage = textView.textStorage, storage.length > 0 else { return }
+        storage.beginEditing()
+        storage.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: storage.length))
+        storage.endEditing()
+    }
+
+    /// Toggle Comment's marks for the file's syntax; nil for plain text and JSON.
+    var commentStyle: CommentStyle? {
+        switch syntax?.language {
+        case .javascript: .line("//")
+        case .shell: .line("#")
+        case .css: .block("/*", "*/")
+        case .html, .markdown, .markdownInline: .block("<!--", "-->")
+        case .json, nil: nil
+        }
     }
 
     /// The characters TextKit 2 has in its viewport now.
@@ -300,6 +404,10 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
     func textViewDidChangeSelection(_ notification: Notification) {
         textView.needsDisplay = true   // the current-line highlight follows the caret
+        if !shownMatches.isEmpty {
+            find.selectionChanged()
+            render(force: true)        // the selected match shows as the selection, the one before as a match
+        }
         if let document {
             let (line, column) = position(of: textView.selectedRange().location)
             document.selectionDidChange(line: line, column: column)
@@ -403,34 +511,148 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
 /// Plain text in, plain text out (PT1, PT2), and Sublime's current-line highlight.
 final class NibTextView: NSTextView {
-    /// Escape, before the text view's own use of it: true if it was handled (the banner hidden).
+    /// Escape: true if it closed something (the conflict banner, then the find bar).
     var onEscape: (() -> Bool)?
     /// Conflict blocks, drawn as HUD frames behind the text (§5.4), and a VoiceOver rotor.
     var conflictBlocks: [ConflictBlock] = [] {
         didSet { if oldValue.isEmpty != conflictBlocks.isEmpty { NSAccessibility.post(element: self, notification: .layoutChanged) } }
     }
 
+    /// Escape closes things and does nothing else, as in Sublime: not the text view's word
+    /// completion list, which ⌥Escape still asks for. (Opened from a scenario, the list was
+    /// followed by a crash in SwiftUI's next update, three times out of three.)
     override func cancelOperation(_ sender: Any?) {
-        if onEscape?() == true { return }
-        super.cancelOperation(sender)
+        _ = onEscape?()
     }
 
-    /// ⌘V: the clipboard's text only, line endings made "\n". Files copied in Finder
-    /// paste as their paths, one per line.
+    /// ⌘V: the clipboard's text only, line endings made "\n" (PT1): rich text or HTML with no
+    /// plain flavor as its text, files copied in Finder as their paths, one per line (PT5).
     override func paste(_ sender: Any?) {
-        let pasteboard = NSPasteboard.general
-        var text = pasteboard.string(forType: .string)
-        if text == nil,
-           let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
-           !urls.isEmpty {
-            text = urls.map(\.path).joined(separator: "\n")
-        }
-        guard let text else { NSSound.beep(); return }
+        guard let text = Clipboard.text() else { NSSound.beep(); return }
         insertText(PasteCleaner.plain(text), replacementRange: selectedRange())
     }
 
-    override func pasteAsPlainText(_ sender: Any?) { paste(sender) }
+    /// Paste Clean (⌥⇧⌘V, PT3): also invisible characters out, unusual spaces made plain,
+    /// trailing whitespace trimmed, and, with the setting, quotes and dashes straightened.
+    override func pasteAsPlainText(_ sender: Any?) {
+        guard let text = Clipboard.text() else { NSSound.beep(); return }
+        let result = PasteCleaner.clean(text, options: Clipboard.options)
+        insertText(result.text, replacementRange: selectedRange())
+        onNotice?((["PASTED CLEAN"] + (result.changed ? result.facts : ["NOTHING NEEDED CLEANING"])).joined(separator: " · "))
+    }
+
     override func pasteAsRichText(_ sender: Any?) { paste(sender) }
+
+    /// Copy Block (⇧⌘C, SC5): the fenced code block at the caret, without its fences, or else
+    /// its paragraph; with a selection, the selection. It flashes once.
+    @objc func copyBlock(_ sender: Any?) {
+        let selection = selectedRange()
+        let found: (range: NSRange, kind: TextBlocks.Kind)?
+        if selection.length > 0 { found = (selection, .paragraph) } else { found = TextBlocks.block(at: selection.location, in: string) }
+        guard let found else {
+            NSSound.beep()
+            onNotice?("NOTHING TO COPY HERE · NO CODE BLOCK OR PARAGRAPH AT THE CARET")
+            return
+        }
+        let text = (string as NSString).substring(with: found.range)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        onFlash?(found.range)
+        let lines = text.components(separatedBy: "\n").count
+        let what = selection.length > 0 ? "THE SELECTION" : found.kind == .code ? "THE CODE BLOCK" : "THE PARAGRAPH"
+        onNotice?("COPIED \(what) · \(lines) LINE\(lines == 1 ? "" : "S")")
+    }
+
+    /// A line for the strip, and a range to flash: the editor's.
+    var onNotice: ((String) -> Void)?
+    var onFlash: ((NSRange) -> Void)?
+
+    // MARK: Find (ED7, KB1): Nib's own bar, for the menu's commands and the system's
+
+    weak var finder: FindSession?
+
+    @objc func showFind(_ sender: Any?) { finder?.open(replace: false) }
+    @objc func showFindAndReplace(_ sender: Any?) { finder?.open(replace: true) }
+    @objc func findNextMatch(_ sender: Any?) { finder?.next() }
+    @objc func findPreviousMatch(_ sender: Any?) { finder?.next(backwards: true) }
+    @objc func useSelectionForFind(_ sender: Any?) { finder?.useSelection() }
+
+    /// The system's find actions (a Services menu, an older Find menu), sent to Nib's bar.
+    override func performTextFinderAction(_ sender: Any?) { performFindPanelAction(sender) }
+    override func performFindPanelAction(_ sender: Any?) {
+        let tag = (sender as? NSValidatedUserInterfaceItem)?.tag ?? NSTextFinder.Action.showFindInterface.rawValue
+        switch NSTextFinder.Action(rawValue: tag) {
+        case .showReplaceInterface: finder?.open(replace: true)
+        case .nextMatch: finder?.next()
+        case .previousMatch: finder?.next(backwards: true)
+        case .setSearchString: finder?.useSelection()
+        case .hideFindInterface: finder?.close()
+        default: finder?.open(replace: false)
+        }
+    }
+
+    // MARK: Line commands (ED6, KB4, §5.12), on Sublime's keys
+
+    var indentation: Indentation = .tabs(width: 4)
+    var commentStyle: () -> CommentStyle? = { nil }
+
+    /// One undoable change, named for the menu's Undo; the selection after it, in view.
+    private func apply(_ edit: LineEdit?, _ action: String) {
+        guard let edit else { NSSound.beep(); return }
+        guard shouldChangeText(in: edit.range, replacementString: edit.replacement) else { return }
+        textStorage?.replaceCharacters(in: edit.range, with: edit.replacement)
+        didChangeText()
+        undoManager?.setActionName(action)
+        setSelectedRange(edit.selection)
+        scrollRangeToVisible(edit.selection)
+    }
+
+    @objc func duplicateLine(_ sender: Any?) { apply(LineEdits.duplicate(string, selection: selectedRange()), "Duplicate Line") }
+    @objc func moveLineUp(_ sender: Any?) { apply(LineEdits.move(string, selection: selectedRange(), up: true), "Move Line Up") }
+    @objc func moveLineDown(_ sender: Any?) { apply(LineEdits.move(string, selection: selectedRange(), up: false), "Move Line Down") }
+    @objc func joinLines(_ sender: Any?) { apply(LineEdits.join(string, selection: selectedRange()), "Join Lines") }
+    @objc func indentLines(_ sender: Any?) {
+        apply(LineEdits.indent(string, selection: selectedRange(), unit: indentation.unit, width: indentation.width), "Indent")
+    }
+    @objc func outdentLines(_ sender: Any?) {
+        apply(LineEdits.indent(string, selection: selectedRange(), unit: indentation.unit, outdent: true, width: indentation.width), "Outdent")
+    }
+    @objc func selectWholeLine(_ sender: Any?) {
+        let range = LineEdits.selectLine(string, selection: selectedRange())
+        setSelectedRange(range)
+        scrollRangeToVisible(range)
+    }
+    @objc func toggleComment(_ sender: Any?) {
+        guard let style = commentStyle() else {
+            NSSound.beep()
+            onNotice?("NO COMMENTS IN THIS SYNTAX · PICK ONE FROM THE STRIP")
+            return
+        }
+        apply(LineEdits.toggleComment(string, selection: selectedRange(), style: style), "Toggle Comment")
+    }
+
+    /// Return keeps the line's indentation (Sublime's auto-indent).
+    override func insertNewline(_ sender: Any?) {
+        guard !hasMarkedText() else { super.insertNewline(sender); return }
+        let s = string as NSString, caret = selectedRange().location
+        let line = s.lineRange(for: NSRange(location: caret, length: 0))
+        let before = s.substring(with: NSRange(location: line.location, length: caret - line.location))
+        let lead = before.prefix { $0 == " " || $0 == "\t" }
+        insertText("\n" + lead, replacementRange: selectedRange())
+    }
+
+    /// Tab: over several lines, Indent; else one unit (spaces to the next stop).
+    override func insertTab(_ sender: Any?) {
+        let selection = selectedRange(), s = string as NSString
+        if selection.length > 0, s.substring(with: selection).contains("\n") { indentLines(sender); return }
+        guard case .spaces(let width) = indentation else { super.insertTab(sender); return }
+        let line = s.lineRange(for: NSRange(location: selection.location, length: 0))
+        let column = selection.location - line.location
+        insertText(String(repeating: " ", count: width - column % width), replacementRange: selection)
+    }
+
+    /// ⇧Tab: Outdent.
+    override func insertBacktab(_ sender: Any?) { outdentLines(sender) }
 
     /// Copying never carries RTF or the colors on screen: plain text only.
     override var writablePasteboardTypes: [NSPasteboard.PasteboardType] { [.string] }
@@ -526,8 +748,11 @@ final class NibTextView: NSTextView {
         return conflictBlocks.isEmpty ? rotors : rotors + [NSAccessibilityCustomRotor(label: "Conflicts", itemSearchDelegate: self)]
     }
 
+    /// nil for a range that isn't all in the text: TextKit 2 takes an offset past the end without
+    /// a word, and what it does with one is undefined (stale conflict frames crashed Nib).
     func textRange(_ range: NSRange) -> NSTextRange? {
-        guard let content = textLayoutManager?.textContentManager,
+        guard range.location >= 0, range.length >= 0, NSMaxRange(range) <= (string as NSString).length,
+              let content = textLayoutManager?.textContentManager,
               let start = content.location(content.documentRange.location, offsetBy: range.location),
               let end = content.location(start, offsetBy: range.length) else { return nil }
         return NSTextRange(location: start, end: end)

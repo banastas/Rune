@@ -8,6 +8,8 @@ import SwiftUI
 
 struct StatusStrip: View {
     let document: Document
+    @State private var lineAnswer = ""
+    @FocusState private var lineFieldFocused: Bool
 
     var body: some View {
         HStack(spacing: 10) {
@@ -31,8 +33,26 @@ struct StatusStrip: View {
             .accessibilityLabel("\(document.url.lastPathComponent), \(document.state.spoken)")
             Spacer(minLength: 8)
             HStack(spacing: 0) {
-                Text("LN \(document.cursor.line), COL \(document.cursor.column) · ")
-                    .accessibilityLabel("Line \(document.cursor.line), column \(document.cursor.column)")
+                if document.goingToLine {
+                    // Go to Line (⌃G, or a click on the slot): "12", or "12:5" for a column too.
+                    Text("GO TO LN ")
+                    TextField("", text: $lineAnswer)
+                        .textFieldStyle(.plain)
+                        .frame(width: 70)
+                        .foregroundStyle(HUDColor.bright)
+                        .focused($lineFieldFocused)
+                        .onSubmit { document.goToLine(lineAnswer); lineAnswer = "" }
+                        .onExitCommand { lineAnswer = ""; document.goingToLine = false; document.editor.textView.window?.makeFirstResponder(document.editor.textView) }
+                        .accessibilityLabel("Go to line")
+                    Text(" · ")
+                } else {
+                    Button { document.goingToLine = true } label: {
+                        Text("LN \(document.cursor.line), COL \(document.cursor.column) · ")
+                    }
+                    .buttonStyle(.plain)
+                    .help("Go to a line (⌃G)")
+                    .accessibilityLabel("Line \(document.cursor.line), column \(document.cursor.column). Go to a line")
+                }
                 Menu { SyntaxMenuItems(document: document) } label: {
                     Text(document.syntaxName).font(HUDFont.terminal(16)).foregroundStyle(HUDColor.dim)
                 }
@@ -42,7 +62,8 @@ struct StatusStrip: View {
                 .fixedSize()
                 .help("The syntax for this file. Click to choose another.")
                 .accessibilityLabel("Syntax, \(document.syntaxName.capitalized)")
-                Text(" · \(document.format.encoding.label) · \(document.format.lineEnding.label)")
+                Text(" · \(document.indentationLabel) · \(document.format.encoding.label) · \(document.format.lineEnding.label)")
+                    .help("Indentation (found in the file), encoding and line endings")
             }
             .font(HUDFont.terminal(16))
             .monospacedDigit()
@@ -57,6 +78,8 @@ struct StatusStrip: View {
         .environment(\.colorScheme, .dark)
         .help(tooltip)
         .contextMenu { StripMenu(document: document) }
+        .onChange(of: document.goingToLine) { _, open in if open { lineFieldFocused = true } }
+        .onChange(of: lineFieldFocused) { _, focused in if !focused, document.goingToLine { document.goingToLine = false } }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Status")
     }

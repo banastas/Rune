@@ -207,8 +207,8 @@ import Testing
     @Test func theOriginalAnOldHope() {
         let facts = ThemeReport.facts(for: Self.original)
         #expect(facts == [
-            "IMPORTED AN-OLD-HOPE", "6 RULES", "6 GLOBALS USED",
-            "14 NOT DRAWN YET (BRACKETS, TAGS, GUIDES, SELECTION BORDER, SHADOW, FIND HIGHLIGHT, INVISIBLES)",
+            "IMPORTED AN-OLD-HOPE", "6 RULES", "8 GLOBALS USED",
+            "12 NOT DRAWN YET (BRACKETS, TAGS, GUIDES, SELECTION BORDER, SHADOW, INVISIBLES)",
             "4 COLORS UNDER 4.5:1: #767676 COMMENT 3.7, #7851A9 NUMBER 2.8, #EB3D54 KEYWORD 4.3, #F8F8F0 ON #F92672 INVALID 3.5",
         ], "\(facts)")
         #expect(Self.original.isOriginalAnOldHope && !ThemeTests.theme.isOriginalAnOldHope)

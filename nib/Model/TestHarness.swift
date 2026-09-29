@@ -45,6 +45,8 @@ enum TestHarness {
             case "clipboard": await clipboard(document, log)
             case "crash": await crash(document, log, marker)
             case "recover": await recover(document, log, marker)
+            case "crash-blocks": await crashWithBlocks(document, log, marker)
+            case "recover-blocks": await recoverWithBlocks(document, log, marker)
             case "external": await external(document, log, marker)
             case "snapshot": await snapshot(document, log)
             case "undo": await undoRedo(document, log, marker)
@@ -63,6 +65,9 @@ enum TestHarness {
             case "holdretry": await holdRetryScenario(log, marker)
             case "bigfile": await bigFile(log, marker)
             case "refusal": await refusal(document, log, marker)
+            case "cleantext": await cleanText(document, log, marker)
+            case "lines": await lineCommands(log, marker)
+            case "find": await findScenario(log, marker)
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -137,6 +142,318 @@ enum TestHarness {
         await document.flush(reason: "harness")
     }
 
+    /// Sublime's line commands (ED6, KB4) on a JavaScript file indented with two spaces: the
+    /// indentation found, each command and its undo, // comments, auto-indent, Tab, Go to
+    /// Line; then <!-- --> comments in the Markdown scratch file, and the Text menu.
+    static func lineCommands(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("lines-\(marker).js")
+        let original = "function add() {\n  const a = 1;\n  const b = 2;\n  return a + b;\n}\n"
+        try? Data(original.utf8).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened"); return }
+        let view = document.editor.textView
+        log.check(document.indentation == .spaces(2) && document.indentationLabel == "2 SPACES", "indentation found: \(document.indentationLabel)")
+        func at(_ word: String, _ offset: Int = 0) {
+            view.setSelectedRange(NSRange(location: (view.string as NSString).range(of: word).location + offset, length: 0))
+        }
+        func run(_ command: () -> Void) async { command(); await endOfEvent(view) }
+        func undo() async { view.undoManager?.undo(); await endOfEvent(view) }
+        func lines() -> [String] { view.string.components(separatedBy: "\n") }
+
+        at("const b", 3); await run { view.duplicateLine(nil) }
+        log.check(lines()[2] == "  const b = 2;" && lines()[3] == "  const b = 2;" && view.undoManager?.undoActionName == "Duplicate Line",
+                  "Duplicate Line (⇧⌘D): the line below itself")
+        await undo()
+        at("const b"); await run { view.moveLineUp(nil) }
+        log.check(lines()[1] == "  const b = 2;" && lines()[2] == "  const a = 1;", "Move Line Up (⌃⌘↑)")
+        await run { view.moveLineDown(nil) }
+        log.check(view.string == original, "and Move Line Down (⌃⌘↓) puts it back")
+        at("const a"); await run { view.selectWholeLine(nil) }
+        let one = (view.string as NSString).substring(with: view.selectedRange())
+        await run { view.selectWholeLine(nil) }
+        let two = (view.string as NSString).substring(with: view.selectedRange())
+        log.check(one == "  const a = 1;\n" && two == "  const a = 1;\n  const b = 2;\n", "Select Line (⌘L), and again: the next line too")
+        at("{"); await run { view.joinLines(nil) }
+        log.check(lines()[0] == "function add() { const a = 1;", "Join Lines (⌘J): \(lines()[0].debugDescription)")
+        await undo()
+        at("return"); await run { view.indentLines(nil) }
+        log.check(lines()[3] == "    return a + b;", "Indent (⌘]) by the file's two spaces")
+        await run { view.outdentLines(nil) }
+        log.check(lines()[3] == "  return a + b;", "and Outdent (⌘[)")
+        at("const a"); await run { view.toggleComment(nil) }
+        log.check(lines()[1] == "  // const a = 1;", "Toggle Comment (⌘/) in JavaScript: \(lines()[1].debugDescription)")
+        await run { view.toggleComment(nil) }
+        log.check(view.string == original, "and again, uncommented")
+        at("const a = 1;", 12); await run { view.insertNewline(nil) }
+        let caret = view.selectedRange().location
+        log.check(lines()[2] == "  " && (view.string as NSString).substring(to: caret).hasSuffix("1;\n  "), "Return keeps the indentation")
+        await run { view.insertTab(nil) }
+        log.check(lines()[2] == "    ", "and Tab adds the file's two spaces")
+        let typing = view.undoManager?.undoActionName ?? ""
+        await undo()
+        log.check(view.string == original && typing == "Typing", "and one undo takes both back: they're typing (\(typing))")
+        let went = document.goToLine("4:3")
+        log.check(went && document.cursor == (4, 3), "Go to Line (⌃G) 4:3: \(document.cursor)")
+        document.goingToLine = true
+        try? await Task.sleep(for: .milliseconds(300))
+        let field = view.window?.firstResponder is NSTextView && view.window?.firstResponder !== view
+        log.check(field, "⌃G opens the field in the strip's line slot")
+        document.goToLine("1")
+        await document.flush(reason: "test")
+        log.check(fileText(document) == original, "and the file is as it was")
+        view.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil }
+
+        // Markdown: a block comment, <!-- -->.
+        let scratch = Documents.scratch, sview = scratch.editor.textView
+        sview.setSelectedRange(NSRange(location: (sview.string as NSString).length, length: 0))
+        sview.insertText("\ncomment me \(marker)\n", replacementRange: sview.selectedRange())
+        await endOfEvent(sview)
+        sview.setSelectedRange(NSRange(location: (sview.string as NSString).range(of: "comment me \(marker)").location + 3, length: 0))
+        sview.toggleComment(nil)
+        await endOfEvent(sview)
+        log.check(sview.string.contains("<!-- comment me \(marker) -->"), "in Markdown: <!-- -->")
+        let menu = NSApp.mainMenu?.items.first { $0.title == "Text" }?.submenu?.items.filter { !$0.isHidden && !$0.isSeparatorItem }.map(\.title) ?? []
+        log.check(menu == ["Indent", "Outdent", "Toggle Comment", "Duplicate Line", "Move Line Up", "Move Line Down", "Select Line", "Join Lines", "Go to Line…"],
+                  "the Text menu: \(menu.joined(separator: ", "))")
+    }
+
+    /// Find and replace (ED7, KB1): ⌘F from the menu with the selection in the field, the
+    /// count, the other matches in the scheme's find color, ⌘G and ⇧⌘G round the end, Match
+    /// Case and Whole Word, a regular expression with $1 in Replace, a bad pattern said
+    /// plainly, Replace and Replace All (one undo step each), In Selection, ⌘E into the find
+    /// clipboard, Escape closing the bar, and ⌘G with it closed. The file ends as it began.
+    static func findScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("find-\(marker).md")
+        let original = "Deploy to seedbox.\ndeploy again; redeploy later.\nDEPLOY v1.2 and v1.10\n"
+        try? Data(original.utf8).write(to: url)
+        let savedFind = FindSession.findClipboard
+        defer {
+            FindSession.findClipboard = savedFind
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isKeyWindow == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened"); return }
+        let view = document.editor.textView, find = document.editor.find
+        func range(_ word: String, from: Int = 0) -> NSRange {
+            let s = view.string as NSString
+            return s.range(of: word, options: [], range: NSRange(location: from, length: s.length - from))
+        }
+        func selected() -> String { (view.string as NSString).substring(with: view.selectedRange()) }
+        func settle(_ label: String) async -> Bool { await waitFor(3) { find.countLabel == label } }
+
+        // ⌘F, from Edit › Find, with "deploy" (line 2) selected.
+        let findMenu = NSApp.mainMenu?.items.first { $0.title == "Edit" }?.submenu?.items.first { $0.title == "Find" }?.submenu
+        let titles = findMenu?.items.filter { !$0.isHidden && !$0.isSeparatorItem }.map(\.title) ?? []
+        log.check(titles == ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find", "Replace", "Replace All"],
+                  "Edit › Find: \(titles.joined(separator: ", "))")
+        view.setSelectedRange(range("deploy"))
+        let keys = ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find", "Replace", "Replace All"].map { title in
+            guard let item = findMenu?.item(withTitle: title) else { return "none" }
+            let mask = item.keyEquivalentModifierMask
+            return [(NSEvent.ModifierFlags.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")].filter { mask.contains($0.0) }.map(\.1).joined()
+                + (item.keyEquivalent == "\r" ? "↩" : item.keyEquivalent.uppercased())
+        }
+        log.check(keys == ["⌘F", "⌥⌘F", "⌘G", "⇧⌘G", "⌘E", "⌥⌘E", "⌃⌥↩"], "on the Mac's keys and Sublime's: \(keys.joined(separator: " "))")
+        // The menu acts on the window in front: this one, brought forward as a click would.
+        NSApp.activate(ignoringOtherApps: true)
+        view.window?.makeKeyAndOrderFront(nil)
+        view.window?.makeFirstResponder(view)
+        let front = await waitFor(5) { NSApp.isActive && view.window?.isKeyWindow == true }
+        // macOS may refuse to bring a background app forward while another is in use (the
+        // suite): then the text view's own action, which the menu sends when no window is in front.
+        if front, let findMenu { findMenu.performActionForItem(at: findMenu.indexOfItem(withTitle: "Find…")) }
+        else { view.showFind(nil) }
+        let opened = await settle("2 OF 4")
+        _ = await waitFor(2) { (view.window?.firstResponder as? NSTextView)?.delegate is NSTextField }
+        let fieldFocused = (view.window?.firstResponder as? NSTextView)?.delegate is NSTextField
+        log.check(opened && find.shown && find.query == "deploy" && fieldFocused,
+                  "⌘F \(front ? "from the menu" : "(the text view's action: macOS didn't let Nib come forward)"): the bar, the selection in its field, the caret there, \(find.countLabel)")
+        let first = range("Deploy").location, redeploy = range("redeploy").location + 2
+        log.check(drawnColor(view, at: first, .backgroundColor) == "#FFE792" && drawnColor(view, at: first) == "#000000"
+                  && drawnColor(view, at: range("deploy").location, .backgroundColor) != "#FFE792",
+                  "the other matches in the scheme's find color, black on #FFE792; the selected one as the selection")
+
+        // ⌘G, ⇧⌘G, round the end.
+        find.next()
+        let third = view.selectedRange().location == redeploy && find.countLabel == "3 OF 4"
+        find.next(); find.next()
+        let wrapped = view.selectedRange().location == first && find.countLabel == "1 OF 4"
+        find.next(backwards: true)
+        log.check(third && wrapped && selected() == "DEPLOY" && find.countLabel == "4 OF 4", "⌘G, round the end to the top, and ⇧⌘G back round")
+
+        // The options.
+        find.options.matchCase = true
+        let cased = await waitFor(3) { find.matches.count == 2 }
+        find.options.wholeWord = true
+        let whole = await waitFor(3) { find.matches.count == 1 }
+        find.options = SearchOptions()
+        let back = await settle("4 OF 4")
+        log.check(cased && whole && back, "Match Case: 2 matches; and Whole Word: 1")
+
+        // A regular expression, typed as it would be (finding as it goes), then a bad one.
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        find.options.regex = true
+        find.query = "v1\\.(\\d+)"
+        let regex = await settle("1 OF 2")
+        log.check(regex && selected() == "v1.2", "a regular expression, found as it's typed: \(selected().debugDescription), \(find.countLabel)")
+        find.query = "v1\\.("
+        let bad = await waitFor(3) { find.failure != nil }
+        log.check(bad && find.countLabel.hasPrefix("NOT A REGULAR EXPRESSION") && document.editor.findMatches.isEmpty,
+                  "a bad pattern said plainly: \(find.countLabel)")
+
+        // Replace, then Replace All, $1 kept; one undo step each.
+        find.query = "v1\\.(\\d+)"
+        _ = await settle("1 OF 2")
+        find.replacing = true
+        find.replacement = "v2.$1"
+        find.replaceCurrent()
+        await endOfEvent(view)
+        let one = view.string.contains("v2.2 and v1.10") && view.undoManager?.undoActionName == "Replace" && selected() == "v1.10"
+        find.replaceAll()
+        await endOfEvent(view)
+        let all = view.string.contains("v2.2 and v2.10") && view.undoManager?.undoActionName == "Replace All" && document.notice?.hasPrefix("REPLACED 1 MATCH ") == true
+        log.check(one && all, "Replace with $1, on to the next; Replace All: \(document.notice ?? "no notice")")
+        view.undoManager?.undo(); await endOfEvent(view)
+        let undoAll = view.string.contains("v2.2 and v1.10")
+        view.undoManager?.undo(); await endOfEvent(view)
+        log.check(undoAll && view.string == original, "and one undo for each")
+
+        find.options = SearchOptions(wholeWord: true)
+        find.query = "deploy"
+        find.replacement = "ship"
+        _ = await waitFor(3) { find.matches.count == 3 }
+        find.replaceAll()
+        await endOfEvent(view)
+        log.check(view.string == "ship to seedbox.\nship again; redeploy later.\nship v1.2 and v1.10\n" && document.notice?.hasPrefix("REPLACED 3 MATCHES") == true,
+                  "Replace All, whole words: 3")
+        view.undoManager?.undo(); await endOfEvent(view)
+
+        // In Selection: line 2 only.
+        find.options = SearchOptions()
+        view.setSelectedRange((view.string as NSString).lineRange(for: range("again")))
+        find.inSelection = true
+        let inside = await settle("2 MATCHES") || find.matches.count == 2
+        find.replaceAll()
+        await endOfEvent(view)
+        log.check(inside && view.string == "Deploy to seedbox.\nship again; reship later.\nDEPLOY v1.2 and v1.10\n",
+                  "In Selection: 2 matches there, and only they're replaced")
+        view.undoManager?.undo(); await endOfEvent(view)
+        find.inSelection = false
+
+        // ⌘E, then Escape in the text, then ⌘G with the bar closed.
+        view.setSelectedRange(range("seedbox"))
+        view.useSelectionForFind(nil)
+        log.check(find.query == "seedbox" && FindSession.findClipboard == "seedbox", "⌘E: the selection to find, in the find clipboard too")
+        view.window?.makeFirstResponder(view)
+        view.cancelOperation(nil)
+        await endOfEvent(view)
+        log.check(!find.shown && document.editor.findMatches.isEmpty && drawnColor(view, at: first, .backgroundColor) != "#FFE792",
+                  "Escape: the bar closed, the matches no longer drawn")
+        FindSession.findClipboard = "later"
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        view.findNextMatch(nil)
+        log.check(selected() == "later", "⌘G with the bar closed: the find clipboard's text (another app's ⌘E)")
+
+        // Escape with nothing open does nothing: no word completion list (opened from here, it
+        // was followed by a crash in SwiftUI's next update, three times out of three).
+        view.window?.makeFirstResponder(view)
+        let before = NSApp.windows.filter(\.isVisible).count
+        view.cancelOperation(nil)
+        try? await Task.sleep(for: .seconds(1))
+        log.check(NSApp.windows.filter(\.isVisible).count == before && view.string == original, "Escape with nothing open: nothing happens")
+
+        await document.flush(reason: "test")
+        log.check(fileText(document) == original, "and the file is as it was")
+        view.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil }
+    }
+
+    /// The clipboard jobs (PT3-PT5, SC5, SC6): Paste Clean, an HTML-only clipboard pasted as
+    /// text, Clean Clipboard in place, Copy Block (fenced code, a paragraph), and Append
+    /// Clipboard to Scratch without moving the caret. The clipboard is put back after.
+    static func cleanText(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        let pasteboard = NSPasteboard.general
+        let saved = savePasteboard()
+        defer { restorePasteboard(saved) }
+        let view = document.editor.textView
+        func end() { view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0)) }
+        func put(_ text: String) { pasteboard.clearContents(); pasteboard.setString(text, forType: .string) }
+
+        // Paste Clean.
+        end()
+        view.insertText("\n", replacementRange: view.selectedRange())
+        let before = (view.string as NSString).length
+        put("clean\u{200B}ed\u{00A0}paste \(marker)  \n")
+        view.pasteAsPlainText(nil)
+        let pasted = (view.string as NSString).substring(from: before)
+        log.check(pasted == "cleaned paste \(marker)\n" && document.notice == "PASTED CLEAN · 1 INVISIBLE REMOVED · 1 SPACE MADE PLAIN · 1 LINE TRIMMED",
+                  "Paste Clean: \(pasted.debugDescription) · \(document.notice ?? "no notice")")
+
+        // HTML only (PT5): ⌘V pastes its text.
+        pasteboard.clearContents()
+        pasteboard.setString("<p><b>Bold</b> and <i>html</i> \(marker)</p>", forType: .html)
+        end()
+        let htmlAt = (view.string as NSString).length
+        view.paste(nil)
+        let html = (view.string as NSString).substring(from: htmlAt)
+        log.check(html.hasPrefix("Bold and html \(marker)"), "an HTML-only clipboard pastes as its text: \(html.debugDescription)")
+
+        // Clean Clipboard, in place.
+        let rich = NSAttributedString(string: "tab\u{FEFF}le\u{2009}row  ", attributes: [.font: NSFont.boldSystemFont(ofSize: 14)])
+        pasteboard.clearContents()
+        pasteboard.writeObjects([rich])
+        AppDelegate.cleanClipboard()
+        let types = Set(pasteboard.types?.map(\.rawValue) ?? [])
+        log.check(pasteboard.string(forType: .string) == "table row" && types.isSubset(of: [NSPasteboard.PasteboardType.string.rawValue, "NSStringPboardType"])
+                  && Toast.last == "CLIPBOARD CLEANED · 1 INVISIBLE REMOVED · 1 SPACE MADE PLAIN · 1 LINE TRIMMED · FORMATTING DROPPED",
+                  "Clean Clipboard: plain text only, cleaned (\(Toast.last ?? "no confirmation"))")
+        if let content = Toast.window?.contentView, let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+            content.cacheDisplay(in: content.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("snapshot-toast.png"))
+        }
+
+        // Copy Block: the fenced code at the caret, then a paragraph.
+        end()
+        view.insertText("\n```bash\necho one \(marker)\necho two\n```\n\nA paragraph \(marker)\nthat wraps.\n", replacementRange: view.selectedRange())
+        let text = view.string as NSString
+        view.setSelectedRange(NSRange(location: text.range(of: "echo two", options: .backwards).location, length: 0))   // this run's (the file keeps earlier ones)
+        view.copyBlock(nil)
+        let code = pasteboard.string(forType: .string)
+        log.check(code == "echo one \(marker)\necho two" && document.notice == "COPIED THE CODE BLOCK · 2 LINES",
+                  "Copy Block in a fence: its code, without the fences (\(document.notice ?? "no notice"))")
+        view.setSelectedRange(NSRange(location: (view.string as NSString).range(of: "that wraps", options: .backwards).location, length: 0))
+        view.copyBlock(nil)
+        log.check(pasteboard.string(forType: .string) == "A paragraph \(marker)\nthat wraps.", "and in a paragraph: the paragraph (\(document.notice ?? "no notice"))")
+
+        // Append Clipboard to Scratch: at the end after a blank line; the caret stays.
+        put("appended line \(marker)\n")
+        let caret = NSRange(location: 3, length: 0)
+        view.setSelectedRange(caret)
+        AppDelegate.appendClipboard()
+        log.check(view.string.hasSuffix("that wraps.\n\nappended line \(marker)\n") && view.selectedRange() == caret
+                  && document.notice == "APPENDED 1 LINE TO SCRATCH",
+                  "Append Clipboard to Scratch: after a blank line at the end, the caret where it was (\(document.notice ?? "no notice"))")
+        let saved2 = await waitFor(10) { fileText(document).contains("appended line \(marker)") }
+        log.check(saved2, "and saved like any edit")
+        // The Edit menu has them.
+        let edit = NSApp.mainMenu?.items.first { $0.title == "Edit" }?.submenu?.items.filter { !$0.isHidden }.map(\.title) ?? []
+        log.check(["Copy Block", "Paste Clean", "Clean Clipboard", "Append Clipboard to Scratch"].allSatisfy(edit.contains) && !edit.contains("Paste and Match Style"),
+                  "the Edit menu: \(edit.filter { !$0.isEmpty }.joined(separator: ", "))")
+    }
+
     /// Types with saving held off, waits for the journal, then dies without warning.
     static func crash(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
@@ -157,6 +474,47 @@ enum TestHarness {
         let deadline = Date().addingTimeInterval(20)
         while Date() < deadline, !fileText(document).contains(marker) { try? await Task.sleep(for: .milliseconds(50)) }
         log.check(fileText(document).contains(marker), "and it's in the file")
+        await waitSynced(document, 20)
+        log.check(isSynced(document), "and in iCloud (state \(document.state.line))")
+    }
+
+    /// A crash after resolving a block that's still in the file: the file has the block, the
+    /// journal has the text without it, from the same base. Recovering that journal once left
+    /// the file's block drawn over the shorter text, and every launch crashed or hung.
+    static func crashWithBlocks(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        let view = document.editor.textView
+        let block = "<<<<<<< Scenario A · 10:00\n- ours \(marker)\n=======\n- theirs \(marker)\n>>>>>>> Scenario B · 10:00\n"
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        view.insertText("\n" + block, replacementRange: view.selectedRange())
+        await endOfEvent(view)
+        await document.flush(reason: "test")
+        log.check(ConflictText.hasMarkers(fileText(document)) && ours(document, marker).count == 1, "a block, saved into the file")
+        guard let found = ours(document, marker).first else { return }
+        view.setSelectedRange(NSRange(location: found.first.location, length: 0))
+        let atBlock = await waitFor(2) { document.caretBlock != nil }
+        document.resolveBlock(.both)
+        await endOfEvent(view)
+        try? await Task.sleep(for: .milliseconds(600))
+        let journal = Journal(directory: NibPaths.support.appendingPathComponent("Journal"))
+        let both = "- ours \(marker)\n- theirs \(marker)\n"
+        let journaled = journal.read(path: document.url.path)?.text.contains(both) == true
+        log.check(atBlock && ours(document, marker).isEmpty && journaled && fileText(document).contains("- ours \(marker)\n======="),
+                  "Keep Both in the buffer and the journal; the file still has the block (saving held off)")
+        log.line("SIGKILL")
+        kill(getpid(), SIGKILL)
+    }
+
+    /// The launch after `crash-blocks`: it gets going, the resolved text is back with no block
+    /// left over, and it's saved without markers.
+    static func recoverWithBlocks(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        let text = document.editor.textView.string, both = "- ours \(marker)\n- theirs \(marker)\n"
+        // The blocks Nib has are the text's own, none left from the file's longer text.
+        log.check(text.contains(both) && ours(document, marker).isEmpty && document.blocks == ConflictText.blocks(in: text),
+                  "the resolved text is back, and no block from the file is left over (\(document.blocks.count) blocks, the text's own)")
+        let saved = await waitFor(20) { fileText(document).contains(both) }
+        log.check(saved, "and it's saved, the block resolved in the file too")
         await waitSynced(document, 20)
         log.check(isSynced(document), "and in iCloud (state \(document.state.line))")
     }
@@ -274,7 +632,8 @@ enum TestHarness {
         if timing == "never" || timing == "late" {
             let whole = await waitFor(15) { !ours(document, marker).isEmpty }
             let line = events.read().dropFirst(before).last { $0.event == "conflict" }
-            log.check(whole && line?.detail?.contains("no version both had is known") == true,
+            // Through the wait for its note, not a disk check taking it for another app's.
+            log.check(whole && line?.detail?.contains("no version both had is known") == true && line?.detail?.hasPrefix("changed by another Mac") == true,
                       "no note in 10 s: both whole versions between markers, as before (\(line?.detail ?? "no conflict line"))")
             UserDefaults.standard.register(defaults: ["NibHoldUploads": false])
             if timing == "never" {
@@ -669,7 +1028,7 @@ enum TestHarness {
                   "and its font: \(view.font?.fontName ?? "none") \(view.font?.pointSize ?? 0)")
         let sublimeReport = schemes.report ?? ""
         log.check(sublimeReport.contains("WITH SCENARIO DARK.SUBLIME-COLOR-SCHEME") && sublimeReport.contains("FONT MENLO 15")
-                  && sublimeReport.contains("TAB SIZE 2, SPACES: NOTED, NOT USED YET"), "and reported: \(sublimeReport)")
+                  && sublimeReport.contains("TAB SIZE 2 · SPACES"), "and reported: \(sublimeReport)")
         // Settings › Themes, with the report, rendered.
         let tab = defaults.object(forKey: "settingsTab")
         defaults.set("themes", forKey: "settingsTab")
@@ -935,12 +1294,12 @@ enum TestHarness {
     }
 
     /// The highlighting color drawn at a character (a rendering attribute, §6.3), as hex.
-    static func drawnColor(_ view: NSTextView, at location: Int) -> String {
+    static func drawnColor(_ view: NSTextView, at location: Int, _ key: NSAttributedString.Key = .foregroundColor) -> String {
         guard let layout = view.textLayoutManager, let content = layout.textContentManager,
               let start = content.location(content.documentRange.location, offsetBy: location) else { return "none" }
         var found: NSColor?
         layout.enumerateRenderingAttributes(from: start, reverse: false) { _, attributes, range in
-            if range.contains(start) { found = attributes[.foregroundColor] as? NSColor }
+            if range.contains(start) { found = attributes[key] as? NSColor }
             return false
         }
         guard let c = found?.usingColorSpace(.sRGB) else { return "none" }

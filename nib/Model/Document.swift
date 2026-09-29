@@ -42,6 +42,10 @@ final class Document {
     /// The syntax picked from the strip or View › Syntax, which the file keeps; nil follows
     /// the file's name and first line, which say `detectedSyntax` (nil: plain text).
     private(set) var pickedSyntax: SyntaxPick?
+    /// How the file indents (ED6), found on open; for the strip ("TABS", "2 SPACES").
+    private(set) var indentation: Indentation = .tabs(width: 4)
+    /// The strip's line slot is a field for Go to Line (⌃G).
+    var goingToLine = false
     private(set) var detectedSyntax: SyntaxLanguage?
     /// The conflict blocks in the buffer (§5.4), kept current as it changes, and the one the
     /// caret is in: ⌘1, ⌘2 and ⌘3 resolve it.
@@ -144,6 +148,8 @@ final class Document {
     @ObservationIgnored private var noteWatch: DispatchSourceFileSystemObject?
 
     var dirty: Bool { editCount != savedEditCount }
+    /// Saves begun, for a disk check to tell whether one ran while it read the file.
+    @ObservationIgnored private var saves = 0
 
     /// Work on this Mac that no other Mac has: unsaved edits, or, for a held file, a saved
     /// version iCloud hasn't taken yet. Only a buffer with nothing unsent may be replaced by
@@ -239,6 +245,8 @@ final class Document {
         recoverFromJournal(fileText: text)
         pickedSyntax = UserDefaults.standard.string(forKey: "syntax:" + url.path).flatMap(SyntaxPick.init(stored:))
         applySyntax()
+        indentation = Indentation.detect(in: editor.textView.string, fallback: Self.defaultIndentation)
+        editor.indentation = indentation
         state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : .saved(Date())
         ready = true
         if untitled {
@@ -276,6 +284,10 @@ final class Document {
             applying = true
             editor.textView.string = entry.text
             applying = false
+            // The file's blocks were found in the file's text: find them again in this one. Left
+            // as they were, the text view drew frames from ranges past the end of the text, and
+            // Nib crashed or hung at every launch while that journal waited (the suite, 2026-09-29).
+            updateBlocks()
             editCount += 1
             show("RECOVERED TYPING FROM BEFORE NIB QUIT UNEXPECTEDLY · SAVING IT NOW", for: 20)
             record("recover", size: entry.text.utf8.count, detail: "journal from \(entry.written)")
@@ -334,10 +346,12 @@ final class Document {
             }
         }
         do {
-            try await pauseFile()
+            let waited = try await pauseFile()
             held = true
             pausedFiles.add(url.path)
-            record("pause")
+            record("pause", detail: Self.uploadWait(waited))
+        } catch is CancellationError {
+            return   // closed while waiting for the upload: nothing to hold, nothing to hand back
         } catch {
             if await heldAlready(error) { return }
             record("pause", detail: "not held yet: \(Self.pauseTrouble(error)); trying again in 2 s")
@@ -372,12 +386,19 @@ final class Document {
         try await CloudControl.resume(url, mode)
     }
 
-    /// Pauses iCloud's syncing of the file. iCloud's helper often doesn't answer for a file
-    /// created moments before (M2: 9 of 20 new test files, "Couldn't communicate with a helper
-    /// application"), so a failed hold is tried again in the background: 2, 5, 10, 20 and 40 s
-    /// later, then every minute while the file is open. Meanwhile it runs unheld, synced by
-    /// iCloud on its own schedule, and Nib's saves go on as before.
-    private func pauseFile() async throws {
+    /// Pauses iCloud's syncing of the file, once iCloud has finished uploading it. Pausing a
+    /// file mid-upload crashes iCloud's file provider (macOS 27.0.1: 36 crash reports in two
+    /// days, each in its pause handler, each for a file just written, just rewritten, or just
+    /// handed back with an upload to make); Nib saw "Couldn't communicate with a helper
+    /// application", and every app's iCloud Drive waited until the provider came back (once,
+    /// for more than ten minutes). A failed hold is tried again in the background: 2, 5, 10, 20
+    /// and 40 s later, then every minute while the file is open. Meanwhile it runs unheld,
+    /// synced by iCloud on its own schedule, and Nib's saves go on as before.
+    /// A re-hold of a file Nib is holding (after a refresh) doesn't wait: unpaused while it
+    /// waited, iCloud put the server's copy back over Nib's (the suite, 2026-09-29). Returns
+    /// how long it waited for the upload, in seconds.
+    @discardableResult
+    private func pauseFile(waitingForUpload wait: Bool = true) async throws -> Double {
         pausing = true
         defer { pausing = false }
         #if DEBUG
@@ -390,7 +411,29 @@ final class Document {
             throw CloudControl.ControlError.unsupported
         }
         #endif
+        let waited = wait ? try await waitForUpload() : 0
         try await CloudControl.pause(url)
+        return waited
+    }
+
+    /// Until iCloud isn't uploading the file (checked every quarter second, for up to 15 s: a
+    /// 30 KB file took 3 s), or it stops answering; closing ends the wait, and the hold.
+    private func waitForUpload(limit: Double = 15) async throws -> Double {
+        let url = self.url, started = Date()
+        while Date().timeIntervalSince(started) < limit {
+            guard !closing else { throw CancellationError() }
+            guard let status = await CloudControl.status(url, within: 5) else { break }
+            // A paused file doesn't upload; one iCloud doesn't sync has nothing to wait for.
+            guard status.paused != true, status.ubiquitous, status.uploading || !status.uploaded else { break }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        guard !closing else { throw CancellationError() }
+        return Date().timeIntervalSince(started)
+    }
+
+    /// "after its upload (3.1 s)", when the hold waited for one.
+    private static func uploadWait(_ seconds: Double) -> String? {
+        seconds >= 0.5 ? "after its upload (\(seconds.formatted(.number.precision(.fractionLength(1)))) s)" : nil
     }
 
     private func scheduleHoldRetry() {
@@ -602,6 +645,7 @@ final class Document {
         // at 20:55), nor while a merge waits for a note (the file holds the other version).
         guard !refreshing, waitingForNote == nil else { scheduleSave(after: 0.5); return }
         saving = true
+        saves += 1
         var uploadNow: Bool?
         let text = editor.textView.string
         let snapshot = editCount
@@ -756,7 +800,7 @@ final class Document {
 
     /// A held file doesn't download by itself: ask the server (§4.4).
     func fetchLatest(reason: String) async {
-        guard ready, locked == nil, !closing else { return }
+        guard ready, locked == nil, !closing, !refreshing else { return }   // a refresh brings the newest anyway
         guard held else { await diskMayHaveChanged(); return }
         guard !uploading else { return }   // the upload itself is refused if the server is newer
         let url = self.url
@@ -799,7 +843,8 @@ final class Document {
                 let own = fingerprint?.sha256 != nil && fingerprint?.sha256 == baseFingerprint?.sha256
                 record("fetch", size: data.count, sha: fingerprint?.sha256,
                        detail: own ? "this Mac's own version back from iCloud (\(reason))" : "newer\(savedBy.map { ", iCloud says saved by \($0)" } ?? "") (\(reason))")
-                // Replacing the local file may have ended the pause: hold it again.
+                // Replacing the local file may have ended the pause: hold it again, at once (not
+                // after an upload: unpaused, iCloud put the server's copy back over it, M2).
                 if await CloudControl.status(url, within: 5)?.paused != true {
                     try? await CloudControl.pause(url)
                 }
@@ -821,10 +866,16 @@ final class Document {
         guard ready, locked == nil, !saving, !refreshing, fetches == 0 else { return }
         let url = self.url
         let presenter = self.presenter
+        let saves = self.saves
         guard FileManager.default.fileExists(atPath: url.path),
               let current = try? await io.run({ try FileAccess.stat(url) }) else { return }
         if let base = baseFingerprint, current.sameStat(as: base) { return }
         guard let (data, fingerprint) = try? await io.run({ try FileAccess.read(url, presenter: presenter) }) else { return }
+        // A save began meanwhile: what was read may be that save's own write, before the save
+        // took it as the base (the suite, 2026-09-29: Nib merged its own saves with its buffer
+        // 30 times over). The save's compare-and-swap sees any other change; a later one comes
+        // with its own notice.
+        guard saves == self.saves, !saving else { return }
         if fingerprint.sha256 == baseFingerprint?.sha256 {
             baseFingerprint = fingerprint
             return
@@ -838,6 +889,12 @@ final class Document {
         // Not news: the version the buffer's edits start from, or one already taken in (merged,
         // or between markers). The two-Mac test at 13:22 merged one version twice, then its own save.
         if let sha = fingerprint?.sha256 {
+            if waitingForNote?.sha == sha {
+                // The version a merge waits on a note for, seen again: the file holds it, and a
+                // disk check took it for another app's, merging at once with no note (the suite,
+                // 2026-09-29). The wait decides.
+                return
+            }
             if incorporated.contains(sha) {
                 record("reload", sha: sha, detail: "from \(source): a version already taken in, left as is")
                 return
@@ -1262,7 +1319,9 @@ final class Document {
             // The note's Mac, if the note names this version and isn't this Mac's own (W2).
             let who = note.flatMap { $0.sha256 == fingerprint.sha256 && $0.device != device ? $0.device : nil } ?? "another Mac"
             record("refresh", size: data.count, sha: fingerprint.sha256, ms: ms(since: started),
-                   detail: note == nil ? "got the server's version" : fingerprint.sha256 == note?.sha256 ? "got \(who)'s version" : "the server has another version than the one announced")
+                   detail: note == nil ? "got the server's version"
+                       : fingerprint.sha256 != note?.sha256 ? "the server has another version than the one announced"
+                       : note?.device == device ? "got this Mac's own version back" : "got \(who)'s version")
             await holdAgain()
             refreshing = false
             if fingerprint.sha256 != baseFingerprint?.sha256 {
@@ -1313,7 +1372,7 @@ final class Document {
 
     private func holdAgain() async {
         do {
-            try await pauseFile()
+            try await pauseFile(waitingForUpload: false)
             held = true
         } catch {
             pausedFiles.remove(url.path)   // not paused: nothing for the next launch to hand back
@@ -1482,6 +1541,43 @@ final class Document {
         (dirty, uploadedSHA, baseFingerprint?.sha256, held)
     }
     #endif
+}
+
+// MARK: Indentation and Go to Line (ED6)
+
+extension Document {
+    /// For a file that doesn't show its own: Settings › Editor's (or Sublime's, imported).
+    static var defaultIndentation: Indentation {
+        let defaults = UserDefaults.standard
+        let width = max(1, min(16, defaults.object(forKey: "editorTabSize") as? Int ?? 4))
+        return defaults.bool(forKey: "editorSpaces") ? .spaces(width) : .tabs(width: width)
+    }
+
+    var indentationLabel: String {
+        switch indentation {
+        case .tabs: "TABS"
+        case .spaces(let n): "\(n) SPACE\(n == 1 ? "" : "S")"
+        }
+    }
+
+    /// Go to Line: "12", or "12:5" for a column too. False if it isn't a line number.
+    @discardableResult
+    func goToLine(_ answer: String) -> Bool {
+        goingToLine = false
+        let parts = answer.trimmingCharacters(in: .whitespaces).split(separator: ":").compactMap { Int($0) }
+        let view = editor.textView
+        view.window?.makeFirstResponder(view)
+        guard let line = parts.first, line > 0 else { return false }
+        let text = view.string as NSString
+        let start = LineEdits.start(ofLine: line, in: view.string)
+        let lineRange = text.lineRange(for: NSRange(location: start, length: 0))
+        let contentEnd = NSMaxRange(lineRange) - (NSMaxRange(lineRange) > start && text.character(at: NSMaxRange(lineRange) - 1) == 0x0A ? 1 : 0)
+        let column = parts.count > 1 ? max(1, parts[1]) : 1
+        let location = min(start + column - 1, contentEnd)
+        view.setSelectedRange(NSRange(location: location, length: 0))
+        view.scrollRangeToVisible(NSRange(location: location, length: 0))
+        return true
+    }
 }
 
 // MARK: Syntax (HL1)

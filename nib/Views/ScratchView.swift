@@ -1,5 +1,6 @@
 // A document's window content (PRD §5.1): the text in An Old Hope, the status strip under
-// it, and the conflict banner above it while the text holds conflict blocks (§5.4). Focus
+// it, the find bar over the strip while it's open (ED7), and the conflict banner above the
+// text while the text holds conflict blocks (§5.4). Focus
 // leaving the window saves (§4.3 step 3); focus arriving checks for a newer version (§4.4).
 // The scratch window shows it alone; file windows (ED2) show it as native tabs together.
 
@@ -21,6 +22,7 @@ struct DocumentView: View {
                 ConflictBanner(document: document)
             }
             EditorHost(editor: document.editor)
+            if document.editor.find.shown { FindBar(find: document.editor.find) }
             StatusStrip(document: document)
         }
         .background(Color(nsColor: Scheme.background))

@@ -40,6 +40,10 @@ enum Scheme {
     static var markupDeleted: NSColor { theme.style(for: "markup.deleted").background.map(NSColor.init) ?? color(0x420E09) }
     static var markupChanged: NSColor { theme.style(for: "markup.changed").background.map(NSColor.init) ?? color(0x4A4A0F) }
     static var comment: NSColor { NSColor(theme.style(for: "comment").foreground) }
+    /// Find's other matches (ED7): the scheme's `find_highlight` behind them, and its
+    /// `find_highlight_foreground` if it sets one (An Old Hope · Nib's: black on #FFE792).
+    static var findHighlight: NSColor { global("find_highlight") ?? color(0xFFE792) }
+    static var findHighlightForeground: NSColor? { global("find_highlight_foreground") ?? (global("find_highlight") == nil ? .black : nil) }
 
     private static func global(_ name: String) -> NSColor? { theme.color(name).map(NSColor.init) }
 
@@ -184,9 +188,13 @@ final class Schemes {
                     facts.append("FONT \(label) NOT INSTALLED · KEPT \(fontLabel)")
                 }
             }
+            // Tab size and spaces or tabs: for files that don't show their own (ED6).
+            if let tab = found.tabSize { defaults.set(tab, forKey: "editorTabSize") }
+            if let spaces = found.translateTabsToSpaces { defaults.set(spaces, forKey: "editorSpaces") }
+            if found.tabSize != nil || found.translateTabsToSpaces != nil {
+                facts.append([found.tabSize.map { "TAB SIZE \($0)" }, found.translateTabsToSpaces.map { $0 ? "SPACES" : "TABS" }].compactMap { $0 }.joined(separator: " · "))
+            }
             var unused: [String] = []
-            if let tab = found.tabSize { unused.append("TAB SIZE \(tab)"); defaults.set(tab, forKey: "editorTabSize") }
-            if let spaces = found.translateTabsToSpaces { unused.append(spaces ? "SPACES" : "TABS"); defaults.set(spaces, forKey: "editorSpaces") }
             if let wrap = found.wordWrap { unused.append("WORD WRAP \(wrap.uppercased())"); defaults.set(wrap, forKey: "editorWordWrap") }
             let padding = [found.linePaddingTop ?? 0, found.linePaddingBottom ?? 0]
             if padding != [0, 0] { unused.append("LINE PADDING \(padding.map { $0.formatted() }.joined(separator: "/"))") }

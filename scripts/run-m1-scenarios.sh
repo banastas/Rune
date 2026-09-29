@@ -40,13 +40,15 @@ run() {   # run <name> [args…]: one scenario, killed after 120 s if it hangs
   rm -f "$LOGS/$name.log"   # a launch that never gets going must say so, not show an earlier run's log
   "$APP" -NibScenario "$name" -NibScenarioLog "$PWD/$LOGS/$name.log" "$@" >/dev/null 2>&1 &
   local pid=$!
-  # The guard's output goes nowhere, or its sleep would hold a pipe open for 120 s.
-  ( sleep 120; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 & local guard=$!
+  # The guard's output goes nowhere, or its sleep would hold a pipe open for 120 s. A hung
+  # scenario is sampled first (build/scenarios/<name>-sample.txt), to show where it waits.
+  rm -f "$LOGS/$name-sample.txt"
+  ( sleep 115; kill -0 "$pid" 2>/dev/null && sample "$pid" 3 -file "$PWD/$LOGS/$name-sample.txt"; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 & local guard=$!
   disown "$guard"
   wait "$pid" 2>/dev/null || true
   pkill -P "$guard" sleep 2>/dev/null || true; kill "$guard" 2>/dev/null || true   # (a launch that dies at once leaves no sleep yet)
   echo "==> $name"
-  grep -E "PASS|FAIL|after the last" "$LOGS/$name.log" || echo "FAIL no output"
+  grep -E "PASS|FAIL|after the last" "$LOGS/$name.log" || echo "FAIL no output$([[ -f $LOGS/$name-sample.txt ]] && echo " (hung: sampled in $LOGS/$name-sample.txt)")"
 }
 
 # A clean start: until M1 passes, nib opens only test files, so its journal holds only
@@ -56,9 +58,14 @@ rm -f "$HOME/Library/Application Support/nib/Journal/"*.json
 marker="crash-$(date +%s)"
 run type
 run clipboard
+run cleantext
+run lines
+run find
 run undo
 run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"
+run crash-blocks -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
+run recover-blocks -NibMarker "$marker"
 run external -NibSaveIdle 600 -NibSaveMax 600
 run unsent -NibHoldUploads YES
 run merge
@@ -93,7 +100,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard undo crash recover external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
+for name in type clipboard cleantext lines find undo crash recover crash-blocks recover-blocks external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi

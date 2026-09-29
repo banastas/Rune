@@ -116,8 +116,52 @@ import Testing
     }
 
     @Test func cleanRemovesInvisibles() {
-        let (text, removed) = PasteCleaner.clean("zero\u{200B}width\u{00A0}space\u{FEFF}")
-        #expect(text == "zerowidth space")
-        #expect(removed == 3)
+        let r = PasteCleaner.clean("zero\u{200B}width\u{00A0}space\u{FEFF}")
+        #expect(r.text == "zerowidth space")
+        #expect(r.invisibles == 2 && r.spaces == 1)
+    }
+}
+
+/// Paste Clean and Clean Clipboard (PT3-PT4): what's removed, what's kept, and the counts
+/// the confirmations show; Copy Block (SC5): the fenced code at the caret, or its paragraph.
+@Suite struct CleanTextTests {
+    @Test func invisiblesSpacesAndTrailing() {
+        let r = PasteCleaner.clean("a\u{200B}b\u{FEFF}c\u{00AD}d\u{202E}e  \r\nnon\u{00A0}breaking\u{2009}thin\t\n")
+        #expect(r.text == "abcde\nnon breaking thin\n")
+        #expect(r.invisibles == 4 && r.spaces == 2 && r.trailing == 2 && r.quotes == 0)
+        #expect(r.facts == ["4 INVISIBLES REMOVED", "2 SPACES MADE PLAIN", "2 LINES TRIMMED"])
+    }
+
+    @Test func joinersKeptWhereTheyDoTheirJob() {
+        let family = "👨\u{200D}👩\u{200D}👧"
+        #expect(PasteCleaner.clean(family).text == family)                      // an emoji family stays one
+        #expect(PasteCleaner.clean("می\u{200C}خواهم").text == "می\u{200C}خواهم")  // Persian's non-joiner stays
+        #expect(PasteCleaner.clean("ab\u{200D}cd").text == "abcd")              // between ASCII: junk
+    }
+
+    @Test func quotesOnlyWhenAsked() {
+        let text = "“Nib’s” – fine — really…"
+        #expect(PasteCleaner.clean(text).text == text)
+        let r = PasteCleaner.clean(text, options: .init(straightenQuotes: true))
+        #expect(r.text == "\"Nib's\" - fine -- really..." && r.quotes == 6)
+    }
+
+    @Test func nothingToClean() {
+        let r = PasteCleaner.clean("plain text\nas it should be")
+        #expect(!r.changed && r.facts == ["NOTHING TO CLEAN"])
+    }
+
+    @Test func copyBlockFindsTheFencedCode() {
+        let text = "Notes\n\n```bash\nssh me@box\nrsync -av ./dist/ box:\n```\n\nA paragraph\nthat wraps.\n\nLast"
+        let ns = text as NSString
+        func block(at word: String) -> (String, TextBlocks.Kind)? {
+            TextBlocks.block(at: ns.range(of: word).location, in: text).map { (ns.substring(with: $0.range), $0.kind) }
+        }
+        #expect(block(at: "rsync")! == ("ssh me@box\nrsync -av ./dist/ box:", .code))
+        #expect(block(at: "```bash")! == ("ssh me@box\nrsync -av ./dist/ box:", .code))   // on the fence
+        #expect(block(at: "wraps")! == ("A paragraph\nthat wraps.", .paragraph))
+        #expect(block(at: "Last")! == ("Last", .paragraph))
+        #expect(TextBlocks.block(at: 6, in: text) == nil)   // a blank line: nothing
+        #expect(TextBlocks.block(at: 3, in: "```\n```\n") == nil)   // an empty block
     }
 }

@@ -9,7 +9,8 @@ import Foundation
 
 public enum ThemeReport {
     /// The globals Nib's editor draws (HL5); the rest are counted as not drawn yet.
-    public static let drawn: Set<String> = ["background", "foreground", "caret", "selection", "inactive_selection", "line_highlight"]
+    public static let drawn: Set<String> = ["background", "foreground", "caret", "selection", "inactive_selection", "line_highlight",
+                                                  "find_highlight", "find_highlight_foreground"]
 
     /// The report's facts, in order; the caller adds its own (the font) and joins them with " · ".
     public static func facts(for theme: Theme) -> [String] {

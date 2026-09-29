@@ -111,6 +111,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !HotKey.register(id: 1, keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey), action: { Self.toggleScratch() }) {
             NSLog("Nib: ⌥Space is taken by another app")
         }
+        // Clean Clipboard (PT4): ⌃⌥⌘V, from any app, with no window.
+        if !HotKey.register(id: 2, keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(controlKey | optionKey | cmdKey), action: { Self.cleanClipboard() }) {
+            NSLog("Nib: ⌃⌥⌘V is taken by another app")
+        }
         observeSystem()
     }
 
@@ -142,6 +146,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     static var scratchWindow: NSWindow? { document.editor.textView.window }
+
+    /// Clean Clipboard (PT4): in place, confirmed on screen whichever app is in front.
+    static func cleanClipboard() {
+        Toast.show(Clipboard.cleanInPlace())
+    }
+
+    /// Append Clipboard to Scratch (SC6): confirmed in the scratch window's strip, and on
+    /// screen when Nib isn't in front.
+    static func appendClipboard() {
+        let message = Clipboard.appendToScratch()
+        if !NSApp.isActive || scratchWindow?.isKeyWindow != true { Toast.show(message) }
+    }
 
     static func toggleScratch() {
         if NSApp.isActive, scratchWindow?.isKeyWindow == true {
@@ -189,6 +205,11 @@ struct NibCommands: Commands {
     @FocusedValue(\.nibDocument) private var document
     @Environment(\.openWindow) private var openWindow
 
+    private func send(_ action: Selector) { NSApp.sendAction(action, to: nil, from: nil) }
+    private func find(_ command: (FindSession) -> Void, else action: Selector) {
+        if let document { command(document.editor.find) } else { send(action) }
+    }
+
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button("New") { AppDelegate.newUntitled() }
@@ -215,6 +236,56 @@ struct NibCommands: Commands {
         CommandGroup(after: .toolbar) {
             Menu("Syntax") { SyntaxMenuItems(document: document) }
                 .disabled(document == nil)
+        }
+        // Edit's clipboard commands (PT1-PT4, SC5, SC6), sent to whatever has focus.
+        CommandGroup(replacing: .pasteboard) {
+            Button("Cut") { send(#selector(NSText.cut(_:))) }.keyboardShortcut("x")
+            Button("Copy") { send(#selector(NSText.copy(_:))) }.keyboardShortcut("c")
+            Button("Copy Block") { send(#selector(NibTextView.copyBlock(_:))) }.keyboardShortcut("c", modifiers: [.command, .shift])
+            Button("Paste") { send(#selector(NSText.paste(_:))) }.keyboardShortcut("v")
+            Button("Paste Clean") { send(#selector(NSTextView.pasteAsPlainText(_:))) }.keyboardShortcut("v", modifiers: [.command, .option, .shift])
+            Button("Delete") { send(#selector(NSText.delete(_:))) }
+            Button("Select All") { send(#selector(NSText.selectAll(_:))) }.keyboardShortcut("a")
+            Divider()
+            Button("Clean Clipboard") { AppDelegate.cleanClipboard() }.keyboardShortcut("v", modifiers: [.command, .option, .control])
+            Button("Append Clipboard to Scratch") { AppDelegate.appendClipboard() }
+        }
+        // Find and replace (ED7, KB1): Nib's own bar, on the Mac's keys and Sublime's. The
+        // window's document when there is one (its find field may have focus), else the text
+        // view with focus (the merge view's result, or an app not yet in front).
+        CommandGroup(after: .pasteboard) {
+            Divider()
+            Menu("Find") {
+                Button("Find…") { find({ $0.open(replace: false) }, else: #selector(NibTextView.showFind(_:))) }
+                    .keyboardShortcut("f")
+                Button("Find and Replace…") { find({ $0.open(replace: true) }, else: #selector(NibTextView.showFindAndReplace(_:))) }
+                    .keyboardShortcut("f", modifiers: [.command, .option])
+                Button("Find Next") { find({ $0.next() }, else: #selector(NibTextView.findNextMatch(_:))) }
+                    .keyboardShortcut("g")
+                Button("Find Previous") { find({ $0.next(backwards: true) }, else: #selector(NibTextView.findPreviousMatch(_:))) }
+                    .keyboardShortcut("g", modifiers: [.command, .shift])
+                Button("Use Selection for Find") { find({ $0.useSelection() }, else: #selector(NibTextView.useSelectionForFind(_:))) }
+                    .keyboardShortcut("e")
+                Divider()
+                Button("Replace") { document?.editor.find.replaceCurrent() }.keyboardShortcut("e", modifiers: [.command, .option])
+                    .disabled(document?.editor.find.shown != true)
+                Button("Replace All") { document?.editor.find.replaceAll() }.keyboardShortcut(.return, modifiers: [.control, .option])
+                    .disabled(document?.editor.find.shown != true)
+            }
+        }
+        // Sublime's line commands on Sublime's keys (ED6, KB4, §5.12).
+        CommandMenu("Text") {
+            Button("Indent") { send(#selector(NibTextView.indentLines(_:))) }.keyboardShortcut("]")
+            Button("Outdent") { send(#selector(NibTextView.outdentLines(_:))) }.keyboardShortcut("[")
+            Button("Toggle Comment") { send(#selector(NibTextView.toggleComment(_:))) }.keyboardShortcut("/")
+            Divider()
+            Button("Duplicate Line") { send(#selector(NibTextView.duplicateLine(_:))) }.keyboardShortcut("d", modifiers: [.command, .shift])
+            Button("Move Line Up") { send(#selector(NibTextView.moveLineUp(_:))) }.keyboardShortcut(.upArrow, modifiers: [.command, .control])
+            Button("Move Line Down") { send(#selector(NibTextView.moveLineDown(_:))) }.keyboardShortcut(.downArrow, modifiers: [.command, .control])
+            Button("Select Line") { send(#selector(NibTextView.selectWholeLine(_:))) }.keyboardShortcut("l")
+            Button("Join Lines") { send(#selector(NibTextView.joinLines(_:))) }.keyboardShortcut("j")
+            Divider()
+            Button("Go to Line…") { document?.goingToLine = true }.keyboardShortcut("g", modifiers: .control).disabled(document == nil)
         }
         CommandMenu("Conflicts") { ConflictMenuItems(document: document) }
         CommandGroup(before: .windowArrangement) {

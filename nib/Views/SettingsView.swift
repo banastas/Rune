@@ -33,6 +33,9 @@ private func note(_ text: String) -> some View {
 }
 
 struct EditorSettings: View {
+    @AppStorage("pasteStraightensQuotes") private var straightenQuotes = false
+    @AppStorage("editorTabSize") private var tabSize = 4
+    @AppStorage("editorSpaces") private var spaces = false
     private static let families: [String] = {
         let manager = NSFontManager.shared
         return manager.availableFontFamilies.filter { family in
@@ -55,6 +58,15 @@ struct EditorSettings: View {
                     LabeledContent("Size", value: "\(schemes.fontSize.formatted(.number.precision(.fractionLength(0...1)))) pt")
                 }
                 note("The font of the text in every window. Bold and italic use the font's own faces. Import from Sublime Text, in Themes, sets these to Sublime's.")
+            }
+            Section {
+                Stepper(value: $tabSize, in: 1...16) { LabeledContent("Tab width", value: "\(tabSize)") }
+                Toggle("Indent with spaces", isOn: $spaces)
+                note("For files that don't show their own. A file indented with tabs, or with spaces, keeps its own; the strip says which. Import from Sublime Text sets these to Sublime's.")
+            }
+            Section {
+                Toggle("Paste Clean straightens quotes and dashes", isOn: $straightenQuotes)
+                note("Paste Clean (⌥⇧⌘V) and Clean Clipboard (⌃⌥⌘V) always remove invisible characters, make odd spaces plain and trim trailing spaces. With this on they also turn “curly” quotes, en and em dashes and … into plain ones. ⌘V pastes text as it is.")
             }
         }
         .formStyle(.grouped)
