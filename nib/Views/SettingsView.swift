@@ -1,7 +1,8 @@
 // Settings (PRD §5.8, V12, W7): tabs, grouped forms that size to fit, 480 pt wide, and a
-// plain note under each control saying what it does and doesn't do. For now: Editor (the
-// font and size) and Themes (the scheme, Import from Sublime Text, Import File…, and the
-// last import's report, HL2-HL4).
+// plain note under each control saying what it does and doesn't do. General (the menu bar
+// extra), Editor (the font and size, indentation, line numbers, invisibles, ⌘S tidying,
+// Paste Clean) and Themes (the scheme, Import from Sublime Text, Import File…, and the last
+// import's report, HL2-HL4).
 
 import AppKit
 import SwiftUI
@@ -12,6 +13,9 @@ struct SettingsView: View {
 
     var body: some View {
         TabView(selection: $tab) {
+            GeneralSettings()
+                .tabItem { Label("General", systemImage: "gearshape") }
+                .tag("general")
             EditorSettings()
                 .tabItem { Label("Editor", systemImage: "character.cursor.ibeam") }
                 .tag("editor")
@@ -21,6 +25,21 @@ struct SettingsView: View {
         }
         .frame(width: 480)
         .fixedSize()
+    }
+}
+
+/// Settings › General: the menu bar extra (AP3).
+private struct GeneralSettings: View {
+    @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Show Nib in the menu bar", isOn: $showMenuBarExtra)
+                note("The nib in the menu bar shows the scratch file's sync at a glance: still when all's well, its line marching while an upload takes more than a few seconds, a red ✕ beside it when something needs a look. Click it for the scratch file's state, Clean Clipboard, Append Clipboard to Scratch and recent files. ⌥Space and ⌃⌥⌘V work either way.")
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 
@@ -38,6 +57,8 @@ struct EditorSettings: View {
     @AppStorage("editorSpaces") private var spaces = false
     @AppStorage("editorLineNumbers") private var lineNumbers = true
     @AppStorage("editorInvisibles") private var invisibles = false
+    @AppStorage("saveTrimsTrailingWhitespace") private var trimOnSave = false
+    @AppStorage("saveEnsuresFinalNewline") private var newlineOnSave = false
     private static let families: [String] = {
         let manager = NSFontManager.shared
         return manager.availableFontFamilies.filter { family in
@@ -70,6 +91,11 @@ struct EditorSettings: View {
                 Toggle("Show line numbers", isOn: $lineNumbers)
                 Toggle("Show invisibles", isOn: $invisibles)
                 note("Line numbers in a gutter down the left, the caret's line brighter. Invisibles are spaces as dots and tabs as arrows, in the color scheme's own faint color. Both are in the View menu too, and Import from Sublime Text sets them to Sublime's.")
+            }
+            Section {
+                Toggle("⌘S trims trailing whitespace", isOn: $trimOnSave)
+                Toggle("⌘S ends the file with a newline", isOn: $newlineOnSave)
+                note("Only when you press ⌘S, and only in files you've edited: Nib's own saves, a second after you stop typing, never change the text. It's one change, and ⌘Z undoes it. Import from Sublime Text sets these to Sublime's.")
             }
             Section {
                 Toggle("Paste Clean straightens quotes and dashes", isOn: $straightenQuotes)

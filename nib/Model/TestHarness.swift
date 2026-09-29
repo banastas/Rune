@@ -10,6 +10,7 @@
 import AppKit
 import NibSync
 import NibText
+import SwiftUI
 
 @MainActor
 enum TestHarness {
@@ -73,6 +74,8 @@ enum TestHarness {
             case "find": await findScenario(log, marker)
             case "palette": await paletteScenario(log, marker)
             case "gutter": await gutterScenario(log, marker)
+            case "tidy": await tidyScenario(log, marker)
+            case "menubar": await menuBarScenario(Documents.scratch, log, marker)
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -284,7 +287,7 @@ enum TestHarness {
         _ = await waitFor(2) { (view.window?.firstResponder as? NSTextView)?.delegate is NSTextField }
         let fieldFocused = (view.window?.firstResponder as? NSTextView)?.delegate is NSTextField
         log.check(opened && find.shown && find.query == "deploy" && fieldFocused,
-                  "⌘F \(front ? "from the menu" : "(the text view's action: macOS didn't let Nib come forward)"): the bar, the selection in its field, the caret there, \(find.countLabel)")
+                  "⌘F \(front ? "from the menu" : "(the text view's action: macOS didn't let Nib come forward)"): the bar, the selection in its field, the caret there, \(find.countLabel) (shown \(find.shown), query \(find.query.debugDescription), caret in the field \(fieldFocused), first responder \(view.window?.firstResponder.map { String(describing: Swift.type(of: $0)) } ?? "none"))")
         let first = range("Deploy").location, redeploy = range("redeploy").location + 2
         log.check(drawnColor(view, at: first, .backgroundColor) == "#FFE792" && drawnColor(view, at: first) == "#000000"
                   && drawnColor(view, at: range("deploy").location, .backgroundColor) != "#FFE792",
@@ -611,6 +614,162 @@ enum TestHarness {
         log.check(fileText(document) == original, "and the file is as it was (nothing drawn is in the text)")
         window.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: url) == nil }
+    }
+
+    /// Tidying on ⌘S (ED6): off by default; with the settings on, nothing in a file not edited
+    /// here; Nib's own save after typing leaves a typed trailing space alone; ⌘S trims and ends
+    /// the file with a newline as one undo step, the strip says so, the caret stays on its line,
+    /// and the file on disk is the tidied text; ⌘Z puts it all back.
+    static func tidyScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let defaults = UserDefaults.standard
+        let keys = ["saveTrimsTrailingWhitespace", "saveEnsuresFinalNewline"]
+        let saved = keys.map { defaults.object(forKey: $0) }
+        keys.forEach(defaults.removeObject(forKey:))
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("tidy-\(marker).txt")
+        let original = "keep \(marker)  \n\tindented\t\nlast"
+        try? Data(original.utf8).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+            for (key, value) in zip(keys, saved) { if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) } }
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened"); return }
+        let view = document.editor.textView
+
+        await document.saveNow()
+        log.check(view.string == original && fileText(document) == original, "off by default: ⌘S changes nothing")
+        keys.forEach { defaults.set(true, forKey: $0) }
+        await document.saveNow()
+        log.check(view.string == original && fileText(document) == original, "on, in a file not edited here: ⌘S still changes nothing")
+
+        // Typing a trailing space; Nib's own save a moment later leaves it.
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        await type(" line ", into: document)
+        let typed = original + " line "
+        let autosaved = await waitFor(8) { fileText(document) == typed && !document.dirty }
+        log.check(autosaved && view.string == typed, "Nib's own save after typing keeps the space just typed at the end")
+
+        // ⌘S.
+        await endOfEvent(view)
+        await document.saveNow()
+        let tidied = "keep \(marker)\n\tindented\nlast line\n"
+        let caretLine = document.cursor.line
+        log.check(view.string == tidied && view.undoManager?.undoActionName == "Trim Whitespace and Add Newline" && caretLine == 3,
+                  "⌘S: trailing whitespace off 3 lines, a final newline, one undo step, the caret still on its line (LN \(caretLine))")
+        log.check(document.notice == "TRIMMED TRAILING WHITESPACE ON 3 LINES · ADDED A FINAL NEWLINE · ⌘Z UNDOES", "the strip says so: \(document.notice ?? "nothing")")
+        let onDisk = await waitFor(5) { fileText(document) == tidied }
+        log.check(onDisk, "and the file on disk is the tidied text")
+        await endOfEvent(view)
+        view.undoManager?.undo()
+        await endOfEvent(view)
+        log.check(view.string == typed, "⌘Z puts back the whitespace and takes the newline off, in one step")
+
+        await document.flush(reason: "test")
+        view.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil }
+    }
+
+    /// The menu bar extra (§5.7, AP3, A10): the item there by default, the nib a fixed width;
+    /// still when synced, its line marching once an upload has waited more than 3 s; the red ✕
+    /// beside it while a file holds a conflict block; the scratch card's lines; a click opening
+    /// the 320 pt panel; Settings › General taking it away and putting it back. The item and
+    /// the panel are saved as pictures beside the log.
+    static func menuBarScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 20)
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "showMenuBarExtra")
+        let folder = URL(fileURLWithPath: log.path).deletingLastPathComponent()
+
+        // Nib's status item and panel.
+        func statusButton() -> NSStatusBarButton? { MenuBarController.shared.button }
+        /// The item as drawn, to compare.
+        func picture(saving name: String? = nil) -> Data? {
+            guard let view = statusButton(), let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return nil }
+            view.cacheDisplay(in: view.bounds, to: rep)
+            if let name { try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("\(name).png")) }
+            return rep.tiffRepresentation
+        }
+        let shown = await waitFor(5) { statusButton() != nil && picture() != nil }
+        _ = picture(saving: "menubar-item")
+        log.check(shown, "the menu bar item is there by default")
+
+        // The art.
+        let widths = Set([nil, 0, 1, 2].map { MenuBarMark.image(NibMark.rows(frame: $0), width: NibMark.width).size.width })
+        log.check(NibMark.rows(frame: nil).count == 10 && widths.count == 1 && NibMark.line(frame: nil) == "#########"
+                  && NibMark.line(frame: 0) == "##.##.##." && NibMark.line(frame: 1) == ".##.##.##",
+                  "the nib, a fixed width, its line solid or in dashes a step further right each frame")
+
+        // Still when synced; marching once an upload has waited more than 3 s.
+        let still = picture()
+        try? await Task.sleep(for: .milliseconds(400))
+        log.check(still != nil && picture() == still, "still while synced (\(document.state.line))")
+        defaults.set(true, forKey: "NibHoldUploads")
+        await type("\n- menu bar \(marker)\n", into: document)
+        _ = await waitFor(8) { if case .saved = document.state { true } else { false } }
+        try? await Task.sleep(for: .milliseconds(3_600))
+        let a = picture()
+        try? await Task.sleep(for: .milliseconds(250))
+        log.check(a != nil && a != picture(), "its line marches while an upload has waited more than 3 s (\(document.state.line))")
+        defaults.removeObject(forKey: "NibHoldUploads")
+        await document.flush(reason: "test")
+        await waitSynced(document, 20)
+        try? await Task.sleep(for: .milliseconds(400))
+        let calm = picture()
+        try? await Task.sleep(for: .milliseconds(400))
+        log.check(calm == picture() && isSynced(document), "and still again once it's synced")
+
+        // The card.
+        let card = MenuBarState.card(document)
+        log.check(card.first == document.url.lastPathComponent.uppercased() && card[1] == document.state.line && card[2].hasPrefix("SAVED ")
+                  && card[2].contains(" · UPLOADED ") && !card[2].hasSuffix("—"),
+                  "the scratch card: \(card.joined(separator: " / "))")
+
+        // A conflict block in a file: the red ✕ beside the nib.
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("menubar-\(marker).txt")
+        try? Data("<<<<<<< A · 10:00\nours \(marker)\n=======\ntheirs\n>>>>>>> B · 10:00\n".utf8).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        }
+        let plainWidth = statusButton()?.image?.size.width ?? 0
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.blocks.isEmpty == false }
+        document.editor.textView.insertText(" ", replacementRange: NSRange(location: 0, length: 0))   // a change: the label looks again
+        // The ✕ makes the image wider, and it's no longer a template (it keeps its red).
+        let marked = await waitFor(5) { (statusButton()?.image?.size.width ?? 0) > plainWidth && statusButton()?.image?.isTemplate == false }
+        _ = picture(saving: "menubar-item-conflict")
+        log.check(marked, "a conflict block in an open file: the red ✕ beside the nib (\(plainWidth) pt, then \(statusButton()?.image?.size.width ?? 0))")
+        Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil }
+        document.editor.textView.undoManager?.undo()
+
+        // The panel: a click on the item.
+        statusButton()?.performClick(nil)
+        let opened = await waitFor(5) { MenuBarController.shared.panel?.isVisible == true }
+        try? await Task.sleep(for: .milliseconds(500))
+        if let content = MenuBarController.shared.panel?.contentView, let rep = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+            content.cacheDisplay(in: content.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("menubar-panel.png"))
+        }
+        let width = MenuBarController.shared.panel?.frame.width ?? 0
+        let below = (MenuBarController.shared.panel?.frame.maxY ?? .infinity) <= (statusButton()?.window?.frame.minY ?? 0)
+        log.check(opened && width == 320 && below, "a click opens the panel under the item, \(Int(width)) pt wide")
+        MenuBarController.shared.panel?.cancelOperation(nil)
+        log.check(MenuBarController.shared.panel?.isVisible == false, "and Escape closes it")
+
+        // Settings › General.
+        defaults.set(false, forKey: "showMenuBarExtra")
+        let gone = await waitFor(5) { statusButton() == nil }
+        defaults.removeObject(forKey: "showMenuBarExtra")
+        let back = await waitFor(5) { statusButton() != nil }
+        log.check(gone && back, "Settings › General takes it out of the menu bar and puts it back (gone \(gone), back \(back))")
+        await document.flush(reason: "test")
     }
 
     /// The clipboard jobs (PT3-PT5, SC5, SC6): Paste Clean, an HTML-only clipboard pasted as

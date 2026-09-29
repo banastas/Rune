@@ -204,6 +204,12 @@ final class Schemes {
             // Line numbers and invisibles (ED6), as Sublime shows them.
             if let numbers = found.lineNumbers { defaults.set(numbers, forKey: "editorLineNumbers") }
             if let invisibles = found.invisibles { defaults.set(invisibles, forKey: "editorInvisibles") }
+            // Tidying on ⌘S (ED6), as Sublime does on save.
+            if let trim = found.trimOnSave { defaults.set(trim, forKey: "saveTrimsTrailingWhitespace") }
+            if let newline = found.newlineOnSave { defaults.set(newline, forKey: "saveEnsuresFinalNewline") }
+            if found.trimOnSave == true || found.newlineOnSave == true {
+                facts.append("ON ⌘S: " + [found.trimOnSave == true ? "TRIM TRAILING WHITESPACE" : nil, found.newlineOnSave == true ? "END WITH A NEWLINE" : nil].compactMap { $0 }.joined(separator: " · "))
+            }
             if found.lineNumbers != nil || found.invisibles != nil {
                 facts.append([found.lineNumbers.map { "LINE NUMBERS \($0 ? "ON" : "OFF")" }, found.invisibles.map { "INVISIBLES \($0 ? "ON" : "OFF")" }].compactMap { $0 }.joined(separator: " · "))
             }

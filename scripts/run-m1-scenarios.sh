@@ -63,6 +63,8 @@ run lines
 run find
 run palette
 run gutter
+run tidy
+run menubar
 run undo
 run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"
@@ -104,7 +106,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard cleantext lines find palette gutter undo crash recover crash-blocks recover-blocks external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
+for name in type clipboard cleantext lines find palette gutter tidy menubar undo crash recover crash-blocks recover-blocks external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
 if (( failed )); then echo "SOME CHECKS FAILED"; exit 1; fi

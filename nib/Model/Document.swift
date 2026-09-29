@@ -129,7 +129,12 @@ final class Document {
     @ObservationIgnored private var handledAnnouncements: Set<String> = []
     @ObservationIgnored private var loggedAnnouncements: Set<String> = []
     /// The last note read: which version is on the server, and what it was made from.
-    @ObservationIgnored private var lastNote: Announcement?
+    @ObservationIgnored private var lastNote: Announcement? { didSet { if let lastNote, lastNote.device != device { otherMac = lastNote } } }
+    /// The latest note from another Mac: the menu bar panel's "other Macs" line (§5.7).
+    private(set) var otherMac: Announcement?
+    /// When this Mac's last upload was taken, and when it last saved (the panel's times).
+    private(set) var uploadedAt: Date?
+    var savedAt: Date { lastSaved }
     /// Texts of the last few versions this Mac has had, by SHA-256: merge bases (§4.6).
     @ObservationIgnored private var versions: [String: String] = [:]
     @ObservationIgnored private var versionOrder: [String] = []
@@ -371,6 +376,7 @@ final class Document {
             held = true
             pausedFiles.add(url.path)
             record("pause", detail: Self.uploadWait(waited))
+            checkHoldLasts()
         } catch is CancellationError {
             return   // closed while waiting for the upload: nothing to hold, nothing to hand back
         } catch {
@@ -452,6 +458,22 @@ final class Document {
         return Date().timeIntervalSince(started)
     }
 
+    /// A pause made a moment after another launch handed the file back can be undone by that
+    /// hand-back finishing (the suite, `refusal-lost-hold`, twice): 3 s on, is it still paused?
+    /// If not, it's held again, and whatever iCloud put in the file meanwhile is looked at.
+    private func checkHoldLasts() {
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(3))
+            guard let self, self.held, !self.closing, !self.refreshing else { return }
+            let url = self.url
+            guard await CloudControl.status(url, within: 5)?.paused == false else { return }
+            self.record("pause", detail: "the hold didn't last (a hand-back a moment before, finishing): holding it again")
+            self.held = false
+            await self.holdAgain()
+            await self.diskMayHaveChanged()
+        }
+    }
+
     /// "after its upload (3.1 s)", when the hold waited for one.
     private static func uploadWait(_ seconds: Double) -> String? {
         seconds >= 0.5 ? "after its upload (\(seconds.formatted(.number.precision(.fractionLength(1)))) s)" : nil
@@ -507,6 +529,7 @@ final class Document {
     func textDidChange() {
         updateBlocks()
         guard !applying, locked == nil else { return }
+        editedHere = true
         editCount += 1
         schedule.edited()
         state = .editing
@@ -645,6 +668,38 @@ final class Document {
     // MARK: - Saving
 
     /// Saves now and uploads now (§4.3 step 3): focus loss, app switch, sleep, lock, ⌘S, quit.
+    /// Typed in, this session: tidying on ⌘S touches only files the user edited (ED6).
+    @ObservationIgnored private(set) var editedHere = false
+
+    /// ⌘S: tidied first (ED6: trailing whitespace, a final newline, as Settings › Editor says,
+    /// and only in a file edited here), then saved and uploaded now.
+    func saveNow() async {
+        tidyForSave()
+        await flush(reason: "⌘S")
+    }
+
+    /// The ⌘S tidy, as one change ⌘Z undoes; the strip says what it did. Never on Nib's own
+    /// saves: a second after typing stops, it would take a space just typed.
+    func tidyForSave() {
+        let defaults = UserDefaults.standard
+        let trim = defaults.bool(forKey: "saveTrimsTrailingWhitespace"), newline = defaults.bool(forKey: "saveEnsuresFinalNewline")
+        guard trim || newline, editedHere, locked == nil else { return }
+        let view = editor.textView
+        let result = SaveTidy.tidy(view.string, selection: view.selectedRange(), trimTrailing: trim, finalNewline: newline)
+        guard let edit = result.edit else { return }
+        view.breakUndoCoalescing()
+        guard view.shouldChangeText(in: edit.range, replacementString: edit.replacement) else { return }
+        view.textStorage?.replaceCharacters(in: edit.range, with: edit.replacement)
+        view.didChangeText()
+        view.undoManager?.setActionName(result.trimmedLines > 0 && result.addedNewline ? "Trim Whitespace and Add Newline"
+                                        : result.addedNewline ? "Add Final Newline" : "Trim Trailing Whitespace")
+        view.setSelectedRange(edit.selection)
+        var facts: [String] = []
+        if result.trimmedLines > 0 { facts.append("TRIMMED TRAILING WHITESPACE ON \(result.trimmedLines) LINE\(result.trimmedLines == 1 ? "" : "S")") }
+        if result.addedNewline { facts.append("ADDED A FINAL NEWLINE") }
+        show((facts + ["⌘Z UNDOES"]).joined(separator: " · "), for: 6)
+    }
+
     func flush(reason: String) async {
         guard ready, locked == nil else { return }
         saveTask?.cancel()
@@ -760,6 +815,7 @@ final class Document {
             let parent = uploadedSHA
             uploadedSHA = sha
             lastUpload = Date()
+            uploadedAt = lastUpload
             uploadBackoff = 10
             record("upload", sha: sha, ms: ms(since: started))
             if let sha { announce(sha, parent: parent) }
@@ -792,6 +848,26 @@ final class Document {
                     record("fetch", detail: "iCloud says there's nothing newer, but it refused the upload: refreshing")
                     await writeJournal()
                     await refresh(announced: lastNote)
+                }
+            }
+            return
+        } catch where CloudControl.isUnsupported(error) {
+            // "Not supported": this upload is for a paused file, and the file isn't paused. The
+            // hold was lost (the suite, `refusal-lost-hold`: paused a second after the launch
+            // before handed the file back, and every upload after answered this until quit):
+            // hold it again and upload, the work still unsent.
+            record("upload", ms: ms(since: started), detail: "failed: \(CloudControl.describe(error)); the file isn't held any more: holding it again")
+            uploading = false
+            if await CloudControl.status(url, within: 5)?.paused != true {
+                held = false
+                await holdAgain()
+            }
+            if held {
+                await diskMayHaveChanged()   // whatever iCloud put there meanwhile
+                uploadTask = Task { [weak self] in
+                    try? await Task.sleep(for: .seconds(1))
+                    guard !Task.isCancelled else { return }
+                    await self?.upload(now: true)
                 }
             }
             return

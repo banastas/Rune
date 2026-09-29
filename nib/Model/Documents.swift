@@ -26,6 +26,7 @@ enum Documents {
         let document = Document(url: url)
         files[key(url)] = document
         Task { await document.open() }
+        MenuBarController.shared.refresh()   // the menu bar item watches this one too, from now on
         return document
     }
 
@@ -35,6 +36,7 @@ enum Documents {
     static func close(_ document: Document) async {
         guard document !== scratch, files[key(document.url)] === document else { return }
         files[key(document.url)] = nil
+        MenuBarController.shared.refresh()
         await document.close()
         guard !AppDelegate.terminating else { return }
         if document.untitled {

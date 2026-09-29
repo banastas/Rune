@@ -116,6 +116,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("Nib: ⌃⌥⌘V is taken by another app")
         }
         observeSystem()
+        MenuBarController.shared.start()   // the menu bar extra (§5.7), AppKit's own status item
         // ⌘K opens Go to File too (A6), as ⌘K "Go to…" does in Blit; a menu item takes only one key.
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
@@ -154,6 +155,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     static var scratchWindow: NSWindow? { document.editor.textView.window }
+
+    /// Settings, as the app menu's item opens it (the menu bar panel has no scene to ask).
+    static func openSettings() {
+        NSApp.activate()
+        guard let menu = NSApp.mainMenu?.items.first?.submenu,
+              let item = menu.items.first(where: { $0.keyEquivalent == "," && $0.keyEquivalentModifierMask == .command }) else { return }
+        menu.performActionForItem(at: menu.index(of: item))
+    }
 
     /// Go to File or the command palette over the window in front; from a window with no file
     /// (Settings, the Sync Log), over the scratch window.
@@ -251,7 +260,7 @@ struct NibCommands: Commands {
             // where to put it (W3).
             Button(document?.untitled == true ? "Save…" : "Save") {
                 guard let document else { return }
-                if document.untitled { Untitled.saveAs(document) } else { Task { await document.flush(reason: "⌘S") } }
+                if document.untitled { document.tidyForSave(); Untitled.saveAs(document) } else { Task { await document.saveNow() } }
             }
                 .keyboardShortcut("s")
                 .disabled(document == nil)

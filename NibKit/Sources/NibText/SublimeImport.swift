@@ -26,6 +26,10 @@ public struct SublimeImport: Sendable {
         /// shows them only in the selection, which Nib doesn't do: off).
         public var lineNumbers: Bool? = nil
         public var invisibles: Bool? = nil
+        /// `trim_trailing_white_space_on_save` (true, or "all" and "not_on_caret" in Sublime 4)
+        /// and `ensure_newline_at_eof_on_save`: Nib does them on ⌘S (ED6).
+        public var trimOnSave: Bool? = nil
+        public var newlineOnSave: Bool? = nil
     }
 
     public enum Failure: Error, CustomStringConvertible {
@@ -98,7 +102,18 @@ public struct SublimeImport: Sendable {
                      translateTabsToSpaces: (settings["translate_tabs_to_spaces"] as? NSNumber).map(\.boolValue),
                      wordWrap: wrap,
                      lineNumbers: (settings["line_numbers"] as? NSNumber).map(\.boolValue),
-                     invisibles: Self.drawsAllWhiteSpace(settings["draw_white_space"]))
+                     invisibles: Self.drawsAllWhiteSpace(settings["draw_white_space"]),
+                     trimOnSave: Self.trims(settings["trim_trailing_white_space_on_save"]),
+                     newlineOnSave: (settings["ensure_newline_at_eof_on_save"] as? NSNumber).map(\.boolValue))
+    }
+
+    /// `trim_trailing_white_space_on_save`: true, "all" or "not_on_caret" is on; false or "none" off.
+    static func trims(_ value: Any?) -> Bool? {
+        switch value {
+        case let text as String: text != "none"
+        case let flag as NSNumber: flag.boolValue
+        default: nil
+        }
     }
 
     /// `draw_white_space`: "all" (or a list with "all" in it, as Sublime 4 allows) is on.
