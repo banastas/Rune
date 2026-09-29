@@ -36,8 +36,21 @@ LOG=$PWD/build/scenarios/two-mac-$role.log
 # test-file snapshots, and one left by an earlier failed run would raise a conflict at launch.
 rm -f "$HOME/Library/Application Support/nib/Journal/"*.json
 
-# Open the file a minute early, so both Macs hold it before anything happens.
-wait=$(( T0 - 60 - $(date +%s) )); (( wait > 0 )) && { echo "==> Opening nib at $(date -r $((T0 - 60)) +%H:%M:%S)"; sleep "$wait"; }
+# Awake until this script ends: a sleeping Mac doesn't count time in `sleep`, and at 10:40 on
+# 2026-09-29 the Air woke six minutes after the start and ran every phase at once, alone.
+# (A closed lid on battery still sleeps.)
+caffeinate -dis -w $$ &
+# Open the file a minute early, so both Macs hold it before anything happens; wait by the clock.
+if (( $(date +%s) < T0 - 60 )); then
+  echo "==> Opening nib at $(date -r $((T0 - 60)) +%H:%M:%S)"
+  while (( $(date +%s) < T0 - 60 )); do sleep 1; done
+fi
+late=$(( $(date +%s) - (T0 - 60) ))
+if (( late > 30 )); then
+  echo "==> It's $(date +%H:%M:%S), ${late} s after nib should have opened (was this Mac asleep?): too late for a start at $at."
+  echo "    Not running: the other Mac's run won't find this one. Pick a new time on both."
+  exit 3
+fi
 echo "==> [$(date +%H:%M:%S)] nib on $(scutil --get ComputerName), role $role; start $at"
 "$APP" -NibScenario two-mac -NibRole "$role" -NibAt "$T0" -NibMarker "m-$T0" -NibScenarioLog "$LOG" >/dev/null 2>&1 || true
 echo
