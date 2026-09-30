@@ -45,7 +45,17 @@ enum TestHarness {
         let log = HarnessLog(path: defaults.string(forKey: "NibScenarioLog") ?? "/tmp/nib-scenario.log")
         let marker = defaults.string(forKey: "NibMarker") ?? "marker-\(Int(Date().timeIntervalSince1970))"
         Task {
-            log.line("scenario \(scenario) · \(document.url.lastPathComponent) · held \(document.held) · marker \(marker) · the focus stays with \(ScenarioFocus.keeper)")
+            // §6.5's cold launch: from the process starting to the scratch window up with its text.
+            _ = await waitFor(3) { AppDelegate.scratchWindow?.isVisible == true }
+            // Editable: the window up and the text in it, whichever came later; the hold (waiting
+            // for iCloud's upload, then pausing) comes after, the text editable meanwhile.
+            let launch = processStart().map { started -> String in
+                let moments = [AppDelegate.launchMoments.window, AppDelegate.launchMoments.text]
+                let editable = moments.contains(where: { $0 == nil }) ? Date() : moments.compactMap { $0 }.max()!
+                let phases = AppDelegate.launchPhases.map { " (\($0.name) \(Int($0.seconds * 1000)) ms)" }.joined()
+                return " · editable \(Int(editable.timeIntervalSince(started) * 1000)) ms after launch, held \(Int(Date().timeIntervalSince(started) * 1000)) ms" + (phases.isEmpty ? "" : ":" + phases)
+            } ?? ""
+            log.line("scenario \(scenario) · \(document.url.lastPathComponent) · held \(document.held) · marker \(marker) · the focus stays with \(ScenarioFocus.keeper)\(launch)")
             switch scenario {
             case "type": await typeAndSync(document, log, marker)
             case "clipboard": await clipboard(document, log)
@@ -83,6 +93,8 @@ enum TestHarness {
             case "fileops": await fileOpsScenario(Documents.scratch, log, marker)
             case "access": await accessScenario(log, marker)
             case "receipts": await receiptsScenario(Documents.scratch, log, marker)
+            case "perf": await perfScenario(Documents.scratch, log, marker)
+            case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -2355,7 +2367,20 @@ enum TestHarness {
         view.scrollRangeToVisible(NSRange(location: length, length: 0))
         let bottom = await waitFor(5) { drawnColor(view, at: last + 3) == yellow }
         log.check(bottom, "scrolled to the end: the last heading colored \(Int(Date().timeIntervalSince(scrolled) * 1000)) ms later")
-        view.setSelectedRange(NSRange(location: length, length: 0))
+        // §6.5: a reload at this size, another app's version (coordinated, in place) on disk to
+        // the screen, once iCloud has the file as Nib opened it.
+        await waitSynced(document, 30)
+        let changed = text + "## Another app's line \(marker)\n"
+        var error: NSError?
+        NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: [], error: &error) { target in
+            try? Data(changed.utf8).write(to: target)
+        }
+        let written = Date()
+        let reloaded = await waitFor(10) { view.string.hasSuffix("## Another app's line \(marker)\n") }
+        let reload = Date().timeIntervalSince(written)
+        log.line("MEASURED a reload at 2.4 MB (another app's version, on disk to the screen): \(reloaded ? "\(Int(reload * 1000)) ms" : "not within 10 s") · target ≤ 100 ms · \(reloaded && reload <= 0.1 ? "met" : "NOT MET")")
+        let end = (view.string as NSString).length   // longer now, by another app's line
+        view.setSelectedRange(NSRange(location: end, length: 0))
         var slowest = 0.0
         for character in "## Typed \(marker)\n" {
             let start = Date()
@@ -2705,6 +2730,240 @@ enum TestHarness {
         await document.flush(reason: "harness")
     }
 
+    // MARK: §6.5, measured
+
+    /// The §6.5 targets Nib can measure itself, each a MEASURED line with its target (a Debug
+    /// build: memory and times run higher than a release). Nothing fails for a missed target:
+    /// §6.5 asks for each "met, or its gap written down". Idle memory, CPU and wakeups with the
+    /// scratch window and without; Show Scratch's window side (the activation itself needs a real
+    /// key press, which a scenario can't make); a new version on disk to the screen, coordinated
+    /// and not; keystrokes on the main thread; a 5 MB JavaScript file and a 2.4 MB Markdown one
+    /// opened, first shown and colored, then the 2.4 MB one reloaded, and a three-way merge at
+    /// that size. The big files are untitled buffers, on this Mac only: made in iCloud Drive,
+    /// big files leave iCloud's daemons slow for minutes (`bigfile` runs last for that).
+    static func perfScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 30)
+        var missing: [String] = []
+        func measured(_ what: String, _ value: String, target: String, met: Bool?) {
+            log.line("MEASURED \(what): \(value) · target \(target)\(met.map { $0 ? " · met" : " · NOT MET" } ?? "")")
+        }
+        func percentiles(_ values: [Double]) -> (p50: Double, p95: Double, max: Double) {
+            let sorted = values.sorted()
+            guard !sorted.isEmpty else { return (0, 0, 0) }
+            return (sorted[sorted.count / 2], sorted[min(sorted.count - 1, Int((Double(sorted.count) * 0.95).rounded(.up)) - 1)], sorted.last!)
+        }
+        func ms(_ seconds: Double) -> String { seconds < 0.01 ? String(format: "%.1f ms", seconds * 1000) : "\(Int((seconds * 1000).rounded())) ms" }
+        /// Polls every millisecond, the main run loop turning meanwhile.
+        func time(_ seconds: Double, _ condition: () -> Bool) async -> Double? {
+            let start = Date(), deadline = start.addingTimeInterval(seconds)
+            while Date() < deadline {
+                if condition() { return Date().timeIntervalSince(start) }
+                try? await Task.sleep(for: .milliseconds(1))
+            }
+            return condition() ? Date().timeIntervalSince(start) : nil
+        }
+
+        // Idle: memory, CPU and wakeups, with the scratch window open and then with no windows.
+        func idle(_ label: String, footprintTarget: Double) async {
+            // Settled: launch's own work done first (History thinned, receipts read…), up to 30 s.
+            for _ in 0..<15 {
+                let a = usage()
+                try? await Task.sleep(for: .seconds(2))
+                if (usage().cpu - a.cpu) / 2 < 0.005 { break }
+            }
+            let before = usage(), start = Date()
+            try? await Task.sleep(for: .seconds(12))
+            let after = usage(), seconds = Date().timeIntervalSince(start)
+            let cpu = (after.cpu - before.cpu) / seconds * 100
+            let wakeups = Double(after.wakeups - before.wakeups) / seconds
+            let memory = footprint()
+            measured("idle memory, \(label)", String(format: "%.1f MB", memory), target: "≤ \(Int(footprintTarget)) MB", met: memory <= footprintTarget)
+            measured("idle CPU and wakeups, \(label)", String(format: "%.2f%% CPU, %.1f wakeups a second", cpu, wakeups), target: "0.0%, no timer wakeups", met: cpu < 0.05 && wakeups < 1)
+        }
+        await idle("the scratch window open", footprintTarget: 40)
+        AppDelegate.scratchWindow?.orderOut(nil)
+        await idle("no windows", footprintTarget: 25)
+
+        // Show Scratch: the window side, Nib in front (a few seconds with the focus).
+        ScenarioFocus.take()
+        _ = await waitFor(3) { NSApp.isActive }
+        var shows: [Double] = []
+        for _ in 0..<12 {
+            AppDelegate.scratchWindow?.orderOut(nil)
+            try? await Task.sleep(for: .milliseconds(150))
+            let started = Date()
+            AppDelegate.showScratch()
+            if let _ = await time(2, { AppDelegate.scratchWindow?.isKeyWindow == true && AppDelegate.scratchWindow?.firstResponder === document.editor.textView }) {
+                AppDelegate.scratchWindow?.displayIfNeeded()
+                shows.append(Date().timeIntervalSince(started))
+            }
+        }
+        ScenarioFocus.giveBackNow()
+        if shows.isEmpty { missing.append("Show Scratch") } else {
+            let p = percentiles(Array(shows.dropFirst(2)))   // the first two warm up
+            measured("Show Scratch to caret ready, the window side (Nib in front; macOS's activation not included)",
+                     "p50 \(ms(p.p50)), p95 \(ms(p.p95)), max \(ms(p.max)) (\(shows.count - 2) shows)", target: "≤ 50 ms p95", met: p.p95 <= 0.05)
+        }
+
+        // A new version on disk to the screen: a small test file, held, written by "another app".
+        let folder = document.url.deletingLastPathComponent()
+        let small = folder.appendingPathComponent("perf-\(marker).md")
+        try? Data("# Perf \(marker)\n".utf8).write(to: small)
+        var untitled: [URL] = []
+        defer {
+            for url in [small] + untitled {
+                if Untitled.contains(url) { Untitled.letGo(url) }
+                Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+            }
+            try? FileManager.default.removeItem(at: small)
+            UserDefaults.standard.removeObject(forKey: "selection:" + small.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == small.path }) { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(small)
+        }
+        AppDelegate.openFile(small)
+        _ = await waitFor(20) { Documents.existing(for: small)?.ready == true && Documents.existing(for: small)?.held == true }
+        if let file = Documents.existing(for: small) {
+            let view = file.editor.textView
+            var coordinated: [Double] = [], plain: [Double] = []
+            for n in 1...5 {
+                // Only once iCloud has this version: with one it hasn't confirmed, Nib keeps both
+                // versions between markers rather than replace it (and so it should), which is
+                // another measure (the first run wrote every 1.2 s and met that three times in five).
+                await waitSynced(file, 20)
+                let text = "# Perf \(marker)\nversion \(n) from another app\n"
+                var error: NSError?
+                NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: small, options: [], error: &error) { url in
+                    try? Data(text.utf8).write(to: url)   // in place, as a careful app writes
+                }
+                if let seen = await time(5, { view.string == text }) { coordinated.append(seen) }
+                try? await Task.sleep(for: .milliseconds(1_200))
+            }
+            for n in 1...3 {
+                await waitSynced(file, 20)
+                let line = "appended \(n) by a shell"
+                let written = Date()
+                append(line, to: small)
+                if await time(5, { view.string.contains(line) }) != nil { plain.append(Date().timeIntervalSince(written)) }
+                try? await Task.sleep(for: .milliseconds(1_200))
+            }
+            if coordinated.isEmpty { missing.append("disk to screen (coordinated)") } else {
+                let p = percentiles(coordinated)
+                measured("a new version on disk to the screen, another app's coordinated write", "p50 \(ms(p.p50)), max \(ms(p.max)) (\(coordinated.count))", target: "≤ 200 ms", met: p.max <= 0.2)
+            }
+            if plain.isEmpty { missing.append("disk to screen (uncoordinated)") } else {
+                let p = percentiles(plain)
+                measured("a new version on disk to the screen, an uncoordinated write (echo >>)", "p50 \(ms(p.p50)), max \(ms(p.max)) (\(plain.count))", target: "≤ 200 ms", met: p.max <= 0.2)
+            }
+            // Keystrokes, main thread, a small file.
+            view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+            var keys: [Double] = []
+            for character in "typing for the measure \(marker), a line of it\n" {
+                let start = Date()
+                view.insertText(String(character), replacementRange: view.selectedRange())
+                keys.append(Date().timeIntervalSince(start))
+                try? await Task.sleep(for: .milliseconds(30))
+            }
+            let k = percentiles(keys)
+            let p99 = keys.sorted()[min(keys.count - 1, Int(Double(keys.count) * 0.99))]
+            measured("a keystroke on the main thread, small file (Nib's share; glass to glass needs Typometer)",
+                     "p50 \(ms(k.p50)), p99 \(ms(p99)), max \(ms(k.max))", target: "≤ 8.3 ms, p99 ≤ 16 ms", met: p99 <= 0.016)
+            await file.flush(reason: "test")
+        } else {
+            missing.append("the small test file")
+        }
+
+        // Big files, as untitled buffers: 5 MB of JavaScript, 2.4 MB of Markdown.
+        func big(_ name: String, _ text: String, keyword: String, plainWord: String) async -> (shown: Double, colored: Double?, document: Document)? {
+            guard let url = Untitled.create(text: text, name: name) else { return nil }
+            untitled.append(url)
+            let started = Date()
+            AppDelegate.openFile(url)
+            guard let shown = await time(15, {
+                guard let open = Documents.existing(for: url), open.ready, open.editor.textView.window?.isVisible == true else { return false }
+                return (open.editor.textView.string as NSString).length == (text as NSString).length
+            }), let open = Documents.existing(for: url) else { return nil }
+            let view = open.editor.textView
+            view.setSelectedRange(NSRange(location: 0, length: 0))
+            view.scrollRangeToVisible(NSRange(location: 0, length: 0))
+            let at = (view.string as NSString).range(of: keyword).location, plainAt = (view.string as NSString).range(of: plainWord).location
+            let colored = await time(15) { drawnColor(view, at: at) != "none" && drawnColor(view, at: at) != drawnColor(view, at: plainAt) }
+            return (shown, colored.map { _ in Date().timeIntervalSince(started) }, open)
+        }
+        // Just under 5 MB: ED9 highlights files up to 5,000,000 characters, and none larger (the
+        // first measure made 5,000,014 and waited in vain for colors).
+        var js = "", n = 0
+        while js.utf8.count < 4_950_000 {
+            n += 1
+            js += "// block \(n)\nfunction handler\(n)(event) {\n  const value = event.detail?.value ?? \(n);\n  return value > 10 ? \"big\" : `small ${value}`;\n}\n"
+        }
+        if let result = await big("perf-\(marker).js", js, keyword: "function", plainWord: "event)") {
+            measured("open a 5 MB JavaScript file (untitled, on this Mac), first shown", ms(result.shown), target: "first paint ≤ 300 ms", met: result.shown <= 0.3)
+            measured("open a 5 MB JavaScript file, colored at the top", result.colored.map(ms) ?? "not within 15 s", target: "fully highlighted ≤ 1 s", met: result.colored.map { $0 <= 1 } ?? false)
+            result.document.editor.textView.window?.performClose(nil)
+        } else {
+            missing.append("5 MB JavaScript")
+        }
+        var md = "# Scratch-sized \(marker)\n", m = 0
+        while md.utf8.count < 2_400_000 {
+            m += 1
+            md += m % 50 == 0 ? "## Notes for \(m)\n" : m % 3 == 0 ? "- item \(m) with `code` and **bold** text\n" : "Line \(m): see https://example.com/\(m) and the config.json file.\n"
+        }
+        if let result = await big("perf-\(marker).md", md, keyword: "# Scratch", plainWord: "Line 1:") {
+            measured("open the scratch file at 2.4 MB, \(m) lines (untitled), first shown", ms(result.shown), target: "opens ≤ 300 ms", met: result.shown <= 0.3)
+            // (A reload at this size is measured in `bigfile`: an untitled buffer is Nib's own
+            // file, watched by nobody, and a 2.4 MB file in iCloud Drive slows iCloud for minutes.)
+            result.document.editor.textView.window?.performClose(nil)
+            // A three-way merge at that size: an edit near the top on one side, near the end on the other.
+            // "Line 31:" (30 is an item line: "Line 30:" isn't there, and inserting at "not found"
+            // threw an Objective-C exception through Swift code, which crashed Nib later, twice).
+            let base = md, near = (md as NSString).range(of: "Line 31:").location
+            guard near != NSNotFound else { log.check(false, "the merge's text has line 31"); return }
+            let ours = (md as NSString).replacingCharacters(in: NSRange(location: near, length: 0), with: "ours \(marker)\n")
+            let theirs = md + "theirs \(marker)\n"
+            let merged = await Task.detached { () -> Double in
+                let start = Date()
+                _ = Merge.threeWay(base: base, .init(text: ours, label: "Air · 10:00"), .init(text: theirs, label: "Mini · 10:00"))
+                return Date().timeIntervalSince(start)
+            }.value
+            measured("a three-way merge at 2.4 MB (off the main thread)", ms(merged), target: "≤ 100 ms", met: merged <= 0.1)
+        } else {
+            missing.append("2.4 MB Markdown")
+        }
+        log.check(missing.isEmpty, "every measure taken\(missing.isEmpty ? "" : " but: " + missing.joined(separator: ", "))")
+    }
+
+    /// When this process started (§6.5's cold launch is measured from it).
+    static func processStart() -> Date? {
+        var info = kinfo_proc(), size = MemoryLayout<kinfo_proc>.stride
+        var name: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        guard sysctl(&name, 4, &info, &size, nil, 0) == 0 else { return nil }
+        let started = info.kp_proc.p_starttime
+        return Date(timeIntervalSince1970: Double(started.tv_sec) + Double(started.tv_usec) / 1_000_000)
+    }
+
+    /// This process's physical footprint, as Activity Monitor's Memory column, in MB.
+    static func footprint() -> Double {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count) }
+        }
+        return result == KERN_SUCCESS ? Double(info.phys_footprint) / 1_048_576 : -1
+    }
+
+    /// CPU seconds so far, and wakeups (idle and interrupt) so far.
+    static func usage() -> (cpu: Double, wakeups: UInt64) {
+        var times = rusage()
+        getrusage(RUSAGE_SELF, &times)
+        let cpu = Double(times.ru_utime.tv_sec + times.ru_stime.tv_sec) + Double(times.ru_utime.tv_usec + times.ru_stime.tv_usec) / 1_000_000
+        var info = rusage_info_v4()
+        let ok = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(getpid(), RUSAGE_INFO_V4, $0) }
+        }
+        return (cpu, ok == 0 ? info.ri_pkg_idle_wkups + info.ri_interrupt_wkups : 0)
+    }
+
     // MARK: Helpers
 
     static func waitReady(_ document: Document) async {
@@ -2808,6 +3067,12 @@ enum ScenarioFocus {
     static func take() {
         wanted = true
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Done with it: back to the app that had it.
+    static func giveBackNow() {
+        wanted = false
+        giveBack()
     }
 
     private static func giveBack() {

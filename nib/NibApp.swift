@@ -56,6 +56,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static var pendingFiles: [URL] = []
     /// Quitting: windows closing now keep their untitled buffers for the next launch (ED3).
     static var terminating = false
+    #if DEBUG
+    /// Where a launch's time went, for §6.5's cold launch (the scenarios' first line): the phases,
+    /// and when the scratch window came up and when its text was in it and editable.
+    static var launchPhases: [(name: String, seconds: Double)] = []
+    static var launchMoments: (window: Date?, text: Date?) = (nil, nil)
+    #endif
 
     /// File › New, ⌘N (ED3).
     static func newUntitled() {
@@ -104,9 +110,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let firstRun = FirstRun.needed
         let waitForChoice = firstRun && !FileManager.default.fileExists(atPath: document.url.path)
         if waitForChoice { document.awaitFirstRun() }
+        let launched = Date()
+        #if DEBUG
+        if let started = TestHarness.processStart() { Self.launchPhases.append(("to launched", launched.timeIntervalSince(started))) }
+        #endif
         Task {
             await Document.settlePausedFiles(except: document.url)
+            let settled = Date()
             if !waitForChoice { await document.open() }
+            #if DEBUG
+            Self.launchPhases += [("settling paused files", settled.timeIntervalSince(launched)), ("opening and holding the scratch file", Date().timeIntervalSince(settled))]
+            #endif
             ClosedItems.shared.sweep()
             Untitled.restore()   // hot exit (ED3): the untitled buffers from before
             #if DEBUG

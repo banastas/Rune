@@ -70,7 +70,12 @@ struct ScratchView: View {
 
     var body: some View {
         DocumentView(document: document)
-            .background(WindowConfigurator { $0.tabbingMode = .disallowed })
+            .background(WindowConfigurator { window in
+                window.tabbingMode = .disallowed
+                #if DEBUG
+                AppDelegate.launchMoments.window = AppDelegate.launchMoments.window ?? Date()   // §6.5's cold launch
+                #endif
+            })
             .onAppear {
                 AppDelegate.openScratchWindow = { openWindow(id: "scratch") }
                 AppDelegate.openFileWindow = { openWindow(value: $0) }

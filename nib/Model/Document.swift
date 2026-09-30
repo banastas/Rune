@@ -242,10 +242,18 @@ final class Document {
         }
         let url = self.url
         let presenter = self.presenter
+        // How long each step took, for the Sync Log's open line (§6.5's launch to an editable window).
+        var steps: [String] = []
+        var stepStart = Date()
+        func step(_ name: String) {
+            steps.append("\(name) \(Int(Date().timeIntervalSince(stepStart) * 1000)) ms")
+            stepStart = Date()
+        }
         if ScratchLocation.inContainer(url) {
             // Sets up nib's iCloud folder on first use; false when iCloud Drive is off. iCloud may not
             // answer at all: then, with the file already here, open it anyway.
             let container = await CloudControl.containerAvailable(ScratchLocation.containerID, within: 10)
+            step("iCloud's folder")
             if container == nil { record("open", detail: "iCloud didn't answer about Nib's folder in 10 s: opening the file anyway") }
             guard container != false, container == true || FileManager.default.fileExists(atPath: url.path) else {
                 state = .problem("NIB'S ICLOUD FOLDER ISN'T AVAILABLE · IS ICLOUD DRIVE ON? · NOTHING WAS OPENED")
@@ -267,7 +275,9 @@ final class Document {
         }
         // iCloud may not answer (its file provider can stall): then open it anyway, and hold it once
         // iCloud answers (the background retry).
+        stepStart = Date()
         let answered = await CloudControl.status(url, within: 10)
+        step("iCloud's status")
         if answered == nil { record("open", detail: "iCloud didn't say how the file stands in 10 s: opening it anyway, and holding it once iCloud answers") }
         let status = answered ?? CloudControl.Status()
         if status.downloadStatus == "notDownloaded" {
@@ -277,6 +287,7 @@ final class Document {
         var text = ""
         do {
             let (data, fingerprint) = try await io.run { try FileAccess.read(url, presenter: presenter) }
+            step("reading")
             let decoded = TextFile.decode(data)
             text = decoded.text
             format = decoded.format
@@ -300,7 +311,8 @@ final class Document {
             watchFile()
             watchNoteFolder()
         }
-        record("open", size: text.utf8.count, sha: baseFingerprint?.sha256)
+        step("showing")
+        record("open", size: text.utf8.count, sha: baseFingerprint?.sha256, detail: steps.joined(separator: " · "))
         recoverFromJournal(fileText: text)
         pickedSyntax = UserDefaults.standard.string(forKey: "syntax:" + url.path).flatMap(SyntaxPick.init(stored:))
         applySyntax()
@@ -308,6 +320,9 @@ final class Document {
         editor.indentation = indentation
         state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : .saved(Date())
         ready = true
+        #if DEBUG
+        if self === Documents.scratch { AppDelegate.launchMoments.text = AppDelegate.launchMoments.text ?? Date() }
+        #endif
         ReceiptBook.shared.watch(url)   // the other Macs' receipts (SY14)
         updateOtherMacs()
         if untitled {
