@@ -110,8 +110,8 @@ final class ReceiptBook {
             let descriptor = Darwin.open(folder.path, O_EVTONLY)
             guard descriptor >= 0 else { return }
             let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .attrib, .rename], queue: .main)
-            source.setEventHandler { [weak self] in
-                Task { @MainActor in await self?.read(folder.path, fresh: false) }
+            source.setEventHandler {
+                Task { @MainActor in await ReceiptBook.shared.read(folder.path, fresh: false) }
             }
             source.setCancelHandler { Darwin.close(descriptor) }
             source.resume()
@@ -143,7 +143,7 @@ final class ReceiptBook {
         }
     }
 
-    private func read(_ folder: String, fresh: Bool) async {
+    fileprivate func read(_ folder: String, fresh: Bool) async {
         guard !reading.contains(folder) else { readAgain.insert(folder); return }
         reading.insert(folder)
         let device = self.device, place = URL(fileURLWithPath: folder, isDirectory: true)

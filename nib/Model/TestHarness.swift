@@ -738,7 +738,7 @@ enum TestHarness {
 
         // The card.
         let card = MenuBarState.card(document)
-        log.check(card.first == document.url.lastPathComponent.uppercased() && card[1] == document.state.line && card[2].hasPrefix("SAVED ")
+        log.check(card.first == document.url.lastPathComponent.uppercased() && card[1] == document.statusLine && card[2].hasPrefix("SAVED ")
                   && card[2].contains(" · UPLOADED ") && !card[2].hasSuffix("—"),
                   "the scratch card: \(card.joined(separator: " / "))")
 
@@ -1259,7 +1259,14 @@ enum TestHarness {
             var receipts = DeviceReceipts(device: "Test Mac", files: [name: .init(sha256: sha, time: Date())])
             receipts.format = format
             try? receipts.write(to: other)
+            // Hidden, as iCloud marks the files in `.nib` (the two-Mac test at 17:50 read none).
+            var hidden = URLResourceValues()
+            hidden.isHidden = true
+            var url = other
+            try? url.setResourceValues(hidden)
         }
+        /// The stand-in's line; the real other Macs' receipts may be in the folder too.
+        func testMac() -> Document.OtherMac? { document.otherMacs.first { $0.device == "Test Mac" } }
         defer { try? FileManager.default.removeItem(at: other) }
         let before = disk()
         let start = (view.string as NSString).length
@@ -1280,6 +1287,7 @@ enum TestHarness {
         // Another Mac with this very version.
         pretend(current)
         let same = await waitFor(10) { document.statusLine.hasPrefix("✓ SYNCED · ON TEST MAC ") }
+        log.line("receipts read: \(document.otherMacs.map { "\($0.device) (\($0.delivery), \(String($0.loaded.sha256.prefix(8))))" }.joined(separator: ", "))")
         let card = MenuBarState.card(document)
         log.check(same && card.contains { $0.hasPrefix("✓ ON TEST MAC · SINCE ") } && document.statusSpoken.contains(", and on Test Mac since "),
                   "another Mac with this version: “\(document.statusLine)”, on the card too, and said “\(document.statusSpoken)”")
@@ -1296,14 +1304,14 @@ enum TestHarness {
 
         // An earlier one: the strip as it was, a line on the card.
         pretend(before)
-        let earlier = await waitFor(10) { document.otherMacs.first?.delivery == .earlier }
-        log.check(earlier && document.statusLine == document.state.line && MenuBarState.card(document).contains { $0.hasPrefix("TEST MAC HASN'T GOT THIS VERSION YET") },
+        let earlier = await waitFor(10) { testMac()?.delivery == .earlier }
+        log.check(earlier && !document.statusLine.contains("TEST MAC") && MenuBarState.card(document).contains { $0.hasPrefix("TEST MAC HASN'T GOT THIS VERSION YET") },
                   "another Mac with an earlier version: the strip says only “\(document.statusLine)”; the card, that Test Mac hasn't got it yet")
 
         // A later format: ignored, not misread.
         pretend(current, format: DeviceReceipts.currentFormat + 1)
-        let ignored = await waitFor(10) { document.otherMacs.isEmpty }
-        log.check(ignored && document.statusLine == document.state.line, "a receipt of a later format is ignored")
+        let ignored = await waitFor(10) { testMac() == nil }
+        log.check(ignored && !document.statusLine.contains("TEST MAC"), "a receipt of a later format is ignored")
 
         // Out again.
         if (view.string as NSString).length > start {
@@ -1328,7 +1336,7 @@ enum TestHarness {
         }
         AppDelegate.openFile(url)
         _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
-        guard let document = Documents.existing(for: url), let window = document.editor.textView.window else { log.check(false, "the file opened"); return }
+        guard let document = Documents.existing(for: url), document.editor.textView.window != nil else { log.check(false, "the file opened"); return }
         let view = document.editor.textView
         view.setSelectedRange(NSRange(location: ("# Access \(marker)\n\nli" as NSString).length, length: 0))
         _ = await waitFor(3) { document.cursor.line == 3 }

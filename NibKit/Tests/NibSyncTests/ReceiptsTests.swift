@@ -40,6 +40,26 @@ import Testing
         #expect(next.files["new.md"]?.sha256 == "n")
     }
 
+    /// iCloud marks the files in `.nib` hidden: the other Macs' receipts are read all the same
+    /// (the two-Mac test at 17:50 saw none), and this Mac's own isn't among them.
+    @Test func hiddenReceiptsAreRead() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("receipts-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let air = DeviceReceipts(device: "Bill’s MacBook Air", files: ["scratch.md": .init(sha256: "a948", time: time)])
+        let mini = DeviceReceipts(device: "m2pr0m4cm1n1", files: ["scratch.md": .init(sha256: "a948", time: time)])
+        for receipts in [air, mini] {
+            var url = DeviceReceipts.url(in: folder, device: receipts.device)
+            try receipts.write(to: url)
+            var values = URLResourceValues()
+            values.isHidden = true
+            try url.setResourceValues(values)
+            #expect((try url.resourceValues(forKeys: [.isHiddenKey])).isHidden == true)
+        }
+        try Data("{}".utf8).write(to: folder.appendingPathComponent(".partial.json"))   // a dot: not a receipt
+        let others = DeviceReceipts.others(in: folder, except: "m2pr0m4cm1n1")
+        #expect(others == [air])
+    }
+
     @Test func judged() {
         let seen: Set<String> = ["old", "merged"]
         #expect(Delivery.of("mine", base: "mine") { seen.contains($0) } == .same)

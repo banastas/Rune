@@ -96,11 +96,13 @@ public struct DeviceReceipts: Codable, Sendable, Equatable {
         return decode(data)
     }
 
-    /// Every other Mac's receipts in the folder. Blocking.
+    /// Every other Mac's receipts in the folder. Blocking. Not `.skipsHiddenFiles`: iCloud marks
+    /// the files in `.nib` hidden (the flag, not a dot), so that skipped every receipt that came
+    /// from another Mac (the two-Mac test at 17:50, 2026-09-29). Names with a dot are skipped.
     public static func others(in folder: URL, except device: String, fresh: Bool = false) -> [DeviceReceipts] {
         let own = url(in: folder, device: device).lastPathComponent
-        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
-        return files.filter { $0.pathExtension == "json" && $0.lastPathComponent != own }
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { $0.pathExtension == "json" && !$0.lastPathComponent.hasPrefix(".") && $0.lastPathComponent != own }
             .compactMap { read($0, fresh: fresh) }
             .filter { $0.device != device }
             .sorted { $0.device < $1.device }
