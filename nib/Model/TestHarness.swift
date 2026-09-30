@@ -1295,12 +1295,23 @@ enum TestHarness {
         let logged = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().last { $0.event == "receipt" && $0.sha256 == current }
         log.check(logged?.detail?.hasPrefix("Test Mac has this version, ") == true, "the Sync Log says how long it took: \(logged?.detail ?? "nothing")")
 
-        // One this Mac hasn't seen.
+        // One this Mac hasn't seen, and changed in place, as iCloud changes a receipt that's
+        // there already: the folder stays as it was, so only the presenter can tell.
         let unseen = Digest.sha256(Data("a version only Test Mac has \(marker)".utf8))
-        pretend(unseen)
+        func folderChanged() -> Date? { (try? folder.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
+        let folderBefore = folderChanged()
+        if let data = try? DeviceReceipts(device: "Test Mac", files: [name: .init(sha256: unseen, time: Date())]).encoded() {
+            var error: NSError?
+            NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: other, options: [], error: &error) { url in
+                guard let handle = try? FileHandle(forWritingTo: url) else { return }
+                try? handle.truncate(atOffset: 0)
+                try? handle.write(contentsOf: data)
+                try? handle.close()
+            }
+        }
         let newer = await waitFor(10) { document.statusLine.hasPrefix("▼ NEWER ON TEST MAC (") && document.statusLine.hasSuffix(") · NOT HERE YET") }
-        log.check(newer && MenuBarState.card(document).contains { $0.hasPrefix("▼ NEWER ON TEST MAC · ") },
-                  "another Mac with a version this Mac hasn't seen: “\(document.statusLine)”")
+        log.check(newer && MenuBarState.card(document).contains { $0.hasPrefix("▼ NEWER ON TEST MAC · ") } && folderChanged() == folderBefore,
+                  "another Mac with a version this Mac hasn't seen, its receipt changed in place (the folder unchanged): “\(document.statusLine)”")
 
         // An earlier one: the strip as it was, a line on the card.
         pretend(before)

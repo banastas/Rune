@@ -24,6 +24,7 @@ final class ReceiptBook {
     /// The other Macs' receipts, by folder path.
     private var others: [String: [DeviceReceipts]] = [:]
     private var watches: [String: DispatchSourceFileSystemObject] = [:]
+    private var presenters: [String: ReceiptsPresenter] = [:]
     private var reading: Set<String> = []
     private var readAgain: Set<String> = []
     private let writes = IOQueue(label: "nib.receipts.write")
@@ -116,6 +117,11 @@ final class ReceiptBook {
             source.setCancelHandler { Darwin.close(descriptor) }
             source.resume()
             watches[folder.path] = source
+            // The watch sees files come and go; a presenter hears of one iCloud changes in place,
+            // which leaves the folder as it was (the two-Mac test at 18:11 missed the Air's last).
+            let presenter = ReceiptsPresenter(folder: folder)
+            NSFileCoordinator.addFilePresenter(presenter)
+            presenters[folder.path] = presenter
             await read(folder.path, fresh: false)
         }
     }
@@ -165,4 +171,29 @@ final class ReceiptBook {
             receipts.files[url.lastPathComponent].map { (receipts.device, $0) }
         }
     }
+}
+
+/// The other Macs' receipts as iCloud brings them in: told of a file in the folder that appears
+/// or changes, including one changed in place, which a watch on the folder doesn't see.
+final class ReceiptsPresenter: NSObject, NSFilePresenter, @unchecked Sendable {
+    let presentedItemURL: URL?
+    let presentedItemOperationQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        queue.name = "nib.receipts-presenter"
+        return queue
+    }()
+
+    init(folder: URL) {
+        presentedItemURL = folder
+    }
+
+    private func changed(_ url: URL) {
+        guard url.pathExtension == "json", !url.lastPathComponent.hasPrefix("."), let folder = presentedItemURL?.path else { return }
+        Task { @MainActor in await ReceiptBook.shared.read(folder, fresh: false) }
+    }
+
+    func presentedSubitemDidAppear(at url: URL) { changed(url) }
+    func presentedSubitemDidChange(at url: URL) { changed(url) }
+    func presentedSubitem(at url: URL, didGain version: NSFileVersion) { changed(url) }
 }
