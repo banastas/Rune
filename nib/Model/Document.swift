@@ -90,6 +90,10 @@ final class Document {
     /// For conflict versions and duplicates: iCloud's version store can be slow, and saves
     /// mustn't queue behind it.
     @ObservationIgnored private let othersQueue = IOQueue(label: "nib.others")
+    /// For reading the other Macs' notes. A fresh read evicts the note and downloads it, which
+    /// can take seconds; on the document's own queue, saves waited behind it (3.8 s of a save
+    /// at 18:36 on 2026-09-29 was waiting, 34 ms was writing).
+    @ObservationIgnored private let notesQueue = IOQueue(label: "nib.notes")
 
     /// The version the buffer came from, or was last saved as.
     @ObservationIgnored private var baseFingerprint: Fingerprint? {
@@ -769,7 +773,13 @@ final class Document {
         let presenter = self.presenter
         let started = Date()
         do {
-            let outcome = try await io.run { try FileAccess.write(data, to: url, base: base, presenter: presenter) }
+            // When the write itself began: a slow save is either a wait behind other file work on
+            // this queue or a slow coordinated write, and the Sync Log says which (the two-Mac runs
+            // on the evening of 2026-09-29 had saves of 1-11 s, against under 0.5 s at 10:55).
+            let (outcome, began) = try await io.run { () throws -> (WriteOutcome, Date) in
+                let began = Date()
+                return (try FileAccess.write(data, to: url, base: base, presenter: presenter), began)
+            }
             switch outcome {
             case .written(let fingerprint):
                 if let sha = fingerprint.sha256 { madeHere[sha] = Date() }
@@ -786,7 +796,9 @@ final class Document {
                     journal.clear(path: url.path)
                 }
                 state = dirty ? .editing : untitled ? .local(lastSaved) : .saved(lastSaved)
-                record("save", size: data.count, sha: fingerprint.sha256, ms: ms(since: started), detail: reason)
+                let waited = began.timeIntervalSince(started)
+                record("save", size: data.count, sha: fingerprint.sha256, ms: ms(since: started),
+                       detail: waited > 0.5 ? "\(reason) · \(ms(since: started) - Int(waited * 1000)) ms writing, after \(Int(waited * 1000)) ms waiting behind other file work" : reason)
                 uploadNow = reason != "debounce"
             case .diskChanged(let onDisk, let fingerprint):
                 record("save", detail: "refused: the file changed on disk since it was loaded")
@@ -989,7 +1001,7 @@ final class Document {
                 // Which Mac saved it: the note, when it names this version. iCloud's own answer
                 // can name the wrong Mac (at 20:25 it named the Air for the Mac mini's version, on
                 // the Air), and a note can be this Mac's own: then just "another Mac" (W2).
-                let note = await io.run { Announcement.read(for: url) }
+                let note = await notesQueue.run { Announcement.read(for: url) }
                 if let note { lastNote = note }
                 let who = note.flatMap { $0.sha256 == fingerprint?.sha256 && $0.device != device ? $0.device : nil } ?? "another Mac"
                 incoming(data, fingerprint: fingerprint, from: who, fromServer: true)
@@ -1204,7 +1216,7 @@ final class Document {
             if lastNote?.sha256 == sha { break }
             if Date().timeIntervalSince(lastFresh) >= 2 {
                 lastFresh = Date()
-                if let note = await io.run({ Announcement.read(for: url, fresh: true) }), note.sha256 == sha {
+                if let note = await notesQueue.run({ Announcement.read(for: url, fresh: true) }), note.sha256 == sha {
                     lastNote = note
                     break
                 }
@@ -1416,7 +1428,7 @@ final class Document {
     func checkAnnouncement(reason: String) async {
         guard ready, locked == nil, !refreshing, !closing else { return }
         let url = self.url
-        guard let note = await io.run({ Announcement.read(for: url, fresh: true) }) else { return }
+        guard let note = await notesQueue.run({ Announcement.read(for: url, fresh: true) }) else { return }
         lastNote = note
         upgradeIfProven()
         guard note.device != device, !handledAnnouncements.contains(note.sha256),
