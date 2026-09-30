@@ -10,7 +10,9 @@ let package = Package(
         .library(name: "NibSync", targets: ["NibSync"]),
         .library(name: "NibSyntax", targets: ["NibSyntax"]),
         .executable(name: "nib-fidelity", targets: ["NibFidelity"]),
-        .executable(name: "nib", targets: ["NibCLI"]),
+        // Not "nib": Xcode makes a scheme for each package product, and one called "nib" took
+        // `-scheme nib` from the app (builds that compiled only this, 2026-09-29).
+        .executable(name: "nib-cli", targets: ["NibCLI"]),
     ],
     // tree-sitter and grammars for HL1's languages (§6.3; BSD-3-Clause and MIT); CSS and JavaScript are vendored.
     dependencies: [

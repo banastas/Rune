@@ -81,6 +81,8 @@ enum TestHarness {
             case "firstrun": await firstRunScenario(Documents.scratch, log, marker)
             case "cli": await cliScenario(Documents.scratch, log, marker)
             case "fileops": await fileOpsScenario(Documents.scratch, log, marker)
+            case "access": await accessScenario(log, marker)
+            case "receipts": await receiptsScenario(Documents.scratch, log, marker)
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -1236,6 +1238,136 @@ enum TestHarness {
         let duplicateKeys = file?.items.first { $0.title == "Duplicate" }.flatMap(PaletteSession.keys(of:))
         log.check(duplicateKeys == "⇧⌘S" && file?.items.contains { $0.title == "Rename…" } == true && file?.items.contains { $0.title == "Move To…" } == true,
                   "File › Duplicate \(duplicateKeys ?? "none"), Rename…, Move To…")
+    }
+
+    /// Delivery receipts (SY14, §4.5), with a hand-written receipt standing in for another Mac:
+    /// this Mac's receipt for the scratch file written (the version its buffer comes from), at
+    /// most every 5 s; another Mac with this very version ("✓ SYNCED · ON TEST MAC"), the card,
+    /// VoiceOver's words and the Sync Log's time; one with a version this Mac hasn't seen
+    /// ("▼ NEWER ON TEST MAC · NOT HERE YET"); one with an earlier version (nothing on the strip,
+    /// a line on the card); and a receipt of a later format, ignored.
+    static func receiptsScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 30)
+        let folder = DeviceReceipts.folder(for: document.url)
+        let mine = DeviceReceipts.url(in: folder, device: document.device)
+        let other = DeviceReceipts.url(in: folder, device: "Test Mac")
+        let name = document.url.lastPathComponent
+        let view = document.editor.textView
+        func disk() -> String { Digest.sha256((try? Data(contentsOf: document.url)) ?? Data()) }
+        func pretend(_ sha: String, format: Int = DeviceReceipts.currentFormat) {
+            var receipts = DeviceReceipts(device: "Test Mac", files: [name: .init(sha256: sha, time: Date())])
+            receipts.format = format
+            try? receipts.write(to: other)
+        }
+        defer { try? FileManager.default.removeItem(at: other) }
+        let before = disk()
+        let start = (view.string as NSString).length
+
+        // This Mac's receipt: the version its buffer comes from, written at most every 5 s.
+        let writes = ReceiptBook.shared.written
+        await type("\n- receipt one \(marker)\n", into: document)
+        await document.flush(reason: "test")
+        try? await Task.sleep(for: .milliseconds(1_500))
+        await type("- receipt two \(marker)\n", into: document)
+        await document.flush(reason: "test")
+        await waitSynced(document, 30)
+        let current = disk()
+        let published = await waitFor(12) { DeviceReceipts.read(mine)?.files[name]?.sha256 == current }
+        log.check(published && ReceiptBook.shared.written - writes <= 3,
+                  "this Mac's receipt says the version its buffer comes from (\(String(current.prefix(8)))), in \(ReceiptBook.shared.written - writes) writes for two saves 1.5 s apart")
+
+        // Another Mac with this very version.
+        pretend(current)
+        let same = await waitFor(10) { document.statusLine.hasPrefix("✓ SYNCED · ON TEST MAC ") }
+        let card = MenuBarState.card(document)
+        log.check(same && card.contains { $0.hasPrefix("✓ ON TEST MAC · SINCE ") } && document.statusSpoken.contains(", and on Test Mac since "),
+                  "another Mac with this version: “\(document.statusLine)”, on the card too, and said “\(document.statusSpoken)”")
+        _ = await waitFor(3) { SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().last { $0.event == "receipt" }?.sha256 == current }
+        let logged = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().last { $0.event == "receipt" && $0.sha256 == current }
+        log.check(logged?.detail?.hasPrefix("Test Mac has this version, ") == true, "the Sync Log says how long it took: \(logged?.detail ?? "nothing")")
+
+        // One this Mac hasn't seen.
+        let unseen = Digest.sha256(Data("a version only Test Mac has \(marker)".utf8))
+        pretend(unseen)
+        let newer = await waitFor(10) { document.statusLine.hasPrefix("▼ NEWER ON TEST MAC (") && document.statusLine.hasSuffix(") · NOT HERE YET") }
+        log.check(newer && MenuBarState.card(document).contains { $0.hasPrefix("▼ NEWER ON TEST MAC · ") },
+                  "another Mac with a version this Mac hasn't seen: “\(document.statusLine)”")
+
+        // An earlier one: the strip as it was, a line on the card.
+        pretend(before)
+        let earlier = await waitFor(10) { document.otherMacs.first?.delivery == .earlier }
+        log.check(earlier && document.statusLine == document.state.line && MenuBarState.card(document).contains { $0.hasPrefix("TEST MAC HASN'T GOT THIS VERSION YET") },
+                  "another Mac with an earlier version: the strip says only “\(document.statusLine)”; the card, that Test Mac hasn't got it yet")
+
+        // A later format: ignored, not misread.
+        pretend(current, format: DeviceReceipts.currentFormat + 1)
+        let ignored = await waitFor(10) { document.otherMacs.isEmpty }
+        log.check(ignored && document.statusLine == document.state.line, "a receipt of a later format is ignored")
+
+        // Out again.
+        if (view.string as NSString).length > start {
+            view.insertText("", replacementRange: NSRange(location: start, length: (view.string as NSString).length - start))
+        }
+        await document.flush(reason: "test")
+        await waitSynced(document, 30)
+    }
+
+    /// VoiceOver (AX1, AX2): the strip's summary; its indentation, encoding and line endings in words; a notice said as a sentence;
+    /// a conflict's notice said at once, the Conflicts rotor naming the block without its dot,
+    /// and "No conflicts left" once it's resolved; the HUD line said too.
+    static func accessScenario(_ log: HarnessLog, _ marker: String) async {
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("access-\(marker).md")
+        try? Data("# Access \(marker)\n\nline three\n".utf8).write(to: url)
+        defer {
+            Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(url)
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url), let window = document.editor.textView.window else { log.check(false, "the file opened"); return }
+        let view = document.editor.textView
+        view.setSelectedRange(NSRange(location: ("# Access \(marker)\n\nli" as NSString).length, length: 0))
+        _ = await waitFor(3) { document.cursor.line == 3 }
+
+        // The strip: one summary. (Whether VoiceOver finds it on the strip isn't checked here:
+        // SwiftUI makes its accessibility tree only when an assistive app asks, and in the
+        // scenario the window's hosting view has no accessibility children at all.)
+        let summary = StatusStrip.summary(document)
+        log.check(summary == "access-\(marker).md, \(StatusStrip.spokenState(document)), line 3, column 3, Markdown" && !summary.contains("·"),
+                  "the strip reads as one summary: “\(summary)”")
+        let details = StatusStrip.spokenDetails(document)
+        log.check(details == "\(document.indentationLabel.lowercased()), UTF-8, LF line endings", "its indentation, encoding and line endings in words: “\(details)”")
+
+        // A notice, said as a sentence.
+        document.show("✓ MERGED 2 CHANGES FROM AIR · ⌘Z UNDOES", for: 3)
+        log.check(Announce.said.last == "Merged 2 changes from air, Command-Z undoes" && StatusStrip.spokenState(document) == "merged 2 changes from air, Command-Z undoes",
+                  "a notice is said, as a sentence: “\(Announce.said.last ?? "nothing")”")
+
+        // A conflict: its notice at once, the rotor's words, and when it's gone.
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        view.insertText("<<<<<<< Air · 10:00\nours \(marker)\n=======\ntheirs\n>>>>>>> Mini · 10:01\n", replacementRange: view.selectedRange())
+        _ = await waitFor(5) { document.blocks.count == 1 }
+        document.show("✕ CONFLICT WITH AIR · 1 PLACE · BOTH VERSIONS ARE IN THE TEXT", for: 3)
+        log.check(Announce.said.last == "Conflict with air, 1 place, both versions are in the text", "a conflict's notice is said: “\(Announce.said.last ?? "nothing")”")
+        let rotor = view.accessibilityCustomRotors().first { $0.label == "Conflicts" }
+        let parameters = NSAccessibilityCustomRotor.SearchParameters()
+        parameters.searchDirection = .next
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        let item = rotor.flatMap { view.rotor($0, resultFor: parameters) }
+        log.check(item?.customLabel == "Conflict: Air, 10:00, or Mini, 10:01", "the Conflicts rotor names the block: “\(item?.customLabel ?? "none")”")
+        if let block = document.blocks.first { view.setSelectedRange(NSRange(location: block.range.location + 2, length: 0)) }
+        _ = await waitFor(2) { document.activeCaretBlock != nil }
+        document.resolveBlock(.both)
+        _ = await waitFor(5) { document.blocks.isEmpty }
+        log.check(Announce.said.last == "No conflicts left in access-\(marker).md.", "resolved: “\(Announce.said.last ?? "nothing")”")
+
+        // The HUD line, with no window of Nib's in front.
+        Toast.show("CLIPBOARD CLEANED · 3 INVISIBLES REMOVED")
+        log.check(Announce.said.last == "Clipboard cleaned, 3 invisibles removed", "the HUD line is said too: “\(Announce.said.last ?? "nothing")”")
     }
 
     /// The clipboard jobs (PT3-PT5, SC5, SC6): Paste Clean, an HTML-only clipboard pasted as
@@ -2414,7 +2546,12 @@ enum TestHarness {
         log.check((try? Data(contentsOf: document.url)) == expected, "\(role): the file holds exactly the buffer")
         log.check(isSynced(document), "\(role): synced (state \(document.state.line))")
         log.line("\(role): file SHA-256 \(Digest.sha256(expected)) · compare with the other Mac's")
-        await until(205)
+        // Delivery receipts (SY14): the other Mac says it has this very version.
+        let delivered = await waitFor(max(5, t0 + 230 - Date().timeIntervalSince1970)) {
+            document.otherMacs.contains { $0.delivery == .same && $0.device != document.device }
+        }
+        log.check(delivered, "\(role): the other Mac's receipt says it has this version (strip: \(document.statusLine); receipts: \(document.otherMacs.map { "\($0.device) \($0.delivery)" }.joined(separator: ", ")))")
+        await until(235)
     }
 
     /// Blocks this Mac wrote (a "conflict" in its Sync Log) are resolved with Keep Both once

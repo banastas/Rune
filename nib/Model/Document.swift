@@ -94,6 +94,10 @@ final class Document {
     /// The version the buffer came from, or was last saved as.
     @ObservationIgnored private var baseFingerprint: Fingerprint? {
         didSet {
+            if let sha = baseFingerprint?.sha256, sha != oldValue?.sha256 {
+                ReceiptBook.shared.loaded(url, sha: sha)   // this Mac's receipt (SY14)
+                updateOtherMacs()
+            }
             guard let old = oldValue?.sha256, let new = baseFingerprint?.sha256, old != new else { return }
             superseded.insert(old)
             superseded.remove(new)
@@ -129,6 +133,16 @@ final class Document {
     /// every 30 s), and one ending mustn't let the file watch deliver another's download too.
     @ObservationIgnored private var fetches = 0
     /// Announced versions already dealt with, and already in the Sync Log, by SHA-256.
+    /// The other Macs' versions of this file, from their receipts (SY14, §4.5).
+    private(set) var otherMacs: [OtherMac] = []
+    struct OtherMac: Equatable {
+        var device: String
+        var loaded: DeviceReceipts.Loaded
+        var delivery: Delivery
+    }
+    /// Versions this Mac saved, and when: a receipt for one says how long it took to get there.
+    @ObservationIgnored private var madeHere: [String: Date] = [:]
+    @ObservationIgnored private var loggedReceipts: Set<String> = []
     @ObservationIgnored private var handledAnnouncements: Set<String> = []
     @ObservationIgnored private var loggedAnnouncements: Set<String> = []
     /// The last note read: which version is on the server, and what it was made from.
@@ -290,6 +304,8 @@ final class Document {
         editor.indentation = indentation
         state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : .saved(Date())
         ready = true
+        ReceiptBook.shared.watch(url)   // the other Macs' receipts (SY14)
+        updateOtherMacs()
         if untitled {
             // Nothing to hold, fetch or announce: it's on this Mac only.
             let history = self.history
@@ -525,7 +541,11 @@ final class Document {
         do {
             try await pauseFile()
         } catch {
-            return await heldAlready(error)   // otherwise, "not supported" included: next time
+            if await heldAlready(error) { return true }
+            // Said each time, so the Sync Log shows why a file stays unheld (a suite run at 16:55
+            // had two new files unheld for a minute with nothing after the first failure).
+            record("pause", detail: "not held on try \(tries): \(Self.pauseTrouble(error))")
+            return false   // "not supported" included: next time
         }
         held = true
         pausedFiles.add(url.path)
@@ -752,6 +772,8 @@ final class Document {
             let outcome = try await io.run { try FileAccess.write(data, to: url, base: base, presenter: presenter) }
             switch outcome {
             case .written(let fingerprint):
+                if let sha = fingerprint.sha256 { madeHere[sha] = Date() }
+                if madeHere.count > 50, let oldest = madeHere.min(by: { $0.value < $1.value })?.key { madeHere[oldest] = nil }
                 baseFingerprint = fingerprint
                 if held { savedWhileHeld = fingerprint.sha256 }
                 remember(text, sha: fingerprint.sha256)
@@ -1413,6 +1435,74 @@ final class Document {
         guard !unsent, !saving, !uploading else { return }
         handledAnnouncements.insert(note.sha256)
         await refresh(announced: note)
+    }
+
+    // MARK: - Receipts (SY14, §4.5)
+
+    /// The other Macs' receipts changed (ReceiptBook).
+    func receiptsChanged() { updateOtherMacs() }
+
+    /// Whether this Mac has seen a version: had it, saved it, moved past it or merged it in.
+    private func seen(_ sha: String) -> Bool {
+        sha == baseFingerprint?.sha256 || sha == uploadedSHA || superseded.contains(sha) || incorporated.contains(sha)
+            || handledAnnouncements.contains(sha) || versions[sha] != nil || madeHere[sha] != nil || history.has(sha)
+    }
+
+    private func updateOtherMacs() {
+        guard ready, locked == nil, let base = baseFingerprint?.sha256, ReceiptBook.applies(to: url) else {
+            if !otherMacs.isEmpty { otherMacs = [] }
+            return
+        }
+        let now = ReceiptBook.shared.others(for: url).map {
+            OtherMac(device: $0.device, loaded: $0.loaded, delivery: Delivery.of($0.loaded.sha256, base: base, known: seen))
+        }
+        guard now != otherMacs else { return }
+        otherMacs = now
+        for other in now {
+            switch other.delivery {
+            case .same:
+                // How long a version made here took to reach the other Mac and be said back (T3).
+                guard let made = madeHere[base], loggedReceipts.insert("\(other.device) \(base)").inserted else { continue }
+                let since = uploadedSHA == base ? (uploadedAt ?? made) : made
+                record("receipt", sha: base, ms: Int(Date().timeIntervalSince(since) * 1000),
+                       detail: "\(other.device) has this version, \(Int(Date().timeIntervalSince(since).rounded())) s after this Mac \(uploadedSHA == base ? "uploaded" : "saved") it")
+            case .newer:
+                guard loggedReceipts.insert("\(other.device) \(other.loaded.sha256)").inserted else { continue }
+                record("receipt", sha: other.loaded.sha256, detail: "\(other.device) has a version this Mac hasn't seen: asking for the note")
+                Task { await checkAnnouncement(reason: "a receipt") }   // it may be here already
+            case .earlier:
+                continue
+            }
+        }
+    }
+
+    private static let shortClock: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    /// The strip's words: the state, with what the receipts say while it's synced (§4.5):
+    /// "✓ SYNCED · ON STUDIO 10:42:31", or "▼ NEWER ON AIR (10:42) · NOT HERE YET".
+    var statusLine: String {
+        guard case .synced = state else { return state.line }
+        if let newer = otherMacs.first(where: { $0.delivery == .newer }) {
+            return "▼ NEWER ON \(newer.device.uppercased()) (\(Self.shortClock.string(from: newer.loaded.time))) · NOT HERE YET"
+        }
+        let same = otherMacs.filter { $0.delivery == .same }
+        guard let latest = same.map(\.loaded.time).max() else { return state.line }
+        return "✓ SYNCED · ON \(same.map { $0.device.uppercased() }.joined(separator: ", ")) \(SyncState.clock.string(from: latest))"
+    }
+
+    /// The same for VoiceOver.
+    var statusSpoken: String {
+        guard case .synced = state else { return state.spoken }
+        if let newer = otherMacs.first(where: { $0.delivery == .newer }) {
+            return "A newer version on \(newer.device), from \(Self.shortClock.string(from: newer.loaded.time)), isn't here yet"
+        }
+        let same = otherMacs.filter { $0.delivery == .same }
+        guard let latest = same.map(\.loaded.time).max() else { return state.spoken }
+        return "\(state.spoken), and on \(same.map(\.device).joined(separator: " and ")) since \(SyncState.clock.string(from: latest))"
     }
 
     /// Brings down the server's version of the held file (§4.4): hand it back taking the

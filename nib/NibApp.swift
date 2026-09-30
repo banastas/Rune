@@ -137,8 +137,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if firstRun { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { FirstRun.shared.show() } }
     }
 
-    func applicationDidBecomeActive(_ notification: Notification) { Documents.all.forEach { $0.becameActive() } }
-    func applicationDidResignActive(_ notification: Notification) { Documents.all.forEach { $0.resignedActive() } }
+    func applicationDidBecomeActive(_ notification: Notification) {
+        Documents.all.forEach { $0.becameActive() }
+        ReceiptBook.shared.becameActive()
+    }
+    func applicationDidResignActive(_ notification: Notification) {
+        Documents.all.forEach { $0.resignedActive() }
+        ReceiptBook.shared.resignedActive()
+    }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -154,6 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 for document in Documents.all { group.addTask { await document.close() } }
             }
             CLIBridge.quitting()   // every file saved: `nib -w` stops waiting
+            await ReceiptBook.shared.flush()   // this Mac's receipts, not left for the next launch
             sender.reply(toApplicationShouldTerminate: true)
         }
         // A run-loop timer, not a dispatch block: if quit was asked for from inside a

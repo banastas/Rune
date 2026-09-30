@@ -11,6 +11,7 @@
 // showed only the first of its label's images (the ✕ beside the nib never appeared).
 
 import NibSync
+import NibText
 import SwiftUI
 
 enum NibMark {
@@ -73,14 +74,23 @@ enum MenuBarState {
     static func card(_ document: Document) -> [String] {
         let clock = SyncState.clock
         let uploaded = document.uploadedAt.map { clock.string(from: $0) } ?? "—"
-        var lines = [document.url.lastPathComponent.uppercased(), document.state.line,
+        var lines = [document.url.lastPathComponent.uppercased(), document.statusLine,
                      "SAVED \(clock.string(from: document.savedAt)) · UPLOADED \(uploaded)"]
         if !document.blocks.isEmpty {
             lines.append("✕ CONFLICT · \(document.blocks.count) PLACE\(document.blocks.count == 1 ? "" : "S") · BOTH VERSIONS IN THE TEXT")
         }
+        // Each other Mac: what its receipt says it has (SY14), and its last upload (its note).
+        for other in document.otherMacs {
+            let name = other.device.uppercased(), time = clock.string(from: other.loaded.time)
+            switch other.delivery {
+            case .same: lines.append("✓ ON \(name) · SINCE \(time)")
+            case .newer: lines.append("▼ NEWER ON \(name) · \(time) · NOT HERE YET")
+            case .earlier: lines.append("\(name) HASN'T GOT THIS VERSION YET · HAS \(time)'S")
+            }
+        }
         if let other = document.otherMac {
             lines.append("\(other.device.uppercased()) · LAST UPLOAD \(clock.string(from: other.time))")
-        } else {
+        } else if document.otherMacs.isEmpty {
             lines.append("NO OTHER MAC YET")
         }
         return lines
@@ -144,7 +154,7 @@ final class MenuBarController: NSObject {
     /// since is watched from the next change on; Documents tells this when files open too.)
     private func track() {
         withObservationTracking {
-            for document in Documents.all { _ = document.state; _ = document.blocks }
+            for document in Documents.all { _ = document.state; _ = document.blocks; _ = document.otherMacs }
         } onChange: { [weak self] in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
@@ -166,9 +176,9 @@ final class MenuBarController: NSObject {
         let marching = pendingSince.map { Date().timeIntervalSince($0) > 3 } ?? false
         // With Reduce Motion (A16, AX3) the line doesn't march: it stays in dashes while it waits.
         button.image = NibMark.image(frame: marching ? (Self.reduceMotion ? 0 : frame) : nil, failure: look)
-        let spoken = "Nib, " + Documents.scratch.state.spoken.lowercased() + (look ? "; something needs a look" : "")
+        let spoken = "Nib, " + Documents.scratch.statusSpoken.lowercased() + (look ? "; something needs a look" : "")
         button.setAccessibilityLabel(spoken)
-        button.toolTip = "Nib · " + Documents.scratch.state.line + (look ? " · SOMETHING NEEDS A LOOK" : "")
+        button.toolTip = "Nib · " + Documents.scratch.statusLine + (look ? " · SOMETHING NEEDS A LOOK" : "")
         if pending, ticker == nil {
             ticker = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated {
@@ -329,7 +339,7 @@ struct ScratchCard: View {
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HUDColor.border, lineWidth: 0.5))
         .environment(\.colorScheme, .dark)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(document.url.lastPathComponent), \(document.state.spoken). " + lines.dropFirst(2).joined(separator: ". ").lowercased())
+        .accessibilityLabel("\(document.url.lastPathComponent), \(document.statusSpoken). " + lines.dropFirst(2).map(Spoken.sentence).joined(separator: ". "))
     }
 }
 

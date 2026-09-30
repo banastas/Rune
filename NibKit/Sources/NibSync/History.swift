@@ -35,6 +35,9 @@ public final class History: Sendable {
     }
 
     private var index: URL { directory.appendingPathComponent("index.jsonl") }
+
+    /// Whether it keeps this version (for receipts: has this Mac seen it, SY14).
+    public func has(_ sha: String) -> Bool { FileManager.default.fileExists(atPath: versionURL(sha).path) }
     private func versionURL(_ sha: String) -> URL { directory.appendingPathComponent("versions", isDirectory: true).appendingPathComponent(sha) }
 
     private static let encoder: JSONEncoder = {

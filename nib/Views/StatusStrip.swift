@@ -23,7 +23,7 @@ struct StatusStrip: View {
                         .background(HUDColor.failure)
                         .fixedSize()
                 }
-                hudText(document.notice ?? document.state.line, glyphSize: 11)
+                hudText(document.notice ?? document.statusLine, glyphSize: 11)
                     .font(HUDFont.terminal(16))
                     .foregroundStyle(stateColor)
                     .lineLimit(1)
@@ -64,7 +64,7 @@ struct StatusStrip: View {
                 .accessibilityLabel("Syntax, \(document.syntaxName.capitalized)")
                 Text(" · \(document.indentationLabel) · \(document.format.encoding.label) · \(document.format.lineEnding.label)")
                     .help("Indentation (found in the file), encoding and line endings")
-                    .accessibilityLabel("\(document.indentationLabel.lowercased()), \(document.format.encoding.label), \(document.format.lineEnding.label) line endings")
+                    .accessibilityLabel(Self.spokenDetails(document))
             }
             .font(HUDFont.terminal(16))
             .monospacedDigit()
@@ -91,9 +91,14 @@ struct StatusStrip: View {
         "\(document.url.lastPathComponent), \(spokenState(document)), line \(document.cursor.line), column \(document.cursor.column), \(document.syntaxName.capitalized)"
     }
 
+    /// "2 spaces, UTF-8, LF line endings".
+    static func spokenDetails(_ document: Document) -> String {
+        "\(document.indentationLabel.lowercased()), \(document.format.encoding.label), \(document.format.lineEnding.label) line endings"
+    }
+
     /// The notice showing, or else the state, mid-sentence.
     static func spokenState(_ document: Document) -> String {
-        let said = document.notice.map(Spoken.sentence) ?? document.state.spoken
+        let said = document.notice.map(Spoken.sentence) ?? document.statusSpoken
         guard let first = said.first else { return said }
         return first.lowercased() + said.dropFirst()
     }
@@ -106,13 +111,27 @@ struct StatusStrip: View {
         }
     }
 
+    /// What the other Macs' receipts say (SY14), each Mac's time by its own clock.
+    private var receipts: String {
+        guard !document.otherMacs.isEmpty else { return "" }
+        let clock = SyncState.clock
+        let each = document.otherMacs.map { other -> String in
+            switch other.delivery {
+            case .same: "\(other.device) has this version (since \(clock.string(from: other.loaded.time)) by its clock)"
+            case .newer: "\(other.device) has a version this Mac hasn't got yet (from \(clock.string(from: other.loaded.time)) by its clock)"
+            case .earlier: "\(other.device) hasn't got this version yet (it has one from \(clock.string(from: other.loaded.time)) by its clock)"
+            }
+        }
+        return each.joined(separator: "; ") + ". Receipts come through iCloud too, so they're as late as iCloud is. "
+    }
+
     /// The precise meaning, in sentence case (PRD §4.5, "tooltips carry the precise meaning").
     private var tooltip: String {
         let hold = document.held
             ? "Nib holds this file: iCloud's own syncing is paused, and Nib uploads each version itself, refusing to overwrite a newer one."
             : "iCloud syncs this file on its own schedule."
         switch document.state {
-        case .synced: return "iCloud has this exact version. Other Macs get it when they check, which Nib does whenever it comes forward. " + hold
+        case .synced: return "iCloud has this exact version. Other Macs get it when they check, which Nib does whenever it comes forward. " + receipts + hold
         case .saved: return "Saved on this Mac. iCloud doesn't have this version yet. " + hold
         case .local: return "An untitled buffer: Nib keeps it on this Mac, in its own folder, and never syncs it. Closing it keeps the text in History for 30 days, and File › Reopen Closed File brings it back; File › Save… makes it a file."
         case .uploading: return "Uploading this version to iCloud. " + hold

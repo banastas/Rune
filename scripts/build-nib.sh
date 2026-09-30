@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Builds the Debug app for the scenario scripts, and makes sure it's the sources as they are:
-# on 2026-09-29 Xcode's build service said "BUILD SUCCEEDED" for 40 minutes while compiling
-# nothing (it hadn't seen the edits; PRD §8), and a suite ran an app older than its code.
-# If any Swift source is newer than the app, the build system's database is removed (touching
-# the files wasn't always enough) and it builds again, about 10 s; if the app is still older,
-# this stops.
+# Builds the Debug app for the scenario scripts, and makes sure it's the sources as they are.
+# On 2026-09-29 `-scheme nib` said "BUILD SUCCEEDED" and built only NibKit's command-line tool,
+# then a product also called `nib` (it's `nib-cli` now), and a suite ran an app older than its
+# code (PRD §8). If any Swift source is newer than the app after the build, it builds again
+# from a fresh build database; if the app is still older, this stops.
 #   scripts/build-nib.sh [team|adhoc]
 set -euo pipefail
 cd "$(dirname "$0")/.."

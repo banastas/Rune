@@ -62,9 +62,11 @@ run menubar
 swiftc -O -o build/hotkey-holder scripts/hotkey-holder.swift 2>/dev/null || true
 run firstrun -NibFakeLoginItem YES -NibHotKeyHolder "$PWD/build/hotkey-holder"
 # The `nib` command-line tool (AP4), against the running scenario (it never starts or fronts Nib).
-(cd NibKit && swift build --product nib 2>&1 | grep -E "error" || true)
-run cli -NibCLI "$PWD/NibKit/.build/debug/nib"
+(cd NibKit && swift build --product nib-cli 2>&1 | grep -E "error" || true)
+run cli -NibCLI "$PWD/NibKit/.build/debug/nib-cli"
 run fileops
+run access
+run receipts
 run undo
 run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"
@@ -106,7 +108,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard cleantext lines find palette gutter tidy menubar firstrun cli fileops undo crash recover crash-blocks recover-blocks external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
+for name in type clipboard cleantext lines find palette gutter tidy menubar firstrun cli fileops access receipts undo crash recover crash-blocks recover-blocks external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done

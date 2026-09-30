@@ -9,8 +9,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}
 DEST=${1:-$HOME/.local/bin}
-(cd NibKit && swift build -c release --product nib 2>&1 | tail -1)
+(cd NibKit && swift build -c release --product nib-cli 2>&1 | tail -1)
 mkdir -p "$DEST"
-install -m 755 NibKit/.build/release/nib "$DEST/nib"
+install -m 755 NibKit/.build/release/nib-cli "$DEST/nib"   # the product is nib-cli (a scheme named nib would clash with the app's)
 echo "Installed $DEST/nib"
 case ":$PATH:" in *":$DEST:"*) ;; *) echo "($DEST isn't on your PATH yet)";; esac
