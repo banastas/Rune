@@ -166,10 +166,11 @@ final class ReceiptBook {
     }
 
     /// The other Macs' versions of a file: which Mac, and the version it has loaded, and when.
+    /// Not one loaded more than 30 days ago (a Mac that's been away), as its own Nib would drop it.
     func others(for url: URL) -> [(device: String, loaded: DeviceReceipts.Loaded)] {
         (others[Self.folder(of: url).path] ?? []).compactMap { receipts in
             receipts.files[url.lastPathComponent].map { (receipts.device, $0) }
-        }
+        }.filter { Date().timeIntervalSince($0.loaded.time) < DeviceReceipts.lifetime }
     }
 }
 

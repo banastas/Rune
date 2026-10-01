@@ -162,12 +162,14 @@ public enum Highlighter {
 
     /// The language's captures within `range` that touch `window`, then its embedded languages
     /// there, recursively. A tree already parsed for `range` (a `SyntaxDocument`'s) is used as
-    /// is; embedded languages are parsed on the spot (a paragraph, a fence, a script).
+    /// is, with `string` the text it was parsed from (a stretch's runs on past `range` by its
+    /// closer, and a capture's text comes from it); embedded languages are parsed on the spot (a
+    /// paragraph, a fence, a script).
     static func collect(_ text: NSString, _ range: NSRange, _ language: SyntaxLanguage, roots: [String], level: Int = 0,
                         window: NSRange, tree given: MutableTree? = nil, string: String? = nil, into spans: inout [Span]) {
         guard intersects(range, window) || (range.length == 0 && window.length == 0) else { return }
         for (i, root) in roots.enumerated() { spans.append(Span(range: range, scope: root, order: (level, -roots.count + i, spans.count))) }
-        let part = string ?? text.substring(with: range)
+        let part = string ?? text.substring(with: range), source = part as NSString
         var parsed = given
         if parsed == nil {
             let parser = Parser()
@@ -193,7 +195,7 @@ public enum Highlighter {
                     if only { name.removeFirst(5) }
                     if name.hasPrefix("clear.") { name.removeFirst(6); name = "\u{1}" + name }
                     captured.append((Span(range: whole, scope: name, order: (level, match.patternIndex, spans.count + captured.count)), only))
-                    for (inner, scope) in delimiters(of: name, in: text.substring(with: whole)) {
+                    for (inner, scope) in delimiters(of: name, in: source.substring(with: capture.range)) {
                         marks.append(Span(range: NSRange(location: whole.location + inner.location, length: inner.length), scope: scope,
                                           order: (level, Int.max, spans.count + captured.count + marks.count)))
                     }
@@ -203,9 +205,17 @@ public enum Highlighter {
             spans += captured.filter { $0.only || !onlyRanges.contains(NSStringFromRange($0.span.range)) }.map(\.span)
             spans += marks
         }
-        for injection in Injections.find(in: root, text: part as NSString, language: language, window: local) {
-            let inner = NSRange(location: injection.range.location + range.location, length: injection.range.length)
-            collect(text, inner, injection.language, roots: injection.scopes, level: level + 1, window: window, into: &spans)
+        for injection in Injections.find(in: root, text: source, language: language, window: local) {
+            // One a stretch's end cuts off (it runs on into the closer): up to that end, read with
+            // its own language's closer, as the stretch is (a fence's /* … */ in JavaScript).
+            var part = injection.range, closer = ""
+            if NSMaxRange(part) > range.length {
+                part.length = max(0, range.length - part.location)
+                closer = String(decoding: injection.language.closer, as: UTF16.self)
+            }
+            let inner = NSRange(location: part.location + range.location, length: part.length)
+            collect(text, inner, injection.language, roots: injection.scopes, level: level + 1, window: window,
+                    string: source.substring(with: part) + closer, into: &spans)
         }
     }
 

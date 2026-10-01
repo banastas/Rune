@@ -114,7 +114,12 @@ public enum TextFile {
     /// Any mix of CRLF, CR and LF becomes LF. (Checked by byte: to Swift, "\r\n" is one
     /// Character, so `contains("\r")` misses it.)
     public static func normalize(_ text: String) -> String {
-        guard text.utf8.contains(0x0D) else { return text }
+        // memchr over the bytes when they're contiguous (a native string): checking each byte in
+        // Swift took tens of ms at 5 MB in a Debug build (§6.5).
+        let carriageReturn = text.utf8.withContiguousStorageIfAvailable { bytes in
+            bytes.baseAddress.map { memchr($0, 0x0D, bytes.count) != nil } ?? false
+        } ?? text.utf8.contains(0x0D)
+        guard carriageReturn else { return text }
         return text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
     }
 }

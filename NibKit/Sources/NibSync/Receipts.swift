@@ -108,6 +108,10 @@ public struct DeviceReceipts: Codable, Sendable, Equatable {
             .sorted { $0.device < $1.device }
     }
 
+    /// How long an entry counts: History's 30 days, so a version older than that, which this Mac
+    /// can't say it had, isn't taken for one it hasn't seen.
+    public static let lifetime: TimeInterval = 30 * 86_400
+
     /// This Mac's receipts with `changes` in, dropping files that are gone from the folder and
     /// entries more than 30 days old.
     public func updated(with changes: [String: Loaded], folder: URL, now: Date = Date(),
@@ -117,7 +121,7 @@ public struct DeviceReceipts: Codable, Sendable, Equatable {
         next.files.merge(changes) { _, new in new }
         let document = folder.deletingLastPathComponent().deletingLastPathComponent()
         next.files = next.files.filter { name, loaded in
-            now.timeIntervalSince(loaded.time) < 30 * 86_400 && exists(document.appendingPathComponent(name))
+            now.timeIntervalSince(loaded.time) < Self.lifetime && exists(document.appendingPathComponent(name))
         }
         return next
     }

@@ -211,9 +211,9 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     }
 
     /// A moment after typing pauses, off the main thread: the tree brought up to the text (an
-    /// incremental parse: 30-110 ms at 2.4-5 MB, a whole one only when a file opens), then the
-    /// styles of the text in view and a margin (7-28 ms). Up to 5 MB (ED9: larger files
-    /// aren't highlighted).
+    /// incremental parse of the stretch around the view in a big file, `SyntaxDocument`), then
+    /// the styles of the text in view and a margin. Up to 5 MB (ED9: larger files aren't
+    /// highlighted).
     func scheduleHighlight(after delay: Double = 0.08) {
         edits += 1
         highlightTask?.cancel()

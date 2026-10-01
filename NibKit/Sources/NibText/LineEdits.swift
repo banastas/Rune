@@ -33,7 +33,9 @@ public enum Indentation: Sendable, Equatable {
     /// spaces (2, 4…); `fallback` for a file with nothing indented.
     public static func detect(in text: String, fallback: Indentation) -> Indentation {
         var tabs = 0, spaced: [Int] = []
-        for line in text.split(separator: "\n", omittingEmptySubsequences: true).prefix(5_000) {
+        // The first 5,000 lines only, split no further: `split` makes every line first, and
+        // `prefix` came after (1 s of a 5 MB file's open, Debug; §6.5, 2026-09-30).
+        for line in text.split(separator: "\n", maxSplits: 5_000, omittingEmptySubsequences: true).prefix(5_000) {
             if line.hasPrefix("\t") { tabs += 1; continue }
             let n = line.prefix { $0 == " " }.count
             if n > 0, n < line.count { spaced.append(n) }

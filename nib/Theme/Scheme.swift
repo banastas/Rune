@@ -87,6 +87,9 @@ final class Schemes {
     private let defaults = UserDefaults.standard
 
     private init() {
+        #if DEBUG
+        AppDelegate.mark("schemes loading")
+        #endif
         report = defaults.string(forKey: "schemeReport")
         fontFace = defaults.string(forKey: "editorFontFace") ?? ""
         fontSize = defaults.object(forKey: "editorFontSize") as? Double ?? 13

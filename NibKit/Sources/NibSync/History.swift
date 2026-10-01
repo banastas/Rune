@@ -35,9 +35,18 @@ public final class History: Sendable {
     }
 
     private var index: URL { directory.appendingPathComponent("index.jsonl") }
+    /// The versions thinning let go, a line each ("<sha256> <time>"): versions this Mac still had.
+    private var thinned: URL { directory.appendingPathComponent("thinned.txt") }
 
-    /// Whether it keeps this version (for receipts: has this Mac seen it, SY14).
-    public func has(_ sha: String) -> Bool { FileManager.default.fileExists(atPath: versionURL(sha).path) }
+    /// Whether this Mac had this version in the 30 days History covers: kept, or let go by
+    /// thinning since. For receipts (SY14): a version another Mac loaded a day ago, and thinned
+    /// here since, isn't one this Mac hasn't seen (the suite, 2026-09-30: the Air's receipt from
+    /// the day before read as "▼ NEWER ON BILL'S MACBOOK AIR · NOT HERE YET").
+    public func has(_ sha: String) -> Bool {
+        if contains(sha) { return true }
+        guard let text = try? String(contentsOf: thinned, encoding: .utf8) else { return false }
+        return text.split(separator: "\n").contains { $0.hasPrefix(sha + " ") }
+    }
     private func versionURL(_ sha: String) -> URL { directory.appendingPathComponent("versions", isDirectory: true).appendingPathComponent(sha) }
 
     private static let encoder: JSONEncoder = {
@@ -111,14 +120,32 @@ public final class History: Sendable {
                 if buckets.insert(bucket).inserted { kept.append(entry) }
             }
             kept.reverse()
+            let keep = Set(kept.map(\.sha256))
+            remember(all.filter { !keep.contains($0.sha256) && now.timeIntervalSince($0.time) < 30 * 86_400 }, now: now)
             guard kept.count != all.count else { return }
             let lines = kept.compactMap { try? Self.encoder.encode($0) }.map { String(decoding: $0, as: UTF8.self) }
             try? (lines.joined(separator: "\n") + (lines.isEmpty ? "" : "\n")).write(to: index, atomically: true, encoding: .utf8)
-            let keep = Set(kept.map(\.sha256))
             let folder = versionURL("x").deletingLastPathComponent()
             for name in (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? [] where !keep.contains(name) {
                 try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
             }
         }
+    }
+
+    /// Adds the versions let go to `thinned` (the latest time each), and drops what's 30 days old.
+    private func remember(_ gone: [HistoryEntry], now: Date) {
+        let formatter = ISO8601DateFormatter()
+        let old = (try? String(contentsOf: thinned, encoding: .utf8)) ?? ""
+        var times: [String: Date] = [:]
+        for line in old.split(separator: "\n") {
+            let parts = line.split(separator: " ", maxSplits: 1)
+            guard parts.count == 2, let time = formatter.date(from: String(parts[1])) else { continue }
+            times[String(parts[0])] = max(time, times[String(parts[0])] ?? time)
+        }
+        for entry in gone { times[entry.sha256] = max(entry.time, times[entry.sha256] ?? entry.time) }
+        times = times.filter { now.timeIntervalSince($0.value) < 30 * 86_400 }
+        let lines = times.sorted { $0.value < $1.value }.map { "\($0.key) \(formatter.string(from: $0.value))\n" }.joined()
+        guard lines != old else { return }
+        if lines.isEmpty { try? FileManager.default.removeItem(at: thinned) } else { try? lines.write(to: thinned, atomically: true, encoding: .utf8) }
     }
 }

@@ -205,6 +205,9 @@ final class Document {
     @ObservationIgnored private var savedWhileHeld: String?
 
     init(url: URL) {
+        #if DEBUG
+        AppDelegate.mark("a document made: \(url.lastPathComponent)")
+        #endif
         self.url = url
         untitled = Untitled.contains(url)
         let defaults = UserDefaults.standard
@@ -215,11 +218,21 @@ final class Document {
         history = History(root: NibPaths.support.appendingPathComponent("History"), path: url.path)
         editor = Editor()
         presenter.document = self
+        #if DEBUG
+        AppDelegate.mark("its editor made")
+        #endif
         notePresenter.document = self
         editor.document = self
     }
 
     // MARK: - Opening
+
+    #if DEBUG
+    /// The open's steps and their times, for the `bigopen` and `perf` scenarios.
+    @ObservationIgnored private(set) var openSteps: [String] = []
+    @ObservationIgnored let made = Date()
+    #else
+    #endif
 
     /// Not opened yet: the welcome window will say which file, or make it (AP5).
     func awaitFirstRun() {
@@ -229,6 +242,9 @@ final class Document {
     }
 
     func open() async {
+        #if DEBUG
+        if self === Documents.scratch { AppDelegate.mark("the open starting") }
+        #endif
         if let reason = ScratchLocation.refusal(for: url) {
             locked = reason
             state = .problem(reason)
@@ -245,6 +261,9 @@ final class Document {
         // How long each step took, for the Sync Log's open line (§6.5's launch to an editable window).
         var steps: [String] = []
         var stepStart = Date()
+        #if DEBUG
+        steps.append("asked to open, to opening \(Int(stepStart.timeIntervalSince(made) * 1000)) ms")
+        #endif
         func step(_ name: String) {
             steps.append("\(name) \(Int(Date().timeIntervalSince(stepStart) * 1000)) ms")
             stepStart = Date()
@@ -289,6 +308,7 @@ final class Document {
             let (data, fingerprint) = try await io.run { try FileAccess.read(url, presenter: presenter) }
             step("reading")
             let decoded = TextFile.decode(data)
+            step("decoding")
             text = decoded.text
             format = decoded.format
             baseFingerprint = fingerprint
@@ -300,10 +320,14 @@ final class Document {
             return
         }
         applying = true
+        stepStart = Date()
         editor.textView.string = text
+        step("into the view")
         applying = false
         editor.restoreSelection(for: url)
+        step("the caret")
         updateBlocks()
+        step("conflict blocks")
         if !untitled {
             NSFileCoordinator.addFilePresenter(presenter)
             try? FileManager.default.createDirectory(at: Announcement.url(for: url).deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -311,13 +335,29 @@ final class Document {
             watchFile()
             watchNoteFolder()
         }
-        step("showing")
+        step("watching")
         record("open", size: text.utf8.count, sha: baseFingerprint?.sha256, detail: steps.joined(separator: " · "))
+        #if DEBUG
+        if self === Documents.scratch { AppDelegate.mark("text shown") }
+        #endif
+        stepStart = Date()
         recoverFromJournal(fileText: text)
+        step("the journal")
+        #if DEBUG
+        if self === Documents.scratch { AppDelegate.mark("journal looked at") }
+        #endif
         pickedSyntax = UserDefaults.standard.string(forKey: "syntax:" + url.path).flatMap(SyntaxPick.init(stored:))
         applySyntax()
-        indentation = Indentation.detect(in: editor.textView.string, fallback: Self.defaultIndentation)
+        step("the syntax")
+        #if DEBUG
+        if self === Documents.scratch { AppDelegate.mark("syntax applied") }
+        #endif
+        indentation = Indentation.detect(in: text, fallback: Self.defaultIndentation)   // the text as read (the view's would be a copy)
         editor.indentation = indentation
+        step("indentation")
+        #if DEBUG
+        openSteps = steps
+        #endif
         state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : .saved(Date())
         ready = true
         #if DEBUG
@@ -603,12 +643,16 @@ final class Document {
     private func updateBlocks() {
         // With no blocks, only an edit on a marker line can make one: don't search the whole
         // text on every keystroke (14 ms at 2.4 MB).
-        if blocks.isEmpty, let edit = editor.lastEdit, let storage = editor.textView.textStorage {
+        // A big edit (an open, a paste, a reload) goes straight to the search for blocks, which
+        // looks for a start marker once: here it would look for all four first (120 ms of a 5 MB
+        // file's open, Debug; §6.5).
+        if blocks.isEmpty, let edit = editor.lastEdit, edit.length < 65_536, let storage = editor.textView.textStorage {
             let text = storage.string as NSString
             let lines = text.lineRange(for: NSIntersectionRange(edit, NSRange(location: 0, length: text.length)))
             guard ["<<<<<<<", "|||||||", "=======", ">>>>>>>"].contains(where: { text.range(of: $0, range: lines).location != NSNotFound }) else { return }
         }
-        let found = ConflictText.blocks(in: editor.textView.string)
+        // The storage's own string, not the view's copy of it.
+        let found = ConflictText.blocks(in: editor.textView.textStorage?.string ?? editor.textView.string)
         if found.count != blocks.count { bannerHidden = false }
         if !blocks.isEmpty, found.isEmpty, editor.textView.window?.isVisible == true {
             Announce.sentence("No conflicts left in \(url.lastPathComponent).")   // AX2
@@ -1052,6 +1096,11 @@ final class Document {
         incoming(data, fingerprint: fingerprint, from: held ? "another app" : "iCloud")
     }
 
+    /// Whether the buffer is `text`, exactly (`TextDelta.same`: not Swift's ==, 78 ms at 2.4 MB).
+    private func holds(_ text: String) -> Bool {
+        TextDelta.same(editor.textView.textStorage?.string as NSString? ?? editor.textView.string as NSString, text as NSString)
+    }
+
     /// A version nib didn't write. No local edits: it replaces the buffer. Edits: a conflict.
     private func incoming(_ data: Data, fingerprint: Fingerprint?, from source: String, fromServer: Bool = false, noteWaited: Bool = false) {
         // Not news: the version the buffer's edits start from, or one already taken in (merged,
@@ -1087,7 +1136,7 @@ final class Document {
         remember(theirs, sha: fingerprint?.sha256)
         recordHistory { history in try? history.record(data, parent: nil, source: "from \(source)") }
         let mine = editor.textView.string
-        if theirs == mine {
+        if holds(theirs) {
             baseFingerprint = fingerprint
             savedEditCount = editCount
             if fromServer { uploadedSHA = fingerprint?.sha256 }
@@ -1166,7 +1215,7 @@ final class Document {
     private func upgradeIfProven() {
         guard let pending = unproven, let proven = provenBase(for: pending.theirsSHA, uploaded: pending.uploadedBefore) else { return }
         unproven = nil
-        guard editor.textView.string == pending.written else { return }   // edited since: left as written
+        guard holds(pending.written) else { return }   // edited since: left as written
         var theirs = pending.theirs
         theirs.label = "\(proven.device) · \(SyncState.clock.string(from: Date()))"
         let result = Merge.threeWay(base: proven.text, pending.mine, theirs)
@@ -1250,7 +1299,7 @@ final class Document {
     func restore(_ entry: HistoryEntry) {
         guard let data = history.data(entry.sha256) else { NSSound.beep(); return }
         let text = TextFile.decode(data).text
-        guard text != editor.textView.string else { return }
+        guard !holds(text) else { return }
         let time = SyncState.clock.string(from: entry.time)
         replaceBuffer(with: text, action: "Revert to \(time)")
         show("= BACK TO THE VERSION FROM \(time) (\(entry.source.uppercased())) · ⌘Z UNDOES", for: 10)
@@ -1260,7 +1309,7 @@ final class Document {
     /// A version this Mac has already had: identical to the buffer or the file, taken in
     /// before, or kept in History. Its text adds nothing.
     private func alreadyHave(_ text: String, sha: String) -> Bool {
-        text == editor.textView.string || sha == baseFingerprint?.sha256 || incorporated.contains(sha)
+        holds(text) || sha == baseFingerprint?.sha256 || incorporated.contains(sha)
             || superseded.contains(sha) || history.contains(sha)
     }
 
@@ -1291,7 +1340,7 @@ final class Document {
         let sha = Digest.sha256(data)
         guard handledOthers.insert(name + ":" + sha).inserted else { return }
         let theirs = TextFile.decode(data).text
-        let identical = theirs == editor.textView.string || sha == baseFingerprint?.sha256
+        let identical = holds(theirs) || sha == baseFingerprint?.sha256
         let known = alreadyHave(theirs, sha: sha)
         recordHistory { history in try? history.record(data, parent: nil, source: "duplicate \(name)") }
         if known {
@@ -1407,17 +1456,31 @@ final class Document {
         let view = editor.textView
         let selection = view.selectedRange()
         applying = true
-        let full = NSRange(location: 0, length: (view.string as NSString).length)
-        if undoable, view.shouldChangeText(in: full, replacementString: text) {
-            view.textStorage?.replaceCharacters(in: full, with: text)
-            view.didChangeText()
-        } else {
-            view.string = text
-            editor.scheduleHighlight(after: 0)
+        // Only what changed (§6.5): another version usually differs in a few lines, and
+        // replacing the whole text redid TextKit's layout, the line index and the undo step for
+        // all of it (a reload at 2.4 MB, 303 ms in Debug).
+        let current = view.textStorage?.string as NSString? ?? view.string as NSString
+        let change = TextDelta.change(from: current, to: text as NSString)
+        if let change {
+            if undoable, view.shouldChangeText(in: change.range, replacementString: change.replacement) {
+                view.textStorage?.replaceCharacters(in: change.range, with: change.replacement)
+                view.didChangeText()
+            } else {
+                // Not undoable, or the view won't take an edit (read-only): the whole text, as before.
+                view.string = text
+                editor.scheduleHighlight(after: 0)
+            }
         }
         applying = false
+        // The caret where it was, moved along by a change before it.
         let length = (text as NSString).length
-        view.setSelectedRange(NSRange(location: min(selection.location, length), length: 0))
+        var location = selection.location
+        if let change, location >= NSMaxRange(change.range) {
+            location += (change.replacement as NSString).length - change.range.length
+        } else if let change, location > change.range.location {
+            location = change.range.location + (change.replacement as NSString).length
+        }
+        view.setSelectedRange(NSRange(location: min(max(0, location), length), length: 0))
         updateBlocks()
     }
 

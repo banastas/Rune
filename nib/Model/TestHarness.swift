@@ -52,8 +52,10 @@ enum TestHarness {
             let launch = processStart().map { started -> String in
                 let moments = [AppDelegate.launchMoments.window, AppDelegate.launchMoments.text]
                 let editable = moments.contains(where: { $0 == nil }) ? Date() : moments.compactMap { $0 }.max()!
-                let phases = AppDelegate.launchPhases.map { " (\($0.name) \(Int($0.seconds * 1000)) ms)" }.joined()
-                return " · editable \(Int(editable.timeIntervalSince(started) * 1000)) ms after launch, held \(Int(Date().timeIntervalSince(started) * 1000)) ms" + (phases.isEmpty ? "" : ":" + phases)
+                let marks = AppDelegate.launchMarks.map { " \($0.name) at \(Int($0.time.timeIntervalSince(started) * 1000))," }.joined()
+                let phases = marks + AppDelegate.launchPhases.map { " (\($0.name) \(Int($0.seconds * 1000)) ms)" }.joined()
+                func at(_ moment: Date?) -> String { moment.map { "\(Int($0.timeIntervalSince(started) * 1000))" } ?? "—" }
+                return " · editable \(Int(editable.timeIntervalSince(started) * 1000)) ms after launch (window \(at(AppDelegate.launchMoments.window)), text \(at(AppDelegate.launchMoments.text))), held \(Int(Date().timeIntervalSince(started) * 1000)) ms" + (phases.isEmpty ? "" : ":" + phases)
             } ?? ""
             log.line("scenario \(scenario) · \(document.url.lastPathComponent) · held \(document.held) · marker \(marker) · the focus stays with \(ScenarioFocus.keeper)\(launch)")
             switch scenario {
@@ -92,9 +94,51 @@ enum TestHarness {
             case "cli": await cliScenario(Documents.scratch, log, marker)
             case "fileops": await fileOpsScenario(Documents.scratch, log, marker)
             case "access": await accessScenario(log, marker)
-            case "receipts": await receiptsScenario(Documents.scratch, log, marker)
+            case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
+            case "bigopen": await bigOpen(log, marker)
+            case "idlebig":   // §6.5's idle memory with a scratch-sized file open (2.4 MB of Markdown, untitled)
+                await waitReady(document)
+                var md = "# Scratch-sized \(marker)\n", m = 0
+                while md.utf8.count < 2_400_000 {
+                    m += 1
+                    md += m % 50 == 0 ? "## Notes for \(m)\n" : m % 3 == 0 ? "- item \(m) with `code` and **bold** text\n" : "Line \(m): see https://example.com/\(m) and the config.json file.\n"
+                }
+                // -NibIdleBigExtension txt: the same text as plain text, no syntax tree.
+                let ext = UserDefaults.standard.string(forKey: "NibIdleBigExtension") ?? "md"
+                if let url = Untitled.create(text: md, name: "idlebig-\(marker).\(ext)") {
+                    AppDelegate.openFile(url)
+                    _ = await waitFor(20) { Documents.existing(for: url)?.ready == true }
+                    // At the top, then at the end, where a scratch file is written: getting there
+                    // reads the whole text a chunk at a time for places to start, each tree let go.
+                    try? await Task.sleep(for: .seconds(5))
+                    log.line(String(format: "idle with 2.4 MB open, at the top: %.1f MB", footprint()))
+                    if let view = Documents.existing(for: url)?.editor.textView {
+                        let length = (view.string as NSString).length
+                        view.setSelectedRange(NSRange(location: length, length: 0))
+                        view.scrollRangeToVisible(NSRange(location: length, length: 0))
+                    }
+                    // -NibIdleBigSlices n: idle for n 5-second slices (8), to watch for growth.
+                    let asked = UserDefaults.standard.integer(forKey: "NibIdleBigSlices"), slices = asked > 0 ? asked : 8
+                    for _ in 0..<slices {
+                        try? await Task.sleep(for: .seconds(5))
+                        log.line(String(format: "idle with 2.4 MB open: %.1f MB", footprint()))
+                    }
+                    Untitled.letGo(url)
+                    Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+                    _ = await waitFor(10) { Documents.existing(for: url) == nil }
+                }
+            case "idle":   // §6.5's idle CPU: synced, then nothing for a minute, for `sample` to watch
+                await waitReady(document)
+                await waitSynced(document, 30)
+                log.line("idle from now, for 60 s")
+                for _ in 0..<12 {   // CPU and wakeups in 5 s slices: launch's work tailing off, or steady?
+                    let a = usage(), start = Date()
+                    try? await Task.sleep(for: .seconds(5))
+                    let b = usage(), seconds = Date().timeIntervalSince(start)
+                    log.line(String(format: "idle: %.2f%% CPU, %.1f wakeups a second, %.1f MB", (b.cpu - a.cpu) / seconds * 100, Double(b.wakeups - a.wakeups) / seconds, footprint()))
+                }
             case "handback": await handBack(document, log)
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
@@ -1258,14 +1302,26 @@ enum TestHarness {
     /// VoiceOver's words and the Sync Log's time; one with a version this Mac hasn't seen
     /// ("▼ NEWER ON TEST MAC · NOT HERE YET"); one with an earlier version (nothing on the strip,
     /// a line on the card); and a receipt of a later format, ignored.
-    static func receiptsScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
-        await waitReady(document)
+    static func receiptsScenario(_ log: HarnessLog, _ marker: String) async {
+        // A file of its own: the real other Macs' receipts name the scratch file, and one left by
+        // a two-Mac run took the strip from the stand-in (the suite, 2026-09-30).
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("receipts-\(marker).md")
+        try? Data("# Receipts \(marker)\n".utf8).write(to: url)
+        defer {
+            Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+            try? FileManager.default.removeItem(at: url)
+            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(url)
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(30) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.held == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "its own test file opened and held"); return }
         await waitSynced(document, 30)
         let folder = DeviceReceipts.folder(for: document.url)
         let mine = DeviceReceipts.url(in: folder, device: document.device)
         let other = DeviceReceipts.url(in: folder, device: "Test Mac")
         let name = document.url.lastPathComponent
-        let view = document.editor.textView
         func disk() -> String { Digest.sha256((try? Data(contentsOf: document.url)) ?? Data()) }
         func pretend(_ sha: String, format: Int = DeviceReceipts.currentFormat) {
             var receipts = DeviceReceipts(device: "Test Mac", files: [name: .init(sha256: sha, time: Date())])
@@ -1281,7 +1337,6 @@ enum TestHarness {
         func testMac() -> Document.OtherMac? { document.otherMacs.first { $0.device == "Test Mac" } }
         defer { try? FileManager.default.removeItem(at: other) }
         let before = disk()
-        let start = (view.string as NSString).length
 
         // This Mac's receipt: the version its buffer comes from, written at most every 5 s.
         let writes = ReceiptBook.shared.written
@@ -1335,13 +1390,6 @@ enum TestHarness {
         pretend(current, format: DeviceReceipts.currentFormat + 1)
         let ignored = await waitFor(10) { testMac() == nil }
         log.check(ignored && !document.statusLine.contains("TEST MAC"), "a receipt of a later format is ignored")
-
-        // Out again.
-        if (view.string as NSString).length > start {
-            view.insertText("", replacementRange: NSRange(location: start, length: (view.string as NSString).length - start))
-        }
-        await document.flush(reason: "test")
-        await waitSynced(document, 30)
     }
 
     /// VoiceOver (AX1, AX2): the strip's summary; its indentation, encoding and line endings in words; a notice said as a sentence;
@@ -1651,8 +1699,11 @@ enum TestHarness {
             try? note.write(for: document.url)
         }
         if timing == "never" || timing == "late" {
-            let whole = await waitFor(15) { !ours(document, marker).isEmpty }
-            let line = events.read().dropFirst(before).last { $0.event == "conflict" }
+            // The blocks and the Sync Log's line together: the line is written just after the blocks
+            // go in, and read in between it wasn't there yet (the suite at 16:54, 2026-09-30).
+            func conflictLine() -> SyncEvent? { events.read().dropFirst(before).last { $0.event == "conflict" } }
+            let whole = await waitFor(15) { !ours(document, marker).isEmpty && conflictLine() != nil }
+            let line = conflictLine()
             // Through the wait for its note, not a disk check taking it for another app's.
             log.check(whole && line?.detail?.contains("no version both had is known") == true && line?.detail?.hasPrefix("changed by another Mac") == true,
                       "no note in 10 s: both whole versions between markers, as before (\(line?.detail ?? "no conflict line"))")
@@ -2376,7 +2427,8 @@ enum TestHarness {
             try? Data(changed.utf8).write(to: target)
         }
         let written = Date()
-        let reloaded = await waitFor(10) { view.string.hasSuffix("## Another app's line \(marker)\n") }
+        // The text storage's own string: `view.string` copies all 2.4 MB, a thousand times a second.
+        let reloaded = await timed(10) { view.textStorage?.mutableString.hasSuffix("## Another app's line \(marker)\n") == true } != nil
         let reload = Date().timeIntervalSince(written)
         log.line("MEASURED a reload at 2.4 MB (another app's version, on disk to the screen): \(reloaded ? "\(Int(reload * 1000)) ms" : "not within 10 s") · target ≤ 100 ms · \(reloaded && reload <= 0.1 ? "met" : "NOT MET")")
         let end = (view.string as NSString).length   // longer now, by another app's line
@@ -2754,23 +2806,17 @@ enum TestHarness {
             return (sorted[sorted.count / 2], sorted[min(sorted.count - 1, Int((Double(sorted.count) * 0.95).rounded(.up)) - 1)], sorted.last!)
         }
         func ms(_ seconds: Double) -> String { seconds < 0.01 ? String(format: "%.1f ms", seconds * 1000) : "\(Int((seconds * 1000).rounded())) ms" }
-        /// Polls every millisecond, the main run loop turning meanwhile.
-        func time(_ seconds: Double, _ condition: () -> Bool) async -> Double? {
-            let start = Date(), deadline = start.addingTimeInterval(seconds)
-            while Date() < deadline {
-                if condition() { return Date().timeIntervalSince(start) }
-                try? await Task.sleep(for: .milliseconds(1))
-            }
-            return condition() ? Date().timeIntervalSince(start) : nil
-        }
 
         // Idle: memory, CPU and wakeups, with the scratch window open and then with no windows.
         func idle(_ label: String, footprintTarget: Double) async {
-            // Settled: launch's own work done first (History thinned, receipts read…), up to 30 s.
-            for _ in 0..<15 {
+            // Settled: launch's own work done first (History thinned, receipts read…). It tails off
+            // over about 20 s (the `idle` scenario, 5 s slices: 0.63%, 0.10, 0.25, 0.03, 0.01…), so
+            // two quiet slices in a row, under 0.1% each, up to a minute.
+            var quiet = 0
+            for _ in 0..<12 where quiet < 2 {
                 let a = usage()
-                try? await Task.sleep(for: .seconds(2))
-                if (usage().cpu - a.cpu) / 2 < 0.005 { break }
+                try? await Task.sleep(for: .seconds(5))
+                quiet = (usage().cpu - a.cpu) / 5 < 0.001 ? quiet + 1 : 0
             }
             let before = usage(), start = Date()
             try? await Task.sleep(for: .seconds(12))
@@ -2794,7 +2840,7 @@ enum TestHarness {
             try? await Task.sleep(for: .milliseconds(150))
             let started = Date()
             AppDelegate.showScratch()
-            if let _ = await time(2, { AppDelegate.scratchWindow?.isKeyWindow == true && AppDelegate.scratchWindow?.firstResponder === document.editor.textView }) {
+            if let _ = await timed(2, { AppDelegate.scratchWindow?.isKeyWindow == true && AppDelegate.scratchWindow?.firstResponder === document.editor.textView }) {
                 AppDelegate.scratchWindow?.displayIfNeeded()
                 shows.append(Date().timeIntervalSince(started))
             }
@@ -2836,7 +2882,7 @@ enum TestHarness {
                 NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: small, options: [], error: &error) { url in
                     try? Data(text.utf8).write(to: url)   // in place, as a careful app writes
                 }
-                if let seen = await time(5, { view.string == text }) { coordinated.append(seen) }
+                if let seen = await timed(5, { view.string == text }) { coordinated.append(seen) }
                 try? await Task.sleep(for: .milliseconds(1_200))
             }
             for n in 1...3 {
@@ -2844,7 +2890,7 @@ enum TestHarness {
                 let line = "appended \(n) by a shell"
                 let written = Date()
                 append(line, to: small)
-                if await time(5, { view.string.contains(line) }) != nil { plain.append(Date().timeIntervalSince(written)) }
+                if await timed(5, { view.string.contains(line) }) != nil { plain.append(Date().timeIntervalSince(written)) }
                 try? await Task.sleep(for: .milliseconds(1_200))
             }
             if coordinated.isEmpty { missing.append("disk to screen (coordinated)") } else {
@@ -2879,7 +2925,7 @@ enum TestHarness {
             untitled.append(url)
             let started = Date()
             AppDelegate.openFile(url)
-            guard let shown = await time(15, {
+            guard let shown = await timed(15, {
                 guard let open = Documents.existing(for: url), open.ready, open.editor.textView.window?.isVisible == true else { return false }
                 return (open.editor.textView.string as NSString).length == (text as NSString).length
             }), let open = Documents.existing(for: url) else { return nil }
@@ -2887,7 +2933,7 @@ enum TestHarness {
             view.setSelectedRange(NSRange(location: 0, length: 0))
             view.scrollRangeToVisible(NSRange(location: 0, length: 0))
             let at = (view.string as NSString).range(of: keyword).location, plainAt = (view.string as NSString).range(of: plainWord).location
-            let colored = await time(15) { drawnColor(view, at: at) != "none" && drawnColor(view, at: at) != drawnColor(view, at: plainAt) }
+            let colored = await timed(15) { drawnColor(view, at: at) != "none" && drawnColor(view, at: at) != drawnColor(view, at: plainAt) }
             return (shown, colored.map { _ in Date().timeIntervalSince(started) }, open)
         }
         // Just under 5 MB: ED9 highlights files up to 5,000,000 characters, and none larger (the
@@ -2931,6 +2977,39 @@ enum TestHarness {
             missing.append("2.4 MB Markdown")
         }
         log.check(missing.isEmpty, "every measure taken\(missing.isEmpty ? "" : " but: " + missing.joined(separator: ", "))")
+    }
+
+    /// Where opening a big file goes (§6.5: 5 MB of JavaScript shown ≤ 300 ms, 2.4 MB of Markdown
+    /// too): each as an untitled buffer, from asking to its window up with the text, and the open's
+    /// steps, then colored at the top.
+    static func bigOpen(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        var js = "", n = 0
+        while js.utf8.count < 4_950_000 {
+            n += 1
+            js += "// block \(n)\nfunction handler\(n)(event) {\n  const value = event.detail?.value ?? \(n);\n  return value > 10 ? \"big\" : `small ${value}`;\n}\n"
+        }
+        var md = "# Scratch-sized \(marker)\n", m = 0
+        while md.utf8.count < 2_400_000 {
+            m += 1
+            md += m % 50 == 0 ? "## Notes for \(m)\n" : m % 3 == 0 ? "- item \(m) with `code` and **bold** text\n" : "Line \(m): see https://example.com/\(m) and the config.json file.\n"
+        }
+        for (name, text, keyword) in [("bigopen-\(marker).js", js, "function"), ("bigopen-\(marker).md", md, "# Scratch")] {
+            guard let url = Untitled.create(text: text, name: name) else { continue }
+            defer { Untitled.letGo(url) }
+            let asked = Date()
+            AppDelegate.openFile(url)
+            _ = await waitFor(20) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+            let shown = Date().timeIntervalSince(asked)
+            guard let document = Documents.existing(for: url) else { log.line("\(name): didn't open"); continue }
+            let view = document.editor.textView, at = (view.string as NSString).range(of: keyword).location
+            let plain = drawnColor(view, at: at)
+            _ = await waitFor(15) { drawnColor(view, at: at) != "none" && drawnColor(view, at: at) != plain || drawnColor(view, at: at) != "none" }
+            let colored = Date().timeIntervalSince(asked)
+            log.line("\(name) · \(text.utf8.count / 1000) KB · shown \(Int(shown * 1000)) ms · colored \(Int(colored * 1000)) ms · \(document.openSteps.joined(separator: " · "))")
+            view.window?.performClose(nil)
+            _ = await waitFor(10) { Documents.existing(for: url) == nil }
+        }
     }
 
     /// When this process started (§6.5's cold launch is measured from it).
@@ -2977,6 +3056,17 @@ enum TestHarness {
     static func isSynced(_ document: Document) -> Bool {
         if case .synced = document.state { return true }
         return false
+    }
+
+    /// How long until `condition` holds (nil: not within `seconds`), polled every millisecond, the
+    /// main run loop turning meanwhile: for what's measured against a target (`waitFor` looks every 50 ms).
+    static func timed(_ seconds: Double, _ condition: () -> Bool) async -> Double? {
+        let start = Date(), deadline = start.addingTimeInterval(seconds)
+        while Date() < deadline {
+            if condition() { return Date().timeIntervalSince(start) }
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        return condition() ? Date().timeIntervalSince(start) : nil
     }
 
     static func waitFor(_ seconds: Double, _ condition: () -> Bool) async -> Bool {

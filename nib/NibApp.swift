@@ -11,10 +11,19 @@ struct NibApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     init() {
+        #if DEBUG
+        AppDelegate.mark("the app starting")
+        #endif
         HUDFont.registerBundled()
+        #if DEBUG
+        AppDelegate.mark("fonts registered")
+        #endif
     }
 
     var body: some Scene {
+        #if DEBUG
+        let _ = AppDelegate.mark("scenes")
+        #endif
         Window("Scratch", id: "scratch") {
             ScratchView(document: Documents.scratch)
         }
@@ -61,6 +70,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// and when the scratch window came up and when its text was in it and editable.
     static var launchPhases: [(name: String, seconds: Double)] = []
     static var launchMoments: (window: Date?, text: Date?) = (nil, nil)
+    /// Moments before "launched", from the process's start.
+    nonisolated(unsafe) static var launchMarks: [(name: String, time: Date)] = []
+    nonisolated static func mark(_ name: String) { launchMarks.append((name, Date())) }
     #endif
 
     /// File › New, ⌘N (ED3).
@@ -98,6 +110,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        Self.mark("will finish launching")
+        #endif
         NSApp.appearance = NSAppearance(named: .darkAqua)   // dark only, always (A17)
         #if DEBUG
         ScenarioFocus.start()   // a scenario's Nib doesn't take the Mac's focus
@@ -115,11 +130,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let started = TestHarness.processStart() { Self.launchPhases.append(("to launched", launched.timeIntervalSince(started))) }
         #endif
         Task {
+            #if DEBUG
+            Self.mark("the launch task starting")
+            #endif
             await Document.settlePausedFiles(except: document.url)
-            let settled = Date()
             if !waitForChoice { await document.open() }
             #if DEBUG
-            Self.launchPhases += [("settling paused files", settled.timeIntervalSince(launched)), ("opening and holding the scratch file", Date().timeIntervalSince(settled))]
+            Self.launchPhases.append(("opening and holding the scratch file", Date().timeIntervalSince(launched)))
             #endif
             ClosedItems.shared.sweep()
             Untitled.restore()   // hot exit (ED3): the untitled buffers from before
@@ -128,7 +145,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             #endif
         }
         // Show Scratch (SC2, ⌥Space), Clean Clipboard (PT4, ⌃⌥⌘V) and Append Clipboard to
-        // Scratch (SC6, none), from any app, as Settings › General has them.
+        // Scratch (SC6, none), from any app, as Settings › General has them. Here, not queued
+        // after the open: there its 20-30 ms landed as iCloud answered and held the text back
+        // (§6.5, measured 2026-09-30).
         GlobalShortcuts.shared.registerAll()
         observeSystem()
         MenuBarController.shared.start()   // the menu bar extra (§5.7), AppKit's own status item
@@ -149,6 +168,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // After SwiftUI has put up the scratch window, so the welcome window is in front of it.
         if firstRun { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { FirstRun.shared.show() } }
+        #if DEBUG
+        Self.mark("did finish launching done")
+        #endif
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {

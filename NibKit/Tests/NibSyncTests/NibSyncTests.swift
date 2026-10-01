@@ -223,6 +223,13 @@ func scratchFolder() -> URL {
         #expect(history.entries().map { String(decoding: history.data($0.sha256) ?? Data(), as: UTF8.self) }
                 == ["day 10, late", "day 3, hour a, later", "today 1", "today 2"])
         #expect(!history.contains(Digest.sha256(Data("too old".utf8))))   // its bytes went too
+        // Let go, a version is still one this Mac had (receipts, SY14), for History's 30 days.
+        let thinned = Digest.sha256(Data("day 3, hour a".utf8))
+        #expect(!history.contains(thinned) && history.has(thinned))
+        #expect(!history.has(Digest.sha256(Data("too old".utf8))))
+        #expect(!history.has(Digest.sha256(Data("never here".utf8))))
+        history.thin(now: now.addingTimeInterval(28 * 86_400))   // day 3 is 31 days old then
+        #expect(!history.has(thinned))
     }
 }
 

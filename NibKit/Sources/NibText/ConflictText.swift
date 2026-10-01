@@ -37,8 +37,11 @@ public enum ConflictText {
     }
 
     /// Lines, keeping a final empty line when the text ends with "\n".
+    /// Split at "\n" bytes: the same lines as splitting at the character (a line feed never
+    /// joins a grapheme, and Nib's texts have "\n" line endings), without walking graphemes,
+    /// which took 33 ms for each 2.4 MB text: 99 of a merge's 108 ms (§6.5, 2026-09-30).
     static func lines(_ text: String) -> [Substring] {
-        text.split(separator: "\n", omittingEmptySubsequences: false)
+        text.utf8.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: false).map { Substring($0) }
     }
 
     /// True if the text holds conflict markers nib (or git) wrote.
