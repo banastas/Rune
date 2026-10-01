@@ -76,6 +76,8 @@ final class Document {
     /// where, or two Macs each making one on their first run leave a "scratch 2.md" (§4.6 C).
     private(set) var awaitingFirstRun = false
     private(set) var cursor = (line: 1, column: 1)
+    /// How many carets (ED8): the strip says so past one; line and column are the primary's.
+    var caretCount = 1
 
     let editor: Editor
     @ObservationIgnored let presenter: Presenter
@@ -1324,7 +1326,11 @@ final class Document {
             if lastNote?.sha256 == sha { break }
             if Date().timeIntervalSince(lastFresh) >= 2 {
                 lastFresh = Date()
-                if let note = await notesQueue.run({ Announcement.read(for: url, fresh: true) }), note.sha256 == sha {
+                // Within what's left of the wait: a fresh read waits for iCloud to bring the note
+                // down, and with its daemons busy one held this wait past 15 s (the suite,
+                // 2026-10-01). A note that comes later still narrows the blocks (`upgradeIfProven`).
+                let queue = notesQueue, left = max(0.25, deadline.timeIntervalSinceNow)
+                if let note = try? await CloudControl.within(left, { await queue.run { Announcement.read(for: url, fresh: true) } }), note.sha256 == sha {
                     lastNote = note
                     break
                 }

@@ -53,6 +53,12 @@ final class LineNumberRuler: NSRulerView {
         let index = editor.lineIndex
         let origin = view.textContainerOrigin
         let caretLine = index.line(at: view.selectedRange().location)
+        // With several carets, each one's line in view bright too (ED8).
+        var caretLines: Set<Int> = [caretLine]
+        if let carets = view.carets, carets.count > 1 {
+            let span = view.viewportSpan()
+            for caret in carets.all where span.contains(caret.head) { caretLines.insert(index.line(at: caret.head)) }
+        }
         let font = Scheme.font
         let plain: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: Scheme.gutterForeground]
         let current: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: Scheme.gutterForegroundHighlight]
@@ -68,7 +74,7 @@ final class LineNumberRuler: NSRulerView {
             drawn.append(line)
             if line == caretLine { drawnCurrent = line }
             #endif
-            let text = NSAttributedString(string: String(line), attributes: line == caretLine ? current : plain)
+            let text = NSAttributedString(string: String(line), attributes: caretLines.contains(line) ? current : plain)
             let y = convert(NSPoint(x: 0, y: baseline), from: view).y - font.ascender
             text.draw(at: NSPoint(x: bounds.width - 8 - text.size().width, y: y))
         }

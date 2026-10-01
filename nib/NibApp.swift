@@ -401,6 +401,9 @@ struct NibCommands: Commands {
                     .keyboardShortcut("g", modifiers: [.command, .shift])
                 Button("Use Selection for Find") { find({ $0.useSelection() }, else: #selector(NibTextView.useSelectionForFind(_:))) }
                     .keyboardShortcut("e")
+                // Only with the bar open: elsewhere ⌥Return is the text's own.
+                Button("Find All") { document?.editor.find.findAll() }.keyboardShortcut(.return, modifiers: .option)
+                    .disabled(document?.editor.find.shown != true)
                 Divider()
                 Button("Replace") { document?.editor.find.replaceCurrent() }.keyboardShortcut("e", modifiers: [.command, .option])
                     .disabled(document?.editor.find.shown != true)
@@ -421,6 +424,17 @@ struct NibCommands: Commands {
             Button("Join Lines") { send(#selector(NibTextView.joinLines(_:))) }.keyboardShortcut("j")
             Divider()
             Button("Go to Line…") { document?.goingToLine = true }.keyboardShortcut("g", modifiers: .control).disabled(document == nil)
+        }
+        // Multiple carets (ED8), on Sublime's keys; Escape is one caret again.
+        CommandMenu("Selection") {
+            Button("Add Next Occurrence") { send(#selector(NibTextView.selectNextOccurrence(_:))) }.keyboardShortcut("d")
+            Button("Select All Occurrences") { send(#selector(NibTextView.selectAllOccurrences(_:))) }.keyboardShortcut("g", modifiers: [.command, .control])
+            Button("Split into Lines") { send(#selector(NibTextView.splitSelectionIntoLines(_:))) }.keyboardShortcut("l", modifiers: [.command, .shift])
+            Divider()
+            Button("Add Caret Above") { send(#selector(NibTextView.addCaretAbove(_:))) }.keyboardShortcut(.upArrow, modifiers: [.control, .shift])
+            Button("Add Caret Below") { send(#selector(NibTextView.addCaretBelow(_:))) }.keyboardShortcut(.downArrow, modifiers: [.control, .shift])
+            Divider()
+            Button("One Caret (⎋)") { send(#selector(NibTextView.singleCaret(_:))) }
         }
         CommandMenu("Conflicts") { ConflictMenuItems(document: document) }
         // The first run again (AP5), in place of the Help Book Nib doesn't have.

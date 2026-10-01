@@ -8,6 +8,34 @@ public struct LineEdit: Sendable, Equatable {
     public var range: NSRange
     public var replacement: String
     public var selection: NSRange
+    /// Where inside the lines the text changed, in the text as it was, in order: Indent, Outdent
+    /// and Toggle Comment give them, so that several carets on one line each keep their place
+    /// (ED8); empty for the others.
+    public var shifts: [Shift] = []
+
+    /// `delta` units added at `at`, or taken away from it when negative. A caret at `at` goes
+    /// after what's added, unless `stays` (a block comment's close, added at a line's end).
+    public struct Shift: Sendable, Equatable {
+        public var at: Int
+        public var delta: Int
+        public var stays = false
+    }
+
+    /// Where `location`, in the text as it was, is after the edit, by `shifts`: after what was
+    /// added at it, at the start of what was taken away around it.
+    public func map(_ location: Int) -> Int {
+        var moved = location
+        for shift in shifts {
+            if shift.delta >= 0 {
+                if location > shift.at || (location == shift.at && !shift.stays) { moved += shift.delta }
+            } else if location >= shift.at - shift.delta {
+                moved += shift.delta
+            } else if location > shift.at {
+                moved -= location - shift.at
+            }
+        }
+        return moved
+    }
 }
 
 /// How a file indents: with tabs, or with so many spaces.
@@ -155,8 +183,9 @@ public enum LineEdits {
         var body = s.substring(with: lines)
         let ending = body.hasSuffix("\n") ? "\n" : ""
         if !ending.isEmpty { body.removeLast() }
-        var changedFirst = 0, total = 0
+        var changedFirst = 0, total = 0, shifts: [LineEdit.Shift] = [], lineStart = lines.location
         let out = body.components(separatedBy: "\n").enumerated().map { (i, line) -> String in
+            defer { lineStart += (line as NSString).length + 1 }
             if outdent {
                 var removed = 0
                 var rest = Substring(line)
@@ -164,18 +193,21 @@ public enum LineEdits {
                 else { while removed < width, rest.hasPrefix(" ") { rest.removeFirst(); removed += 1 } }
                 if i == 0 { changedFirst = -removed }
                 total -= removed
+                if removed > 0 { shifts.append(LineEdit.Shift(at: lineStart, delta: -removed)) }
                 return String(rest)
             }
             guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { return line }
             if i == 0 { changedFirst = (unit as NSString).length }
             total += (unit as NSString).length
+            shifts.append(LineEdit.Shift(at: lineStart, delta: (unit as NSString).length))
             return unit + line
         }.joined(separator: "\n")
         guard total != 0 else { return nil }
         let start = max(lines.location, selection.location + changedFirst)
         let length = max(0, selection.length + total - changedFirst)
         return LineEdit(range: lines, replacement: out + ending,
-                        selection: NSRange(location: start, length: selection.length == 0 ? 0 : min(length, (out as NSString).length + (ending as NSString).length)))
+                        selection: NSRange(location: start, length: selection.length == 0 ? 0 : min(length, (out as NSString).length + (ending as NSString).length)),
+                        shifts: shifts)
     }
 
     /// Toggle Comment (⌘/): uncommented if every non-blank line is commented, else commented;
@@ -192,12 +224,16 @@ public enum LineEdits {
         guard let first = filled.first, let last = filled.last else { return nil }
         func lead(_ line: String) -> Int { (line.prefix { $0 == " " || $0 == "\t" } as Substring).utf16.count }
         func utf16(_ t: String) -> Int { (t as NSString).length }
-        // Where each changed line changed before its text: (column, how much), for the caret.
-        var shifts: [Int: (column: Int, delta: Int)] = [:]
+        // Where each changed line changed before its text: (column, how much), for the caret;
+        // and every change, by where it was in the text, for carets of their own (ED8).
+        var shifts: [Int: (column: Int, delta: Int)] = [:], changes: [LineEdit.Shift] = []
+        var starts: [Int] = [], at = lines.location
+        for part in parts { starts.append(at); at += utf16(part) + 1 }
         func edit(_ i: Int, at column: Int, remove: Int, insert: String) {
             let line = parts[i] as NSString
             parts[i] = line.replacingCharacters(in: NSRange(location: column, length: remove), with: insert)
             shifts[i] = (column, utf16(insert) - remove)
+            changes.append(LineEdit.Shift(at: starts[i] + column, delta: remove > 0 ? -remove : utf16(insert)))
         }
         switch style {
         case .line(let mark):
@@ -217,17 +253,20 @@ public enum LineEdits {
                 while tail.hasSuffix(" ") { tail.removeLast() }
                 tail = String(tail.dropLast(close.count))
                 while tail.hasSuffix(" ") { tail.removeLast() }
+                changes.append(LineEdit.Shift(at: starts[last] + utf16(tail), delta: utf16(tail) - utf16(parts[last])))
                 parts[last] = tail
                 let at = lead(parts[first]), after = (parts[first] as NSString).substring(from: at + utf16(open))
                 edit(first, at: at, remove: utf16(open) + (after.hasPrefix(" ") ? 1 : 0), insert: "")
             } else {
+                changes.append(LineEdit.Shift(at: starts[last] + utf16(parts[last]), delta: utf16(close) + 1, stays: true))
                 parts[last] += " " + close
                 edit(first, at: lead(parts[first]), remove: 0, insert: open + " ")
             }
         }
         let out = parts.joined(separator: "\n") + ending
+        changes.sort { $0.at < $1.at }
         guard selection.length == 0 else {
-            return LineEdit(range: lines, replacement: out, selection: NSRange(location: lines.location, length: utf16(out) - utf16(ending)))
+            return LineEdit(range: lines, replacement: out, selection: NSRange(location: lines.location, length: utf16(out) - utf16(ending)), shifts: changes)
         }
         // The caret: on its line, moved by what changed before it.
         let old = body.components(separatedBy: "\n")
@@ -236,7 +275,7 @@ public enum LineEdits {
         var column = offset
         if let shift = shifts[index], column >= shift.column { column = max(shift.column, column + shift.delta) }
         let before = parts[..<index].reduce(0) { $0 + utf16($1) + 1 }
-        return LineEdit(range: lines, replacement: out, selection: NSRange(location: lines.location + before + min(column, utf16(parts[index])), length: 0))
+        return LineEdit(range: lines, replacement: out, selection: NSRange(location: lines.location + before + min(column, utf16(parts[index])), length: 0), shifts: changes)
     }
 
     /// The start of line `number` (1-based), or of the last line past the end (Go to Line, ⌃G).

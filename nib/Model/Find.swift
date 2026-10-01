@@ -126,6 +126,25 @@ final class FindSession {
         query = selected
     }
 
+    /// Find All (⌥Return, as in Sublime): every match selected, a caret each (ED8), and the bar
+    /// closed, for typing at all of them.
+    func findAll() {
+        guard let view = editor?.textView, failure == nil, !query.isEmpty else { NSSound.beep(); return }
+        searchNow()
+        guard !matches.isEmpty else {
+            NSSound.beep()
+            editor?.document?.show(failure ?? "NO MATCHES FOR “\(query)”", for: 4)
+            return
+        }
+        let found = matches, primary = TextSearch.next(after: view.selectedRange().location, in: found) ?? 0
+        if Self.findClipboard != query { Self.findClipboard = query }
+        close()
+        view.wholeWordSearch = options.wholeWord
+        view.setCarets(Carets(found.map(Caret.init(range:)), primary: primary))
+        let count = found.count >= TextSearch.limit ? "\(TextSearch.limit.formatted()) (THE MOST AT ONCE)" : found.count.formatted()
+        editor?.document?.show("\(count) SELECTED", for: 4)
+    }
+
     // MARK: Replacing
 
     /// Replace (⌥⌘E, Return in the Replace field): the selected match, then on to the next.

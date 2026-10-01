@@ -105,6 +105,7 @@ enum TestHarness {
             case "deleted": await deletedScenario(log, marker)
             case "full": await fullScenario(Documents.scratch, log, marker)
             case "icloudoff": await iCloudOffScenario(log, marker)
+            case "carets": await caretsScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -338,7 +339,7 @@ enum TestHarness {
         // ⌘F, from Edit › Find, with "deploy" (line 2) selected.
         let findMenu = NSApp.mainMenu?.items.first { $0.title == "Edit" }?.submenu?.items.first { $0.title == "Find" }?.submenu
         let titles = findMenu?.items.filter { !$0.isHidden && !$0.isSeparatorItem }.map(\.title) ?? []
-        log.check(titles == ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find", "Replace", "Replace All"],
+        log.check(titles == ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find", "Find All", "Replace", "Replace All"],
                   "Edit › Find: \(titles.joined(separator: ", "))")
         view.setSelectedRange(range("deploy"))
         let keys = ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find", "Replace", "Replace All"].map { title in
@@ -1632,6 +1633,230 @@ enum TestHarness {
                   "iCloud on again, the file back: the typing goes into it")
         let synced = await waitFor(60) { document.held && isSynced(document) }
         log.check(synced && !FileManager.default.fileExists(atPath: recovery.path), "held and synced again, and the Recovery copy is gone (\(document.state.line))")
+    }
+
+    /// Multiple carets (ED8), in an untitled buffer: the Selection menu's keys; typing at three
+    /// carets, a run of it one undo step; ⌘D from a caret (whole words) and replacing each; ⇧⌘L
+    /// and ⌘→ to end every line; ⌃⇧↓ for a column; the arrows, ⇧ extending; deleting where
+    /// carets meet; copy and paste a line each; Escape, and a plain click, back to one; ⌘-click
+    /// adding and taking away; an ⌥-drag column; the strip's count.
+    static func caretsScenario(_ log: HarnessLog, _ marker: String) async {
+        let start = "alpha\nbeta\ngamma\ndelta\nlet name = name + rename; name\n"
+        guard let url = Untitled.create(text: start, name: "carets-\(marker).txt") else { log.check(false, "an untitled buffer"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "it opened"); return }
+        let view = document.editor.textView
+        let undo = view.undoManager
+        func type(_ text: String) { for c in text { view.insertText(String(c), replacementRange: NSRange(location: NSNotFound, length: 0)) } }
+        func command(_ selector: Selector) { view.doCommand(by: selector) }
+        func heads() -> [Int] { view.currentCarets.all.map(\.head) }
+
+        // The menu, on Sublime's keys.
+        let menu = NSApp.mainMenu?.items.first { $0.title == "Selection" }?.submenu
+        func key(_ title: String) -> String { menu?.items.first { $0.title == title }.map { "\($0.keyEquivalentModifierMask.rawValue)/\($0.keyEquivalent)" } ?? "none" }
+        log.check(menu?.items.first { $0.title == "Add Next Occurrence" }?.keyEquivalent == "d" && menu?.items.first { $0.title == "Split into Lines" }?.keyEquivalent.lowercased() == "l"
+                  && menu?.items.contains { $0.title == "Add Caret Below" } == true,
+                  "Selection: Add Next Occurrence ⌘D, Select All Occurrences ⌃⌘G, Split into Lines ⇧⌘L, Add Caret Above and Below ⌃⇧↑↓ (\(key("Add Next Occurrence")), \(key("Select All Occurrences")), \(key("Split into Lines")))")
+
+        // Three carets, at the starts of alpha, beta and gamma; typing at each, one undo step.
+        view.setCarets(Carets([Caret(0), Caret(6), Caret(11)]))
+        type("- ")
+        log.check(view.string.hasPrefix("- alpha\n- beta\n- gamma\n") && heads() == [2, 10, 17] && document.caretCount == 3,
+                  "three carets: typing goes in at each (\(document.caretCount) carets on the strip: \(document.statusLine.isEmpty ? "" : "LN \(document.cursor.line)"))")
+        undo?.undo()
+        log.check(view.string == start && heads() == [0, 6, 11], "one undo takes the whole run back, and puts the three carets back")
+        undo?.redo()
+        log.check(view.string.hasPrefix("- alpha\n- beta\n- gamma\n") && heads() == [2, 10, 17], "and redo makes it again")
+        undo?.undo()
+
+        // ⌘D: from a caret, its word; then each next one, whole words only (not rename).
+        let line = (start as NSString).range(of: "let name").location
+        view.setCarets(Carets([Caret(line + 5)]))
+        view.selectNextOccurrence(nil)
+        view.selectNextOccurrence(nil)
+        view.selectNextOccurrence(nil)
+        let selected = view.currentCarets.ranges.map { (view.string as NSString).substring(with: $0) }
+        log.check(selected == ["name", "name", "name"] && view.currentCarets.count == 3, "⌘D: the caret's word, then each next one, not \"rename\" (\(selected))")
+        type("id")
+        log.check(view.string.hasSuffix("let id = id + rename; id\n"), "typing replaces all three (\((view.string as NSString).substring(from: line).debugDescription))")
+        undo?.undo()
+        log.check(view.string == start, "one undo")
+
+        // ⇧⌘L on four lines, ⌘→, a semicolon each.
+        view.setSelectedRange(NSRange(location: 0, length: 23))
+        view.splitSelectionIntoLines(nil)
+        command(#selector(NSResponder.moveToEndOfLine(_:)))
+        type(";")
+        log.check(view.string.hasPrefix("alpha;\nbeta;\ngamma;\ndelta;\n"), "⇧⌘L, ⌘→ and ;: each line ends with one")
+        undo?.undo()
+
+        // ⌃⇧↓ twice: a column of three.
+        view.setCarets(Carets([Caret(1)]))
+        view.addCaretBelow(nil)
+        view.addCaretBelow(nil)
+        log.check(heads() == [1, 7, 12], "⌃⇧↓ twice: carets below, at the same column (\(heads()))")
+        // Arrows: right, then ⇧→ selects a character at each.
+        command(#selector(NSResponder.moveRight(_:)))
+        command(#selector(NSResponder.moveRightAndModifySelection(_:)))
+        let picked = view.currentCarets.ranges.map { (view.string as NSString).substring(with: $0) }
+        log.check(heads() == [3, 9, 14] && picked == ["p", "t", "m"], "→, then ⇧→, at every caret (\(picked))")
+        // ⌘C, a caret at each line's start, ⌘V: a line each.
+        view.copy(nil)
+        view.setCarets(Carets([Caret(0), Caret(6), Caret(11)]))
+        view.paste(nil)
+        log.check(view.string.hasPrefix("palpha\ntbeta\nmgamma\n"), "copied from three, pasted at three: a line each")
+        undo?.undo()
+
+        // Deleting back from two carets side by side ("al|p|ha"): the l and the p go, and they're one.
+        view.setCarets(Carets([Caret(2), Caret(3)]))
+        command(#selector(NSResponder.deleteBackward(_:)))
+        log.check(view.string.hasPrefix("aha\n") && view.carets == nil && view.selectedRange().location == 1 && document.caretCount == 1,
+                  "deleting back from two carets side by side: both characters go, and they meet and become one")
+        undo?.undo()
+
+        // The line commands at every caret, a line once however many carets it has, each one undo step.
+        let unit = view.indentation.unit, u = (unit as NSString).length
+        view.setCarets(Carets([Caret(1), Caret(3), Caret(7), Caret(12)]))   // two on alpha, one on beta, one on gamma
+        view.indentLines(nil)
+        log.check(view.string.hasPrefix("\(unit)alpha\n\(unit)beta\n\(unit)gamma\ndelta\n") && heads() == [1 + u, 3 + u, 7 + 2 * u, 12 + 3 * u],
+                  "⌘] at four carets on three lines: each line once, every caret kept in its place (\(heads()))")
+        view.outdentLines(nil)
+        log.check(view.string == start && heads() == [1, 3, 7, 12], "⌘[ takes it out again, the carets with it")
+        undo?.undo()
+        undo?.undo()
+        log.check(view.string == start && heads() == [1, 3, 7, 12], "two undos, one each")
+        let style = view.commentStyle
+        view.commentStyle = { .line("//") }
+        view.setCarets(Carets([Caret(1), Caret(12)]))
+        view.toggleComment(nil)
+        log.check(view.string.hasPrefix("// alpha\nbeta\n// gamma\n") && heads() == [4, 18], "⌘/ at carets on alpha and gamma: those two lines (\(heads()))")
+        view.toggleComment(nil)
+        log.check(view.string == start && heads() == [1, 12], "⌘/ again: uncommented")
+        view.commentStyle = style
+        view.duplicateLine(nil)
+        log.check(view.string.hasPrefix("alpha\nalpha\nbeta\ngamma\ngamma\ndelta\n") && heads() == [7, 24], "⇧⌘D: each caret's line doubled, the carets on the copies (\(heads()))")
+        undo?.undo()
+        view.selectWholeLine(nil)
+        let lines = view.currentCarets.ranges.map { (view.string as NSString).substring(with: $0) }
+        log.check(lines == ["alpha\n", "gamma\n"], "⌘L: each caret's line (\(lines))")
+        view.setCarets(Carets([Caret(1), Caret(7)]))
+        view.moveLineDown(nil)
+        log.check(view.string.hasPrefix("gamma\nalpha\nbeta\ndelta\n") && heads() == [7, 13], "⌃⌘↓ from carets on alpha and beta: the two lines move as one (\(heads()))")
+        undo?.undo()
+        view.setCarets(Carets([Caret(0), Caret(6), Caret(11)]))
+        view.joinLines(nil)
+        log.check(view.string.hasPrefix("alpha beta gamma delta\nlet") && view.carets == nil, "⌘J from a column of three: the four lines one, one caret")
+        undo?.undo()
+        log.check(view.string == start && heads() == [0, 6, 11], "undo: the lines and the three carets back")
+        view.setCarets(Carets([Caret(anchor: 0, head: 8), Caret(12)]))
+        command(#selector(NSResponder.insertTab(_:)))
+        log.check(view.string.hasPrefix("\(unit)alpha\n\(unit)beta\n\(unit)gamma\ndelta\n"), "Tab with a selection over two lines and a caret: Indent at both")
+        command(#selector(NSResponder.insertBacktab(_:)))
+        log.check(view.string == start, "⇧Tab: Outdent at both")
+        undo?.undo()
+        undo?.undo()
+
+        // Find All (⌥Return with the find bar open): every match, a caret each, the bar closed.
+        let findAll = NSApp.mainMenu?.items.first { $0.title == "Edit" }?.submenu?.items.first { $0.title == "Find" }?.submenu?.items.first { $0.title == "Find All" }
+        let find = document.editor.find
+        find.open(replace: false)
+        find.options.wholeWord = true
+        find.query = "name"
+        find.findAll()
+        let found = view.currentCarets.ranges.map { (view.string as NSString).substring(with: $0) }
+        log.check(found == ["name", "name", "name"] && !find.shown && document.notice == "3 SELECTED" && findAll?.keyEquivalent == "\r" && findAll?.keyEquivalentModifierMask == .option,
+                  "Find All (⌥Return): every whole-word match selected, the bar closed (\(found), \(document.notice ?? "no notice"), Edit › Find › Find All \(findAll == nil ? "missing" : "there"))")
+        type("id")
+        log.check(view.string.hasSuffix("let id = id + rename; id\n"), "and typing goes in at all three")
+        undo?.undo()
+        find.options.wholeWord = false
+        find.query = ""
+
+        // Escape, and a plain click, are one caret again.
+        view.setCarets(Carets([Caret(0), Caret(6)]))
+        command(#selector(NSResponder.cancelOperation(_:)))
+        log.check(view.carets == nil && view.selectedRange() == NSRange(location: 6, length: 0), "Escape: one caret, the primary")
+        view.setCarets(Carets([Caret(0), Caret(6)]))
+        view.setSelectedRange(NSRange(location: 3, length: 0))
+        log.check(view.carets == nil, "a selection Nib didn't make (a click): one caret")
+
+        // ⌘-click adds one, ⌘-click on it takes it away.
+        func click(at location: Int, _ flags: NSEvent.ModifierFlags, dragTo: Int? = nil) {
+            guard let window = view.window, let rect = view.caretRect(at: location) else { return }
+            let point = view.convert(NSPoint(x: rect.midX + 1, y: rect.midY), to: nil)
+            func event(_ type: NSEvent.EventType, _ at: NSPoint) -> NSEvent? {
+                NSEvent.mouseEvent(with: type, location: at, modifierFlags: flags, timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)
+            }
+            if let dragTo, let to = view.caretRect(at: dragTo), let drag = event(.leftMouseDragged, view.convert(NSPoint(x: to.midX + 1, y: to.midY), to: nil)) { window.postEvent(drag, atStart: false) }
+            if let up = event(.leftMouseUp, dragTo.flatMap { view.caretRect(at: $0) }.map { view.convert(NSPoint(x: $0.midX + 1, y: $0.midY), to: nil) } ?? point) { window.postEvent(up, atStart: false) }
+            if let down = event(.leftMouseDown, point) { view.mouseDown(with: down) }
+        }
+        view.setSelectedRange(NSRange(location: 1, length: 0))
+        click(at: 8, .command)
+        let added = heads()
+        click(at: 8, .command)
+        log.check(added == [1, 8] && view.carets == nil && view.selectedRange().location == 1, "⌘-click: a caret more there; ⌘-click on it: gone (\(added))")
+
+        // ⌥-drag down three lines: a column of selections.
+        click(at: 1, .option, dragTo: 14)
+        let column = view.currentCarets.ranges
+        log.check(column.count == 3 && column.allSatisfy { $0.length == 2 }, "⌥-drag: a column, a selection a line (\(column))")
+        // The window in front for a moment: the system draws the other carets in the key window.
+        ScenarioFocus.take()
+        view.window?.makeKeyAndOrderFront(nil)
+        view.window?.makeFirstResponder(view)
+        view.setCarets(Carets([Caret(anchor: 0, head: 5), Caret(8), Caret(12)]))
+        try? await Task.sleep(for: .milliseconds(600))
+        if let frame = view.window?.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("carets.png"))
+        }
+        ScenarioFocus.giveBackNow()
+        view.collapseCarets()
+        await close(url)
+
+        // Many carets: Find All on 2,000 matches in highlighted JavaScript, then a keystroke and
+        // a delete at all of them, timed (Debug, the main thread's share).
+        let js = (1...2_000).map { "let item\($0) = \"text \($0)\"; // note \($0)\n" }.joined()
+        guard let manyURL = Untitled.create(text: js, name: "carets-many-\(marker).js") else { log.check(false, "a JavaScript buffer"); return }
+        AppDelegate.openFile(manyURL)
+        _ = await waitFor(10) { Documents.existing(for: manyURL)?.ready == true && Documents.existing(for: manyURL)?.editor.textView.window?.isVisible == true }
+        guard let many = Documents.existing(for: manyURL) else {
+            log.check(false, "the JavaScript buffer opened")
+            try? FileManager.default.removeItem(at: manyURL.deletingLastPathComponent())   // or it comes back at the next launch
+            return
+        }
+        let manyView = many.editor.textView
+        let keyword = (js as NSString).range(of: "let").location, name = (js as NSString).range(of: "item1").location
+        let colored = await waitFor(10) { drawnColor(manyView, at: keyword) != "none" && drawnColor(manyView, at: keyword) != drawnColor(manyView, at: name) }
+        let manyFind = many.editor.find
+        manyFind.open(replace: false)
+        manyFind.query = "item"
+        var started = Date()
+        manyFind.findAll()
+        let allTime = Date().timeIntervalSince(started)
+        let count = manyView.currentCarets.count
+        started = Date()
+        manyView.insertText("x", replacementRange: NSRange(location: NSNotFound, length: 0))
+        let keyTime = Date().timeIntervalSince(started)
+        let typed = manyView.string.hasPrefix("let x1 = ") && manyView.string.contains("let x2000 = ")
+        started = Date()
+        manyView.doCommand(by: #selector(NSResponder.deleteBackward(_:)))
+        let deleteTime = Date().timeIntervalSince(started)
+        func ms(_ t: TimeInterval) -> String { "\(Int((t * 1000).rounded())) ms" }
+        log.check(colored && count == 2_000 && typed && manyView.string.hasPrefix("let 1 = ") && keyTime < 0.5 && deleteTime < 0.5,
+                  "2,000 carets from Find All (\(ms(allTime))) in highlighted JavaScript: a keystroke at all of them \(ms(keyTime)), a delete \(ms(deleteTime)) (Debug)")
+        manyFind.query = ""
+        await close(manyURL)
+
+        /// Gone before the scenario ends: an untitled buffer still open at quit comes back at the
+        /// next launch (two of these opened in the next scenarios' windows, 2026-10-01).
+        func close(_ buffer: URL) async {
+            Untitled.letGo(buffer)
+            Documents.existing(for: buffer)?.editor.textView.window?.performClose(nil)
+            _ = await waitFor(10) { Documents.existing(for: buffer) == nil }
+        }
     }
 
     /// VoiceOver (AX1, AX2): the strip's summary; its indentation, encoding and line endings in words; a notice said as a sentence;

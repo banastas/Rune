@@ -47,11 +47,11 @@ struct StatusStrip: View {
                     Text(" · ")
                 } else {
                     Button { document.goingToLine = true } label: {
-                        Text("LN \(document.cursor.line), COL \(document.cursor.column) · ")
+                        Text("LN \(document.cursor.line), COL \(document.cursor.column)\(document.caretCount > 1 ? " · \(document.caretCount) CARETS" : "") · ")
                     }
                     .buttonStyle(.plain)
                     .help("Go to a line (⌃G)")
-                    .accessibilityLabel("Line \(document.cursor.line), column \(document.cursor.column). Go to a line")
+                    .accessibilityLabel("Line \(document.cursor.line), column \(document.cursor.column)\(document.caretCount > 1 ? ", \(document.caretCount) carets" : ""). Go to a line")
                 }
                 Menu { SyntaxMenuItems(document: document) } label: {
                     Text(document.syntaxName).font(HUDFont.terminal(16)).foregroundStyle(HUDColor.dim)
@@ -88,7 +88,7 @@ struct StatusStrip: View {
 
     /// "scratch.md, synced at 10:42:21, line 14, column 3, Markdown" (AX1).
     static func summary(_ document: Document) -> String {
-        "\(document.url.lastPathComponent), \(spokenState(document)), line \(document.cursor.line), column \(document.cursor.column), \(document.syntaxName.capitalized)"
+        "\(document.url.lastPathComponent), \(spokenState(document)), line \(document.cursor.line), column \(document.cursor.column)\(document.caretCount > 1 ? ", \(document.caretCount) carets" : ""), \(document.syntaxName.capitalized)"
     }
 
     /// "2 spaces, UTF-8, LF line endings".

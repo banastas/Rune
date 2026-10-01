@@ -62,6 +62,10 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.finder = find
         textView.onNotice = { [weak self] in self?.document?.show($0, for: 6) }
         textView.onFlash = { [weak self] in self?.flash($0) }
+        textView.onCarets = { [weak self] in
+            self?.document?.caretCount = $0
+            self?.ruler?.needsDisplay = true   // every caret's line number bright
+        }
         textView.commentStyle = { [weak self] in self?.commentStyle }
         textView.setAccessibilityLabel("Scratch")
         textView.usesRuler = false   // the gutter is Nib's own ruler; the text view's ruler support stays out of it
@@ -76,6 +80,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             MainActor.assumeIsolated {
                 self?.render()
                 self?.ruler?.needsDisplay = true
+                if self?.textView.multi == true { self?.textView.updateCaretViews() }   // placed for real once in view
             }
         }
         NotificationCenter.default.addObserver(forName: .nibSchemeChanged, object: nil, queue: .main) { [weak self] _ in
@@ -106,6 +111,15 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         onChange?()
         scheduleHighlight()
         find.textChanged()
+    }
+
+    /// Several ranges at once (multiple carets, ED8): each as one change, the last first, so the
+    /// ones before it are where they were. With this one there, NSTextView asks it for every change.
+    func textView(_ textView: NSTextView, shouldChangeTextInRanges affectedRanges: [NSValue], replacementStrings: [String]?) -> Bool {
+        for (index, range) in affectedRanges.enumerated().reversed() {
+            _ = self.textView(textView, shouldChangeTextIn: range.rangeValue, replacementString: replacementStrings?[index])
+        }
+        return true
     }
 
     /// Before each change: the colors move with the text until the next highlight, so typing
@@ -542,6 +556,69 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 final class NibTextView: NSTextView {
     /// Escape: true if it closed something (the conflict banner, then the find bar).
     var onEscape: (() -> Bool)?
+
+    // Multiple carets (ED8, MultiCarets.swift): all of them while there are several, the text
+    // view's own selection on the primary one; nil with one.
+    var carets: Carets?
+    /// While Nib sets the selection itself; any other change (a click, ⌘A, Go to Line) is one caret again.
+    var settingCarets = 0
+    var caretViews: [NSTextInsertionIndicator] = []
+    /// ⌘D's text came from a caret's word: whole words only; the word it picked, when that left one selection.
+    var wholeWordSearch = false
+    var expandedWord: NSRange?
+    var typingRun: CaretRun?
+    /// The count, for the strip.
+    var onCarets: ((Int) -> Void)?
+
+    override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        if settingCarets == 0, carets != nil {
+            carets = nil
+            caretsChanged()
+        }
+    }
+
+    override func doCommand(by selector: Selector) {
+        if multi {
+            if multiCaretCommand(selector) { return }
+            collapseCarets()   // not one done at several carets: at the primary, as ever
+        }
+        super.doCommand(by: selector)
+    }
+
+    override func insertText(_ string: Any, replacementRange: NSRange) {
+        if multi {
+            guard replacementRange.location == NSNotFound else { collapseCarets(); super.insertText(string, replacementRange: replacementRange); return }
+            typeAtCarets((string as? NSAttributedString)?.string ?? string as? String ?? "")
+            return
+        }
+        super.insertText(string, replacementRange: replacementRange)
+    }
+
+    /// An input method composing (marked text): at one caret.
+    override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        if multi { collapseCarets() }
+        super.setMarkedText(string, selectedRange: selectedRange, replacementRange: replacementRange)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let flags = event.modifierFlags.intersection([.command, .option, .shift, .control])
+        if flags == .command { commandClick(event); return }
+        if flags == .option, event.clickCount == 1, columnDrag(event) { return }
+        super.mouseDown(with: event)
+    }
+
+    override func copy(_ sender: Any?) {
+        if copyAtCarets() { return }
+        super.copy(sender)
+    }
+
+    override func cut(_ sender: Any?) {
+        guard multi else { super.cut(sender); return }
+        guard copyAtCarets() else { return }
+        let (edits, after) = currentCarets.deleting { _ in nil }   // the selections; a bare caret takes nothing
+        perform(edits, then: after, action: "Cut")
+    }
     /// Show Invisibles (ED6): spaces as dots, tabs as arrows, in the scheme's `invisibles`.
     var showsInvisibles = false { didSet { needsDisplay = true } }
     #if DEBUG
@@ -557,6 +634,7 @@ final class NibTextView: NSTextView {
     /// completion list, which ⌥Escape still asks for. (Opened from a scenario, the list was
     /// followed by a crash in SwiftUI's next update, three times out of three.)
     override func cancelOperation(_ sender: Any?) {
+        if multi { collapseCarets(); return }   // one caret again, first (Sublime)
         _ = onEscape?()
     }
 
@@ -564,6 +642,7 @@ final class NibTextView: NSTextView {
     /// plain flavor as its text, files copied in Finder as their paths, one per line (PT5).
     override func paste(_ sender: Any?) {
         guard let text = Clipboard.text() else { NSSound.beep(); return }
+        if multi { pasteAtCarets(PasteCleaner.plain(text)); return }
         insertText(PasteCleaner.plain(text), replacementRange: selectedRange())
     }
 
@@ -572,7 +651,7 @@ final class NibTextView: NSTextView {
     override func pasteAsPlainText(_ sender: Any?) {
         guard let text = Clipboard.text() else { NSSound.beep(); return }
         let result = PasteCleaner.clean(text, options: Clipboard.options)
-        insertText(result.text, replacementRange: selectedRange())
+        if multi { pasteAtCarets(result.text) } else { insertText(result.text, replacementRange: selectedRange()) }
         onNotice?((["PASTED CLEAN"] + (result.changed ? result.facts : ["NOTHING NEEDED CLEANING"])).joined(separator: " · "))
     }
 
@@ -682,18 +761,32 @@ final class NibTextView: NSTextView {
         scrollRangeToVisible(edit.selection)
     }
 
-    @objc func duplicateLine(_ sender: Any?) { apply(LineEdits.duplicate(string, selection: selectedRange()), "Duplicate Line") }
-    @objc func moveLineUp(_ sender: Any?) { apply(LineEdits.move(string, selection: selectedRange(), up: true), "Move Line Up") }
-    @objc func moveLineDown(_ sender: Any?) { apply(LineEdits.move(string, selection: selectedRange(), up: false), "Move Line Down") }
-    @objc func joinLines(_ sender: Any?) { apply(LineEdits.join(string, selection: selectedRange()), "Join Lines") }
+    /// A line command at the caret, or at every caret (ED8): `make` given the text and a selection.
+    private func lineCommand(_ action: String, groups: Carets.LineGroups = .sameLines, _ make: (String, NSRange) -> LineEdit?) {
+        let text = string
+        if multi { lineCommandAtCarets(action, groups: groups) { make(text, $0) } } else { apply(make(text, selectedRange()), action) }
+    }
+
+    @objc func duplicateLine(_ sender: Any?) { lineCommand("Duplicate Line") { LineEdits.duplicate($0, selection: $1) } }
+    @objc func moveLineUp(_ sender: Any?) { lineCommand("Move Line Up", groups: .block) { LineEdits.move($0, selection: $1, up: true) } }
+    @objc func moveLineDown(_ sender: Any?) { lineCommand("Move Line Down", groups: .block) { LineEdits.move($0, selection: $1, up: false) } }
+    @objc func joinLines(_ sender: Any?) { lineCommand("Join Lines", groups: .joins) { LineEdits.join($0, selection: $1) } }
     @objc func indentLines(_ sender: Any?) {
-        apply(LineEdits.indent(string, selection: selectedRange(), unit: indentation.unit, width: indentation.width), "Indent")
+        let indentation = indentation
+        lineCommand("Indent") { LineEdits.indent($0, selection: $1, unit: indentation.unit, width: indentation.width) }
     }
     @objc func outdentLines(_ sender: Any?) {
-        apply(LineEdits.indent(string, selection: selectedRange(), unit: indentation.unit, outdent: true, width: indentation.width), "Outdent")
+        let indentation = indentation
+        lineCommand("Outdent") { LineEdits.indent($0, selection: $1, unit: indentation.unit, outdent: true, width: indentation.width) }
     }
     @objc func selectWholeLine(_ sender: Any?) {
-        let range = LineEdits.selectLine(string, selection: selectedRange())
+        let text = string
+        if multi {
+            let carets = currentCarets
+            setCarets(Carets(carets.all.map { Caret(range: LineEdits.selectLine(text, selection: $0.range)) }, primary: carets.primary))
+            return
+        }
+        let range = LineEdits.selectLine(text, selection: selectedRange())
         setSelectedRange(range)
         scrollRangeToVisible(range)
     }
@@ -703,7 +796,7 @@ final class NibTextView: NSTextView {
             onNotice?("NO COMMENTS IN THIS SYNTAX · PICK ONE FROM THE STRIP")
             return
         }
-        apply(LineEdits.toggleComment(string, selection: selectedRange(), style: style), "Toggle Comment")
+        lineCommand("Toggle Comment") { LineEdits.toggleComment($0, selection: $1, style: style) }
     }
 
     /// Return keeps the line's indentation (Sublime's auto-indent).
@@ -736,7 +829,8 @@ final class NibTextView: NSTextView {
     }
 
     /// Conflict blocks' panels, the caret's visual line in An Old Hope's line highlight
-    /// (#272B34), then the blocks' frames over both, all under the text.
+    /// (#272B34; with several carets, each one's), then the blocks' frames over both, all
+    /// under the text.
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
         let frames = conflictBlocks.map { frameGeometry($0) }
@@ -744,10 +838,11 @@ final class NibTextView: NSTextView {
             Scheme.conflictBlock.setFill()
             frame.box.intersection(rect).fill()
         }
-        if selectedRange().length == 0, let line = currentLineRect() {
-            Scheme.lineHighlight.setFill()
-            line.intersection(rect).fill()
+        Scheme.lineHighlight.setFill()
+        for caret in highlightedCarets() {
+            if let line = lineRect(at: caret), line.intersects(rect) { line.intersection(rect).fill() }
         }
+        drawOtherSelections(in: rect)
         for (block, frame) in zip(conflictBlocks, frames) {
             if let frame, frame.box.insetBy(dx: 0, dy: -12).intersects(rect) { drawFrame(block, frame) }
         }
@@ -896,9 +991,16 @@ final class NibTextView: NSTextView {
         return NSRect(x: 0, y: textContainerOrigin.y + top, width: bounds.width, height: bottom - top)
     }
 
-    private func currentLineRect() -> NSRect? {
+    /// The carets whose lines are highlighted: an empty one's, the primary's alone with one
+    /// caret; with several, every empty one in the viewport.
+    private func highlightedCarets() -> [Int] {
+        guard let carets, carets.count > 1 else { return selectedRange().length == 0 ? [selectedRange().location] : [] }
+        let span = viewportSpan()
+        return carets.all.filter { $0.isEmpty && span.contains($0.head) }.map(\.head)
+    }
+
+    private func lineRect(at caret: Int) -> NSRect? {
         guard let layout = textLayoutManager, let content = layout.textContentManager else { return nil }
-        let caret = selectedRange().location
         let documentStart = content.documentRange.location
         guard let location = content.location(documentStart, offsetBy: caret) else { return nil }
         let origin = textContainerOrigin

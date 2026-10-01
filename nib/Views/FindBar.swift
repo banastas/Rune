@@ -2,7 +2,7 @@
 // Find, and with ⌥⌘F Replace; the options as Sublime shows them (.* regular expression,
 // Aa match case, whole word, in the selection); the count in the HUD's words, and a pattern
 // that isn't a regular expression said plainly (W2). Return goes to the next match, ⇧Return
-// the one before, Escape closes it.
+// the one before, ⌥Return selects them all (Find All, a caret each), Escape closes it.
 
 import AppKit
 import NibText
@@ -41,6 +41,8 @@ struct FindBar: View {
                 Button { find.next() } label: { Image(systemName: "chevron.right") }
                     .help("Next match (⌘G)")
                     .accessibilityLabel("Next match")
+                Button("Find All") { find.findAll() }
+                    .help("Select every match, a caret at each (⌥Return)")
                 Button("Done") { find.close() }
                     .help("Close the find bar (Escape)")
             }
