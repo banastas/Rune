@@ -37,6 +37,7 @@ SIGN=adhoc scripts/run-m1-scenarios.sh      # without the Apple account: no iClo
 scripts/run-m1-two-mac.sh a|b HH:MM         # the two-Mac test; same start time on both Macs
 scripts/install-nib-cli.sh [folder]         # the `nib` command-line tool, into ~/.local/bin (AP4)
 scripts/install-nib.sh                      # the Nib in daily use: a Release, as /Applications/Nib.app (quit it first)
+swift scripts/clean-test-leftovers.swift [--remove]   # old test runs' leftovers in the user's Nib folder and settings, to the Trash (a dry run without --remove)
 scripts/run-perf.sh                         # §6.5 measured: an optimized build with the scenarios, `perf`, ten cold launches
 spike/run-s1b.sh a|b HH:MM [part2]          # M0 iCloud probes on two Macs
 cd NibKit && swift test                     # the engine alone
