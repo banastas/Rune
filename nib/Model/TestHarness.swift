@@ -3744,24 +3744,21 @@ enum TestHarness {
     }
 }
 
-/// A scenario's Nib keeps no window's place in the Mac's defaults, which are the bundle's, the
+/// A scenario's Nib saves no window's place in the Mac's defaults, which are the bundle's, the
 /// Nib in daily use's too. SwiftUI names a window's frame (its autosave name) as it makes the
 /// window, before Nib sees it, and a cascaded file window saved its place under that name (the
-/// suite, 2026-10-01). So here no window takes a name, and none saves one: none opens where the
-/// user's were, and none moves them.
+/// suite, 2026-10-01). The names stay, so a window opens at the size the user's has (without
+/// them the merge view opened too small to resolve its blocks); only the saving goes.
 enum ScenarioWindows {
     static func keepFramesOut() {
-        for (original, kept) in [(#selector(NSWindow.setFrameAutosaveName(_:)), #selector(NSWindow.nibScenarioSetFrameAutosaveName(_:))),
-                                 (#selector(NSWindow.saveFrame(usingName:)), #selector(NSWindow.nibScenarioSaveFrame(usingName:)))] {
-            guard let a = class_getInstanceMethod(NSWindow.self, original), let b = class_getInstanceMethod(NSWindow.self, kept) else { continue }
-            method_exchangeImplementations(a, b)
-        }
+        guard let save = class_getInstanceMethod(NSWindow.self, #selector(NSWindow.saveFrame(usingName:))),
+              let skip = class_getInstanceMethod(NSWindow.self, #selector(NSWindow.nibScenarioSaveFrame(usingName:))) else { return }
+        method_exchangeImplementations(save, skip)
     }
 }
 
 extension NSWindow {
-    /// In place of setFrameAutosaveName(_:) and saveFrame(usingName:), in a scenario's Nib only.
-    @objc fileprivate func nibScenarioSetFrameAutosaveName(_ name: NSWindow.FrameAutosaveName) -> Bool { true }
+    /// In place of saveFrame(usingName:), in a scenario's Nib only.
     @objc fileprivate func nibScenarioSaveFrame(usingName name: NSWindow.FrameAutosaveName) {}
 }
 
