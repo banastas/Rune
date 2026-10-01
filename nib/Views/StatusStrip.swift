@@ -31,6 +31,16 @@ struct StatusStrip: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(document.url.lastPathComponent), \(Self.spokenState(document))")
+            if let offer = document.trashOffer {
+                // The disk is full (§4.9, 13): deleted files hold their space until the Trash is emptied.
+                Button { Task { await document.emptyTrashForSpace() } } label: {
+                    Text(offer.label).font(HUDFont.terminal(16)).foregroundStyle(HUDColor.bright).underline()
+                }
+                .buttonStyle(.plain)
+                .fixedSize()
+                .help("Permanently erase the Trash, to give this Mac's disk its space back (asks first)")
+                .accessibilityLabel(offer.spoken)
+            }
             Spacer(minLength: 8)
             HStack(spacing: 0) {
                 if document.goingToLine {

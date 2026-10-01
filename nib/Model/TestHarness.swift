@@ -31,6 +31,8 @@ enum TestHarness {
     /// The `full` scenario: uploads refused as when iCloud storage is full; writes failing as on a full disk.
     static var storageFull = false
     static var diskFull = false
+    /// The `full` scenario's own Trash: a scenario's Nib offers and empties only this, never the Mac's.
+    static var fakeTrash: URL?
     /// The `icloudoff` scenario: as if iCloud Drive were off on this Mac.
     static var iCloudOff = false
     /// Hands the file back for real, taking the server's version, just before the next forced
@@ -1594,19 +1596,44 @@ enum TestHarness {
         log.check(said(.storageFull).count == 1 && Notifier.shared.withdrawn.contains(.storageFull),
                   "one notification through every retry, taken out of Notification Center once it's synced (\(said(.storageFull).count))")
 
+        // Row 13's Empty Trash, against a Trash of the scenario's own (a scenario's Nib never
+        // offers or empties the Mac's, nor asks Finder), 3 MB in it.
+        let trash = NibPaths.support.appendingPathComponent("Trash-\(marker)", isDirectory: true)
+        let old = trash.appendingPathComponent("old-\(marker).bin")
+        try? FileManager.default.createDirectory(at: trash, withIntermediateDirectories: true)
+        try? Data(repeating: 7, count: 3_000_000).write(to: old)
+        TestHarness.fakeTrash = trash
+        defer {
+            TestHarness.fakeTrash = nil
+            TrashService.testAnswer = nil
+            try? FileManager.default.removeItem(at: trash)
+        }
         TestHarness.diskFull = true
         await type("- disk full \(marker)\n", into: document)
         let journalFull = await waitFor(5) { document.state.line.contains("DISK FULL") }
         await document.flush(reason: "test")
         log.check(journalFull && document.state.line.contains("ONLY IN MEMORY") && !fileText(document).contains("disk full \(marker)"),
                   "disk full: the journal and the file refuse, and the strip says so (\(document.state.line))")
+        let offered = await waitFor(5) { document.trashOffer != nil }
+        log.check(offered && document.trashOffer?.label.hasPrefix("EMPTY TRASH · 3") == true,
+                  "the strip offers to empty the Trash, with what that frees (\(document.trashOffer?.label ?? "nothing"))")
+        TrashService.testAnswer = false
+        await document.emptyTrashForSpace()
+        log.check(FileManager.default.fileExists(atPath: old.path) && document.trashOffer != nil, "it asks first, and Cancel erases nothing")
         try? await Task.sleep(for: .seconds(16))   // a retry, refused too
         let diskAlerts = said(.saveFailed)
         log.check(diskAlerts.count == 1 && diskAlerts[0].title == "Couldn't save \(document.url.lastPathComponent)" && diskAlerts[0].body.contains("disk is full"),
                   "a notification for it, once through the retries: “\(diskAlerts.first.map { $0.title + ": " + $0.body } ?? "none")” (\(diskAlerts.count))")
+        // Emptied: the space back (the made-up full disk let go with it), and the save goes at
+        // once, not at the next 15 s retry.
+        TrashService.testAnswer = true
         TestHarness.diskFull = false
+        let emptied = Date()
+        await document.emptyTrashForSpace()
         let saved = await waitFor(25) { fileText(document).contains("disk full \(marker)") }
-        log.check(saved, "with room again, it's saved within 15 s, nothing typed meanwhile")
+        let after = Date().timeIntervalSince(emptied)
+        log.check(saved && after < 5 && !FileManager.default.fileExists(atPath: old.path) && document.trashOffer == nil,
+                  "Empty Trash: erased once asked, and the text saved \(String(format: "%.1f", after)) s after, nothing typed meanwhile (\(document.notice ?? document.state.line))")
         await waitSynced(document, 30)
         log.check(isSynced(document), "and synced (\(document.state.line))")
         log.check(Notifier.shared.withdrawn.contains(.saveFailed) && said(.saveFailed).count == 1, "and its notification taken back")

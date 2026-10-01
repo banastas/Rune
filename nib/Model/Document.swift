@@ -34,7 +34,27 @@ final class Document {
     let untitled: Bool
     let device = Host.current().localizedName ?? "This Mac"
     private(set) var state: SyncState = .opening {
-        didSet { endAlerts(for: state) }
+        didSet {
+            endAlerts(for: state)
+            // The disk has room again once a save lands (typing sets .editing, full disk or not).
+            switch state {
+            case .saved, .local, .synced: if fullVolume != nil { fullVolume = nil; trashOffer = nil }
+            default: break
+            }
+        }
+    }
+    /// While this Mac's disk is full (§4.9, 13): the Trash that would give space back, as the
+    /// strip offers it, or nil (none, or empty).
+    private(set) var trashOffer: TrashOffer?
+    /// Where the disk filled up: the file, the journal or the Recovery folder.
+    @ObservationIgnored private var fullVolume: URL?
+
+    struct TrashOffer: Equatable {
+        /// What it would free; nil when Nib can't look inside (the Mac's own Trash, without Full
+        /// Disk Access), and Finder is asked on the click.
+        var bytes: Int64?
+        var label: String { bytes.map { "EMPTY TRASH · " + $0.formatted(.byteCount(style: .file)).uppercased() } ?? "EMPTY TRASH" }
+        var spoken: String { bytes.map { "Empty the Trash, " + $0.formatted(.byteCount(style: .file)) } ?? "Empty the Trash" }
     }
     private(set) var format = FileFormat.standard
     /// A line that shows in the strip for a while ("▼ UPDATED FROM …", "RECOVERED …").
@@ -771,6 +791,7 @@ final class Document {
                              : "COULDN'T WRITE THE RECOVERY JOURNAL · \(short(error)) · YOUR LATEST TYPING IS ONLY IN MEMORY")
             Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
                                   : Alerts.journalFailed(url.lastPathComponent, why: short(error)), for: url)
+            if CloudControl.isOutOfSpace(error) { diskIsFull(at: journal.directory) }
             record("problem", detail: "journal: \(CloudControl.describe(error))")
             scheduleJournal(after: 15)
         }
@@ -912,6 +933,7 @@ final class Document {
                              : "COULDN'T SAVE \(url.lastPathComponent.uppercased()) · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
             Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
                                   : Alerts.saveFailed(url.lastPathComponent, why: short(error)), for: url)
+            if CloudControl.isOutOfSpace(error) { diskIsFull(at: url) }
             record("problem", detail: "save: \(CloudControl.describe(error))")
             saving = false
             scheduleSave(after: 15)
@@ -1896,6 +1918,7 @@ final class Document {
                              : "COULDN'T SAVE TO THE RECOVERY FOLDER · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
             Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
                                   : Alerts.saveFailed(url.lastPathComponent, why: short(error), toRecovery: true), for: url)
+            if CloudControl.isOutOfSpace(error) { diskIsFull(at: recoveryURL) }
             record("problem", detail: "saving to the Recovery folder: \(CloudControl.describe(error))")
             scheduleSave(after: 15)
         }
@@ -2117,6 +2140,79 @@ final class Document {
             }
             list.remove(path)
         }
+    }
+
+    // MARK: - The Trash, for space (§4.9, 13)
+
+    /// The disk holding `place` is full: the strip offers to empty its Trash, when that would
+    /// give space back. Measured once each time it fills.
+    private func diskIsFull(at place: URL) {
+        guard fullVolume == nil else { return }
+        fullVolume = place
+        Task { trashOffer = await Self.offer(for: place) }
+    }
+
+    /// The Trash for the disk holding `place`: that drive's own, or the Mac's (Finder's).
+    private static func trash(for place: URL) -> (folder: URL?, mac: Bool) {
+        #if DEBUG
+        // A scenario's Nib never offers or empties the Mac's Trash, only its own made-up one.
+        if NibPaths.isScenario { return (TestHarness.fakeTrash, false) }
+        #endif
+        if let drive = TrashService.volumeTrash(containing: place) { return (drive, false) }
+        return (TrashService.userTrash, true)
+    }
+
+    private static func offer(for place: URL) async -> TrashOffer? {
+        guard let folder = trash(for: place).folder else { return nil }
+        guard let contents = await TrashService.contents(of: folder) else { return TrashOffer(bytes: nil) }
+        return contents.isEmpty ? nil : TrashOffer(bytes: contents.bytes)
+    }
+
+    /// EMPTY TRASH on the strip. Asks first: it can't be undone. A drive's own Trash Nib empties
+    /// itself; the Mac's, Finder does (macOS asks once whether Nib may tell it to). Then the
+    /// journal and the save try again at once, not at the next 15 s retry.
+    func emptyTrashForSpace() async {
+        guard let place = fullVolume else { return }
+        let (folder, mac) = Self.trash(for: place)
+        guard let folder else { return }
+        var contents = await TrashService.contents(of: folder)
+        var what = mac ? "the Trash" : "the Trash on “\(TrashService.volumeName(containing: place))”"
+        if contents == nil, mac {
+            // Nib can't look into the Mac's Trash: Finder counts it.
+            guard let count = await TrashService.finderTrashCount() else {
+                show("✕ NIB ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION", for: 10)
+                return
+            }
+            if count == 0 { contents = TrashService.Contents(items: 0, bytes: 0) } else { what = "the Trash (\(count) item\(count == 1 ? "" : "s"))" }
+        }
+        if contents?.isEmpty == true {
+            NSSound.beep()
+            trashOffer = nil
+            show("THE TRASH IS EMPTY · FREE SPACE ANOTHER WAY, OR COPY YOUR TEXT", for: 8)
+            return
+        }
+        guard TrashService.confirm(what, contents) else { return }
+        if mac {
+            if let problem = await TrashService.emptyFinderTrash() {
+                show(problem.hasPrefix("Nib isn't allowed") ? "✕ NIB ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION"
+                                                          : "✕ COULDN'T EMPTY THE TRASH", for: 10)
+                record("problem", detail: "emptying the Trash for space: \(problem)")
+                return
+            }
+        } else {
+            let problems = await TrashService.erase(folder)
+            if !problems.isEmpty {
+                show("✕ \(problems.count) ITEM\(problems.count == 1 ? "" : "S") IN THE TRASH COULDN'T BE ERASED", for: 10)
+                record("problem", detail: "emptying the Trash for space: \(problems.joined(separator: "; "))")
+                return
+            }
+        }
+        TrashService.playEmptySound()
+        trashOffer = nil
+        record("problem", detail: "the Trash emptied for space (\(contents.map { $0.bytes.formatted(.byteCount(style: .file)) } ?? "size unknown")): saving again")
+        show("✓ TRASH EMPTIED · SAVING AGAIN", for: 4)
+        scheduleJournal(after: 0)
+        scheduleSave(after: 0)
     }
 
     // MARK: - Helpers

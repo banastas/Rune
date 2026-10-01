@@ -26,6 +26,9 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Finder empties the Trash when the disk is full and the user chooses Empty Trash (PRD §4.9, 13). -->
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Nib asks Finder to empty the Trash when this Mac’s disk is full and you choose Empty Trash on the strip.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.com.banastas.nib</key>

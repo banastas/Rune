@@ -16,5 +16,9 @@
 	<array>
 		<string>iCloud.com.banastas.nib</string>
 	</array>
+	<!-- Finder empties the Trash when the disk is full and the user chooses Empty Trash (PRD §4.9,
+	     13); the hardened runtime sends no Apple Events without this. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
 </dict>
 </plist>
