@@ -3744,6 +3744,27 @@ enum TestHarness {
     }
 }
 
+/// A scenario's Nib keeps no window's place in the Mac's defaults, which are the bundle's, the
+/// Nib in daily use's too. SwiftUI names a window's frame (its autosave name) as it makes the
+/// window, before Nib sees it, and a cascaded file window saved its place under that name (the
+/// suite, 2026-10-01). So here no window takes a name, and none saves one: none opens where the
+/// user's were, and none moves them.
+enum ScenarioWindows {
+    static func keepFramesOut() {
+        for (original, kept) in [(#selector(NSWindow.setFrameAutosaveName(_:)), #selector(NSWindow.nibScenarioSetFrameAutosaveName(_:))),
+                                 (#selector(NSWindow.saveFrame(usingName:)), #selector(NSWindow.nibScenarioSaveFrame(usingName:)))] {
+            guard let a = class_getInstanceMethod(NSWindow.self, original), let b = class_getInstanceMethod(NSWindow.self, kept) else { continue }
+            method_exchangeImplementations(a, b)
+        }
+    }
+}
+
+extension NSWindow {
+    /// In place of setFrameAutosaveName(_:) and saveFrame(usingName:), in a scenario's Nib only.
+    @objc fileprivate func nibScenarioSetFrameAutosaveName(_ name: NSWindow.FrameAutosaveName) -> Bool { true }
+    @objc fileprivate func nibScenarioSaveFrame(usingName name: NSWindow.FrameAutosaveName) {}
+}
+
 /// A scenario's Nib gives the Mac's focus back to the app that had it, at launch and whenever it
 /// comes forward (PRD §8: keystrokes typed meanwhile landed in the test windows), unless the
 /// scenario takes it: find, palette and snapshot need a key window, for a few seconds.

@@ -145,9 +145,6 @@ struct WindowConfigurator: NSViewRepresentable {
             super.viewDidMoveToWindow()
             guard !done, let window else { return }
             done = true
-            // A test window doesn't save where it stands: SwiftUI keeps that in the Mac's own
-            // defaults, the Nib in daily use's, where `NibDefaults` can't take it.
-            if NibPaths.isScenario { window.setFrameAutosaveName("") }
             configure(window)
         }
     }

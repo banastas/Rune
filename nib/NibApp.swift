@@ -14,6 +14,8 @@ struct NibApp: App {
     init() {
         #if DEBUG
         AppDelegate.mark("the app starting")
+        // Before any window is made: a scenario's windows keep their places out of the user's defaults.
+        if NibPaths.isScenario { ScenarioWindows.keepFramesOut() }
         #endif
         HUDFont.registerBundled()
         #if DEBUG
