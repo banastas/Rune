@@ -301,6 +301,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
             Task { @MainActor in for document in Documents.all { await document.fetchLatest(reason: "wake") } }
         }
+        // iCloud on again, or signed in (§4.9, 11): files that went with it are looked for.
+        NotificationCenter.default.addObserver(forName: .NSUbiquityIdentityDidChange, object: nil, queue: .main) { _ in
+            Task { @MainActor in for document in Documents.all { document.cloudIdentityChanged() } }
+        }
         DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.apple.screenIsLocked"),
                                                             object: nil, queue: .main) { _ in
             Task { @MainActor in for document in Documents.all { await document.flush(reason: "screen locked") } }

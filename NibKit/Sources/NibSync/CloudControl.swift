@@ -242,6 +242,22 @@ public enum CloudControl {
         chain(error).contains { $0.domain == "NSFileProviderErrorDomain" && ($0.code == -2008 || $0.code == -2007) }
     }
 
+    /// iCloud storage is full (§4.9, 12): the upload would put the account over its quota.
+    public static func isQuota(_ error: Error) -> Bool {
+        chain(error).contains {
+            ($0.domain == NSCocoaErrorDomain && $0.code == NSUbiquitousFileNotUploadedDueToQuotaError)
+                || ($0.domain == "NSFileProviderErrorDomain" && $0.code == -1003)   // insufficientQuota
+        }
+    }
+
+    /// This Mac's disk is full (§4.9, 13).
+    public static func isOutOfSpace(_ error: Error) -> Bool {
+        chain(error).contains {
+            ($0.domain == NSCocoaErrorDomain && $0.code == NSFileWriteOutOfSpaceError)
+                || ($0.domain == NSPOSIXErrorDomain && ($0.code == Int(ENOSPC) || $0.code == Int(EDQUOT)))
+        }
+    }
+
     public static func isUnsupported(_ error: Error) -> Bool {
         chain(error).contains { $0.domain == NSCocoaErrorDomain && $0.code == CocoaError.featureUnsupported.rawValue }
     }

@@ -30,6 +30,13 @@ enum Documents {
         return document
     }
 
+    /// A document let go without closing it: its file moved away, and it opens again there.
+    static func forget(_ document: Document) {
+        guard document !== scratch, files[key(document.url)] === document else { return }
+        files[key(document.url)] = nil
+        MenuBarController.shared.refresh()
+    }
+
     /// Its window has closed: save, upload, hand the file back to iCloud, and forget it. An
     /// untitled buffer goes to History (ED3); either goes on File › Reopen Closed File. Not
     /// when quitting: then untitled buffers stay, to come back at the next launch.
@@ -42,7 +49,7 @@ enum Documents {
         guard !AppDelegate.terminating else { return }
         if document.untitled {
             Untitled.discard(document)
-        } else if document.locked == nil {
+        } else if document.locked == nil, !document.deleted {   // a deleted file's text is on the list already
             ClosedItems.shared.add(.init(path: document.url.path, name: document.url.lastPathComponent, untitled: false, sha256: nil, time: Date()))
         }
     }

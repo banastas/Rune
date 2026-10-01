@@ -40,6 +40,14 @@ final class Presenter: NSObject, NSFilePresenter, @unchecked Sendable {
     func presentedItemDidGain(_ version: NSFileVersion) { forward { await $0.diskMayHaveChanged() } }
     func presentedItemDidChangeUbiquityAttributes(_ attributes: Set<URLResourceKey>) { forward { $0.cloudAttributesChanged() } }
 
+    /// Presenting `url` again: after a restore, the file is back where a move to the Trash took
+    /// this presenter from (§4.8 E).
+    func repoint(to url: URL) {
+        lock.lock()
+        self.url = url
+        lock.unlock()
+    }
+
     func presentedItemDidMove(to newURL: URL) {
         lock.lock()
         url = newURL

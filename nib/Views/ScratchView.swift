@@ -1,6 +1,7 @@
 // A document's window content (PRD §5.1): the text in An Old Hope, the status strip under
 // it, the find bar over the strip while it's open (ED7), and the conflict banner above the
-// text while the text holds conflict blocks (§5.4). Focus
+// text while the text holds conflict blocks (§5.4), or the deleted banner while its file is
+// gone (§4.8 E). Focus
 // leaving the window saves (§4.3 step 3); focus arriving checks for a newer version (§4.4).
 // The scratch window shows it alone; file windows (ED2) show it as native tabs together.
 
@@ -18,7 +19,9 @@ struct DocumentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if !document.blocks.isEmpty, !document.bannerHidden {
+            if document.deleted {
+                DeletedBanner(document: document)
+            } else if !document.blocks.isEmpty, !document.bannerHidden {
                 ConflictBanner(document: document)
             }
             EditorHost(editor: document.editor)

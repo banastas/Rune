@@ -34,6 +34,103 @@ func scratchFolder() -> URL {
         #expect(journal.read(path: "/tmp/a.md")?.text == "v5")
     }
 
+    /// A big text (§4.3, §4.9 row 24): one snapshot, then only the changes, appended.
+    static let big: String = {
+        var text = "# Scratch\n", n = 0
+        while text.utf16.count < 1_200_000 { n += 1; text += "Line \(n): see https://example.com/\(n) and the config.json file.\n" }
+        return text
+    }()
+
+    @Test func bigTextsLogTheirEdits() throws {
+        let journal = Journal(directory: scratchFolder())
+        var text = Self.big
+        let start = Date(timeIntervalSince1970: 2_000_000_000)
+        try journal.record(path: "/tmp/big.md", text: text, baseSHA256: "v1", format: .standard, now: start)
+        let snapshot = try Data(contentsOf: journal.url(for: "/tmp/big.md"))
+        var seed: UInt64 = 41
+        func next() -> Int {   // a seeded generator, so a failure can be replayed
+            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return Int(seed >> 33)
+        }
+        for step in 1...30 {
+            let ns = text as NSString
+            var at = next() % ns.length
+            if at > 0, UTF16.isTrailSurrogate(ns.character(at: at)) { at -= 1 }
+            let cut = min(next() % 6, ns.length - at)
+            text = ns.replacingCharacters(in: NSRange(location: at, length: cut), with: ["x", "", "🙂", "word ", "\n"][step % 5])
+            try journal.record(path: "/tmp/big.md", text: text, baseSHA256: "v1", format: .standard, now: start.addingTimeInterval(Double(step)))
+        }
+        #expect(journal.read(path: "/tmp/big.md")?.text == text)
+        #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) == snapshot, "the snapshot isn't written again")
+        let log = try Data(contentsOf: journal.logURL(for: "/tmp/big.md"))
+        #expect(log.count < 8_000, "30 edits in \(log.count) bytes")
+        // Read anew, as the next launch does.
+        #expect(Journal(directory: journal.directory).read(path: "/tmp/big.md")?.text == text)
+    }
+
+    @Test func aTornLineIsIgnored() throws {
+        let journal = Journal(directory: scratchFolder())
+        let start = Date(timeIntervalSince1970: 2_000_000_000)
+        try journal.record(path: "/tmp/big.md", text: Self.big, baseSHA256: nil, format: .standard, now: start)
+        let one = Self.big + "one\n", two = one + "two\n"
+        try journal.record(path: "/tmp/big.md", text: one, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(1))
+        try journal.record(path: "/tmp/big.md", text: two, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(2))
+        let url = journal.logURL(for: "/tmp/big.md")
+        var log = try Data(contentsOf: url)
+        log.removeLast(9)   // a crash partway through the last line
+        try log.write(to: url)
+        #expect(journal.read(path: "/tmp/big.md")?.text == one)
+    }
+
+    @Test func aBigTextsCleanSaveLeavesNothingToRecover() throws {
+        let journal = Journal(directory: scratchFolder())
+        let start = Date(timeIntervalSince1970: 2_000_000_000)
+        try journal.record(path: "/tmp/big.md", text: Self.big, baseSHA256: "v1", format: .standard, now: start)
+        try journal.record(path: "/tmp/big.md", text: Self.big + "typed\n", baseSHA256: "v1", format: .standard, now: start.addingTimeInterval(1))
+        journal.clear(path: "/tmp/big.md")
+        #expect(journal.read(path: "/tmp/big.md") == nil)
+        #expect(FileManager.default.fileExists(atPath: journal.url(for: "/tmp/big.md").path), "the snapshot stays, for the next change")
+        // The save's version is the base from now on; the next typing is journaled again.
+        try journal.record(path: "/tmp/big.md", text: Self.big + "typed\nmore\n", baseSHA256: "v2", format: .standard, now: start.addingTimeInterval(2))
+        let entry = journal.read(path: "/tmp/big.md")
+        #expect(entry?.text == Self.big + "typed\nmore\n" && entry?.baseSHA256 == "v2")
+    }
+
+    @Test func aSnapshotAtMostOnceAMinute() throws {
+        let journal = Journal(directory: scratchFolder())
+        let start = Date(timeIntervalSince1970: 2_000_000_000)
+        try journal.record(path: "/tmp/big.md", text: Self.big, baseSHA256: nil, format: .standard, now: start)
+        let first = try Data(contentsOf: journal.url(for: "/tmp/big.md"))
+        try journal.record(path: "/tmp/big.md", text: Self.big + "a\n", baseSHA256: nil, format: .standard, now: start.addingTimeInterval(30))
+        #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) == first)
+        try journal.record(path: "/tmp/big.md", text: Self.big + "a\nb\n", baseSHA256: nil, format: .standard, now: start.addingTimeInterval(61))
+        #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) != first, "a new snapshot after a minute")
+        #expect(journal.read(path: "/tmp/big.md")?.text == Self.big + "a\nb\n")
+    }
+
+    @Test func theBaseMovesWithASave() throws {
+        let journal = Journal(directory: scratchFolder())
+        let start = Date(timeIntervalSince1970: 2_000_000_000)
+        try journal.record(path: "/tmp/big.md", text: Self.big + "x\n", baseSHA256: "v1", format: .standard, now: start)
+        try journal.record(path: "/tmp/big.md", text: Self.big + "x\n", baseSHA256: "v2", format: .standard, now: start.addingTimeInterval(1))
+        #expect(journal.read(path: "/tmp/big.md")?.baseSHA256 == "v2")
+    }
+
+    @Test func aTextCrossingTheSize() throws {
+        let journal = Journal(directory: scratchFolder())
+        let start = Date(timeIntervalSince1970: 2_000_000_000)
+        let small = "small\n"
+        try journal.record(path: "/tmp/a.md", text: small, baseSHA256: nil, format: .standard, now: start)
+        try journal.record(path: "/tmp/a.md", text: Self.big, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(1))
+        try journal.record(path: "/tmp/a.md", text: Self.big + "z\n", baseSHA256: nil, format: .standard, now: start.addingTimeInterval(2))
+        #expect(journal.read(path: "/tmp/a.md")?.text == Self.big + "z\n")
+        try journal.record(path: "/tmp/a.md", text: small, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(3))
+        #expect(journal.read(path: "/tmp/a.md")?.text == small)
+        #expect(!FileManager.default.fileExists(atPath: journal.logURL(for: "/tmp/a.md").path), "a small text's journal is a snapshot alone")
+        journal.clear(path: "/tmp/a.md")
+        #expect(journal.read(path: "/tmp/a.md") == nil)
+    }
+
     @Test func damagedSnapshotIsIgnored() throws {
         let journal = Journal(directory: scratchFolder())
         var entry = JournalEntry(path: "/tmp/a.md", text: "good", baseSHA256: nil, format: .standard)

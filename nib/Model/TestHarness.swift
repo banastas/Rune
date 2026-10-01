@@ -28,6 +28,11 @@ enum TestHarness {
     /// and the next fetches answered "nothing newer", as iCloud can for a held file.
     static var refuseUploads = 0
     static var staleFetches = 0
+    /// The `full` scenario: uploads refused as when iCloud storage is full; writes failing as on a full disk.
+    static var storageFull = false
+    static var diskFull = false
+    /// The `icloudoff` scenario: as if iCloud Drive were off on this Mac.
+    static var iCloudOff = false
     /// Hands the file back for real, taking the server's version, just before the next forced
     /// refresh: the hold lost as a hand-back a moment before can lose it (`refusal-lost-hold`).
     static var loseHoldBeforeRefresh = UserDefaults.standard.bool(forKey: "NibLoseHold")
@@ -64,6 +69,8 @@ enum TestHarness {
             case "crash": await crash(document, log, marker)
             case "recover": await recover(document, log, marker)
             case "crash-blocks": await crashWithBlocks(document, log, marker)
+            case "crash-big": await crashBig(log, marker)
+            case "recover-big": await recoverBig(log, marker)
             case "recover-blocks": await recoverWithBlocks(document, log, marker)
             case "external": await external(document, log, marker)
             case "snapshot": await snapshot(document, log)
@@ -94,6 +101,10 @@ enum TestHarness {
             case "cli": await cliScenario(Documents.scratch, log, marker)
             case "fileops": await fileOpsScenario(Documents.scratch, log, marker)
             case "access": await accessScenario(log, marker)
+            case "moved": await movedScenario(log, marker)
+            case "deleted": await deletedScenario(log, marker)
+            case "full": await fullScenario(Documents.scratch, log, marker)
+            case "icloudoff": await iCloudOffScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -1392,6 +1403,237 @@ enum TestHarness {
         log.check(ignored && !document.statusLine.contains("TEST MAC"), "a receipt of a later format is ignored")
     }
 
+    /// §4.9, 9 and 10: another app renames a file while it's open, typing not saved yet (saving
+    /// held off), and then renames its folder: the buffer follows each time, with the typing,
+    /// its caret and its History; it saves where the file is now; nothing is left, or made again,
+    /// at the old path.
+    static func movedScenario(_ log: HarnessLog, _ marker: String) async {
+        let test = ScratchLocation.url.deletingLastPathComponent()
+        let folder = test.appendingPathComponent("folder-\(marker)", isDirectory: true)
+        let folderAfter = test.appendingPathComponent("folder-moved-\(marker)", isDirectory: true)
+        let first = folder.appendingPathComponent("moved-\(marker).md")
+        let renamed = folder.appendingPathComponent("renamed-\(marker).md")
+        let last = folderAfter.appendingPathComponent("renamed-\(marker).md")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? Data("# Moved \(marker)\n\nline three\n".utf8).write(to: first)
+        defer {
+            for url in [first, renamed, last] { Documents.existing(for: url)?.editor.textView.window?.performClose(nil) }
+            for url in [folder, folderAfter] { try? FileManager.default.removeItem(at: url) }
+            for url in [first, renamed, last] {
+                for prefix in ["selection:", "syntax:", "siblings:"] { UserDefaults.standard.removeObject(forKey: prefix + url.path) }
+                if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+                RecentFiles.shared.remove(url)
+            }
+        }
+        AppDelegate.openFile(first)
+        _ = await waitFor(30) { Documents.existing(for: first)?.ready == true && Documents.existing(for: first)?.held == true }
+        guard let document = Documents.existing(for: first) else { log.check(false, "the file opened and was held"); return }
+        await waitSynced(document, 30)
+        let historyBefore = document.history.entries().count
+        await type("\n- typed before the move \(marker)\n", into: document)
+        try? await Task.sleep(for: .milliseconds(600))   // in the journal; not saved (held off)
+        document.editor.textView.setSelectedRange(NSRange(location: 3, length: 0))
+
+        // Renamed by another app, coordinated as Finder does.
+        do {
+            try await CloudControl.within(20) { try FileCommands.coordinatedMove(first, to: renamed, caseOnly: false) }
+        } catch {
+            log.check(false, "the rename by another app: \(error.localizedDescription)")
+            return
+        }
+        let followed = await waitFor(20) { Documents.existing(for: renamed)?.ready == true }
+        let after = Documents.existing(for: renamed)
+        log.check(followed && Documents.existing(for: first) == nil && after?.editor.textView.string.contains("typed before the move \(marker)") == true,
+                  "renamed by another app: the buffer follows it, with the typing not saved yet")
+        guard let after else { return }
+        log.check(after.editor.textView.selectedRange().location == 3 && after.history.entries().count >= historyBefore,
+                  "its caret and History go with it (caret at \(after.editor.textView.selectedRange().location), \(after.history.entries().count) versions)")
+        await after.flush(reason: "test")
+        log.check(fileText(after).contains("typed before the move \(marker)") && !FileManager.default.fileExists(atPath: first.path),
+                  "the typing is saved into the file where it is now, and nothing is at the old name")
+
+        // Then its folder, renamed.
+        do {
+            try await CloudControl.within(20) { try FileCommands.coordinatedMove(folder, to: folderAfter, caseOnly: false) }
+        } catch {
+            log.check(false, "the folder's rename by another app: \(error.localizedDescription)")
+            return
+        }
+        let followedAgain = await waitFor(20) { Documents.existing(for: last)?.ready == true }
+        guard followedAgain, let moved = Documents.existing(for: last) else {
+            log.check(false, "its folder renamed: the buffer follows it there too (open: \(Documents.all.map(\.url.lastPathComponent)))")
+            return
+        }
+        await type("- typed after the folder moved \(marker)\n", into: moved)
+        await moved.flush(reason: "test")
+        log.check(fileText(moved).contains("typed after the folder moved \(marker)") && fileText(moved).contains("typed before the move \(marker)")
+                  && !FileManager.default.fileExists(atPath: folder.path),
+                  "its folder renamed: the buffer follows it there too, and saves there")
+        // A renamed folder keeps iCloud busy for a while: it said the file was paused when it
+        // wasn't, refused uploads, and its helper stopped answering (the suite, 2026-09-30, 22:24).
+        await waitSynced(moved, 60)
+        log.check(isSynced(moved), "and it's synced (\(moved.state.line))")
+    }
+
+    /// §4.8 E, §4.9 8: another app moves a file to the Trash while it's open, typing not saved
+    /// yet (saving held off): the text stays, the banner and the strip say so, and saving makes
+    /// nothing at the path; Restore writes it all back, held and synced. Then it's deleted outright,
+    /// and closed: its text on Reopen Closed File, no file made again, no journal left.
+    static func deletedScenario(_ log: HarnessLog, _ marker: String) async {
+        let folder = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("deleted-\(marker)", isDirectory: true)
+        let url = folder.appendingPathComponent("gone-\(marker).md")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? Data("# Gone \(marker)\n".utf8).write(to: url)
+        var trashed: URL?
+        defer {
+            Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+            try? FileManager.default.removeItem(at: folder)
+            if let trashed { try? FileManager.default.removeItem(at: trashed) }
+            for prefix in ["selection:", "syntax:", "siblings:"] { UserDefaults.standard.removeObject(forKey: prefix + url.path) }
+            for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(url)
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(30) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.held == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened and was held"); return }
+        await waitSynced(document, 30)
+        await type("\n- typed before it went \(marker)\n", into: document)
+        try? await Task.sleep(for: .milliseconds(600))
+
+        // To the Trash, as Finder does it: a move, coordinated, into the Trash for that file.
+        guard let trash = try? FileManager.default.url(for: .trashDirectory, in: .userDomainMask, appropriateFor: url, create: false) else {
+            log.check(false, "a Trash for the test folder")
+            return
+        }
+        trashed = trash.appendingPathComponent("gone-\(marker).md")
+        do {
+            try await CloudControl.within(20) { try FileCommands.coordinatedMove(url, to: trash.appendingPathComponent("gone-\(marker).md"), caseOnly: false) }
+        } catch {
+            log.check(false, "the move to the Trash by another app: \(error.localizedDescription)")
+            return
+        }
+        let banner = await waitFor(10) { document.deleted }
+        // The window as a picture beside the log, to look at (its own window only).
+        try? await Task.sleep(for: .milliseconds(500))
+        if let frame = document.editor.textView.window?.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("deleted-banner.png"))
+        }
+        log.check(banner && document.deletedToTrash && document.state.line.contains("MOVED TO THE TRASH") && !document.held,
+                  "moved to the Trash by another app: the text stays, and the banner and the strip say so (\(document.state.line))")
+        await document.flush(reason: "test")
+        log.check(!FileManager.default.fileExists(atPath: url.path) && document.editor.textView.string.contains("typed before it went \(marker)"),
+                  "saving makes nothing at the path, and the text is all here")
+        await type("- typed after it went \(marker)\n", into: document)
+        await document.restoreDeleted()
+        let restored = fileText(document)
+        log.check(!document.deleted && restored.contains("typed before it went \(marker)") && restored.contains("typed after it went \(marker)"),
+                  "Restore writes it all back where it was")
+        let resynced = await waitFor(60) { document.held && isSynced(document) }
+        log.check(resynced, "and it's held and synced again (\(document.state.line), held \(document.held))")
+
+        // Deleted outright, then closed.
+        await type("- typed before it went again \(marker)\n", into: document)
+        try? await Task.sleep(for: .milliseconds(600))
+        var error: NSError?
+        NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forDeleting, error: &error) { target in
+            try? FileManager.default.removeItem(at: target)
+        }
+        let deletedAgain = await waitFor(10) { document.deleted }
+        log.check(deletedAgain && !document.deletedToTrash && document.state.line.contains("DELETED ·"), "deleted outright: the banner again (\(document.state.line))")
+        document.editor.textView.window?.performClose(nil)
+        let closed = await waitFor(10) { Documents.existing(for: url) == nil }
+        let item = ClosedItems.shared.items.first { $0.path == url.path }
+        let history = History(root: NibPaths.support.appendingPathComponent("History"), path: url.path)
+        let kept = item?.sha256.flatMap { history.data($0) }.map { String(decoding: $0, as: UTF8.self) }
+        let journal = Journal(directory: NibPaths.support.appendingPathComponent("Journal"))
+        log.check(closed && item?.untitled == true && kept?.contains("typed before it went again \(marker)") == true
+                  && !FileManager.default.fileExists(atPath: url.path) && journal.read(path: url.path) == nil,
+                  "closed: its text is on Reopen Closed File, nothing is made at the path, and no journal is left")
+    }
+
+    /// §4.9, 12 and 13: iCloud storage full, then this Mac's disk full. Storage full: saved here,
+    /// the strip red, and the upload tried again until it takes. Disk full: the journal and the
+    /// file both refuse; the strip says the latest changes are only in memory, and both are tried
+    /// again every 15 s, typing or not, until there's room.
+    static func fullScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 30)
+        TestHarness.storageFull = true
+        await type("\n- storage full \(marker)\n", into: document)
+        await document.flush(reason: "test")
+        let full = await waitFor(10) { document.state.line.contains("ICLOUD STORAGE IS FULL") }
+        try? await Task.sleep(for: .seconds(2))
+        log.check(full && document.state.line.contains("ICLOUD STORAGE IS FULL") && fileText(document).contains("storage full \(marker)"),
+                  "iCloud storage full: saved here, and the strip says so, and goes on saying so (\(document.state.line))")
+        TestHarness.storageFull = false
+        let back = await waitFor(40) { isSynced(document) }
+        log.check(back, "the upload is tried again, and takes once there's room (\(document.state.line))")
+
+        TestHarness.diskFull = true
+        await type("- disk full \(marker)\n", into: document)
+        let journalFull = await waitFor(5) { document.state.line.contains("DISK FULL") }
+        await document.flush(reason: "test")
+        log.check(journalFull && document.state.line.contains("ONLY IN MEMORY") && !fileText(document).contains("disk full \(marker)"),
+                  "disk full: the journal and the file refuse, and the strip says so (\(document.state.line))")
+        TestHarness.diskFull = false
+        let saved = await waitFor(25) { fileText(document).contains("disk full \(marker)") }
+        log.check(saved, "with room again, it's saved within 15 s, nothing typed meanwhile")
+        await waitSynced(document, 30)
+        log.check(isSynced(document), "and synced (\(document.state.line))")
+    }
+
+    /// §4.9, 11, simulated (turning iCloud Drive off for real is the user's to do): iCloud Drive
+    /// goes off, taking an open file with it (a deletion, with no iCloud account left). The text
+    /// stays, the banner and the strip say so, and saving goes to Nib's Recovery folder, never the
+    /// file's place. iCloud on again, the file back as it was: the typing goes into it, held and
+    /// synced, and the Recovery copy goes.
+    static func iCloudOffScenario(_ log: HarnessLog, _ marker: String) async {
+        let folder = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("icloudoff-\(marker)", isDirectory: true)
+        let url = folder.appendingPathComponent("away-\(marker).md")
+        let original = "# Away \(marker)\n"
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? Data(original.utf8).write(to: url)
+        defer {
+            TestHarness.iCloudOff = false
+            Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+            try? FileManager.default.removeItem(at: folder)
+            for prefix in ["selection:", "syntax:", "siblings:"] { UserDefaults.standard.removeObject(forKey: prefix + url.path) }
+            for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(url)
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(30) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.held == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened and was held"); return }
+        await waitSynced(document, 30)
+        let recovery = document.recoveryURL
+
+        // iCloud Drive off: the account gone, the file removed with it.
+        TestHarness.iCloudOff = true
+        var error: NSError?
+        NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forDeleting, error: &error) { target in
+            try? FileManager.default.removeItem(at: target)
+        }
+        let off = await waitFor(10) { document.iCloudOff }
+        log.check(off && document.deleted && document.state.line.contains("ICLOUD DRIVE IS OFF"), "iCloud Drive off: the text stays, and the banner and the strip say so (\(document.state.line))")
+        await type("\n- typed while iCloud was off \(marker)\n", into: document)
+        await document.flush(reason: "test")
+        let copy = (try? String(contentsOf: recovery, encoding: .utf8)) ?? ""
+        log.check(copy.contains("typed while iCloud was off \(marker)") && !FileManager.default.fileExists(atPath: url.path),
+                  "saved to Nib's Recovery folder, and nothing made at the file's place")
+
+        // iCloud on again, and the file back, as it was when it went.
+        try? Data(original.utf8).write(to: url)
+        TestHarness.iCloudOff = false
+        NotificationCenter.default.post(name: .NSUbiquityIdentityDidChange, object: nil)
+        let back = await waitFor(20) { !document.deleted }
+        let merged = await waitFor(20) { fileText(document).contains("typed while iCloud was off \(marker)") }
+        log.check(back && merged && document.editor.textView.string.contains("typed while iCloud was off \(marker)"),
+                  "iCloud on again, the file back: the typing goes into it")
+        let synced = await waitFor(60) { document.held && isSynced(document) }
+        log.check(synced && !FileManager.default.fileExists(atPath: recovery.path), "held and synced again, and the Recovery copy is gone (\(document.state.line))")
+    }
+
     /// VoiceOver (AX1, AX2): the strip's summary; its indentation, encoding and line endings in words; a notice said as a sentence;
     /// a conflict's notice said at once, the Conflicts rotor naming the block without its dot,
     /// and "No conflicts left" once it's resolved; the HUD line said too.
@@ -1545,6 +1787,76 @@ enum TestHarness {
         log.check(fileText(document).contains(marker), "and it's in the file")
         await waitSynced(document, 20)
         log.check(isSynced(document), "and in iCloud (state \(document.state.line))")
+    }
+
+    /// §4.3, §4.9 row 24: typing in a big text journals the change, not the text. A 2.4 MB
+    /// untitled buffer, saving held off as for `crash`: at the first pause, a snapshot of it all;
+    /// at each pause after, a line on the snapshot's log; then a crash, for `recover-big`.
+    static func crashBig(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        var md = "# Big journal \(marker)\n", m = 0
+        while md.utf8.count < 2_400_000 {
+            m += 1
+            md += m % 50 == 0 ? "## Notes for \(m)\n" : m % 3 == 0 ? "- item \(m) with `code` and **bold** text\n" : "Line \(m): see https://example.com/\(m) and the config.json file.\n"
+        }
+        guard let url = Untitled.create(text: md, name: "journal-\(marker).md") else { log.check(false, "a 2.4 MB untitled buffer"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(20) { Documents.existing(for: url)?.ready == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "a 2.4 MB untitled buffer opened"); return }
+        let view = document.editor.textView
+        let journal = Journal(directory: NibPaths.support.appendingPathComponent("Journal"))
+        let snapshot = journal.url(for: url.path), logFile = journal.logURL(for: url.path)
+        func size(_ file: URL) -> Int { (try? FileManager.default.attributesOfItem(atPath: file.path)[.size] as? Int) ?? 0 }
+        func changed(_ file: URL) -> Date? { try? FileManager.default.attributesOfItem(atPath: file.path)[.modificationDate] as? Date }
+        await type("\n- big one \(marker)\n", into: document)
+        let begun = await waitFor(5) { size(logFile) > 0 }
+        let snapshotAt = changed(snapshot), logBefore = size(logFile)
+        log.check(begun && size(snapshot) > 2_400_000, "the first pause: a snapshot of the whole text (\(size(snapshot) / 1000) KB), and its log begun")
+        for n in 2...6 {
+            await type("- big \(n) \(marker)\n", into: document)
+            try? await Task.sleep(for: .milliseconds(400))
+        }
+        // A keystroke to the journal, timed: the log grows.
+        let before = size(logFile)
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        view.insertText("!", replacementRange: view.selectedRange())
+        let journaled = await timed(5) { size(logFile) > before }
+        log.line("MEASURED a keystroke to the journal at 2.4 MB: \(journaled.map { "\(Int($0 * 1000)) ms" } ?? "not within 5 s") · target ≤ 300 ms · \((journaled ?? 1) <= 0.3 ? "met" : "NOT MET")")
+        let appended = size(logFile) - logBefore
+        let entry = journal.read(path: url.path)
+        log.check(entry?.text.hasSuffix("- big 6 \(marker)\n!") == true && changed(snapshot) == snapshotAt && appended < 4_000,
+                  "six more pauses: the journal has the typing, the snapshot as it was, \(appended) bytes added to its log")
+        // Saving is held off, but a window losing focus saves (as one opening can, then giving
+        // the focus back): what matters is that only the journal has the last of the typing.
+        let onDisk = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        log.check(!onDisk.hasSuffix("- big 6 \(marker)\n!"),
+                  "the file hasn't the last of it (\(onDisk.contains("big one \(marker)") ? "a save on losing focus took some" : "nothing saved"), saving held off for this test)")
+        log.line("SIGKILL")
+        kill(getpid(), SIGKILL)
+    }
+
+    /// The launch after `crash-big`: the 2.4 MB buffer comes back with all its typing, its
+    /// journal's snapshot and log put together, and is saved.
+    static func recoverBig(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let name = "journal-\(marker).md"
+        func found() -> Document? { Documents.all.first { $0.url.lastPathComponent == name } }
+        _ = await waitFor(20) { found()?.ready == true }
+        guard let document = found() else {
+            log.check(false, "the 2.4 MB untitled buffer came back")
+            for url in Untitled.all() where url.lastPathComponent == name { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+            return
+        }
+        let text = document.editor.textView.string
+        log.check(text.hasPrefix("# Big journal \(marker)\n") && text.contains("- big one \(marker)\n") && text.hasSuffix("- big 6 \(marker)\n!"),
+                  "the buffer has the typing from before the crash (\((text as NSString).length / 1000)K characters)")
+        log.check(document.notice?.contains("RECOVERED") == true, "the strip says so: \(document.notice ?? "nothing")")
+        let saved = await waitFor(20) { (try? String(contentsOf: document.url, encoding: .utf8))?.hasSuffix("- big 6 \(marker)\n!") == true }
+        log.check(saved, "and it's saved")
+        // Gone before the scenario ends: an untitled buffer still open at quit comes back at the next launch.
+        Untitled.letGo(document.url)
+        document.editor.textView.window?.performClose(nil)
+        _ = await waitFor(10) { Documents.existing(for: document.url) == nil }
     }
 
     /// A crash after resolving a block that's still in the file: the file has the block, the

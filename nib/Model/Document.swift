@@ -393,13 +393,16 @@ final class Document {
 
     /// A journal newer than the file means the last session ended before it saved (§4.8 G).
     private func recoverFromJournal(fileText: String) {
-        guard let entry = journal.read(path: url.path) else { return }
-        guard entry.text != fileText else { journal.clear(path: url.path); return }
+        guard let entry = journal.read(path: url.path) else { journal.remove(path: url.path); return }   // a clean one, left by a quit
+        guard entry.text != fileText else { journal.remove(path: url.path); return }
         if entry.baseSHA256 == baseFingerprint?.sha256 {
-            // The file hasn't changed since those edits began: they simply win.
+            // The file hasn't changed since those edits began: they simply win, the caret where
+            // it was left (setting the text put it at the end).
+            let selection = editor.textView.selectedRange()
             applying = true
             editor.textView.string = entry.text
             applying = false
+            editor.textView.setSelectedRange(NSRange(location: min(selection.location, (entry.text as NSString).length), length: 0))
             // The file's blocks were found in the file's text: find them again in this one. Left
             // as they were, the text view drew frames from ranges past the end of the text, and
             // Nib crashed or hung at every launch while that journal waited (the suite, 2026-09-29).
@@ -734,25 +737,35 @@ final class Document {
         return true
     }
 
-    private func scheduleJournal() {
+    /// This Mac's disk is full (§4.9, 13): the journal and the file both fail.
+    static let diskFull = "DISK FULL · YOUR LATEST CHANGES ARE ONLY IN MEMORY · FREE SPACE OR COPY THEM"
+
+    private func scheduleJournal(after delay: Double = 0.25) {
         journalTask?.cancel()
         journalTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(250))
+            try? await Task.sleep(for: .seconds(delay))
             guard !Task.isCancelled else { return }
             await self?.writeJournal()
         }
     }
 
     private func writeJournal() async {
-        let entry = JournalEntry(path: url.path, text: editor.textView.string,
-                                 baseSHA256: baseFingerprint?.sha256, format: format)
+        // The text as it is now; its SHA-256 (a snapshot's) is worked out on the journal's queue,
+        // not here (8 ms at every pause, at 2.4 MB). A big text's journal takes only what changed.
+        let text = editor.textView.string, path = url.path, base = baseFingerprint?.sha256, format = self.format
         let journal = self.journal
         do {
-            try await journalQueue.run { try journal.write(entry) }
+            #if DEBUG
+            if TestHarness.diskFull { throw POSIXError(.ENOSPC) }   // the `full` scenario
+            #endif
+            try await journalQueue.run { try journal.record(path: path, text: text, baseSHA256: base, format: format) }
         } catch {
-            // The one case where text lives only in memory (§4.9, 13): say so loudly.
-            state = .problem("COULDN'T WRITE THE RECOVERY JOURNAL · \(short(error)) · YOUR LATEST TYPING IS ONLY IN MEMORY")
+            // The one case where text lives only in memory (§4.9, 13): say so loudly, and try
+            // again in 15 s, typing or not.
+            state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
+                             : "COULDN'T WRITE THE RECOVERY JOURNAL · \(short(error)) · YOUR LATEST TYPING IS ONLY IN MEMORY")
             record("problem", detail: "journal: \(CloudControl.describe(error))")
+            scheduleJournal(after: 15)
         }
     }
 
@@ -812,7 +825,8 @@ final class Document {
     }
 
     func save(reason: String) async {
-        guard ready, locked == nil, dirty else { return }
+        guard ready, locked == nil, dirty, !deleted || iCloudOff else { return }
+        if iCloudOff { await saveToRecovery(); return }
         if editor.textView.hasMarkedText() {   // mid-composition (IME): wait for the commit
             scheduleSave(after: 0.3)
             return
@@ -832,6 +846,9 @@ final class Document {
         let presenter = self.presenter
         let started = Date()
         do {
+            #if DEBUG
+            if TestHarness.diskFull { throw POSIXError(.ENOSPC) }   // the `full` scenario
+            #endif
             // When the write itself began: a slow save is either a wait behind other file work on
             // this queue or a slow coordinated write, and the Sync Log says which (the two-Mac runs
             // on the evening of 2026-09-29 had saves of 1-11 s, against under 0.5 s at 10:55).
@@ -850,9 +867,20 @@ final class Document {
                 if !pendingResolved.isEmpty || !pendingTrash.isEmpty { settleOthers() }
                 savedEditCount = snapshot
                 lastSaved = Date()
+                let journal = self.journal, path = url.path
+                if recoveryPending {
+                    // The file has the text now: the Recovery folder's copy isn't needed.
+                    recoveryPending = false
+                    let copy = recoveryURL.deletingLastPathComponent()
+                    Task { await io.run { try? FileManager.default.removeItem(at: copy) } }
+                }
                 if !dirty {
                     schedule.saved()
-                    journal.clear(path: url.path)
+                    Task { await journalQueue.run { journal.clear(path: path) } }   // in order with its writes
+                } else {
+                    // Typing went on during the save: the journal says it's from the new version
+                    // now (a crash before the next pause recovered it as a conflict with the file).
+                    Task { await writeJournal() }
                 }
                 state = dirty ? .editing : untitled ? .local(lastSaved) : .saved(lastSaved)
                 let waited = began.timeIntervalSince(started)
@@ -866,8 +894,15 @@ final class Document {
                 if dirty { scheduleSave() }   // what's still unsaved: saved again (it sat unsaved until quit at 20:55)
                 return
             }
+        } catch where (error as? CocoaError)?.code == .fileNoSuchFile {
+            // The file is gone, and the notice of it hasn't come (or went to a presenter that
+            // followed it to the Trash): deleted (§4.8 E).
+            saving = false
+            markDeleted(trash: false)
+            return
         } catch {
-            state = .problem("COULDN'T SAVE \(url.lastPathComponent.uppercased()) · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
+            state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
+                             : "COULDN'T SAVE \(url.lastPathComponent.uppercased()) · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
             record("problem", detail: "save: \(CloudControl.describe(error))")
             saving = false
             scheduleSave(after: 15)
@@ -885,7 +920,7 @@ final class Document {
         #if DEBUG
         if UserDefaults.standard.bool(forKey: "NibHoldUploads") { return }   // the "unsent" scenario
         #endif
-        guard held, online || now else {
+        guard held, !deleted, online || now else {
             if held, !online { state = .waiting("WAITING FOR NETWORK · SAVED LOCALLY \(SyncState.clock.string(from: lastSaved))") }
             return
         }
@@ -916,6 +951,9 @@ final class Document {
         let started = Date()
         do {
             #if DEBUG
+            if TestHarness.storageFull {   // the `full` scenario: iCloud storage full
+                throw NSError(domain: NSCocoaErrorDomain, code: NSUbiquitousFileNotUploadedDueToQuotaError)
+            }
             if TestHarness.refuseUploads > 0 {   // the `refusal` scenario: as when another Mac uploaded first
                 TestHarness.refuseUploads -= 1
                 try? await Task.sleep(for: .seconds(1))
@@ -985,9 +1023,14 @@ final class Document {
         } catch {
             let noAnswer = CloudControl.isNoAnswer(error)
             record("upload", ms: ms(since: started), detail: noAnswer ? "no answer in 15 s; retrying" : "failed: \(CloudControl.describe(error))")
-            state = .waiting(!online ? "WAITING FOR NETWORK · SAVED LOCALLY"
-                             : noAnswer ? "ICLOUD ISN'T ANSWERING · SAVED LOCALLY · RETRYING"
-                             : "ICLOUD ISN'T TAKING UPLOADS · SAVED LOCALLY · RETRYING")
+            if CloudControl.isQuota(error) {
+                // §4.9, 12: red, and kept trying (the backoff, to 5 minutes) until there's room.
+                state = .problem("ICLOUD STORAGE IS FULL · SAVED LOCALLY ONLY · RETRYING")
+            } else {
+                state = .waiting(!online ? "WAITING FOR NETWORK · SAVED LOCALLY"
+                                 : noAnswer ? "ICLOUD ISN'T ANSWERING · SAVED LOCALLY · RETRYING"
+                                 : "ICLOUD ISN'T TAKING UPLOADS · SAVED LOCALLY · RETRYING")
+            }
             // No answer: retry soon; the retry is typically refused or accepted at once.
             let delay = noAnswer ? 2 : uploadBackoff
             uploadBackoff = min(uploadBackoff * 2, 300)
@@ -1072,6 +1115,7 @@ final class Document {
 
     /// The presenter or a check found the file different: look at what's there (§4.4 Check).
     func diskMayHaveChanged() async {
+        if deleted { await deletedFileBack(); return }
         guard ready, locked == nil, !saving, !refreshing, fetches == 0 else { return }
         let url = self.url
         let presenter = self.presenter
@@ -1703,20 +1747,227 @@ final class Document {
         }
     }
 
-    func fileWasDeleted() {
-        state = .problem("\(url.lastPathComponent.uppercased()) WAS MOVED OR DELETED · YOUR TEXT IS STILL HERE AND IN THE JOURNAL")
-        record("problem", detail: "the file was deleted or moved away")
+    /// The file was deleted, or moved to the Trash, by another app (§4.8 E, §4.9 8): the text
+    /// stays, journaled as typing goes on, and nothing saves it or makes the file again by itself
+    /// (the delete may have been meant). The banner offers Restore (the text written back where
+    /// it was, held and uploaded) and Close (the text kept in History, on Reopen Closed File); the
+    /// scratch file, Restore only. A file there again is taken as another app's version.
+    private(set) var deleted = false
+    private(set) var deletedToTrash = false
+
+    /// iCloud Drive went off on this Mac, or its account signed out, and the file went with it
+    /// (§4.9, 11): its removal comes as a deletion, with no iCloud account left. The text stays,
+    /// saved to Nib's Recovery folder (never marked saved: it isn't in the file), and the file,
+    /// back with iCloud, is merged with it as one there again after a deletion is.
+    private(set) var iCloudOff = false
+    @ObservationIgnored private var recoveryPending = false
+
+    /// Whether this Mac is signed in to iCloud with iCloud Drive on.
+    static var cloudIdentity: Bool {
+        #if DEBUG
+        if TestHarness.iCloudOff { return false }
+        #endif
+        return FileManager.default.ubiquityIdentityToken != nil
     }
 
+    /// `Recovery/<the file's key>/<its name>` in Nib's Application Support folder.
+    var recoveryURL: URL {
+        NibPaths.support.appendingPathComponent("Recovery", isDirectory: true)
+            .appendingPathComponent(String(Digest.sha256(url.path).prefix(20)), isDirectory: true)
+            .appendingPathComponent(url.lastPathComponent)
+    }
+
+    func fileWasDeleted() { markDeleted(trash: false) }
+
+    private func markDeleted(trash: Bool) {
+        guard !deleted else { return }
+        deleted = true
+        deletedToTrash = trash
+        iCloudOff = !trash && ReceiptBook.applies(to: url) && !Self.cloudIdentity
+        saveTask?.cancel()
+        uploadTask?.cancel()
+        holdRetry?.cancel()
+        held = false   // nothing there to hold, or to hand back
+        pausedFiles.remove(url.path)
+        if iCloudOff {
+            state = .problem("ICLOUD DRIVE IS OFF ON THIS MAC · SAVING TO NIB'S RECOVERY FOLDER")
+            record("problem", detail: "the file went with iCloud Drive (no iCloud account on this Mac): saving to the Recovery folder")
+            recoveryPending = true
+            if dirty { scheduleSave(after: 0) }
+            return
+        }
+        state = .problem("\(trash ? "MOVED TO THE TRASH" : "DELETED") · YOUR TEXT IS STILL HERE · RESTORE PUTS IT BACK")   // the name's in the title and the banner
+        record("problem", detail: trash ? "the file was moved to the Trash" : "the file was deleted")
+    }
+
+    /// The banner's Restore: the text written where the file was, made anew (unless a file is
+    /// there again by now: then that's taken in, not overwritten), then held, once iCloud has
+    /// it (§4.3), and uploaded.
+    func restoreDeleted() async {
+        guard deleted else { return }
+        let text = editor.textView.string, data = TextFile.encode(text, as: format)
+        let url = self.url, presenter = self.presenter, snapshot = editCount
+        // The presenter followed a move to the Trash: it presents the file's own path again.
+        NSFileCoordinator.removeFilePresenter(presenter)
+        presenter.repoint(to: url)
+        NSFileCoordinator.addFilePresenter(presenter)
+        do {
+            let outcome = try await io.run { try FileAccess.write(data, to: url, base: nil, presenter: presenter) }
+            deleted = false
+            switch outcome {
+            case .written(let fingerprint):
+                baseFingerprint = fingerprint
+                savedEditCount = snapshot
+                lastSaved = Date()
+                remember(text, sha: fingerprint.sha256)
+                recordHistory { history in try? history.record(data, parent: nil, source: "restored") }
+                record("save", size: data.count, sha: fingerprint.sha256, detail: "restored where it was deleted")
+                state = .saved(lastSaved)
+                if !dirty {
+                    let journal = self.journal, path = url.path
+                    Task { await journalQueue.run { journal.clear(path: path) } }
+                }
+                guard !untitled else { return }
+                do {
+                    let waited = try await pauseFile()
+                    held = true
+                    pausedFiles.add(url.path)
+                    record("pause", detail: Self.uploadWait(waited))
+                    await upload(now: true)
+                } catch {
+                    record("pause", detail: "not held yet, after a restore: \(Self.pauseTrouble(error)); trying again in 2 s")
+                    scheduleHoldRetry()
+                }
+            case .diskChanged(let onDisk, let fingerprint):
+                record("reload", sha: fingerprint.sha256, detail: "restoring: a file is there again")
+                incoming(onDisk, fingerprint: fingerprint, from: "another app")
+            }
+        } catch {
+            state = .problem("COULDN'T RESTORE \(url.lastPathComponent.uppercased()) · \(short(error)) · YOUR TEXT IS STILL HERE AND IN THE JOURNAL")
+            record("problem", detail: "restoring: \(CloudControl.describe(error))")
+        }
+    }
+
+    /// While deleted: a file there again (another app saving it anew, or iCloud Drive on again)
+    /// is that version, merged with the typing here.
+    private func deletedFileBack() async {
+        guard deleted, FileManager.default.fileExists(atPath: url.path) else { return }
+        if iCloudOff, !Self.cloudIdentity { return }
+        let url = self.url, presenter = self.presenter
+        guard let (data, fingerprint) = try? await io.run({ try FileAccess.read(url, presenter: presenter) }), deleted else { return }
+        let back = iCloudOff
+        deleted = false
+        iCloudOff = false
+        state = dirty ? .editing : .saved(lastSaved)
+        record("reload", size: data.count, sha: fingerprint.sha256, detail: back ? "the file is back with iCloud Drive" : "the file is there again")
+        incoming(data, fingerprint: fingerprint, from: back ? "iCloud" : "another app")
+        if dirty { scheduleSave(after: 0) }
+        if !untitled { scheduleHoldRetry() }
+    }
+
+    /// While iCloud Drive is off: the text, in Nib's Recovery folder.
+    private func saveToRecovery() async {
+        let data = TextFile.encode(editor.textView.string, as: format), target = recoveryURL
+        do {
+            try await io.run {
+                try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try data.write(to: target, options: .atomic)
+            }
+            record("save", size: data.count, detail: "to the Recovery folder (iCloud Drive is off): \(target.path)")
+        } catch {
+            state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
+                             : "COULDN'T SAVE TO THE RECOVERY FOLDER · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
+            record("problem", detail: "saving to the Recovery folder: \(CloudControl.describe(error))")
+            scheduleSave(after: 15)
+        }
+    }
+
+    /// iCloud's account changed on this Mac (on again, signed in): a file that went with it is
+    /// looked for, until it's back (iCloud brings its files down again over a minute or two).
+    func cloudIdentityChanged() {
+        guard iCloudOff, Self.cloudIdentity else { return }
+        Task {
+            for _ in 0..<60 where deleted {
+                await deletedFileBack()
+                if !deleted { return }
+                try? await Task.sleep(for: .seconds(5))
+            }
+        }
+    }
+
+    /// The text of a deleted file whose window closes: in History, on Reopen Closed File, as an
+    /// untitled buffer's is (nothing to save it to).
+    private func keepDeletedText() {
+        let text = editor.textView.string
+        guard !text.isEmpty else { return }
+        let data = TextFile.encode(text, as: format)
+        try? history.record(data, parent: baseFingerprint?.sha256, source: "deleted elsewhere")
+        ClosedItems.shared.add(.init(path: url.path, name: url.lastPathComponent, untitled: true, sha256: Digest.sha256(data), time: Date()))
+    }
+
+    /// Another app (Finder, a shell) moved or renamed the file, or its folder (§4.9, 9 and 10):
+    /// the buffer follows it. Its text goes into the journal under the new path, its caret,
+    /// syntax and History with it; this document lets the file go without saving, uploading or
+    /// handing it back at the old path, where nothing is; and the file opens again where it is
+    /// now, held as one left paused (the pause went with it), any typing not in it yet recovered
+    /// from the journal. The scratch file, or a move out of the test folders (§8), only says where.
     func fileMoved(to newURL: URL) {
-        record("problem", detail: "the file moved to \(newURL.path); M1 keeps saving to the old path only after a relaunch")
-        state = .problem("\(url.lastPathComponent.uppercased()) MOVED · QUIT AND REOPEN NIB")
+        guard newURL.standardizedFileURL.path != url.standardizedFileURL.path, !following else { return }
+        // Finder's Move to Trash is a move, into the Trash (iCloud Drive's own, for its files).
+        if newURL.pathComponents.contains(".Trash") { markDeleted(trash: true); return }
+        let name = newURL.lastPathComponent.uppercased()
+        if self === Documents.scratch || untitled {
+            record("problem", detail: "the file moved to \(newURL.path): not followed (the scratch file stays as Settings › General has it)")
+            state = .problem("\(url.lastPathComponent.uppercased()) MOVED TO \(name) · SETTINGS › GENERAL › SCRATCH FILE TO FOLLOW IT")
+            return
+        }
+        if ScratchLocation.refusal(for: newURL) != nil {
+            record("problem", detail: "the file moved to \(newURL.path), outside the test folders: not followed (§8)")
+            state = .problem("\(url.lastPathComponent.uppercased()) MOVED OUT OF THE TEST FOLDERS · YOUR TEXT IS STILL HERE AND IN THE JOURNAL")
+            return
+        }
+        following = true
+        record("move", detail: "moved to \(newURL.path) by another app: following it")
+        Task { await follow(to: newURL) }
+    }
+
+    @ObservationIgnored private var following = false
+
+    private func follow(to newURL: URL) async {
+        let old = url
+        closing = true   // nothing more against the old path: holds, fetches, refreshes
+        editor.textView.isEditable = false
+        for task in [saveTask, uploadTask, journalTask] { task?.cancel() }
+        holdRetry?.cancel()
+        fetchTimer?.invalidate()
+        editor.saveSelection(for: old)
+        // The text under the new path, as it is now: compared with the file when it opens there.
+        let text = editor.textView.string, base = baseFingerprint?.sha256, format = self.format
+        let journal = self.journal
+        do {
+            try await journalQueue.run { try journal.record(path: newURL.path, text: text, baseSHA256: base, format: format) }
+        } catch {
+            record("problem", detail: "following the move: couldn't journal the text under the new path: \(CloudControl.describe(error))")
+        }
+        await journalQueue.run { journal.remove(path: old.path) }
+        NSFileCoordinator.removeFilePresenter(presenter)
+        NSFileCoordinator.removeFilePresenter(notePresenter)
+        fileWatch?.cancel()
+        noteWatch?.cancel()
+        pausedFiles.remove(old.path)
+        FileCommands.carrySettings(from: old, to: newURL)
+        let window = editor.textView.window
+        Documents.forget(self)
+        RecentFiles.shared.remove(old)
+        AppDelegate.openFile(newURL)
+        window?.close()
     }
 
     // MARK: - Activation, network, quitting
 
     /// nib came forward: check the server now, then every 30 s while it stays in front.
     func becameActive() {
+        if deleted { Task { await deletedFileBack() }; return }
         guard !untitled else { return }   // on this Mac only: nothing to check
         Task {
             if held { await diskMayHaveChanged() }   // another app on this Mac may have written it
@@ -1759,12 +2010,35 @@ final class Document {
     /// Quitting: save, upload, hand the file back to iCloud (§4.3; a pause outlives the app).
     func close() async {
         closing = true
+        if deleted {
+            // Nothing to save to, or hand back: the text goes into History, on Reopen Closed File.
+            journalTask?.cancel()
+            keepDeletedText()
+            let journal = self.journal, path = url.path
+            await journalQueue.run { journal.remove(path: path) }
+            NSFileCoordinator.removeFilePresenter(presenter)
+            NSFileCoordinator.removeFilePresenter(notePresenter)
+            fileWatch?.cancel()
+            noteWatch?.cancel()
+            record("quit", detail: "closing a deleted file: its text is in History, on Reopen Closed File")
+            return
+        }
         holdRetry?.cancel()
         for _ in 0..<200 where pausing { try? await Task.sleep(for: .milliseconds(100)) }   // a hold in flight (≤ 20 s)
         let started = Date()
         record("quit", detail: "closing")
         editor.saveSelection(for: url)
         await flush(reason: "quit")
+        // Nothing unsaved: the journal goes, a big text's snapshot with it (a quit with unsent
+        // edits writes it again, below), and a write still waiting on the last keystroke with it.
+        // Unsaved (the save failed): the journal has every keystroke.
+        journalTask?.cancel()
+        if dirty {
+            await writeJournal()
+        } else {
+            let journal = self.journal, path = url.path
+            await journalQueue.run { journal.remove(path: path) }
+        }
         for _ in 0..<50 where uploading { try? await Task.sleep(for: .milliseconds(100)) }
         NSFileCoordinator.removeFilePresenter(presenter)
         NSFileCoordinator.removeFilePresenter(notePresenter)

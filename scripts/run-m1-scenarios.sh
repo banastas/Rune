@@ -66,12 +66,15 @@ run firstrun -NibFakeLoginItem YES -NibHotKeyHolder "$PWD/build/hotkey-holder"
 run cli -NibCLI "$PWD/NibKit/.build/debug/nib-cli"
 run fileops
 run access
+run full
 run receipts
 run undo
 run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"
 run crash-blocks -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover-blocks -NibMarker "$marker"
+run crash-big -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600   # a 2.4 MB buffer's journal: an edit log
+run recover-big -NibMarker "$marker"
 run external -NibSaveIdle 600 -NibSaveMax 600
 run unsent -NibHoldUploads YES
 run merge
@@ -102,13 +105,19 @@ run untitled -NibMarker "$umarker" -NibSaveIdle 600 -NibSaveMax 600
 run untitled-return -NibMarker "$umarker"
 run untitled-quit -NibMarker "$umarker"
 run refresh
+# Near the end: renaming folders, and moving files to the Trash and deleting them, in iCloud
+# Drive leaves its daemons busy for a minute or more ("Resource busy" for every pause in the
+# `merge` after them, 2026-09-30).
+run moved -NibSaveIdle 600 -NibSaveMax 600
+run deleted -NibSaveIdle 600 -NibSaveMax 600
+run icloudoff
 # Last: making, uploading and deleting a 2.4 MB file leaves iCloud's daemons on this Mac slow to
 # answer for minutes (PRD §8), which the launches after it would wait on.
 run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard cleantext lines find palette gutter tidy menubar firstrun cli fileops access receipts undo crash recover crash-blocks recover-blocks external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
+for name in type clipboard cleantext lines find palette gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
