@@ -12,12 +12,15 @@ public enum Bridge {
     /// Requests waiting for Nib: `<token>.json`, written whole (by renaming) before anything says so.
     public static var folder: URL { NibPaths.support.appendingPathComponent("Requests", isDirectory: true) }
 
+    /// The notifications' names: the test harness's own (`NibPaths.isScenario`), so that its
+    /// `nib` tool and the user's never reach the other's Nib.
+    private static let prefix = NibPaths.isScenario ? "com.banastas.nib.scenarios" : "com.banastas.nib"
     /// Tool → app: a request is in the folder (object: its token).
-    public static let requestPosted = Notification.Name("com.banastas.nib.request")
+    public static let requestPosted = Notification.Name(prefix + ".request")
     /// App → tool: done, or why not (object: the token; userInfo: "ok" and "message").
-    public static let replied = Notification.Name("com.banastas.nib.reply")
+    public static let replied = Notification.Name(prefix + ".reply")
     /// App → tool: the file waited on has closed, and its text is in the file (object: the token).
-    public static let closed = Notification.Name("com.banastas.nib.closed")
+    public static let closed = Notification.Name(prefix + ".closed")
 
     public struct Request: Codable, Sendable, Equatable {
         public enum Command: String, Codable, Sendable {

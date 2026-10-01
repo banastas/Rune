@@ -108,6 +108,14 @@ func running() -> NSRunningApplication? {
     NSRunningApplication.runningApplications(withBundleIdentifier: Bridge.bundleID).first { !$0.isTerminated }
 }
 
+/// The copy to start: an installed one (in /Applications or ~/Applications, where
+/// `scripts/install-nib.sh` puts it) before a build elsewhere that macOS knows too.
+func installed() -> URL? {
+    NSWorkspace.shared.urlsForApplications(withBundleIdentifier: Bridge.bundleID).first {
+        $0.path.hasPrefix("/Applications/") || $0.path.hasPrefix(NSHomeDirectory() + "/Applications/")
+    }
+}
+
 do {
     try Bridge.post(request, token: token)
 } catch {
@@ -122,7 +130,7 @@ if let app = running() {
 } else {
     let open = Process()
     open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-    open.arguments = (forward ? [] : ["-g"]) + ["-b", Bridge.bundleID]
+    open.arguments = (forward ? [] : ["-g"]) + (installed().map { ["-a", $0.path] } ?? ["-b", Bridge.bundleID])
     open.standardError = FileHandle.nullDevice
     do { try open.run() } catch { fail("couldn't start Nib: \(error.localizedDescription)") }
     open.waitUntilExit()

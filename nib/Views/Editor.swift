@@ -552,7 +552,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// Settings › Editor and the View menu: line numbers (on unless turned off), invisibles
     /// (off unless turned on), for every editor at once.
     func applyDisplaySettings() {
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         let numbers = defaults.object(forKey: "editorLineNumbers") == nil || defaults.bool(forKey: "editorLineNumbers")   // "NO" from the command line too
         let invisibles = defaults.bool(forKey: "editorInvisibles")
         if numbers != (ruler != nil && scrollView.rulersVisible) {
@@ -576,11 +576,11 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
     func saveSelection(for url: URL) {
         let range = textView.selectedRange()
-        UserDefaults.standard.set([range.location, range.length], forKey: "selection:" + url.path)
+        NibDefaults.store.set([range.location, range.length], forKey: "selection:" + url.path)
     }
 
     func restoreSelection(for url: URL) {
-        guard let saved = UserDefaults.standard.array(forKey: "selection:" + url.path) as? [Int], saved.count == 2 else { return }
+        guard let saved = NibDefaults.store.array(forKey: "selection:" + url.path) as? [Int], saved.count == 2 else { return }
         let length = (textView.string as NSString).length
         let location = min(saved[0], length)
         textView.setSelectedRange(NSRange(location: location, length: min(saved[1], length - location)))

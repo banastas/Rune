@@ -26,7 +26,7 @@ enum Clipboard {
 
     /// Paste Clean's options, from Settings › Editor.
     static var options: PasteCleaner.Options {
-        .init(straightenQuotes: UserDefaults.standard.bool(forKey: "pasteStraightensQuotes"))
+        .init(straightenQuotes: NibDefaults.store.bool(forKey: "pasteStraightensQuotes"))
     }
 
     /// Clean Clipboard (PT4): the clipboard rewritten in place as clean plain text, and what

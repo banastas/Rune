@@ -210,7 +210,7 @@ final class GlobalShortcuts {
             case .appendClipboard: nil
             }
         }
-        fileprivate var hotKeyID: UInt32 {
+        var hotKeyID: UInt32 {
             switch self {
             case .showScratch: 1
             case .cleanClipboard: 2
@@ -242,7 +242,7 @@ final class GlobalShortcuts {
 
     func shortcut(_ action: Action) -> Shortcut? {
         _ = changes
-        guard let stored = UserDefaults.standard.string(forKey: action.key) else { return action.standard }
+        guard let stored = NibDefaults.store.string(forKey: action.key) else { return action.standard }
         return Shortcut(stored: stored)   // "" is none
     }
 
@@ -252,14 +252,14 @@ final class GlobalShortcuts {
             warnings[action] = "\(other.title) already uses \(shortcut.description). These keys stay \(self.shortcut(action)?.description ?? "unset")."
             return
         }
-        UserDefaults.standard.set(shortcut?.stored ?? "", forKey: action.key)
+        NibDefaults.store.set(shortcut?.stored ?? "", forKey: action.key)
         changes += 1
         register(action)
     }
 
     /// Back to Nib's own keys.
     func reset(_ action: Action) {
-        UserDefaults.standard.removeObject(forKey: action.key)
+        NibDefaults.store.removeObject(forKey: action.key)
         changes += 1
         register(action)
     }

@@ -22,8 +22,8 @@ enum TestHarness {
     static var fakeConflictVersions: [CloudControl.ConflictVersion] = []
     /// -NibFailPauses n -NibFailPausesFor <name prefix>: the first n holds of those files fail
     /// as they do when iCloud's helper doesn't answer (the `holdretry` scenario).
-    static var failPauses = UserDefaults.standard.integer(forKey: "NibFailPauses")
-    static let failPausesFor = UserDefaults.standard.string(forKey: "NibFailPausesFor")
+    static var failPauses = NibDefaults.store.integer(forKey: "NibFailPauses")
+    static let failPausesFor = NibDefaults.store.string(forKey: "NibFailPausesFor")
     /// The `refusal` scenario: the next uploads refused as if another Mac had uploaded first,
     /// and the next fetches answered "nothing newer", as iCloud can for a held file.
     static var refuseUploads = 0
@@ -35,17 +35,17 @@ enum TestHarness {
     static var iCloudOff = false
     /// Hands the file back for real, taking the server's version, just before the next forced
     /// refresh: the hold lost as a hand-back a moment before can lose it (`refusal-lost-hold`).
-    static var loseHoldBeforeRefresh = UserDefaults.standard.bool(forKey: "NibLoseHold")
+    static var loseHoldBeforeRefresh = NibDefaults.store.bool(forKey: "NibLoseHold")
     /// The next fetch brings this, as if another Mac had uploaded it (the `merge` scenario's
     /// -NibNoteTiming variants: versions from iCloud are the ones that wait for their note).
     static var fakeNewer: Data?
     /// -NibFailResumes n: the next hand-backs fail as when iCloud's helper doesn't answer;
     /// -NibUnsupportedPauses n (with -NibFailPausesFor): the next holds answer "not supported".
-    static var failResumes = UserDefaults.standard.integer(forKey: "NibFailResumes")
-    static var unsupportedPauses = UserDefaults.standard.integer(forKey: "NibUnsupportedPauses")
+    static var failResumes = NibDefaults.store.integer(forKey: "NibFailResumes")
+    static var unsupportedPauses = NibDefaults.store.integer(forKey: "NibUnsupportedPauses")
 
     static func runIfRequested(_ document: Document) {
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         guard let scenario = defaults.string(forKey: "NibScenario") else { return }
         let log = HarnessLog(path: defaults.string(forKey: "NibScenarioLog") ?? "/tmp/nib-scenario.log")
         let marker = defaults.string(forKey: "NibMarker") ?? "marker-\(Int(Date().timeIntervalSince1970))"
@@ -118,7 +118,7 @@ enum TestHarness {
                     md += m % 50 == 0 ? "## Notes for \(m)\n" : m % 3 == 0 ? "- item \(m) with `code` and **bold** text\n" : "Line \(m): see https://example.com/\(m) and the config.json file.\n"
                 }
                 // -NibIdleBigExtension txt: the same text as plain text, no syntax tree.
-                let ext = UserDefaults.standard.string(forKey: "NibIdleBigExtension") ?? "md"
+                let ext = NibDefaults.store.string(forKey: "NibIdleBigExtension") ?? "md"
                 if let url = Untitled.create(text: md, name: "idlebig-\(marker).\(ext)") {
                     AppDelegate.openFile(url)
                     _ = await waitFor(20) { Documents.existing(for: url)?.ready == true }
@@ -132,7 +132,7 @@ enum TestHarness {
                         view.scrollRangeToVisible(NSRange(location: length, length: 0))
                     }
                     // -NibIdleBigSlices n: idle for n 5-second slices (8), to watch for growth.
-                    let asked = UserDefaults.standard.integer(forKey: "NibIdleBigSlices"), slices = asked > 0 ? asked : 8
+                    let asked = NibDefaults.store.integer(forKey: "NibIdleBigSlices"), slices = asked > 0 ? asked : 8
                     for _ in 0..<slices {
                         try? await Task.sleep(for: .seconds(5))
                         log.line(String(format: "idle with 2.4 MB open: %.1f MB", footprint()))
@@ -235,7 +235,7 @@ enum TestHarness {
         try? Data(original.utf8).write(to: url)
         defer {
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
         }
         AppDelegate.openFile(url)
@@ -322,7 +322,7 @@ enum TestHarness {
         defer {
             FindSession.findClipboard = savedFind
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
         }
         AppDelegate.openFile(url)
@@ -475,7 +475,7 @@ enum TestHarness {
         try? Data(original.utf8).write(to: url)
         defer {
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
         }
         AppDelegate.openFile(url)
@@ -594,7 +594,7 @@ enum TestHarness {
     /// is saved as a picture beside the log.
     static func gutterScenario(_ log: HarnessLog, _ marker: String) async {
         await waitReady(Documents.scratch)
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         let saved = (defaults.object(forKey: "editorLineNumbers"), defaults.object(forKey: "editorInvisibles"))
         defaults.removeObject(forKey: "editorLineNumbers")
         defaults.removeObject(forKey: "editorInvisibles")
@@ -604,7 +604,7 @@ enum TestHarness {
         try? Data(original.utf8).write(to: url)
         defer {
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
             for (key, value) in [("editorLineNumbers", saved.0), ("editorInvisibles", saved.1)] {
                 if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) }
@@ -697,7 +697,7 @@ enum TestHarness {
     /// and the file on disk is the tidied text; ⌘Z puts it all back.
     static func tidyScenario(_ log: HarnessLog, _ marker: String) async {
         await waitReady(Documents.scratch)
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         let keys = ["saveTrimsTrailingWhitespace", "saveEnsuresFinalNewline"]
         let saved = keys.map { defaults.object(forKey: $0) }
         keys.forEach(defaults.removeObject(forKey:))
@@ -706,7 +706,7 @@ enum TestHarness {
         try? Data(original.utf8).write(to: url)
         defer {
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
             for (key, value) in zip(keys, saved) { if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) } }
         }
@@ -756,7 +756,7 @@ enum TestHarness {
     static func menuBarScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
         await waitSynced(document, 20)
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         defaults.removeObject(forKey: "showMenuBarExtra")
         let folder = URL(fileURLWithPath: log.path).deletingLastPathComponent()
 
@@ -815,7 +815,7 @@ enum TestHarness {
         try? Data("<<<<<<< A · 10:00\nours \(marker)\n=======\ntheirs\n>>>>>>> B · 10:00\n".utf8).write(to: url)
         defer {
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
         }
         let plainWidth = statusButton()?.image?.size.width ?? 0
@@ -859,15 +859,16 @@ enum TestHarness {
     /// ⇧ alone refused, keys another action has refused) with their warnings (another app holds
     /// them, macOS's own); the Edit menu showing the keys; open at login (a stand-in: the real one
     /// would add this build to the Mac's Login Items); Done; and a scratch file not made until
-    /// the welcome window says so. This Mac's own settings are put back after.
+    /// the welcome window says so. Its settings are put back after (the scenarios' own store),
+    /// and its keys let go: they're the Nib in daily use's.
     static func firstRunScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         let kept = [FirstRun.doneKey, "scratchPath", "settingsTab"] + GlobalShortcuts.Action.allCases.map { "shortcut." + $0.rawValue }
         let saved = kept.map { ($0, defaults.object(forKey: $0)) }
         defer {
             for (key, value) in saved { if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) } }
-            GlobalShortcuts.shared.registerAll()
+            GlobalShortcuts.shared.suspend()
         }
         let folder = URL(fileURLWithPath: log.path).deletingLastPathComponent()
         let model = FirstRun.shared
@@ -904,10 +905,21 @@ enum TestHarness {
         // Step 3: the keys.
         model.step = .keys
         await picture("firstrun-3")
+        // The Nib in daily use, running beside this one, holds its keys, as Nib takes them,
+        // exclusively: this one can't have them too, and says another app holds them. Such a key
+        // counts as registered here (2026-10-01).
+        let otherNib = NSRunningApplication.runningApplications(withBundleIdentifier: "com.banastas.nib").contains { $0.processIdentifier != getpid() }
+        func registered(_ ids: Set<UInt32>) -> Bool {
+            HotKey.registered.isSubset(of: ids) && ids.allSatisfy { id in
+                HotKey.registered.contains(id) || otherNib && GlobalShortcuts.Action.allCases.first { $0.hotKeyID == id }
+                    .flatMap { shortcuts.warnings[$0] }?.hasPrefix("Another app holds") == true
+            }
+        }
         for action in GlobalShortcuts.Action.allCases { shortcuts.reset(action) }
+        let beside = otherNib ? "; the Nib in daily use holds \(GlobalShortcuts.Action.allCases.filter { shortcuts.warnings[$0] != nil }.map(\.title))" : ""
         log.check(shortcuts.shortcut(.showScratch)?.description == "⌥Space" && shortcuts.shortcut(.cleanClipboard)?.description == "⌃⌥⌘V"
-                  && shortcuts.shortcut(.appendClipboard) == nil && HotKey.registered == [1, 2],
-                  "Nib's own keys: ⌥Space and ⌃⌥⌘V, none for Append, and both registered (\(HotKey.registered.sorted()))")
+                  && shortcuts.shortcut(.appendClipboard) == nil && registered([1, 2]),
+                  "Nib's own keys: ⌥Space and ⌃⌥⌘V, none for Append, and both registered (\(HotKey.registered.sorted())\(beside))")
         func recorder(_ action: GlobalShortcuts.Action) -> ShortcutRecorder? {
             func find(_ view: NSView) -> ShortcutRecorder? {
                 if let field = view as? ShortcutRecorder, field.shortcutAction == action { return field }
@@ -926,14 +938,14 @@ enum TestHarness {
             field.keyDown(with: key(kVK_ANSI_K, .shift, "K"))
             log.check(field.recording && shortcuts.shortcut(.showScratch)?.description == "⌥Space", "⇧K alone isn't taken: it would take a capital K from every app")
             field.keyDown(with: key(kVK_ANSI_K, [.control, .option, .shift], "K"))
-            log.check(!field.recording && shortcuts.shortcut(.showScratch) == controlOptionShiftK && field.title == "⌃⌥⇧K" && HotKey.registered == [1, 2],
+            log.check(!field.recording && shortcuts.shortcut(.showScratch) == controlOptionShiftK && field.title == "⌃⌥⇧K" && registered([1, 2]),
                       "⌃⌥⇧K pressed: Show Scratch's new keys, registered, shown as \(field.title)")
             field.performClick(nil)
             field.keyDown(with: key(kVK_Escape, [], "\u{1B}"))
             log.check(!field.recording && shortcuts.shortcut(.showScratch) == controlOptionShiftK, "Escape keeps them")
             field.performClick(nil)
             field.keyDown(with: key(kVK_Delete, [], "\u{7F}"))
-            log.check(shortcuts.shortcut(.showScratch) == nil && field.title == "None" && HotKey.registered == [2], "Delete clears them: none, and not registered")
+            log.check(shortcuts.shortcut(.showScratch) == nil && field.title == "None" && registered([2]), "Delete clears them: none, and not registered")
             shortcuts.reset(.showScratch)
         } else {
             log.check(false, "Show Scratch's field is in the window")
@@ -971,7 +983,8 @@ enum TestHarness {
         } else {
             log.line("skipped: macOS doesn't keep ⌘Space on this Mac")
         }
-        log.check(shortcuts.warnings.isEmpty && HotKey.registered == [1, 2], "back to Nib's own keys, with nothing in their way")
+        log.check(shortcuts.warnings.values.allSatisfy { otherNib && $0.hasPrefix("Another app holds") } && registered([1, 2]),
+                  "back to Nib's own keys, with nothing in their way\(otherNib ? " but the Nib in daily use" : "")")
 
         // The Edit menu shows Clean Clipboard's keys, whatever they are.
         func editItem(_ title: String) -> NSMenuItem? {
@@ -1045,7 +1058,7 @@ enum TestHarness {
     /// an unknown option, exit 2; and a waiting `-w` let go when Nib quits.
     static func cliScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
-        guard let tool = UserDefaults.standard.string(forKey: "NibCLI"), FileManager.default.isExecutableFile(atPath: tool) else {
+        guard let tool = NibDefaults.store.string(forKey: "NibCLI"), FileManager.default.isExecutableFile(atPath: tool) else {
             log.check(false, "the nib tool to run (-NibCLI)")
             return
         }
@@ -1058,7 +1071,7 @@ enum TestHarness {
         defer {
             for url in made + [untitled].compactMap({ $0 }) {
                 try? FileManager.default.removeItem(at: url)
-                UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+                NibDefaults.store.removeObject(forKey: "selection:" + url.path)
                 if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
             }
         }
@@ -1069,7 +1082,7 @@ enum TestHarness {
             process.executableURL = URL(fileURLWithPath: tool)
             process.arguments = arguments
             process.currentDirectoryURL = folder
-            process.environment = ["NIB_NO_LAUNCH": "1", "NIB_NO_ACTIVATE": "1", "HOME": NSHomeDirectory(), "PATH": "/usr/bin:/bin"]
+            process.environment = ["NIB_SCENARIOS": "1", "NIB_NO_LAUNCH": "1", "NIB_NO_ACTIVATE": "1", "HOME": NSHomeDirectory(), "PATH": "/usr/bin:/bin"]
             let stdin = Pipe()
             process.standardInput = stdin
             process.standardOutput = Pipe()
@@ -1186,7 +1199,7 @@ enum TestHarness {
             for open in Documents.all where open !== document { open.editor.textView.window?.performClose(nil) }
             for url in urls + extra {
                 try? fm.removeItem(at: url)
-                for prefix in ["selection:", "syntax:", "siblings:"] { UserDefaults.standard.removeObject(forKey: prefix + url.path) }
+                for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
                 if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
                 RecentFiles.shared.remove(url)
             }
@@ -1322,7 +1335,7 @@ enum TestHarness {
         defer {
             Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
             RecentFiles.shared.remove(url)
         }
@@ -1421,7 +1434,7 @@ enum TestHarness {
             for url in [first, renamed, last] { Documents.existing(for: url)?.editor.textView.window?.performClose(nil) }
             for url in [folder, folderAfter] { try? FileManager.default.removeItem(at: url) }
             for url in [first, renamed, last] {
-                for prefix in ["selection:", "syntax:", "siblings:"] { UserDefaults.standard.removeObject(forKey: prefix + url.path) }
+                for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
                 if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
                 RecentFiles.shared.remove(url)
             }
@@ -1490,7 +1503,7 @@ enum TestHarness {
             Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
             try? FileManager.default.removeItem(at: folder)
             if let trashed { try? FileManager.default.removeItem(at: trashed) }
-            for prefix in ["selection:", "syntax:", "siblings:"] { UserDefaults.standard.removeObject(forKey: prefix + url.path) }
+            for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
             for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
             RecentFiles.shared.remove(url)
         }
@@ -1599,7 +1612,7 @@ enum TestHarness {
             TestHarness.iCloudOff = false
             Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
             try? FileManager.default.removeItem(at: folder)
-            for prefix in ["selection:", "syntax:", "siblings:"] { UserDefaults.standard.removeObject(forKey: prefix + url.path) }
+            for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
             for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
             RecentFiles.shared.remove(url)
         }
@@ -1882,7 +1895,7 @@ enum TestHarness {
         defer {
             Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
             RecentFiles.shared.remove(url)
         }
@@ -2217,7 +2230,7 @@ enum TestHarness {
         }
         let baseText = view.string
         // From here on nothing reaches iCloud (as with -NibHoldUploads), so this edit stays unsent.
-        UserDefaults.standard.register(defaults: ["NibHoldUploads": true])
+        NibDefaults.store.register(defaults: ["NibHoldUploads": true])
         view.setSelectedRange(NSRange(location: 0, length: 0))
         view.insertText("- merge mine \(marker)\n", replacementRange: view.selectedRange())
         await endOfEvent(view)
@@ -2226,7 +2239,7 @@ enum TestHarness {
         // The other Mac's version, the base plus a line at the end. Its note comes first, as it
         // mostly does from iCloud; or (-NibNoteTiming after) 3 s after the version, as at 20:55; or
         // (never) not at all.
-        let timing = UserDefaults.standard.string(forKey: "NibNoteTiming") ?? "before"
+        let timing = NibDefaults.store.string(forKey: "NibNoteTiming") ?? "before"
         let theirs = TextFile.encode(baseText + "- merge theirs \(marker)\n", as: document.format)
         let note = Announcement(sha256: Digest.sha256(theirs), parent: base, device: "Test Mac", size: theirs.count)
         if timing == "before" {
@@ -2258,7 +2271,7 @@ enum TestHarness {
             // Through the wait for its note, not a disk check taking it for another app's.
             log.check(whole && line?.detail?.contains("no version both had is known") == true && line?.detail?.hasPrefix("changed by another Mac") == true,
                       "no note in 10 s: both whole versions between markers, as before (\(line?.detail ?? "no conflict line"))")
-            UserDefaults.standard.register(defaults: ["NibHoldUploads": false])
+            NibDefaults.store.register(defaults: ["NibHoldUploads": false])
             if timing == "never" {
                 let resolved = await keepBoth(document, marker)
                 log.check(resolved, "and Keep Both resolves it")
@@ -2376,7 +2389,7 @@ enum TestHarness {
             return folder.appendingPathComponent("\(stem) \(n).\(ext)")
         }
         // Whatever is beside the file now counts as someone's own: the first look records it.
-        UserDefaults.standard.removeObject(forKey: "siblings:" + document.url.path)
+        NibDefaults.store.removeObject(forKey: "siblings:" + document.url.path)
         await document.checkOthers(reason: "harness")
 
         let identical = free()
@@ -2513,8 +2526,8 @@ enum TestHarness {
         try? Data(text.utf8).write(to: url)
         defer {
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "syntax:" + url.path)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "syntax:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
         }
         func open() async -> Document? {
             AppDelegate.openFile(url)
@@ -2555,7 +2568,7 @@ enum TestHarness {
         log.check(again.syntaxName == "JAVASCRIPT" && again.pickedSyntax == .language(.javascript) && kept, "the file keeps the pick when opened again (\(again.syntaxName))")
         again.pickSyntax(nil)
         let plain = await waitFor(5) { !italic(again) }
-        log.check(again.syntaxName == "PLAIN TEXT" && plain && UserDefaults.standard.string(forKey: "syntax:" + url.path) == nil,
+        log.check(again.syntaxName == "PLAIN TEXT" && plain && NibDefaults.store.string(forKey: "syntax:" + url.path) == nil,
                   "Automatic goes back to what the file's name says (\(again.syntaxName))")
         again.pickSyntax(.language(.shell))
         log.check(again.editor.syntax?.root == "source.shell.bash", "Shell on a file that doesn't say zsh is Bash (\(again.editor.syntax?.root ?? "none"))")
@@ -2568,7 +2581,7 @@ enum TestHarness {
     /// Everything it changes (the scheme, the font, the report, the Themes folder) is put back.
     static func themes(_ log: HarnessLog, _ marker: String) async {
         await waitReady(Documents.scratch)
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         let keys = ["scheme", "editorFontFace", "editorFontSize", "schemeReport", "editorTabSize", "editorSpaces", "editorWordWrap"]
         let saved = Dictionary(uniqueKeysWithValues: keys.map { ($0, defaults.object(forKey: $0)) })
         let schemes = Schemes.shared
@@ -2581,7 +2594,7 @@ enum TestHarness {
         defer {
             try? FileManager.default.removeItem(at: url)
             try? FileManager.default.removeItem(at: scratch)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
         }
         AppDelegate.openFile(url)
         _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
@@ -2629,8 +2642,8 @@ enum TestHarness {
         defaults.set(scratch.path, forKey: "NibSublimeFolder")
         defaults.set(scratch.appendingPathComponent("no-app").path, forKey: "NibSublimePackages")
         defer {
-            UserDefaults.standard.removeObject(forKey: "NibSublimeFolder")
-            UserDefaults.standard.removeObject(forKey: "NibSublimePackages")
+            NibDefaults.store.removeObject(forKey: "NibSublimeFolder")
+            NibDefaults.store.removeObject(forKey: "NibSublimePackages")
         }
         let plist: [String: Any] = ["name": "Scenario Dark \(marker)", "settings": [
             ["settings": ["background": "#101820", "foreground": "#E0E0E0", "caret": "#FFCC00", "lineHighlight": "#182028"]],
@@ -2851,7 +2864,7 @@ enum TestHarness {
         let held = await waitFor(20) { document.held }
         log.check(held, "held on a later try, \(Int(Date().timeIntervalSince(opened))) s after opening")
         let lines = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().filter { $0.path == url.path && $0.event == "pause" }
-        let expected = 1 + UserDefaults.standard.integer(forKey: "NibFailPauses") + UserDefaults.standard.integer(forKey: "NibUnsupportedPauses")
+        let expected = 1 + NibDefaults.store.integer(forKey: "NibFailPauses") + NibDefaults.store.integer(forKey: "NibUnsupportedPauses")
         log.check(lines.first?.detail?.hasPrefix("not held yet") == true && lines.last?.detail == "held on try \(expected)",
                   "the Sync Log says so: \(lines.map { $0.detail ?? "held" }.joined(separator: " / "))")
         let uploaded = await waitFor(20) { !document.dirty && document.debugSnapshot.uploadedSHA != nil && document.debugSnapshot.uploadedSHA == document.debugSnapshot.baseSHA }
@@ -2950,7 +2963,7 @@ enum TestHarness {
         try? Data(text.utf8).write(to: url)
         defer {
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
         }
         let opened = Date()
@@ -3112,7 +3125,7 @@ enum TestHarness {
     /// Both: a conflict is answered Keep Both; both come forward at +115 s; at +125 s both
     /// Macs must hold both clash lines, the file equal to the buffer, synced, the same bytes.
     static func twoMac(_ document: Document, _ log: HarnessLog, _ marker: String) async {
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         let role = defaults.string(forKey: "NibRole") ?? "a"
         let t0 = defaults.double(forKey: "NibAt")
         func until(_ offset: Double) async {
@@ -3257,13 +3270,13 @@ enum TestHarness {
     /// window into a PNG from inside the app, next to the log.
     static func snapshot(_ document: Document, _ log: HarnessLog) async {
         await waitReady(document)
-        if let name = UserDefaults.standard.string(forKey: "NibSnapshotFile") {   // a file window, highlighted
+        if let name = NibDefaults.store.string(forKey: "NibSnapshotFile") {   // a file window, highlighted
             let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent(name)
             AppDelegate.openFile(url)
             _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window != nil }
             guard let file = Documents.existing(for: url), let window = file.editor.textView.window else { log.line("FAIL \(name) didn't open"); return }
             window.setFrame(NSRect(x: 80, y: 120, width: 820, height: 640), display: true)
-            let end = UserDefaults.standard.bool(forKey: "NibSnapshotEnd") ? (file.editor.textView.string as NSString).length : 0
+            let end = NibDefaults.store.bool(forKey: "NibSnapshotEnd") ? (file.editor.textView.string as NSString).length : 0
             file.editor.textView.setSelectedRange(NSRange(location: end, length: 0))
             file.editor.textView.scrollRangeToVisible(NSRange(location: end, length: 0))
             log.line("window \(window.windowNumber)")   // for `screencapture -l`: this window alone, even under others
@@ -3280,7 +3293,7 @@ enum TestHarness {
             _ = await waitFor(10) { Documents.existing(for: url) == nil }
             return
         }
-        if UserDefaults.standard.bool(forKey: "NibSnapshotHistory") {   // the History window, as File › Revert To opens it
+        if NibDefaults.store.bool(forKey: "NibSnapshotHistory") {   // the History window, as File › Revert To opens it
             let menu = NSApp.mainMenu?.item(withTitle: "File")?.submenu?.item(withTitle: "Revert To")?.submenu
             if let browse = menu?.items.last, let index = menu?.index(of: browse) { menu?.performActionForItem(at: index) }
             _ = await waitFor(5) { NSApp.windows.contains { $0.title.hasPrefix("History") && $0.isVisible } }
@@ -3297,7 +3310,7 @@ enum TestHarness {
         }
         let view = document.editor.textView
         var sample = "## Deploy\n```bash\nssh me@seedbox 'df -h ~/files'\n```\n\n## Email · Q4 vendor\nHi Sam, thanks for the quick turnaround on the invoice. We can ship on Friday if QA signs off.\n"
-        if UserDefaults.standard.bool(forKey: "NibSnapshotConflict") {   // the banner and a block (§5.4)
+        if NibDefaults.store.bool(forKey: "NibSnapshotConflict") {   // the banner and a block (§5.4)
             sample = "## Email · Q4 vendor\nHi Sam, thanks for the quick turnaround.\n<<<<<<< \(document.device) · 10:42\nWe can ship on Friday if QA signs off.\n=======\nWe can ship Thursday.\n>>>>>>> Bill’s MacBook Air · 10:41\nAlso: invoice attached.\n"
         }
         let sampleRange = NSRange(location: (view.string as NSString).length, length: (sample as NSString).length)
@@ -3414,7 +3427,7 @@ enum TestHarness {
                 Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
             }
             try? FileManager.default.removeItem(at: small)
-            UserDefaults.standard.removeObject(forKey: "selection:" + small.path)
+            NibDefaults.store.removeObject(forKey: "selection:" + small.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == small.path }) { ClosedItems.shared.forget(item) }
             RecentFiles.shared.remove(small)
         }
@@ -3691,7 +3704,7 @@ enum ScenarioFocus {
 
     /// Before Nib has come forward, while the app in front is still the one to give it back to.
     static func start() {
-        guard UserDefaults.standard.string(forKey: "NibScenario") != nil else { return }
+        guard NibDefaults.store.string(forKey: "NibScenario") != nil else { return }
         let front = NSWorkspace.shared.frontmostApplication
         other = front == .current ? nil : front
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { note in

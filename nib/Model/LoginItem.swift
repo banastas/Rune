@@ -3,6 +3,7 @@
 // System Settings › General › Login Items, where it can be turned off too; this follows.
 
 import Foundation
+import NibSync
 import ServiceManagement
 
 @MainActor
@@ -16,9 +17,9 @@ final class LoginItem {
     private(set) var failure: String?
 
     #if DEBUG
-    /// The scenarios' stand-in (-NibFakeLoginItem YES): the real one would add this build to
-    /// the Mac's Login Items.
-    private var fake: Bool? = UserDefaults.standard.bool(forKey: "NibFakeLoginItem") ? false : nil
+    /// The scenarios' stand-in, in every scenario (and -NibFakeLoginItem YES): the real one
+    /// would add this build to the Mac's Login Items.
+    private var fake: Bool? = NibPaths.isScenario || NibDefaults.store.bool(forKey: "NibFakeLoginItem") ? false : nil
     #endif
 
     private init() { refresh() }

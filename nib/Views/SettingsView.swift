@@ -9,7 +9,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct SettingsView: View {
-    @AppStorage("settingsTab") private var tab = "editor"
+    @AppStorage("settingsTab", store: NibDefaults.store) private var tab = "editor"
 
     var body: some View {
         TabView(selection: $tab) {
@@ -31,7 +31,7 @@ struct SettingsView: View {
 /// Settings › General: open at login (AP2), the global shortcuts (SC2, PT4, SC6), the menu
 /// bar extra (AP3) and the scratch file (SC1).
 private struct GeneralSettings: View {
-    @AppStorage("showMenuBarExtra") private var showMenuBarExtra = true
+    @AppStorage("showMenuBarExtra", store: NibDefaults.store) private var showMenuBarExtra = true
     @State private var refusal: String?
 
     var body: some View {
@@ -88,13 +88,13 @@ private func note(_ text: String) -> some View {
 }
 
 struct EditorSettings: View {
-    @AppStorage("pasteStraightensQuotes") private var straightenQuotes = false
-    @AppStorage("editorTabSize") private var tabSize = 4
-    @AppStorage("editorSpaces") private var spaces = false
-    @AppStorage("editorLineNumbers") private var lineNumbers = true
-    @AppStorage("editorInvisibles") private var invisibles = false
-    @AppStorage("saveTrimsTrailingWhitespace") private var trimOnSave = false
-    @AppStorage("saveEnsuresFinalNewline") private var newlineOnSave = false
+    @AppStorage("pasteStraightensQuotes", store: NibDefaults.store) private var straightenQuotes = false
+    @AppStorage("editorTabSize", store: NibDefaults.store) private var tabSize = 4
+    @AppStorage("editorSpaces", store: NibDefaults.store) private var spaces = false
+    @AppStorage("editorLineNumbers", store: NibDefaults.store) private var lineNumbers = true
+    @AppStorage("editorInvisibles", store: NibDefaults.store) private var invisibles = false
+    @AppStorage("saveTrimsTrailingWhitespace", store: NibDefaults.store) private var trimOnSave = false
+    @AppStorage("saveEnsuresFinalNewline", store: NibDefaults.store) private var newlineOnSave = false
     private static let families: [String] = {
         let manager = NSFontManager.shared
         return manager.availableFontFamilies.filter { family in

@@ -25,9 +25,9 @@ scripts/build-nib.sh "$SIGN"   # and checks the app is newer than every source f
 APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
 mkdir -p build/scenarios
 LOG=$PWD/build/scenarios/two-mac-$role.log
-# A clean start: until M1 passes, nib opens only test files, so its journal holds only
-# test-file snapshots, and one left by an earlier failed run would raise a conflict at launch.
-rm -f "$HOME/Library/Application Support/nib/Journal/"*.json
+# A clean start for the scenarios' own journal: one left by an earlier failed run would raise a
+# conflict at launch. (A scenario's Nib keeps its journal apart from the Nib in daily use's.)
+rm -f "$HOME/Library/Application Support/nib-scenarios/Journal/"*.json
 
 # Awake until this script ends: a sleeping Mac doesn't count time in `sleep`, and at 10:40 on
 # 2026-09-29 the Air woke six minutes after the start and ran every phase at once, alone.

@@ -144,7 +144,7 @@ enum FileCommands {
             return refuse(document, "COULDN'T RENAME IT · NIB'S UNTITLED FOLDER ISN'T WRITABLE")
         }
         let selection = document.editor.textView.selectedRange()
-        UserDefaults.standard.set([selection.location, selection.length], forKey: "selection:" + url.path)
+        NibDefaults.store.set([selection.location, selection.length], forKey: "selection:" + url.path)
         Untitled.letGo(document.url)
         let window = document.editor.textView.window
         AppDelegate.openFile(url)
@@ -178,7 +178,7 @@ enum FileCommands {
     /// What Nib keeps for a file by its path: its History (§4.9), caret (SC3), syntax (HL1) and
     /// the duplicates it has seen (§4.6 C).
     static func carrySettings(from old: URL, to new: URL) {
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         for prefix in ["selection:", "syntax:", "siblings:"] {
             if let value = defaults.object(forKey: prefix + old.path) {
                 defaults.set(value, forKey: prefix + new.path)

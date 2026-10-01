@@ -212,7 +212,7 @@ final class Document {
         #endif
         self.url = url
         untitled = Untitled.contains(url)
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         schedule = SaveSchedule(idle: defaults.object(forKey: "NibSaveIdle") as? TimeInterval ?? 1,
                                 maxWait: defaults.object(forKey: "NibSaveMax") as? TimeInterval ?? 5)
         presenter = Presenter(url: url)
@@ -348,7 +348,7 @@ final class Document {
         #if DEBUG
         if self === Documents.scratch { AppDelegate.mark("journal looked at") }
         #endif
-        pickedSyntax = UserDefaults.standard.string(forKey: "syntax:" + url.path).flatMap(SyntaxPick.init(stored:))
+        pickedSyntax = NibDefaults.store.string(forKey: "syntax:" + url.path).flatMap(SyntaxPick.init(stored:))
         applySyntax()
         step("the syntax")
         #if DEBUG
@@ -797,7 +797,7 @@ final class Document {
     /// The ⌘S tidy, as one change ⌘Z undoes; the strip says what it did. Never on Nib's own
     /// saves: a second after typing stops, it would take a space just typed.
     func tidyForSave() {
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         let trim = defaults.bool(forKey: "saveTrimsTrailingWhitespace"), newline = defaults.bool(forKey: "saveEnsuresFinalNewline")
         guard trim || newline, editedHere, locked == nil else { return }
         let view = editor.textView
@@ -920,7 +920,7 @@ final class Document {
     /// At most every 3 s while typing continues, one at a time; `now` skips the spacing.
     private func upload(now: Bool) async {
         #if DEBUG
-        if UserDefaults.standard.bool(forKey: "NibHoldUploads") { return }   // the "unsent" scenario
+        if NibDefaults.store.bool(forKey: "NibHoldUploads") { return }   // the "unsent" scenario
         #endif
         guard held, !deleted, online || now else {
             if held, !online { state = .waiting("WAITING FOR NETWORK · SAVED LOCALLY \(SyncState.clock.string(from: lastSaved))") }
@@ -1294,8 +1294,8 @@ final class Document {
         // Duplicates there at the first look were there before Nib: someone's own files.
         let known = "siblings:" + url.path
         let found = await othersQueue.run { Duplicates.beside(url) }
-        if UserDefaults.standard.array(forKey: known) == nil { UserDefaults.standard.set(found.map(\.lastPathComponent), forKey: known) }
-        let before = Set(UserDefaults.standard.stringArray(forKey: known) ?? [])
+        if NibDefaults.store.array(forKey: known) == nil { NibDefaults.store.set(found.map(\.lastPathComponent), forKey: known) }
+        let before = Set(NibDefaults.store.stringArray(forKey: known) ?? [])
         for duplicate in found where !before.contains(duplicate.lastPathComponent) {
             guard let (data, _) = try? await othersQueue.run({ try FileAccess.read(duplicate) }) else { continue }
             handleDuplicate(duplicate, data)
@@ -2143,7 +2143,7 @@ final class Document {
 extension Document {
     /// For a file that doesn't show its own: Settings › Editor's (or Sublime's, imported).
     static var defaultIndentation: Indentation {
-        let defaults = UserDefaults.standard
+        let defaults = NibDefaults.store
         let width = max(1, min(16, defaults.object(forKey: "editorTabSize") as? Int ?? 4))
         return defaults.bool(forKey: "editorSpaces") ? .spaces(width) : .tabs(width: width)
     }
@@ -2195,7 +2195,7 @@ extension Document {
     /// Automatic. Only the colors change: it isn't an edit.
     func pickSyntax(_ pick: SyntaxPick?) {
         pickedSyntax = pick
-        UserDefaults.standard.set(pick?.stored, forKey: "syntax:" + url.path)
+        NibDefaults.store.set(pick?.stored, forKey: "syntax:" + url.path)
         applySyntax()
     }
 
@@ -2289,22 +2289,22 @@ enum ScratchLocation {
     static var url: URL {
         #if DEBUG
         // The scenarios use the test file the runner starts afresh, never the one this Mac uses.
-        if UserDefaults.standard.string(forKey: "NibScenario") != nil { return testURL }
+        if NibDefaults.store.string(forKey: "NibScenario") != nil { return testURL }
         #endif
-        if let path = UserDefaults.standard.string(forKey: "scratchPath") { return URL(fileURLWithPath: path) }
+        if let path = NibDefaults.store.string(forKey: "scratchPath") { return URL(fileURLWithPath: path) }
         return standardURL
     }
 
     /// iCloud Drive/Nib/scratch.md (SC1) once the safety rule is lifted; the test file until then.
     static var standardURL: URL {
-        if hasContainer, UserDefaults.standard.bool(forKey: "allowLiveScratch") { return folder.appendingPathComponent("scratch.md") }
+        if hasContainer, NibDefaults.store.bool(forKey: "allowLiveScratch") { return folder.appendingPathComponent("scratch.md") }
         return testURL
     }
 
     static var testURL: URL { (hasContainer ? testFolder : unsignedTestFolder).appendingPathComponent("scratch-test.md") }
 
     /// Until M1 has passed, Nib opens only test files (§8).
-    static var safetyRule: Bool { !UserDefaults.standard.bool(forKey: "allowLiveScratch") }
+    static var safetyRule: Bool { !NibDefaults.store.bool(forKey: "allowLiveScratch") }
 
     static func inContainer(_ url: URL) -> Bool { url.standardizedFileURL.path.hasPrefix(folder.path + "/") }
 
@@ -2321,7 +2321,7 @@ enum ScratchLocation {
     }
 
     static func refusal(for url: URL) -> String? {
-        if UserDefaults.standard.bool(forKey: "allowLiveScratch") { return nil }
+        if NibDefaults.store.bool(forKey: "allowLiveScratch") { return nil }
         if Untitled.contains(url) { return nil }   // Nib's own, on this Mac only (ED3)
         let path = url.standardizedFileURL.path
         guard path.hasPrefix(testFolder.path + "/") || path.hasPrefix(unsignedTestFolder.path + "/") else {

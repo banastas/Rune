@@ -43,9 +43,9 @@ final class FirstRun: NSObject, NSWindowDelegate {
     /// Not yet done on this Mac. The scenarios never see it, but for their own.
     static var needed: Bool {
         #if DEBUG
-        if let scenario = UserDefaults.standard.string(forKey: "NibScenario") { return scenario == "firstrun" }
+        if let scenario = NibDefaults.store.string(forKey: "NibScenario") { return scenario == "firstrun" }
         #endif
-        return UserDefaults.standard.integer(forKey: doneKey) < 1
+        return NibDefaults.store.integer(forKey: doneKey) < 1
     }
 
     /// The scratch file is settled: there, or chosen.
@@ -123,7 +123,7 @@ final class FirstRun: NSObject, NSWindowDelegate {
 
     /// Done: the scratch window, or Nib reopened with the chosen file.
     func finish() {
-        UserDefaults.standard.set(1, forKey: Self.doneKey)
+        NibDefaults.store.set(1, forKey: Self.doneKey)
         let chosen = chosen
         window?.close()
         guard let chosen else { AppDelegate.showScratch(); return }
@@ -133,7 +133,7 @@ final class FirstRun: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         // Closed before the end: done if the scratch file is settled, or it comes back next
         // time (and the scratch window's strip says where to look).
-        if scratchFound == true, chosen == nil { UserDefaults.standard.set(1, forKey: Self.doneKey) }
+        if scratchFound == true, chosen == nil { NibDefaults.store.set(1, forKey: Self.doneKey) }
         window = nil
     }
 }
@@ -164,9 +164,9 @@ enum ScratchChoice {
 
     static func use(_ url: URL) {
         if url.standardizedFileURL.path == ScratchLocation.standardURL.standardizedFileURL.path {
-            UserDefaults.standard.removeObject(forKey: "scratchPath")
+            NibDefaults.store.removeObject(forKey: "scratchPath")
         } else {
-            UserDefaults.standard.set(url.path, forKey: "scratchPath")
+            NibDefaults.store.set(url.path, forKey: "scratchPath")
         }
         AppDelegate.relaunch()
     }

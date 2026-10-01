@@ -44,9 +44,11 @@ run() {   # run <name> [args…]: one scenario, killed after 120 s if it hangs
   grep -E "PASS|FAIL|after the last" "$LOGS/$name.log" || echo "FAIL no output$([[ -f $LOGS/$name-sample.txt ]] && echo " (hung: sampled in $LOGS/$name-sample.txt)")"
 }
 
-# A clean start: until M1 passes, nib opens only test files, so its journal holds only
-# test-file snapshots (a failed earlier run can leave one that raises a conflict at launch).
-rm -f "$HOME/Library/Application Support/nib/Journal/"*.json
+# A clean start for the scenarios' own journal (a failed earlier run can leave a snapshot that
+# raises a conflict at launch). A scenario's Nib keeps its journal, History, lists and settings
+# apart from the Nib in daily use (Application Support/nib-scenarios, com.banastas.nib.scenarios),
+# so this never touches the user's.
+rm -f "$HOME/Library/Application Support/nib-scenarios/Journal/"*.json
 
 marker="crash-$(date +%s)"
 run type
@@ -116,7 +118,7 @@ run icloudoff
 # answer for minutes (PRD §8), which the launches after it would wait on.
 run bigfile
 
-echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib/paused.json" 2>/dev/null || echo none)"
+echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib-scenarios/paused.json" 2>/dev/null || echo none)"
 failed=0
 for name in type clipboard cleantext lines find carets palette gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing

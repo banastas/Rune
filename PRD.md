@@ -857,6 +857,8 @@ The voice (W1-W7), applied to Nib's common moments.
 | Lineage | extended attribute on the file (if S1b confirms it syncs; M0 showed it survives eviction on one Mac, which doesn't prove it reaches another) | yes |
 | Preferences, caret and scroll per file | `UserDefaults` | no |
 
+The test harness's Nib (a launch with `-NibScenario`: the suite, the two-Mac test, `run-perf.sh`) keeps all of this apart, in `~/Library/Application Support/nib-scenarios/` and the defaults domain `com.banastas.nib.scenarios` (`NibPaths.support`, `NibDefaults.store`), so a test run never touches the user's (§8, M2).
+
 ### 6.5 Performance targets
 
 Baselined against Sublime Text on the same Mac in M0, in the manner of Blit's performance table.
@@ -1415,6 +1417,16 @@ The by-hand checks above were skipped on 2026-09-28 by the user's choice, to mov
 - **The suite after (12:36):** 51 scenario runs and 356 checks, all passing, and 169 NibKit tests (the paused list's fix came after it, and was checked alone: the list empty after the next launch).
 
 **Two-Mac test, twenty-fifth run (2026-10-01, 12:50), with multiple carets, the note wait's time limit and the paused list's fix (committed at `7bafa90`): everything passed on both Macs, the same SHA-256** (`89a03959…`), receipts included: a's strip "✓ SYNCED · ON M2PR0M4CM1N1 12:52:21", b's "✓ SYNCED · ON BILL’S MACBOOK AIR 12:52:28". b had a's line 20 s after a added it, once it came forward: the Air's receipt named a version b hadn't seen, b asked for the note, and a forced refresh brought the version in 3.0 s. The clash merged from the version both had, one place between markers, kept both and resolved on both. Just after, an upload of b's resolution failed with Cocoa error 512 ("couldn't be saved"), and the next was refused with iCloud saying nothing was newer, so Nib refreshed, got its own version back, saved the work again and uploaded it, 17 s after the failure (§4.3). In the apart phase each note came before its merge, so the note wait, and its new time limit, wasn't needed: b merged by itself, 1 change from the Air onto its edits, with no block. The Air had each of b's versions 9-20 s after b uploaded it.
+
+**The test harness apart from the Nib in daily use (2026-10-01).** Before the user's own scratch file comes into Nib (CLAUDE.md's item 2), the scenarios had to stop sharing everything with the Nib in daily use. Both scripts deleted `Application Support/nib/Journal/*.json` as they started, which would be the user's crash-recovery journal. The scenarios wrote to the same History, Sync Log, untitled buffers, closed files and paused list, and a scenario's Nib, at launch, would have handed back to iCloud every paused file that wasn't its own (the user's held scratch file among them) and reopened the user's untitled buffers. Some scenarios turn settings off and back on (uploads held, the menu bar extra), and one killed half way leaves them off. Test files went into Open Recent and the Dock's list, and a scenario's Nib registered the same global shortcuts and the `nib` tool's bridge as the user's.
+
+Now a launch with `-NibScenario` (every script's) is the test harness's Nib (`NibPaths.isScenario`), and keeps apart:
+- **Its folder:** `~/Library/Application Support/nib-scenarios/`, for the journal, History, Sync Log, untitled buffers, closed files, the paused list, imported themes and the bridge's requests. The scripts clean that journal, not the user's.
+- **Its settings:** the defaults domain `com.banastas.nib.scenarios` (`NibDefaults.store`, which every read and write of Nib's settings now goes through, `@AppStorage` too). Launch arguments and registered defaults are seen through it as before (checked).
+- **The Mac's:** no global shortcuts (but for `firstrun`'s own, let go at its end), no menu bar extra (but for `menubar`), the login item always its stand-in, nothing in the system's recent files, and the bridge on names of its own (`com.banastas.nib.scenarios.*`), which the `cli` scenario's `nib` tool uses (NIB_SCENARIOS). Its windows don't save their places: SwiftUI keeps those in the app's own defaults, where the store can't take them (the Settings and Sync Log windows' still do).
+- **The Nib in daily use:** `scripts/install-nib.sh` builds a Release, team-signed as the Debug build is, stamps its build number with the time (higher than the Debug build's 3, so macOS opens files with it), and installs it as `/Applications/Nib.app`, refusing while it runs. The `nib` tool starts that copy when Nib isn't running. Not Developer ID signed or notarized (DS1).
+- **Still shared:** the scenarios' test file is the scratch file of any Nib that hasn't the live one yet (the day test's), so the suite can't run beside such a Nib. Once the user's scratch is `Nib/scratch.md`, the two hold different files, with their notes and receipts in different folders. While both run, Finder's opens and the Dock reach whichever Nib macOS picks.
+- **Checks so far:** both configurations compiled, and NibKit's 169 tests. The suite with the user's Nib open, the user's folder, settings and recent files compared before and after, waits for the end of the day test.
 
 ---
 

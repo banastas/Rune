@@ -84,7 +84,7 @@ final class Schemes {
     /// The last import's report (HL4), in the HUD's words.
     private(set) var report: String?
 
-    private let defaults = UserDefaults.standard
+    private let defaults = NibDefaults.store
 
     private init() {
         #if DEBUG

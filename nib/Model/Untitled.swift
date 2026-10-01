@@ -141,7 +141,7 @@ final class ClosedItems {
     private let key = "recentlyClosed"
 
     private init() {
-        if let data = UserDefaults.standard.data(forKey: key), let saved = try? JSONDecoder().decode([Item].self, from: data) { items = saved }
+        if let data = NibDefaults.store.data(forKey: key), let saved = try? JSONDecoder().decode([Item].self, from: data) { items = saved }
     }
 
     func add(_ item: Item) {
@@ -193,11 +193,11 @@ final class ClosedItems {
         guard item.untitled else { return }
         let history = History(root: NibPaths.support.appendingPathComponent("History"), path: item.path)
         try? FileManager.default.removeItem(at: history.directory)
-        UserDefaults.standard.removeObject(forKey: "selection:" + item.path)
-        UserDefaults.standard.removeObject(forKey: "syntax:" + item.path)
+        NibDefaults.store.removeObject(forKey: "selection:" + item.path)
+        NibDefaults.store.removeObject(forKey: "syntax:" + item.path)
     }
 
     private func persist() {
-        if let data = try? JSONEncoder().encode(items) { UserDefaults.standard.set(data, forKey: key) }
+        if let data = try? JSONEncoder().encode(items) { NibDefaults.store.set(data, forKey: key) }
     }
 }

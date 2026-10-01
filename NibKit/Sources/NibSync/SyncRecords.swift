@@ -126,8 +126,16 @@ public struct SaveSchedule: Sendable, Equatable {
 
 /// Where nib keeps its local records.
 public enum NibPaths {
+    /// The test harness's Nib (the suite, the two-Mac test and `run-perf.sh` launch it with
+    /// -NibScenario), and the `nib` tool its `cli` scenario runs (NIB_SCENARIOS set): kept apart
+    /// from the Nib in daily use, with a folder, settings and a bridge of their own, so that a
+    /// test run never touches the user's journal, History, held files or lists (2026-10-01).
+    public static let isScenario = ProcessInfo.processInfo.arguments.contains("-NibScenario")
+        || ProcessInfo.processInfo.environment["NIB_SCENARIOS"] != nil
+
+    /// `~/Library/Application Support/nib`, or the test harness's `nib-scenarios`.
     public static var support: URL {
-        URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support/nib")
+        URL(fileURLWithPath: NSHomeDirectory() + "/Library/Application Support/" + (isScenario ? "nib-scenarios" : "nib"))
     }
 
     public static var iCloudDrive: URL {

@@ -126,15 +126,17 @@ final class MenuBarController: NSObject {
     /// so with -NibReduceMotion.
     static var reduceMotion: Bool {
         #if DEBUG
-        if UserDefaults.standard.object(forKey: "NibReduceMotion") != nil { return UserDefaults.standard.bool(forKey: "NibReduceMotion") }
+        if NibDefaults.store.object(forKey: "NibReduceMotion") != nil { return NibDefaults.store.bool(forKey: "NibReduceMotion") }
         #endif
         return NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
-    /// In the menu bar or not, as Settings › General says (on unless turned off).
+    /// In the menu bar or not, as Settings › General says (on unless turned off; off in the
+    /// test harness's Nib, whose item would stand beside the user's, but for `menubar`).
     func apply() {
-        let defaults = UserDefaults.standard
-        let on = defaults.object(forKey: "showMenuBarExtra") == nil || defaults.bool(forKey: "showMenuBarExtra")
+        let defaults = NibDefaults.store
+        let standard = !NibPaths.isScenario || NibDefaults.scenario == "menubar"
+        let on = defaults.object(forKey: "showMenuBarExtra") == nil ? standard : defaults.bool(forKey: "showMenuBarExtra")
         if on, item == nil {
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             item.button?.target = self

@@ -3,6 +3,7 @@
 // on test files only until M1 has passed (the safety rule, §8).
 
 import AppKit
+import NibSync
 import NibText
 import SwiftUI
 
@@ -147,8 +148,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Show Scratch (SC2, ⌥Space), Clean Clipboard (PT4, ⌃⌥⌘V) and Append Clipboard to
         // Scratch (SC6, none), from any app, as Settings › General has them. Here, not queued
         // after the open: there its 20-30 ms landed as iCloud answered and held the text back
-        // (§6.5, measured 2026-09-30).
-        GlobalShortcuts.shared.registerAll()
+        // (§6.5, measured 2026-09-30). Not in the test harness's Nib: the keys are the Nib in
+        // daily use's (the `firstrun` scenario registers its own).
+        if !NibPaths.isScenario { GlobalShortcuts.shared.registerAll() }
         observeSystem()
         MenuBarController.shared.start()   // the menu bar extra (§5.7), AppKit's own status item
         CLIBridge.start()   // the `nib` command-line tool (AP4)
@@ -316,8 +318,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 /// acting on the document of the window in front.
 struct NibCommands: Commands {
     @FocusedValue(\.nibDocument) private var document
-    @AppStorage("editorLineNumbers") private var lineNumbers = true
-    @AppStorage("editorInvisibles") private var invisibles = false
+    @AppStorage("editorLineNumbers", store: NibDefaults.store) private var lineNumbers = true
+    @AppStorage("editorInvisibles", store: NibDefaults.store) private var invisibles = false
     @Environment(\.openWindow) private var openWindow
 
     private func send(_ action: Selector) { NSApp.sendAction(action, to: nil, from: nil) }
@@ -485,28 +487,29 @@ final class RecentFiles {
     /// and did (a launch at 21:50 stuck for good in -[NSDocumentController recentDocumentURLs],
     /// the File menu asking for it). The system still hears of each file, for the Dock's menu.
     private init() {
-        urls = (UserDefaults.standard.stringArray(forKey: key) ?? []).map { URL(fileURLWithPath: $0) }
+        urls = (NibDefaults.store.stringArray(forKey: key) ?? []).map { URL(fileURLWithPath: $0) }
             .filter { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     func add(_ url: URL) {
-        NSDocumentController.shared.noteNewRecentDocumentURL(url)
+        // (Not from the test harness's Nib: the system's list is the bundle's, the user's Nib's too.)
+        if !NibPaths.isScenario { NSDocumentController.shared.noteNewRecentDocumentURL(url) }
         urls.removeAll { $0.standardizedFileURL.path == url.standardizedFileURL.path }
         urls.insert(url, at: 0)
         if urls.count > 10 { urls.removeLast(urls.count - 10) }
-        UserDefaults.standard.set(urls.map(\.path), forKey: key)
+        NibDefaults.store.set(urls.map(\.path), forKey: key)
     }
 
     /// Moved or renamed (ED4): its old path isn't a file any more.
     func remove(_ url: URL) {
         urls.removeAll { $0.standardizedFileURL.path == url.standardizedFileURL.path }
-        UserDefaults.standard.set(urls.map(\.path), forKey: key)
+        NibDefaults.store.set(urls.map(\.path), forKey: key)
     }
 
     func clear() {
-        NSDocumentController.shared.clearRecentDocuments(nil)
+        if !NibPaths.isScenario { NSDocumentController.shared.clearRecentDocuments(nil) }
         urls = []
-        UserDefaults.standard.removeObject(forKey: key)
+        NibDefaults.store.removeObject(forKey: key)
     }
 }
 
