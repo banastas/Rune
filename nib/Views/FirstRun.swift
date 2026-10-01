@@ -121,9 +121,11 @@ final class FirstRun: NSObject, NSWindowDelegate {
         imported = true
     }
 
-    /// Done: the scratch window, or Nib reopened with the chosen file.
+    /// Done: the scratch window, or Nib reopened with the chosen file; and macOS asks whether
+    /// Nib may send its notifications, as step 3 said it would (AP5).
     func finish() {
         NibDefaults.store.set(1, forKey: Self.doneKey)
+        Notifier.shared.askIfNeeded()
         let chosen = chosen
         window?.close()
         guard let chosen else { AppDelegate.showScratch(); return }
@@ -133,7 +135,10 @@ final class FirstRun: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         // Closed before the end: done if the scratch file is settled, or it comes back next
         // time (and the scratch window's strip says where to look).
-        if scratchFound == true, chosen == nil { NibDefaults.store.set(1, forKey: Self.doneKey) }
+        if scratchFound == true, chosen == nil {
+            NibDefaults.store.set(1, forKey: Self.doneKey)
+            Notifier.shared.askIfNeeded()
+        }
         window = nil
     }
 }
@@ -345,7 +350,8 @@ private struct LookStep: View {
     }
 }
 
-/// Step 3: the two global shortcuts, and Open Nib when you log in.
+/// Step 3: the two global shortcuts, Open Nib when you log in, and what macOS will ask about
+/// notifications when this is done (AP5, SY15).
 private struct KeysStep: View {
     var body: some View {
         Section("Global shortcuts") {
@@ -355,6 +361,9 @@ private struct KeysStep: View {
         }
         Section {
             LoginToggle()
+        }
+        Section("Notifications") {
+            firstRunNote("When Nib is in the background, it tells you about a conflict, or a file it can't save or sync, with a notification and a sound. Nothing else: not saves, not syncs. macOS asks whether Nib may when you click Done; System Settings › Notifications changes it later.")
         }
     }
 }

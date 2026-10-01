@@ -1535,6 +1535,8 @@ enum TestHarness {
         }
         log.check(banner && document.deletedToTrash && document.state.line.contains("MOVED TO THE TRASH") && !document.held,
                   "moved to the Trash by another app: the text stays, and the banner and the strip say so (\(document.state.line))")
+        func gone() -> [Alerts.Alert] { Notifier.shared.posted.filter { $0.kind == .deleted && $0.title.hasPrefix("gone-\(marker).md") } }
+        log.check(gone().map(\.title) == ["gone-\(marker).md was moved to the Trash"], "and a notification (SY15): “\(gone().first.map { $0.title + ": " + $0.body } ?? "none")”")
         await document.flush(reason: "test")
         log.check(!FileManager.default.fileExists(atPath: url.path) && document.editor.textView.string.contains("typed before it went \(marker)"),
                   "saving makes nothing at the path, and the text is all here")
@@ -1545,6 +1547,7 @@ enum TestHarness {
                   "Restore writes it all back where it was")
         let resynced = await waitFor(60) { document.held && isSynced(document) }
         log.check(resynced, "and it's held and synced again (\(document.state.line), held \(document.held))")
+        log.check(Notifier.shared.withdrawn.filter { $0 == .deleted }.count == 1, "restored, its notification is taken back")
 
         // Deleted outright, then closed.
         await type("- typed before it went again \(marker)\n", into: document)
@@ -1555,8 +1558,10 @@ enum TestHarness {
         }
         let deletedAgain = await waitFor(10) { document.deleted }
         log.check(deletedAgain && !document.deletedToTrash && document.state.line.contains("DELETED ·"), "deleted outright: the banner again (\(document.state.line))")
+        log.check(gone().last?.title == "gone-\(marker).md was deleted" && gone().count == 2, "and a notification again: it's news again once it was over")
         document.editor.textView.window?.performClose(nil)
         let closed = await waitFor(10) { Documents.existing(for: url) == nil }
+        log.check(Notifier.shared.withdrawn.filter { $0 == .deleted }.count == 2, "closed, that one's taken back too")
         let item = ClosedItems.shared.items.first { $0.path == url.path }
         let history = History(root: NibPaths.support.appendingPathComponent("History"), path: url.path)
         let kept = item?.sha256.flatMap { history.data($0) }.map { String(decoding: $0, as: UTF8.self) }
@@ -1580,9 +1585,14 @@ enum TestHarness {
         try? await Task.sleep(for: .seconds(2))
         log.check(full && document.state.line.contains("ICLOUD STORAGE IS FULL") && fileText(document).contains("storage full \(marker)"),
                   "iCloud storage full: saved here, and the strip says so, and goes on saying so (\(document.state.line))")
+        // SY15: a notification (a scenario's Nib is never frontmost), once however often it's retried.
+        func said(_ kind: Alerts.Kind) -> [Alerts.Alert] { Notifier.shared.posted.filter { $0.kind == kind } }
+        log.check(said(.storageFull).map(\.title) == ["iCloud storage is full"], "a notification: “\(said(.storageFull).first.map { $0.title + ": " + $0.body } ?? "none")”")
         TestHarness.storageFull = false
         let back = await waitFor(40) { isSynced(document) }
         log.check(back, "the upload is tried again, and takes once there's room (\(document.state.line))")
+        log.check(said(.storageFull).count == 1 && Notifier.shared.withdrawn.contains(.storageFull),
+                  "one notification through every retry, taken out of Notification Center once it's synced (\(said(.storageFull).count))")
 
         TestHarness.diskFull = true
         await type("- disk full \(marker)\n", into: document)
@@ -1590,11 +1600,16 @@ enum TestHarness {
         await document.flush(reason: "test")
         log.check(journalFull && document.state.line.contains("ONLY IN MEMORY") && !fileText(document).contains("disk full \(marker)"),
                   "disk full: the journal and the file refuse, and the strip says so (\(document.state.line))")
+        try? await Task.sleep(for: .seconds(16))   // a retry, refused too
+        let diskAlerts = said(.saveFailed)
+        log.check(diskAlerts.count == 1 && diskAlerts[0].title == "Couldn't save \(document.url.lastPathComponent)" && diskAlerts[0].body.contains("disk is full"),
+                  "a notification for it, once through the retries: “\(diskAlerts.first.map { $0.title + ": " + $0.body } ?? "none")” (\(diskAlerts.count))")
         TestHarness.diskFull = false
         let saved = await waitFor(25) { fileText(document).contains("disk full \(marker)") }
         log.check(saved, "with room again, it's saved within 15 s, nothing typed meanwhile")
         await waitSynced(document, 30)
         log.check(isSynced(document), "and synced (\(document.state.line))")
+        log.check(Notifier.shared.withdrawn.contains(.saveFailed) && said(.saveFailed).count == 1, "and its notification taken back")
     }
 
     /// §4.9, 11, simulated (turning iCloud Drive off for real is the user's to do): iCloud Drive
@@ -1630,6 +1645,9 @@ enum TestHarness {
         }
         let off = await waitFor(10) { document.iCloudOff }
         log.check(off && document.deleted && document.state.line.contains("ICLOUD DRIVE IS OFF"), "iCloud Drive off: the text stays, and the banner and the strip say so (\(document.state.line))")
+        let offAlerts = Notifier.shared.posted.filter { $0.kind == .iCloudOff }
+        log.check(offAlerts.count == 1 && offAlerts[0].body.hasPrefix("away-\(marker).md went with it."),
+                  "and a notification (SY15): “\(offAlerts.first.map { $0.title + ": " + $0.body } ?? "none")”")
         await type("\n- typed while iCloud was off \(marker)\n", into: document)
         await document.flush(reason: "test")
         let copy = (try? String(contentsOf: recovery, encoding: .utf8)) ?? ""
@@ -1646,6 +1664,7 @@ enum TestHarness {
                   "iCloud on again, the file back: the typing goes into it")
         let synced = await waitFor(60) { document.held && isSynced(document) }
         log.check(synced && !FileManager.default.fileExists(atPath: recovery.path), "held and synced again, and the Recovery copy is gone (\(document.state.line))")
+        log.check(Notifier.shared.withdrawn.contains(.iCloudOff), "and the notification's taken back")
     }
 
     /// Multiple carets (ED8), in an untitled buffer: the Selection menu's keys; typing at three
@@ -2273,8 +2292,12 @@ enum TestHarness {
                       "no note in 10 s: both whole versions between markers, as before (\(line?.detail ?? "no conflict line"))")
             NibDefaults.store.register(defaults: ["NibHoldUploads": false])
             if timing == "never" {
+                let conflicts = Notifier.shared.posted.filter { $0.kind == .conflict }
+                log.check(conflicts.count == 1 && conflicts[0].title.hasPrefix("Conflict with ") && conflicts[0].title.hasSuffix(" in \(document.url.lastPathComponent)"),
+                          "and a notification (SY15): “\(conflicts.first.map { $0.title + ": " + $0.body } ?? "none")”")
                 let resolved = await keepBoth(document, marker)
                 log.check(resolved, "and Keep Both resolves it")
+                log.check(Notifier.shared.withdrawn.contains(.conflict), "resolved, the notification's taken back")
                 return
             }
             // late: that merge goes up to iCloud first, then the note comes (20:55): it's still

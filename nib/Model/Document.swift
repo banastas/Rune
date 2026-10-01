@@ -33,7 +33,9 @@ final class Document {
     /// An untitled buffer (ED3): a file of Nib's own on this Mac, never synced.
     let untitled: Bool
     let device = Host.current().localizedName ?? "This Mac"
-    private(set) var state: SyncState = .opening
+    private(set) var state: SyncState = .opening {
+        didSet { endAlerts(for: state) }
+    }
     private(set) var format = FileFormat.standard
     /// A line that shows in the strip for a while ("▼ UPDATED FROM …", "RECOVERED …").
     private(set) var notice: String?
@@ -662,6 +664,7 @@ final class Document {
         if !blocks.isEmpty, found.isEmpty, editor.textView.window?.isVisible == true {
             Announce.sentence("No conflicts left in \(url.lastPathComponent).")   // AX2
         }
+        if found.isEmpty { Notifier.shared.ended(.conflict, for: url) }   // SY15: resolved, or merged away
         if found != blocks { blocks = found }
         if blocks.isEmpty { mergedAroundBlocks = false }
         editor.highlight(blocks)
@@ -766,6 +769,8 @@ final class Document {
             // again in 15 s, typing or not.
             state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
                              : "COULDN'T WRITE THE RECOVERY JOURNAL · \(short(error)) · YOUR LATEST TYPING IS ONLY IN MEMORY")
+            Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
+                                  : Alerts.journalFailed(url.lastPathComponent, why: short(error)), for: url)
             record("problem", detail: "journal: \(CloudControl.describe(error))")
             scheduleJournal(after: 15)
         }
@@ -905,6 +910,8 @@ final class Document {
         } catch {
             state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
                              : "COULDN'T SAVE \(url.lastPathComponent.uppercased()) · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
+            Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
+                                  : Alerts.saveFailed(url.lastPathComponent, why: short(error)), for: url)
             record("problem", detail: "save: \(CloudControl.describe(error))")
             saving = false
             scheduleSave(after: 15)
@@ -1028,6 +1035,7 @@ final class Document {
             if CloudControl.isQuota(error) {
                 // §4.9, 12: red, and kept trying (the backoff, to 5 minutes) until there's room.
                 state = .problem("ICLOUD STORAGE IS FULL · SAVED LOCALLY ONLY · RETRYING")
+                Notifier.shared.began(Alerts.storageFull(url.lastPathComponent), for: url)
             } else {
                 state = .waiting(!online ? "WAITING FOR NETWORK · SAVED LOCALLY"
                                  : noAnswer ? "ICLOUD ISN'T ANSWERING · SAVED LOCALLY · RETRYING"
@@ -1254,6 +1262,7 @@ final class Document {
         mergedAroundBlocks = merged
         show("✕ CONFLICT WITH \(who.uppercased()) · \(places) PLACE\(places == 1 ? "" : "S") · BOTH VERSIONS ARE IN THE TEXT", for: 10)
         NSApp.requestUserAttention(.informationalRequest)
+        Notifier.shared.began(Alerts.conflict(url.lastPathComponent, with: who, places: places), for: url)
     }
 
     /// Blocks were written two-way, and now a note proves the base: if the text is as it was
@@ -1797,12 +1806,14 @@ final class Document {
         pausedFiles.remove(url.path)
         if iCloudOff {
             state = .problem("ICLOUD DRIVE IS OFF ON THIS MAC · SAVING TO NIB'S RECOVERY FOLDER")
+            Notifier.shared.began(Alerts.iCloudOff(url.lastPathComponent), for: url)
             record("problem", detail: "the file went with iCloud Drive (no iCloud account on this Mac): saving to the Recovery folder")
             recoveryPending = true
             if dirty { scheduleSave(after: 0) }
             return
         }
         state = .problem("\(trash ? "MOVED TO THE TRASH" : "DELETED") · YOUR TEXT IS STILL HERE · RESTORE PUTS IT BACK")   // the name's in the title and the banner
+        Notifier.shared.began(Alerts.deleted(url.lastPathComponent, trash: trash), for: url)
         record("problem", detail: trash ? "the file was moved to the Trash" : "the file was deleted")
     }
 
@@ -1883,6 +1894,8 @@ final class Document {
         } catch {
             state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
                              : "COULDN'T SAVE TO THE RECOVERY FOLDER · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
+            Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
+                                  : Alerts.saveFailed(url.lastPathComponent, why: short(error), toRecovery: true), for: url)
             record("problem", detail: "saving to the Recovery folder: \(CloudControl.describe(error))")
             scheduleSave(after: 15)
         }
@@ -2016,6 +2029,7 @@ final class Document {
     /// Quitting: save, upload, hand the file back to iCloud (§4.3; a pause outlives the app).
     func close() async {
         closing = true
+        Notifier.shared.closed(url)
         if deleted {
             // Nothing to save to, or hand back: the text goes into History, on Reopen Closed File.
             journalTask?.cancel()
@@ -2106,6 +2120,20 @@ final class Document {
     }
 
     // MARK: - Helpers
+
+    /// The problems a notification was for (SY15), over once things are well again: a save that
+    /// lands ends a failed save, and a deletion (restored); synced ends them all. Not on the
+    /// states a retry passes through (uploading, waiting), or a full iCloud would be news again
+    /// every few minutes.
+    private func endAlerts(for state: SyncState) {
+        let over: [Alerts.Kind]
+        switch state {
+        case .saved, .local: over = [.saveFailed, .deleted]
+        case .synced: over = [.saveFailed, .deleted, .iCloudOff, .storageFull]
+        default: return
+        }
+        for kind in over { Notifier.shared.ended(kind, for: url) }
+    }
 
     func show(_ text: String, for seconds: Double) {
         notice = text

@@ -153,6 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !NibPaths.isScenario { GlobalShortcuts.shared.registerAll() }
         observeSystem()
         MenuBarController.shared.start()   // the menu bar extra (§5.7), AppKit's own status item
+        Notifier.shared.start()   // SY15: conflicts and files Nib can't save or sync, while it's in the background
         CLIBridge.start()   // the `nib` command-line tool (AP4)
         // ⌘K opens Go to File too (A6), as ⌘K "Go to…" does in Blit; a menu item takes only one key.
         // ⌘1…⌘9 pick a tab, as in Sublime (§5.12), but for ⌘1-⌘3 with the caret in a conflict block.
