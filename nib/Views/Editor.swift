@@ -113,12 +113,46 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         find.textChanged()
     }
 
-    /// Several ranges at once (multiple carets, ED8): each as one change, the last first, so the
-    /// ones before it are where they were. With this one there, NSTextView asks it for every change.
+    /// Several ranges at once (multiple carets, ED8), in order and apart. With this one there,
+    /// NSTextView asks it for every change. The colors and Find's matches move in one pass over
+    /// them all: one pass a range was 2.3 s of a keystroke at 2,000 carets (Debug).
     func textView(_ textView: NSTextView, shouldChangeTextInRanges affectedRanges: [NSValue], replacementStrings: [String]?) -> Bool {
-        for (index, range) in affectedRanges.enumerated().reversed() {
-            _ = self.textView(textView, shouldChangeTextIn: range.rangeValue, replacementString: replacementStrings?[index])
+        guard affectedRanges.count > 1 else {
+            return affectedRanges.first.map { self.textView(textView, shouldChangeTextIn: $0.rangeValue, replacementString: replacementStrings?.first) } ?? true
         }
+        let ranges = affectedRanges.map(\.rangeValue)
+        let inserted = ranges.indices.map { (replacementStrings?[$0] as NSString?)?.length ?? 0 }
+        var before = [0]   // before[i]: how much the edits before the i-th changed the length
+        for (range, length) in zip(ranges, inserted) { before.append(before[before.count - 1] + length - range.length) }
+        /// How many edits end at or before `p` (an insertion at `p` among them).
+        func passed(_ p: Int) -> Int {
+            var low = 0, high = ranges.count
+            while low < high {
+                let mid = (low + high) / 2
+                if NSMaxRange(ranges[mid]) <= p { low = mid + 1 } else { high = mid }
+            }
+            return low
+        }
+        /// Where `p` is after the edits: moved by those before it; inside one, a style's start
+        /// goes after its new text and an end to its start (as one edit moves them, below).
+        func moved(_ p: Int, start: Bool) -> Int {
+            let i = passed(p)
+            guard i < ranges.count, ranges[i].location < p else { return p + before[i] }
+            return ranges[i].location + before[i] + (start ? inserted[i] : 0)
+        }
+        styles = styles.compactMap { item in
+            let start = moved(item.range.location, start: true), end = moved(NSMaxRange(item.range), start: false)
+            return end > start ? (NSRange(location: start, length: end - start), item.style) : nil
+        }
+        // Find's matches move too; one an edit touches is gone until the next search.
+        if !findMatches.isEmpty {
+            shownMatches = shownMatches.compactMap { r in
+                let i = passed(r.location)
+                guard i == ranges.count || ranges[i].location >= NSMaxRange(r) else { return nil }
+                return NSRange(location: r.location + before[i], length: r.length)
+            }
+        }
+        for (range, length) in zip(ranges, inserted).reversed() { find.textWillChange(in: range, change: length - range.length) }
         return true
     }
 
@@ -134,6 +168,8 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
                 r.location += change                                    // after the edit: moves
             } else if r.location <= range.location, end >= editEnd {
                 r.length += change                                      // holds the edit: grows or shrinks
+            } else if end <= range.location {
+                return item                                             // before it: as it was (it was stretched to the edit)
             } else if r.location < range.location {
                 r.length = range.location - r.location                  // cut by it: what came before
             } else {

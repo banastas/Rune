@@ -2088,6 +2088,9 @@ final class Document {
         let list = PausedFiles(url: NibPaths.support.appendingPathComponent("paused.json"))
         for path in list.all() where path != keep.path {
             let url = URL(fileURLWithPath: path)
+            // Gone (deleted, or taken away with iCloud Drive): nothing is paused to hand back. It
+            // was tried again at every launch, and listed for good (the suite's test files).
+            guard FileManager.default.fileExists(atPath: path) else { list.remove(path); continue }
             do {
                 try await CloudControl.resume(url, .uploadFailingOnConflict)
             } catch where CloudControl.isConflict(error) {

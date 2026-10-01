@@ -1830,6 +1830,8 @@ enum TestHarness {
         let manyView = many.editor.textView
         let keyword = (js as NSString).range(of: "let").location, name = (js as NSString).range(of: "item1").location
         let colored = await waitFor(10) { drawnColor(manyView, at: keyword) != "none" && drawnColor(manyView, at: keyword) != drawnColor(manyView, at: name) }
+        // (Inside the comment: the scheme draws its "//" in the text's own color, as Sublime does.)
+        let commentColor = drawnColor(manyView, at: (js as NSString).range(of: "note 1\n").location)
         let manyFind = many.editor.find
         manyFind.open(replace: false)
         manyFind.query = "item"
@@ -1841,12 +1843,24 @@ enum TestHarness {
         manyView.insertText("x", replacementRange: NSRange(location: NSNotFound, length: 0))
         let keyTime = Date().timeIntervalSince(started)
         let typed = manyView.string.hasPrefix("let x1 = ") && manyView.string.contains("let x2000 = ")
+        // The colors moved with the text till the next highlight: drawn from them now, the first
+        // line's comment is still one, and the semicolon before it isn't.
+        many.editor.render(force: true)
+        let edited = manyView.string as NSString
+        let comment = edited.range(of: "note 1\n").location, semicolon = edited.range(of: "; // note 1\n").location
+        let movedDrawn = (drawnColor(manyView, at: comment), drawnColor(manyView, at: semicolon))
+        let movedColors = commentColor != "none" && movedDrawn.0 == commentColor && movedDrawn.1 != commentColor
         started = Date()
         manyView.doCommand(by: #selector(NSResponder.deleteBackward(_:)))
         let deleteTime = Date().timeIntervalSince(started)
         func ms(_ t: TimeInterval) -> String { "\(Int((t * 1000).rounded())) ms" }
-        log.check(colored && count == 2_000 && typed && manyView.string.hasPrefix("let 1 = ") && keyTime < 0.5 && deleteTime < 0.5,
-                  "2,000 carets from Find All (\(ms(allTime))) in highlighted JavaScript: a keystroke at all of them \(ms(keyTime)), a delete \(ms(deleteTime)) (Debug)")
+        // And the tree has it all: scrolled to the end, the last line's comment is colored.
+        let end = (manyView.string as NSString).length
+        manyView.scrollRangeToVisible(NSRange(location: end, length: 0))
+        let last = await waitFor(5) { drawnColor(manyView, at: (manyView.string as NSString).range(of: "note 2000").location) == commentColor }
+        log.check(colored && count == 2_000 && typed && manyView.string.hasPrefix("let 1 = ") && keyTime < 0.25 && deleteTime < 0.25,
+                  "2,000 carets from Find All (\(ms(allTime))) in highlighted JavaScript: a keystroke at all of them \(ms(keyTime)), a delete \(ms(deleteTime)) (Debug; one pass a caret over the colors was 2.9 s)")
+        log.check(movedColors && last, "the colors move with the text at every caret, and the next highlight has them all (the comment \(commentColor); after the edit \(movedDrawn.0), the semicolon \(movedDrawn.1); the last line's \(last ? "too" : "not"))")
         manyFind.query = ""
         await close(manyURL)
 
