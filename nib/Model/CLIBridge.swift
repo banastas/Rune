@@ -85,7 +85,17 @@ enum CLIBridge {
             }
         }
         if !opened.isEmpty, request.forward { NSApp.activate() }
-        for (_, url) in opened { AppDelegate.openFile(url) }
+        // A file over 100 MB opens only if the question is answered Open (ED9): Cancel, and
+        // there's nothing to wait for.
+        opened = opened.filter { file in
+            if AppDelegate.openFile(file.1) { return true }
+            problems.append("\(file.1.path) wasn't opened: it's over 100 MB, and the question was answered Cancel")
+            if request.wait {
+                waiting[key(file.1)]?.removeAll { $0 == token }
+                waits -= 1
+            }
+            return false
+        }
         // Anything opened is an answer; only nothing opened is a failure.
         reply(token, ok: !opened.isEmpty, problems.joined(separator: "\nnib: "), waiting: waits)
         for (file, url) in opened {

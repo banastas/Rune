@@ -264,11 +264,14 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// incremental parse of the stretch around the view in a big file, `SyntaxDocument`), then
     /// the styles of the text in view and a margin. Up to 5 MB (ED9: larger files aren't
     /// highlighted).
+    /// ED9: files up to 5 MB (5,000,000 characters) get every feature; above that, no highlighting.
+    static let highlightLimit = 5_000_000
+
     func scheduleHighlight(after delay: Double = 0.08) {
         edits += 1
         highlightTask?.cancel()
         let version = edits
-        guard let syntaxDocument, (textView.string as NSString).length <= 5_000_000 else {
+        guard let syntaxDocument, (textView.string as NSString).length <= Self.highlightLimit else {
             highlightPending = false
             if !styles.isEmpty { styles = []; styled = NSRange(location: 0, length: 0); render(force: true) }
             return
@@ -729,7 +732,7 @@ final class NibTextView: NSTextView {
     @discardableResult
     static func openFiles(_ urls: [URL]) -> Bool {
         guard !urls.isEmpty else { return false }
-        urls.forEach(AppDelegate.openFile)
+        urls.forEach { AppDelegate.openFile($0) }
         return true
     }
 

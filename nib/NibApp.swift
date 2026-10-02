@@ -63,7 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static var openScratchWindow: (() -> Void)?
     /// Opens (or brings forward) a file's window; set by a window once one is up.
     static var openFileWindow: ((URL) -> Void)? {
-        didSet { if openFileWindow != nil { let waiting = pendingFiles; pendingFiles = []; waiting.forEach(openFile) } }
+        didSet { if openFileWindow != nil { let waiting = pendingFiles; pendingFiles = []; waiting.forEach { openFile($0) } } }
     }
     private static var pendingFiles: [URL] = []
     /// Quitting: windows closing now keep their untitled buffers for the next launch (ED3).
@@ -84,19 +84,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openFile(url)
     }
 
-    /// ⌘O, Open Recent, Finder's Open With, the Dock (ED2): the file's window, a tab beside the others.
-    static func openFile(_ url: URL) {
+    /// ⌘O, Open Recent, Finder's Open With, the Dock (ED2): the file's window, a tab beside the
+    /// others. False when it wasn't opened: over 100 MB, and the question answered Cancel (ED9).
+    @discardableResult
+    static func openFile(_ url: URL) -> Bool {
+        guard Documents.existing(for: url) != nil || Untitled.contains(url) || mayOpenLarge(url) else { return false }
         if !Untitled.contains(url) { RecentFiles.shared.add(url) }
         if let document = Documents.existing(for: url) {
-            if document === Documents.scratch { showScratch(); return }
+            if document === Documents.scratch { showScratch(); return true }
             if let window = document.editor.textView.window {
                 // Already open: its tab, in front (one buffer per file).
                 window.tabGroup?.selectedWindow = window
                 window.makeKeyAndOrderFront(nil)
-                return
+                return true
             }
         }
         if let open = openFileWindow { open(url) } else { pendingFiles.append(url) }
+        return true
+    }
+
+    /// ED9: a file over 100 MB opens only once asked (a decision, V8). Nib's own untitled
+    /// buffers aren't asked about: the user made them.
+    static let askAbove: Int64 = 100_000_000
+
+    static func mayOpenLarge(_ url: URL) -> Bool {
+        let size = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0)
+        guard size > askAbove else { return true }
+        let shown = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+        #if DEBUG
+        if let answer = TestHarness.largeFileAnswer {
+            TestHarness.largeFileAsked.append(url.lastPathComponent)
+            return answer
+        }
+        #endif
+        let alert = NSAlert()
+        alert.messageText = "“\(url.lastPathComponent)” is \(shown). Open it?"
+        alert.informativeText = "Nib opens files this big without highlighting. They're slower to open and to save, and every save writes the whole file again."
+        alert.addButton(withTitle: "Open")
+        alert.addButton(withTitle: "Cancel").keyEquivalent = "\u{1b}"
+        NSApp.activate()
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     static func showOpenPanel() {
@@ -105,11 +132,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = true
         guard panel.runModal() == .OK else { return }
-        panel.urls.forEach(openFile)
+        panel.urls.forEach { openFile($0) }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        urls.forEach(Self.openFile)
+        urls.forEach { Self.openFile($0) }
     }
 
     func applicationWillFinishLaunching(_ notification: Notification) {

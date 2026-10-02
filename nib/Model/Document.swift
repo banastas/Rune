@@ -61,6 +61,13 @@ final class Document {
     private(set) var notice: String?
     /// For the strip: "MARKDOWN", "JAVASCRIPT", "PLAIN TEXT" (HL1).
     private(set) var syntaxName = "PLAIN TEXT"
+    /// Over 5,000,000 characters (ED9): no highlighting, and the strip says so with the size.
+    private(set) var highlightingOff = false
+    /// The file's size in bytes, as last read or saved (ED9's strip).
+    private(set) var fileBytes = 0
+    /// Over 5 MB, History keeps the version opened and the one closed with, not every save:
+    /// at 42 MB a save a pause was gigabytes a day (ED9). Set when a save went unrecorded.
+    @ObservationIgnored private var historyBehind = false
     /// The syntax picked from the strip or View › Syntax, which the file keeps; nil follows
     /// the file's name and first line, which say `detectedSyntax` (nil: plain text).
     private(set) var pickedSyntax: SyntaxPick?
@@ -355,6 +362,7 @@ final class Document {
             let decoded = TextFile.decode(shadow.data)
             text = decoded.text
             format = decoded.format
+            fileBytes = shadow.data.count
             baseFingerprint = Fingerprint(size: Int64(shadow.data.count), modified: 0, fileID: 0, sha256: shadow.entry.sha256)
             uploadedSHA = shadow.entry.sha256   // a version this Mac had: a note naming it as the parent proves a merge's base (§4.6)
             remember(text, sha: shadow.entry.sha256)
@@ -367,6 +375,7 @@ final class Document {
                 step("decoding")
                 text = decoded.text
                 format = decoded.format
+                fileBytes = data.count
                 baseFingerprint = fingerprint
                 remember(text, sha: fingerprint.sha256)
                 recordHistory { history in try? history.record(data, parent: nil, source: "opened") }
@@ -381,6 +390,7 @@ final class Document {
         editor.textView.string = text
         step("into the view")
         applying = false
+        highlightingOff = (text as NSString).length > Editor.highlightLimit
         editor.restoreSelection(for: url)
         step("the caret")
         updateBlocks()
@@ -776,6 +786,8 @@ final class Document {
         editedHere = true
         editCount += 1
         schedule.edited()
+        let over = (editor.textView.textStorage?.length ?? 0) > Editor.highlightLimit
+        if over != highlightingOff { highlightingOff = over }
         if !awaitingDownload { state = .editing }   // the copy's line stays: nothing's saved till the file's here
         scheduleJournal()
         scheduleSave()
@@ -1015,7 +1027,12 @@ final class Document {
                 baseFingerprint = fingerprint
                 if held { savedWhileHeld = fingerprint.sha256 }
                 remember(text, sha: fingerprint.sha256)
-                recordHistory { history in try? history.record(data, parent: base?.sha256, source: "saved") }
+                fileBytes = data.count
+                if data.count <= Self.historyEverySave {
+                    recordHistory { history in try? history.record(data, parent: base?.sha256, source: "saved") }
+                } else {
+                    historyBehind = true   // the version closed with goes in (ED9)
+                }
                 if !pendingResolved.isEmpty || !pendingTrash.isEmpty { settleOthers() }
                 savedEditCount = snapshot
                 lastSaved = Date()
@@ -1652,7 +1669,9 @@ final class Document {
         guard let sha, versions[sha] == nil else { return }
         versions[sha] = text
         versionOrder.append(sha)
-        if versionOrder.count > 8, let i = versionOrder.firstIndex(where: { $0 != uploadedSHA }) {
+        // Two over 5 MB (ED9): eight copies of a 42 MB text were 670 MB of memory.
+        let most = (text as NSString).length > Editor.highlightLimit ? 2 : 8
+        while versionOrder.count > most, let i = versionOrder.firstIndex(where: { $0 != uploadedSHA }) {
             versions[versionOrder.remove(at: i)] = nil
         }
     }
@@ -2183,6 +2202,7 @@ final class Document {
         closing = true
         downloadTask?.cancel()
         Notifier.shared.closed(url)
+        defer { recordClosingVersion() }
         if deleted {
             // Nothing to save to, or hand back: the text goes into History, on Reopen Closed File.
             journalTask?.cancel()
@@ -2343,6 +2363,20 @@ final class Document {
         show("✓ TRASH EMPTIED · SAVING AGAIN", for: 4)
         scheduleJournal(after: 0)
         scheduleSave(after: 0)
+    }
+
+    // MARK: - Large files (ED9)
+
+    /// Every saved version goes into History up to this size; above it, the version opened and
+    /// the one closed with (and merges, restores, other Macs' versions).
+    static let historyEverySave = 5_000_000
+
+    /// Closing a big file: its last saved version into History, once (`historyBehind`).
+    private func recordClosingVersion() {
+        guard historyBehind, !dirty else { return }
+        historyBehind = false
+        let data = TextFile.encode(editor.textView.string, as: format), base = baseFingerprint?.sha256
+        recordHistory { history in try? history.record(data, parent: base, source: "closed") }
     }
 
     // MARK: - Helpers

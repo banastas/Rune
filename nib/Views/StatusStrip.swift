@@ -63,15 +63,23 @@ struct StatusStrip: View {
                     .help("Go to a line (⌃G)")
                     .accessibilityLabel("Line \(document.cursor.line), column \(document.cursor.column)\(document.caretCount > 1 ? ", \(document.caretCount) carets" : ""). Go to a line")
                 }
-                Menu { SyntaxMenuItems(document: document) } label: {
-                    Text(document.syntaxName).font(HUDFont.terminal(16)).foregroundStyle(HUDColor.dim)
+                if document.highlightingOff {
+                    // ED9: over 5 MB, no highlighting (and no syntax to choose), the size said instead.
+                    let size = ByteCountFormatter.string(fromByteCount: Int64(document.fileBytes), countStyle: .file)
+                    Text("HIGHLIGHTING OFF · \(size.uppercased())")
+                        .help("Files over 5 MB aren't highlighted, so they stay quick to edit and save")
+                        .accessibilityLabel("Highlighting off, \(size)")
+                } else {
+                    Menu { SyntaxMenuItems(document: document) } label: {
+                        Text(document.syntaxName).font(HUDFont.terminal(16)).foregroundStyle(HUDColor.dim)
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(.plain)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .help("The syntax for this file. Click to choose another.")
+                    .accessibilityLabel("Syntax, \(document.syntaxName.capitalized)")
                 }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help("The syntax for this file. Click to choose another.")
-                .accessibilityLabel("Syntax, \(document.syntaxName.capitalized)")
                 Text(" · \(document.indentationLabel) · \(document.format.encoding.label) · \(document.format.lineEnding.label)")
                     .help("Indentation (found in the file), encoding and line endings")
                     .accessibilityLabel(Self.spokenDetails(document))
@@ -98,7 +106,7 @@ struct StatusStrip: View {
 
     /// "scratch.md, synced at 10:42:21, line 14, column 3, Markdown" (AX1).
     static func summary(_ document: Document) -> String {
-        "\(document.url.lastPathComponent), \(spokenState(document)), line \(document.cursor.line), column \(document.cursor.column)\(document.caretCount > 1 ? ", \(document.caretCount) carets" : ""), \(document.syntaxName.capitalized)"
+        "\(document.url.lastPathComponent), \(spokenState(document)), line \(document.cursor.line), column \(document.cursor.column)\(document.caretCount > 1 ? ", \(document.caretCount) carets" : ""), \(document.highlightingOff ? "highlighting off" : document.syntaxName.capitalized)"
     }
 
     /// "2 spaces, UTF-8, LF line endings".

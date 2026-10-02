@@ -35,6 +35,9 @@ enum TestHarness {
     static var fakeTrash: URL?
     /// The `evicted` scenario: this Mac offline, as far as Nib's own files go (iCloud isn't asked).
     static var offline = false
+    /// The `large` scenario's answer to ED9's question about a file over 100 MB, and the files asked about.
+    static var largeFileAnswer: Bool?
+    static var largeFileAsked: [String] = []
     /// The `icloudoff` scenario: as if iCloud Drive were off on this Mac.
     static var iCloudOff = false
     /// Hands the file back for real, taking the server's version, just before the next forced
@@ -110,6 +113,7 @@ enum TestHarness {
             case "full": await fullScenario(Documents.scratch, log, marker)
             case "icloudoff": await iCloudOffScenario(log, marker)
             case "evicted": await evictedScenario(log, marker)
+            case "large": await largeScenario(log, marker)
             case "carets": await caretsScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
@@ -1701,6 +1705,105 @@ enum TestHarness {
         let synced = await waitFor(60) { document.held && isSynced(document) }
         log.check(synced && !FileManager.default.fileExists(atPath: recovery.path), "held and synced again, and the Recovery copy is gone (\(document.state.line))")
         log.check(Notifier.shared.withdrawn.contains(.iCloudOff), "and the notification's taken back")
+    }
+
+    /// ED9, large files. Up to 5 MB, every feature: here the one most at risk at that size, Find
+    /// All on 10,000 matches and a keystroke and a delete at all of them. From 5 to 100 MB: no
+    /// highlighting, the strip saying so with the size, still editable, and History keeping the
+    /// version opened, not every save. Over 100 MB: asked first.
+    static func largeScenario(_ log: HarnessLog, _ marker: String) async {
+        func close(_ url: URL) async {
+            Untitled.letGo(url)
+            Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+            _ = await waitFor(30) { Documents.existing(for: url) == nil }
+        }
+        func ms(_ t: TimeInterval) -> String { "\(Int((t * 1000).rounded())) ms" }
+        func open(_ url: URL) async -> (Document, TimeInterval)? {
+            let asked = Date()
+            AppDelegate.openFile(url)
+            _ = await waitFor(90) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+            return Documents.existing(for: url).map { ($0, Date().timeIntervalSince(asked)) }
+        }
+
+        // Up to 5 MB: highlighted, and Find All and typing at every match.
+        var js = "", n = 0
+        while js.utf8.count < 4_900_000 {
+            n += 1
+            js += "function handler\(n)(event) { const value = event.detail ?? \(n); return value > 10 ? \"big\" : \"small\"; }\n"
+        }
+        guard let smallURL = Untitled.create(text: js, name: "large-\(marker).js"), let (near, nearOpen) = await open(smallURL) else {
+            log.check(false, "a 4.9 MB untitled buffer opened")
+            return
+        }
+        let view = near.editor.textView
+        log.check(!near.highlightingOff && near.syntaxName == "JAVASCRIPT", "4.9 MB: opened in \(ms(nearOpen)), highlighted (\(near.syntaxName)), as every file up to 5 MB")
+        let find = near.editor.find
+        find.open(replace: false)
+        find.query = "value"
+        var started = Date()
+        find.findAll()
+        let allTime = Date().timeIntervalSince(started), count = view.currentCarets.count
+        started = Date()
+        view.insertText("x", replacementRange: NSRange(location: NSNotFound, length: 0))
+        let key = Date().timeIntervalSince(started)
+        started = Date()
+        view.doCommand(by: #selector(NSResponder.deleteBackward(_:)))
+        let delete = Date().timeIntervalSince(started)
+        log.check(count == TextSearch.limit && key < 2 && delete < 2,
+                  "Find All at 4.9 MB: \(count) matches, the most at once, in \(ms(allTime)); a keystroke at all of them \(ms(key)), a delete \(ms(delete)) (Debug)")
+        find.query = ""
+        view.collapseCarets()
+        await close(smallURL)
+
+        // 5 to 100 MB: no highlighting, the strip saying so with the size; still editable.
+        let line = "2026-10-01T12:00:00Z INFO request served in 12 ms, status 200, path /api/items/\(marker)\n"
+        let text = String(repeating: line, count: 42_000_000 / line.utf8.count)
+        guard let largeURL = Untitled.create(text: text, name: "large-\(marker).log"), let (far, farOpen) = await open(largeURL) else {
+            log.check(false, "a 42 MB untitled buffer opened")
+            return
+        }
+        let size = ByteCountFormatter.string(fromByteCount: Int64(far.fileBytes), countStyle: .file).uppercased()
+        log.check(far.highlightingOff && far.fileBytes > 40_000_000, "42 MB: opened in \(ms(farOpen)), no highlighting, the strip saying HIGHLIGHTING OFF · \(size)")
+        let farView = far.editor.textView
+        farView.setSelectedRange(NSRange(location: 0, length: 0))
+        let watch = StallWatch()
+        watch.start()
+        started = Date()
+        farView.insertText("x", replacementRange: farView.selectedRange())
+        let typed = Date().timeIntervalSince(started)
+        started = Date()
+        await far.flush(reason: "test")
+        let saved = Date().timeIntervalSince(started)
+        watch.stop()
+        let sources = far.history.entries().map(\.source)
+        log.check(!far.dirty && sources == ["opened"],
+                  "editable: a keystroke \(ms(typed)) on the main thread, saved in \(ms(saved)) (its longest wait \(ms(watch.longest))), History keeping the version opened, not each save (\(sources))")
+        await close(largeURL)
+
+        // Over 100 MB: asked first (a sparse file, outside the test folders: the question comes
+        // before the safety rule's refusal, which then keeps it from being read at all).
+        let huge = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("large-\(marker)-huge.txt")
+        FileManager.default.createFile(atPath: huge.path, contents: nil)
+        if let handle = try? FileHandle(forWritingTo: huge) {
+            try? handle.truncate(atOffset: 120_000_000)
+            try? handle.close()
+        }
+        defer {
+            try? FileManager.default.removeItem(at: huge)
+            TestHarness.largeFileAnswer = nil
+            RecentFiles.shared.remove(huge)
+        }
+        TestHarness.largeFileAsked = []
+        TestHarness.largeFileAnswer = false
+        let refused = !AppDelegate.openFile(huge)
+        log.check(refused && TestHarness.largeFileAsked == [huge.lastPathComponent] && Documents.existing(for: huge) == nil, "120 MB: asked first, and Cancel opens nothing")
+        TestHarness.largeFileAnswer = true
+        let accepted = AppDelegate.openFile(huge)
+        _ = await waitFor(10) { Documents.existing(for: huge) != nil }
+        log.check(accepted && TestHarness.largeFileAsked.count == 2 && Documents.existing(for: huge) != nil,
+                  "and Open goes on to open it (outside the test folders, refused by the safety rule as any such file: \(Documents.existing(for: huge)?.state.line ?? "no window"))")
+        Documents.existing(for: huge)?.editor.textView.window?.performClose(nil)
+        _ = await waitFor(10) { Documents.existing(for: huge) == nil }
     }
 
     /// §4.9 row 7 and §4.8 F: a file taken off this Mac, as Optimize Mac Storage does. Online, it

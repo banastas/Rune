@@ -108,6 +108,7 @@ run untitled -NibMarker "$umarker" -NibSaveIdle 600 -NibSaveMax 600
 run untitled-return -NibMarker "$umarker"
 run untitled-quit -NibMarker "$umarker"
 run refresh
+run large
 # Near the end: renaming folders, and moving files to the Trash and deleting them, in iCloud
 # Drive leaves its daemons busy for a minute or more ("Resource busy" for every pause in the
 # `merge` after them, 2026-09-30).
@@ -121,7 +122,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib-scenarios/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard cleantext lines find carets palette gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh bigfile; do   # this run's logs only
+for name in type clipboard cleantext lines find carets palette gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh large bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
