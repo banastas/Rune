@@ -1713,14 +1713,22 @@ enum TestHarness {
         let url = folder.appendingPathComponent("far-\(marker).md")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try? Data("# Far \(marker)\n\nthe middle line\n".utf8).write(to: url)
-        defer {
-            TestHarness.offline = false
-            Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
-            try? FileManager.default.removeItem(at: folder)
-            for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
-            for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
-            RecentFiles.shared.remove(url)
+        await evictedSteps(log, marker, folder: folder, url: url)
+        // Closed, and only then removed: removed while its window was closing, the folder stayed
+        // (five were left in the test folder, 2026-10-01).
+        TestHarness.offline = false
+        let never = folder.appendingPathComponent("never-\(marker).md")
+        for file in [url, never] { Documents.existing(for: file)?.editor.textView.window?.performClose(nil) }
+        _ = await waitFor(20) { Documents.existing(for: url) == nil && Documents.existing(for: never) == nil }
+        try? FileManager.default.removeItem(at: folder)
+        for file in [url, never] {
+            for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + file.path) }
+            for item in ClosedItems.shared.items where item.path == file.path { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(file)
         }
+    }
+
+    private static func evictedSteps(_ log: HarnessLog, _ marker: String, folder: URL, url: URL) async {
         func open() async -> Document? {
             AppDelegate.openFile(url)
             _ = await waitFor(40) { Documents.existing(for: url)?.ready == true }
@@ -1832,10 +1840,6 @@ enum TestHarness {
         TestHarness.offline = false
         let opened = await waitFor(40) { Documents.existing(for: never)?.ready == true && Documents.existing(for: never)?.editor.textView.string == "# Never opened \(marker)\n" }
         log.check(opened && Documents.existing(for: never)?.editor.textView.isEditable == true, "iCloud back: it opens (\(Documents.existing(for: never)?.state.line ?? "no window"))")
-        Documents.existing(for: never)?.editor.textView.window?.performClose(nil)
-        _ = await waitFor(20) { Documents.existing(for: never) == nil }
-        for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + never.path) }
-        RecentFiles.shared.remove(never)
     }
 
     /// Multiple carets (ED8), in an untitled buffer: the Selection menu's keys; typing at three
@@ -2970,7 +2974,6 @@ enum TestHarness {
         log.check(!refused && !FileManager.default.fileExists(atPath: outside.path) && four.notice?.contains("NIB OPENS ONLY TEST FILES") == true,
                   "Save… outside the test folders: refused, nothing written (\(four.notice ?? "no notice"))")
         let target = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("untitled-saved-\(marker).txt")
-        defer { try? FileManager.default.removeItem(at: target) }
         let saved = await Untitled.save(four, to: target)
         let opened = await waitFor(10) { Documents.existing(for: target)?.ready == true && Documents.existing(for: fourURL) == nil }
         log.check(saved && opened && onDisk(target) == "saved as a file \(marker)\n" && !FileManager.default.fileExists(atPath: fourURL.path)
@@ -2979,6 +2982,8 @@ enum TestHarness {
         Documents.existing(for: target)?.editor.textView.window?.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: target) == nil }
         if let item = ClosedItems.shared.items.first(where: { $0.path == target.path }) { ClosedItems.shared.forget(item) }
+        // Gone now, not in a defer: this scenario ends in SIGKILL, and one was left each run.
+        try? FileManager.default.removeItem(at: target)
 
         // Typing only the journal has, then a crash.
         await type("after the save \(marker)\n", into: one)
@@ -3365,7 +3370,7 @@ enum TestHarness {
                 }
                 guard let document = Documents.existing(for: c.url) else { return "Nib: no window for it" }
                 if document.deleted { return "Nib: the deleted banner, \(document.iCloudOff ? "ICLOUD OFF" : document.deletedToTrash ? "IN THE TRASH" : "DELETED")" }
-                return "Nib: \(document.state.line.components(separatedBy: " · ").prefix(2).joined(separator: " · "))"
+                return "Nib: \(document.state.line.components(separatedBy: " · ").first ?? "")"
             }
             await until(60)
             var cameForward = false

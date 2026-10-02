@@ -146,10 +146,14 @@ notes.append("iCloud Drive/Nib/Test: \(oldTestFiles.count) old entries (kept: sc
 print(remove ? "Moving to the Trash:" : "Would move to the Trash (a dry run; --remove to do it):")
 for note in notes { print("  " + note) }
 guard remove else { exit(0) }
+let settingsChange = !settingKeys.isEmpty || recentLeft.count != recent.count || closedLeft.count != closed.count
 
 // Into one folder, the settings as they were with them; then that folder to the Trash.
 let stamp = ISO8601DateFormatter.string(from: Date(), timeZone: .current, formatOptions: [.withFullDate, .withTime])
 let leftovers = support.deletingLastPathComponent().appendingPathComponent("Nib test leftovers \(stamp)", isDirectory: true)
+if moves.isEmpty, !settingsChange {
+    // Nothing of Nib's own folder or settings to move: no folder for it.
+} else {
 do {
     try fm.createDirectory(at: leftovers, withIntermediateDirectories: true)
     let copy = try PropertyListSerialization.data(fromPropertyList: settings, format: .xml, options: 0)
@@ -164,8 +168,10 @@ do {
     exit(1)
 }
 
+}
+
 // The settings, only those entries (the store writes through cfprefsd, as Nib's own does).
-if let store = UserDefaults(suiteName: domain) {
+if settingsChange, let store = UserDefaults(suiteName: domain) {
     for name in settingKeys { store.removeObject(forKey: name) }
     if recentLeft.count != recent.count { recentLeft.isEmpty ? store.removeObject(forKey: "recentFiles") : store.set(recentLeft, forKey: "recentFiles") }
     if closedLeft.count != closed.count {
@@ -187,11 +193,15 @@ if !oldTestFiles.isEmpty {
     }
 }
 
-do {
-    var inTrash: NSURL?
-    try fm.trashItem(at: leftovers, resultingItemURL: &inTrash)
-    print("Done. In the Trash: “\(leftovers.lastPathComponent)”" + (oldTestFiles.isEmpty ? "" : " and “old-test-files-\(stamp)”") + ".")
-    print("To put the settings back: defaults import \(domain) <the .plist in that folder>.")
-} catch {
-    print("Gathered in \(leftovers.path), but couldn't move it to the Trash: \(error.localizedDescription)")
+if fm.fileExists(atPath: leftovers.path) {
+    do {
+        var inTrash: NSURL?
+        try fm.trashItem(at: leftovers, resultingItemURL: &inTrash)
+        print("Done. In the Trash: “\(leftovers.lastPathComponent)”" + (oldTestFiles.isEmpty ? "" : " and “old-test-files-\(stamp)”") + ".")
+        print("To put the settings back: defaults import \(domain) <the .plist in that folder>.")
+    } catch {
+        print("Gathered in \(leftovers.path), but couldn't move it to the Trash: \(error.localizedDescription)")
+    }
+} else {
+    print(oldTestFiles.isEmpty ? "Nothing to move." : "Done. In the Trash: “old-test-files-\(stamp)”.")
 }

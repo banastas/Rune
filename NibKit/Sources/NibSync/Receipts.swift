@@ -71,7 +71,13 @@ public struct DeviceReceipts: Codable, Sendable, Equatable {
 
     /// Written whole by a coordinated replace: this file is never paused, so a rename is fine.
     public func write(to url: URL) throws {
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        // `.nib/devices` is made as needed, never the files' folder itself: one deleted or moved
+        // away isn't made again for a receipt (scenarios' folders came back holding only `.nib`).
+        let devices = url.deletingLastPathComponent()
+        guard FileManager.default.fileExists(atPath: devices.deletingLastPathComponent().deletingLastPathComponent().path) else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        try FileManager.default.createDirectory(at: devices, withIntermediateDirectories: true)
         let data = try encoded()
         var coordinationError: NSError?
         var writeError: Error?

@@ -66,6 +66,13 @@ final class ReceiptBook {
     private func write(_ folder: String) async {
         let changes = pending.removeValue(forKey: folder) ?? [:]
         let device = self.device, place = URL(fileURLWithPath: folder, isDirectory: true)
+        // The files' folder gone (deleted, or moved away): nothing to write into, and nothing to
+        // keep trying for.
+        guard FileManager.default.fileExists(atPath: place.deletingLastPathComponent().deletingLastPathComponent().path) else {
+            lastWrite[folder] = Date()
+            writing.remove(folder)
+            return
+        }
         let writes = self.writes
         var failure: String?
         do {
@@ -105,7 +112,11 @@ final class ReceiptBook {
         let reads = self.reads
         Task {
             _ = try? await CloudControl.within(10) {
-                await reads.run { try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }
+                await reads.run {
+                    // `.nib/devices` in a folder that's there, never the folder itself.
+                    guard FileManager.default.fileExists(atPath: folder.deletingLastPathComponent().deletingLastPathComponent().path) else { return }
+                    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                }
             }
             guard watches[folder.path] == nil else { return }
             let descriptor = Darwin.open(folder.path, O_EVTONLY)

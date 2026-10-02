@@ -47,6 +47,8 @@ public struct Announcement: Codable, Sendable, Equatable {
     /// Written atomically: this file is never paused, so a rename is fine here.
     public func write(for document: URL) throws {
         let url = Self.url(for: document)
+        // `.nib` is made as needed, never the file's folder: one deleted or moved away isn't made again.
+        guard FileManager.default.fileExists(atPath: document.deletingLastPathComponent().path) else { throw CocoaError(.fileNoSuchFile) }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let data = try Self.encoder.encode(self)
         var coordinationError: NSError?
