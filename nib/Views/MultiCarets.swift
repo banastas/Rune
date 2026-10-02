@@ -55,7 +55,7 @@ extension NibTextView {
             if let new { setSelectedRange(new.primaryCaret.range) }
         }
         caretsChanged()
-        if scroll { scrollRangeToVisible(selectedRange()) }
+        if scroll { reveal(new.map { $0.primaryCaret.head } ?? selectedRange().location) }
     }
 
     /// Back to one caret, the primary.

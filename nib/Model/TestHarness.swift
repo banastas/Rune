@@ -122,6 +122,7 @@ enum TestHarness {
             case "carets": await caretsScenario(log, marker)
             case "minimap": await minimapScenario(log, marker)
             case "mdlist": await markdownListScenario(log, marker)
+            case "widescroll": await wideScrollScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -2381,6 +2382,36 @@ enum TestHarness {
         await close(large)
     }
 
+    /// A scroll to a stretch taller than the view, then typing: TextKit 2 kept the stretch to scroll
+    /// to and used it after the edits had changed the text under it, and crashed (the `mdlist`
+    /// scenario's first runs, 2026-10-02: `__NSTextViewScrollContainerViewToTextRange`).
+    static func wideScrollScenario(_ log: HarnessLog, _ marker: String) async {
+        // Markdown with bold and italic: their faces are attributes on the text storage, set as it
+        // colors, which TextKit 2 takes as a change to the paragraphs under a kept stretch.
+        let lines = NibDefaults.store.bool(forKey: "NibWideScrollBig") ? 40_000 : 3_000
+        let text = (1...lines).map { $0 % 3 == 0 ? "- item \($0) with `code` and **bold** text\n" : "Line \($0): see https://example.com/\($0) and _the_ config.json file.\n" }.joined()
+        guard let url = Untitled.create(text: text, name: "widescroll-\(marker).md") else { log.check(false, "a buffer"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "it opened"); return }
+        let editor = document.editor, view = editor.textView
+        let start = editor.lineIndex.start(ofLine: 1_000) ?? 0, end = editor.lineIndex.start(ofLine: 1_300) ?? 0
+        let how = NibDefaults.store.string(forKey: "NibWideScrollHow") ?? "nib"
+        if how == "appkit" { view.scrollRangeToVisible(NSRange(location: start, length: end - start)) }
+        else { editor.reveal(NSRange(location: start, length: end - start)) }
+        try? await Task.sleep(for: .milliseconds(500))
+        view.setSelectedRange(NSRange(location: start, length: 0))
+        for character in "typed after a tall scroll " {
+            view.insertText(String(character), replacementRange: view.selectedRange())
+            try? await Task.sleep(for: .milliseconds(40))
+        }
+        try? await Task.sleep(for: .milliseconds(500))
+        log.check(view.string.contains("typed after a tall scroll"), "typing after a scroll to 300 lines, taller than the view (\(how)): still here")
+        Untitled.letGo(url)
+        view.window?.performClose(nil)
+        _ = await waitFor(10) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+    }
+
     /// A numbered list made in Markdown as the user made one (2026-10-02): title lines first,
     /// then "1. ", "2. "… typed at the start of each, key by key, in a 2.4 MB file (a tree of the
     /// stretch round the view), the list near line 4,383. Every item is one list item, marker and
@@ -2416,11 +2447,7 @@ enum TestHarness {
         let first = ns.range(of: titles[0]).location
         let firstLine = editor.lineIndex.line(at: first)
         view.setSelectedRange(NSRange(location: first, length: 0))
-        if NibDefaults.store.bool(forKey: "NibListWideScroll") {
-            view.scrollRangeToVisible(NSRange(location: first, length: 2_000))   // the first runs' (they crashed in TextKit)
-        } else {
-            editor.scroll(toTop: max(0, first - 1))   // the whole list in view, as typed
-        }
+        editor.scroll(toTop: max(0, first - 1))   // the whole list in view, as typed (a scroll to 2,000 characters crashed TextKit: `widescroll`)
         try? await Task.sleep(for: .seconds(1))   // colors for the stretch in view
         for item in 1...17 {
             guard let start = editor.lineIndex.start(ofLine: firstLine + item - 1) else { break }
@@ -2440,17 +2467,20 @@ enum TestHarness {
             if markerColor != orange || textColor != orange { wrong.append("\(item): \(markerColor)/\(textColor)") }
         }
         log.check(wrong.isEmpty, "a numbered list typed in front of title lines in a 2.4 MB file: every item in the list color, marker and text (\(wrong.isEmpty ? "all 17" : "wrong: " + wrong.joined(separator: ", ")))")
-        // And on the screen: what each line's view shows now, as it is, not drawn again. TextKit 2
-        // draws each stretch of text in a view of its own, which a change of colors alone left as
-        // it was (the user's list, 2026-10-02: lines typed earlier in the colors of then).
-        var stale: [String] = []
+        // And on the screen. TextKit 2 draws each stretch of text in a view of its own and draws it
+        // again only when its text changes: a change of colors left the user's list (2026-10-02) in
+        // the colors each line had when last typed on. A render must have each line's view drawn again.
+        view.displayIfNeeded()
+        editor.render(force: true)
+        var undrawn: [Int] = []
         for item in 1...17 {
-            guard let start = editor.lineIndex.start(ofLine: firstLine + item - 1) else { continue }
-            let markerInk = screenInk(view, at: start), textInk = screenInk(view, at: start + 6)
-            if markerInk != "orange" || textInk != "orange" { stale.append("\(item): \(markerInk)/\(textInk)") }
+            guard let start = editor.lineIndex.start(ofLine: firstLine + item - 1), let glyph = view.caretRect(at: start + 4) else { continue }
+            let point = NSPoint(x: glyph.midX, y: glyph.midY)
+            let views = view.subviews.flatMap(\.subviews).filter { $0.convert($0.bounds, to: view).contains(point) }
+            // (The view ignores its own `needsDisplay`; its layer holds the drawing.)
+            if views.isEmpty || !views.allSatisfy({ $0.layer?.sublayers?.contains { $0.needsDisplay() } ?? false }) { undrawn.append(item) }
         }
-        let plainLine = editor.lineIndex.start(ofLine: firstLine + 18).map { screenInk(view, at: $0 + 1) } ?? "none"
-        log.check(stale.isEmpty && plainLine != "orange", "and on the screen: every item drawn in it, the paragraph after not (\(stale.isEmpty ? "all 17" : "stale: " + stale.joined(separator: ", ")); after: \(plainLine))")
+        log.check(undrawn.isEmpty, "and on the screen: new colors have each line's view drawn again (\(undrawn.isEmpty ? "all 17" : "not: " + undrawn.map(String.init).joined(separator: ", ")))")
         // What's on the screen (the view drawn again into a picture), to look at.
         if let frame = view.window?.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
             frame.cacheDisplay(in: frame.bounds, to: rep)
@@ -3519,35 +3549,6 @@ enum TestHarness {
     }
 
     /// The highlighting color drawn at a character (a rendering attribute, §6.3), as hex.
-    /// The ink of the character at `location` as the screen has it: the text view's layers
-    /// rendered as they are (their present contents, nothing drawn again), the character's box
-    /// searched for its strongest pixel: "orange", "white", "other", or "none" (blank, or not in view).
-    static func screenInk(_ view: NSTextView, at location: Int) -> String {
-        guard let layer = view.layer, let glyph = (view as? NibTextView)?.caretRect(at: location), view.visibleRect.contains(NSPoint(x: glyph.minX, y: glyph.midY)) else { return "none" }
-        let width = 6, height = Int(glyph.height.rounded(.up)), scale = 2
-        guard let context = CGContext(data: nil, width: width * scale, height: height * scale, bitsPerComponent: 8, bytesPerRow: 0,
-                                      space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return "none" }
-        context.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
-        // The layer's coordinates are the view's, flipped to Core Graphics' (y up) with the box at the origin.
-        context.translateBy(x: -(glyph.minX + 1), y: CGFloat(height) + glyph.minY)
-        context.scaleBy(x: 1, y: -1)
-        layer.render(in: context)
-        guard let data = context.data else { return "none" }
-        let pixels = data.bindMemory(to: UInt8.self, capacity: context.bytesPerRow * height * scale)
-        var best: (r: Int, g: Int, b: Int, strength: Int) = (0, 0, 0, -1)
-        for y in 0..<(height * scale) {
-            for x in 0..<(width * scale) {
-                let i = y * context.bytesPerRow + x * 4
-                let r = Int(pixels[i]), g = Int(pixels[i + 1]), b = Int(pixels[i + 2])
-                if r + g + b > best.strength { best = (r, g, b, r + g + b) }
-            }
-        }
-        guard best.strength > 250 else { return "none" }
-        if best.r > best.g + 50 && best.r > best.b + 80 { return "orange" }
-        if best.r > 150 && best.g > 150 && best.b > 150 && abs(best.r - best.b) < 40 { return "white" }
-        return "other #" + String(format: "%02X%02X%02X", best.r, best.g, best.b)
-    }
-
     static func drawnColor(_ view: NSTextView, at location: Int, _ key: NSAttributedString.Key = .foregroundColor) -> String {
         guard let layout = view.textLayoutManager, let content = layout.textContentManager,
               let start = content.location(content.documentRange.location, offsetBy: location) else { return "none" }

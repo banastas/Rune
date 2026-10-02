@@ -237,7 +237,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     func flash(_ range: NSRange) {
         guard let layout = textView.textLayoutManager, let text = textView.textRange(range) else { return }
         layout.addRenderingAttribute(.backgroundColor, value: Scheme.selection, for: text)
-        textView.needsDisplay = true
+        redrawText()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
             guard let self, let text = self.textView.textRange(NSIntersectionRange(range, NSRange(location: 0, length: (self.textView.string as NSString).length))) else { return }
             layout.removeRenderingAttribute(.backgroundColor, for: text)
@@ -331,6 +331,9 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
     private var minimapAsked: NSRange?
 
+    /// A stretch of text into view, by its start (`NibTextView.reveal`).
+    func reveal(_ range: NSRange) { textView.reveal(range.location) }
+
     /// The row with `location` at the top of the view (the minimap's click and drag): laid out
     /// there first, which TextKit 2 does without laying out the text before it.
     func scroll(toTop location: Int) {
@@ -389,7 +392,22 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         }
         applyFaces(in: wanted)
         rendered = wanted
+        redrawText()
+    }
+
+    /// TextKit 2 draws each stretch of text in a view of its own, into a layer, and draws it again
+    /// only when its text changes: neither the text view's `needsDisplay` nor a change of rendering
+    /// attributes reaches it, and the view ignores its own `needsDisplay`. New colors alone left
+    /// lines as they were last drawn (the user's numbered list, 2026-10-02: each line in the colors
+    /// of when it was last typed on, the first all white). The layers of the views in view, drawn again.
+    private func redrawText() {
         textView.needsDisplay = true
+        for child in textView.subviews {
+            for line in child.subviews {
+                line.layer?.setNeedsDisplay()
+                line.layer?.sublayers?.forEach { $0.setNeedsDisplay() }
+            }
+        }
     }
 
     /// The editor font's faces (HL5): the font's own bold and italic; slanted if it has no
@@ -553,7 +571,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             ? blocks.first { $0.range.location > caret } ?? blocks[0]
             : blocks.last { NSMaxRange($0.range) <= caret } ?? blocks[blocks.count - 1]
         textView.setSelectedRange(NSRange(location: target.first.location, length: 0))
-        textView.scrollRangeToVisible(target.range)
+        reveal(target.range)
         textView.window?.makeFirstResponder(textView)
     }
 
@@ -639,7 +657,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         let length = (textView.string as NSString).length
         let location = min(saved[0], length)
         textView.setSelectedRange(NSRange(location: location, length: min(saved[1], length - location)))
-        textView.scrollRangeToVisible(textView.selectedRange())
+        reveal(textView.selectedRange())
     }
 }
 
@@ -667,6 +685,14 @@ final class NibTextView: NSTextView {
     /// While Undo Selection puts carets back, or the mouse is held: no step of their own.
     var restoringCarets = 0
     var trackingMouse = false
+
+    /// A place in the text into view. Nib scrolls to a place, never to a stretch: TextKit 2 keeps
+    /// a stretch it can't show whole (taller than the view, in a big file) to scroll to again after
+    /// later layouts, and an edit meanwhile crashed it there (`widescroll`, 2026-10-02:
+    /// `__NSTextViewScrollContainerViewToTextRange`, after a scroll to 300 lines of a 2.4 MB file).
+    func reveal(_ location: Int) {
+        scrollRangeToVisible(NSRange(location: min(max(0, location), textStorage?.length ?? 0), length: 0))
+    }
 
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
@@ -857,7 +883,7 @@ final class NibTextView: NSTextView {
         didChangeText()
         undoManager?.setActionName(action)
         setSelectedRange(edit.selection)
-        scrollRangeToVisible(edit.selection)
+        reveal(edit.selection.location)
     }
 
     /// A line command at the caret, or at every caret (ED8): `make` given the text and a selection.
@@ -887,7 +913,7 @@ final class NibTextView: NSTextView {
         }
         let range = LineEdits.selectLine(text, selection: selectedRange())
         setSelectedRange(range)
-        scrollRangeToVisible(range)
+        reveal(range.location)
     }
     @objc func toggleComment(_ sender: Any?) {
         guard let style = commentStyle() else {

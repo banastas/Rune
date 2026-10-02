@@ -108,7 +108,7 @@ final class FindSession {
         guard let view = editor?.textView, matches.indices.contains(index) else { return }
         current = index
         view.setSelectedRange(matches[index])
-        view.scrollRangeToVisible(matches[index])
+        view.reveal(matches[index].location)
         if view.window?.firstResponder === view { view.showFindIndicator(for: matches[index]) }
     }
 
