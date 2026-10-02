@@ -121,6 +121,7 @@ enum TestHarness {
             case "large": await largeScenario(log, marker)
             case "carets": await caretsScenario(log, marker)
             case "minimap": await minimapScenario(log, marker)
+            case "mdlist": await markdownListScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -2380,6 +2381,85 @@ enum TestHarness {
         await close(large)
     }
 
+    /// A numbered list made in Markdown as the user made one (2026-10-02): title lines first,
+    /// then "1. ", "2. "… typed at the start of each, key by key, in a 2.4 MB file (a tree of the
+    /// stretch round the view), the list near line 4,383. Every item is one list item, marker and
+    /// text in the scheme's `markup.list` color, in the colors TextKit holds and on the screen.
+    static func markdownListScenario(_ log: HarnessLog, _ marker: String) async {
+        let titles = ["Creative Production: Knowing Which Ideas to Cut", "Why Smart Teams Struggle to Decide",
+                      "Creative Reviews: Judge the Work, Not the Intention", "Client Feedback: Hearing the Anxiety Behind the Notes",
+                      "Creative Decisions: Make a Recommendation and Commit", "When the Project Changes, Revisit the Plan",
+                      "What Producers Do: Translate Between Clients and Creative Teams", "Production Risk: Which Mistakes Can the Project Survive?"]
+        var text = "# Notes \(marker)\n", n = 0
+        while text.utf8.count < 2_400_000 {
+            n += 1
+            if n == 4_380 {
+                text += "\n" + (1...17).map { "\(titles[($0 - 1) % titles.count]) | The Show Ep. \($0)\n" }.joined() + "\n"
+                continue
+            }
+            switch n % 200 {
+            case 0: text += "```bash\nrsync -av --progress ./dist/ me@seedbox:~/www/ && echo \"done \(n)\"\n```\n"
+            case 50: text += "## Notes for \(n)\n"
+            default:
+                if n % 25 == 0 { text += String(repeating: "A long paragraph that wraps, about item \(n), ", count: 5) + "\n" }
+                else if n % 3 == 0 { text += "- item \(n) with `code` and **bold** text\n" }
+                else { text += "Line \(n): see https://example.com/\(n) and the config.json file.\n" }
+            }
+        }
+        guard let url = Untitled.create(text: text, name: "mdlist-\(marker).md") else { log.check(false, "a Markdown buffer"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "it opened"); return }
+        defer { Untitled.letGo(url) }
+        let editor = document.editor, view = editor.textView
+        let ns = text as NSString
+        let first = ns.range(of: titles[0]).location
+        let firstLine = editor.lineIndex.line(at: first)
+        view.setSelectedRange(NSRange(location: first, length: 0))
+        if NibDefaults.store.bool(forKey: "NibListWideScroll") {
+            view.scrollRangeToVisible(NSRange(location: first, length: 2_000))   // the first runs' (they crashed in TextKit)
+        } else {
+            editor.scroll(toTop: max(0, first - 1))   // the whole list in view, as typed
+        }
+        try? await Task.sleep(for: .seconds(1))   // colors for the stretch in view
+        for item in 1...17 {
+            guard let start = editor.lineIndex.start(ofLine: firstLine + item - 1) else { break }
+            view.setSelectedRange(NSRange(location: start, length: 0))
+            for character in "\(item). " {
+                view.insertText(String(character), replacementRange: view.selectedRange())
+                try? await Task.sleep(for: .milliseconds(40))
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+        }
+        try? await Task.sleep(for: .seconds(1.5))   // the last highlight in
+        let orange = "#EF7C2B"
+        var wrong: [String] = []
+        for item in 1...17 {
+            guard let start = editor.lineIndex.start(ofLine: firstLine + item - 1) else { continue }
+            let markerColor = drawnColor(view, at: start), textColor = drawnColor(view, at: start + 6)
+            if markerColor != orange || textColor != orange { wrong.append("\(item): \(markerColor)/\(textColor)") }
+        }
+        log.check(wrong.isEmpty, "a numbered list typed in front of title lines in a 2.4 MB file: every item in the list color, marker and text (\(wrong.isEmpty ? "all 17" : "wrong: " + wrong.joined(separator: ", ")))")
+        // And on the screen: what each line's view shows now, as it is, not drawn again. TextKit 2
+        // draws each stretch of text in a view of its own, which a change of colors alone left as
+        // it was (the user's list, 2026-10-02: lines typed earlier in the colors of then).
+        var stale: [String] = []
+        for item in 1...17 {
+            guard let start = editor.lineIndex.start(ofLine: firstLine + item - 1) else { continue }
+            let markerInk = screenInk(view, at: start), textInk = screenInk(view, at: start + 6)
+            if markerInk != "orange" || textInk != "orange" { stale.append("\(item): \(markerInk)/\(textInk)") }
+        }
+        let plainLine = editor.lineIndex.start(ofLine: firstLine + 18).map { screenInk(view, at: $0 + 1) } ?? "none"
+        log.check(stale.isEmpty && plainLine != "orange", "and on the screen: every item drawn in it, the paragraph after not (\(stale.isEmpty ? "all 17" : "stale: " + stale.joined(separator: ", ")); after: \(plainLine))")
+        // What's on the screen (the view drawn again into a picture), to look at.
+        if let frame = view.window?.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("mdlist.png"))
+        }
+        view.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+    }
+
     /// VoiceOver (AX1, AX2): the strip's summary; its indentation, encoding and line endings in words; a notice said as a sentence;
     /// a conflict's notice said at once, the Conflicts rotor naming the block without its dot,
     /// and "No conflicts left" once it's resolved; the HUD line said too.
@@ -3439,6 +3519,35 @@ enum TestHarness {
     }
 
     /// The highlighting color drawn at a character (a rendering attribute, §6.3), as hex.
+    /// The ink of the character at `location` as the screen has it: the text view's layers
+    /// rendered as they are (their present contents, nothing drawn again), the character's box
+    /// searched for its strongest pixel: "orange", "white", "other", or "none" (blank, or not in view).
+    static func screenInk(_ view: NSTextView, at location: Int) -> String {
+        guard let layer = view.layer, let glyph = (view as? NibTextView)?.caretRect(at: location), view.visibleRect.contains(NSPoint(x: glyph.minX, y: glyph.midY)) else { return "none" }
+        let width = 6, height = Int(glyph.height.rounded(.up)), scale = 2
+        guard let context = CGContext(data: nil, width: width * scale, height: height * scale, bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return "none" }
+        context.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
+        // The layer's coordinates are the view's, flipped to Core Graphics' (y up) with the box at the origin.
+        context.translateBy(x: -(glyph.minX + 1), y: CGFloat(height) + glyph.minY)
+        context.scaleBy(x: 1, y: -1)
+        layer.render(in: context)
+        guard let data = context.data else { return "none" }
+        let pixels = data.bindMemory(to: UInt8.self, capacity: context.bytesPerRow * height * scale)
+        var best: (r: Int, g: Int, b: Int, strength: Int) = (0, 0, 0, -1)
+        for y in 0..<(height * scale) {
+            for x in 0..<(width * scale) {
+                let i = y * context.bytesPerRow + x * 4
+                let r = Int(pixels[i]), g = Int(pixels[i + 1]), b = Int(pixels[i + 2])
+                if r + g + b > best.strength { best = (r, g, b, r + g + b) }
+            }
+        }
+        guard best.strength > 250 else { return "none" }
+        if best.r > best.g + 50 && best.r > best.b + 80 { return "orange" }
+        if best.r > 150 && best.g > 150 && best.b > 150 && abs(best.r - best.b) < 40 { return "white" }
+        return "other #" + String(format: "%02X%02X%02X", best.r, best.g, best.b)
+    }
+
     static func drawnColor(_ view: NSTextView, at location: Int, _ key: NSAttributedString.Key = .foregroundColor) -> String {
         guard let layout = view.textLayoutManager, let content = layout.textContentManager,
               let start = content.location(content.documentRange.location, offsetBy: location) else { return "none" }
