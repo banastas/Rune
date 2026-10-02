@@ -161,6 +161,7 @@ enum TestHarness {
             case "untitled-return": await untitledReturn(log, marker)
             case "untitled-quit": await untitledQuit(log, marker)
             case "two-mac": await twoMac(document, log, marker)
+            case "two-mac-remote": await twoMacRemote(log, marker)
             default: log.line("FAIL unknown scenario")
             }
             log.line("done")
@@ -3317,6 +3318,127 @@ enum TestHarness {
     ///   itself, then (from +25 s) as if the user switched to it; at +60 s adds its clash line.
     /// Both: a conflict is answered Keep Both; both come forward at +115 s; at +125 s both
     /// Macs must hold both clash lines, the file equal to the buffer, synced, the same bytes.
+    /// SY12's last question, on two Macs (PRD §4.8 E, §4.9 8-10): b, as Finder or another app
+    /// on the other Mac, moves one of a's open (held) test files to the Trash, deletes another,
+    /// renames a third, and renames the folder of a fourth; a says when each leaves its place
+    /// here, comes at its new one, and what Nib shows, left alone and then come forward. A probe:
+    /// a FAIL is what isn't handled yet, and what it finds goes in PRD §8.
+    static func twoMacRemote(_ log: HarnessLog, _ marker: String) async {
+        let defaults = NibDefaults.store
+        let role = defaults.string(forKey: "NibRole") ?? "a"
+        let t0 = defaults.double(forKey: "NibAt")
+        func until(_ offset: Double) async {
+            let wait = t0 + offset - Date().timeIntervalSince1970
+            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+        }
+        func since(_ offset: Double) -> String { String(format: "%+.1f s", Date().timeIntervalSince1970 - (t0 + offset)) }
+        let test = ScratchLocation.url.deletingLastPathComponent()
+        let folder = test.appendingPathComponent("remote-folder-\(marker)", isDirectory: true)
+        let movedFolder = test.appendingPathComponent("remote-folder-moved-\(marker)", isDirectory: true)
+        let cases: [(name: String, url: URL, moved: URL?)] = [
+            ("trashed", test.appendingPathComponent("remote-trash-\(marker).md"), nil),
+            ("deleted", test.appendingPathComponent("remote-delete-\(marker).md"), nil),
+            ("renamed", test.appendingPathComponent("remote-rename-\(marker).md"), test.appendingPathComponent("remote-renamed-\(marker).md")),
+            ("folder renamed", folder.appendingPathComponent("inside-\(marker).md"), movedFolder.appendingPathComponent("inside-\(marker).md")),
+        ]
+        log.line("\(role): the remote probe · \(Int(t0 - Date().timeIntervalSince1970)) s to go")
+
+        if role == "a" {
+            await until(0)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            for c in cases { try? Data("# \(c.name) \(marker)\n\nopen on a\n".utf8).write(to: c.url) }
+            for c in cases { AppDelegate.openFile(c.url) }
+            let held = await waitFor(55) { cases.allSatisfy { Documents.existing(for: $0.url)?.held == true } }
+            log.line("a: the four files open\(held ? " and held" : ""): " + cases.map { "\($0.name) \(Documents.existing(for: $0.url)?.held == true ? "held" : "not held")" }.joined(separator: ", "))
+            let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
+            let before = events.read().count
+            // From b's moves (+60) to +240, once a second: what changed, and when.
+            var last: [String: String] = [:]
+            func note(_ key: String, _ text: String) {
+                guard last[key] != text else { return }
+                last[key] = text
+                log.line("a: \(key): \(since(60)) \(text)")
+            }
+            func nib(_ c: (name: String, url: URL, moved: URL?)) -> String {
+                if let moved = c.moved, let follower = Documents.existing(for: moved) {
+                    return "Nib has it open at its new place (\(follower.state.line.components(separatedBy: " · ").first ?? ""))"
+                }
+                guard let document = Documents.existing(for: c.url) else { return "Nib: no window for it" }
+                if document.deleted { return "Nib: the deleted banner, \(document.iCloudOff ? "ICLOUD OFF" : document.deletedToTrash ? "IN THE TRASH" : "DELETED")" }
+                return "Nib: \(document.state.line.components(separatedBy: " · ").prefix(2).joined(separator: " · "))"
+            }
+            await until(60)
+            var cameForward = false
+            while Date().timeIntervalSince1970 < t0 + 240 {
+                if !cameForward, Date().timeIntervalSince1970 >= t0 + 150 {
+                    cameForward = true
+                    log.line("a: \(since(60)) coming forward: each file's window active, as if you looked at this Mac")
+                    for c in cases { Documents.existing(for: c.url)?.becameActive() }
+                }
+                for c in cases {
+                    note(c.name, FileManager.default.fileExists(atPath: c.url.path) ? "in its place on this Mac" : "gone from its place on this Mac")
+                    if let moved = c.moved, FileManager.default.fileExists(atPath: moved.path) { note(c.name + ", new place", "at its new place on this Mac") }
+                    note(c.name + ", Nib", nib(c))
+                }
+                try? await Task.sleep(for: .seconds(1))
+            }
+            // What §4.8 E and SY12 ask (a probe: a FAIL is what isn't handled yet).
+            log.check(Documents.existing(for: cases[0].url)?.deleted == true, "a: moved to the Trash on b: Nib shows the deleted banner (\(nib(cases[0])))")
+            log.check(Documents.existing(for: cases[1].url)?.deleted == true, "a: deleted on b: Nib shows the deleted banner (\(nib(cases[1])))")
+            log.check(cases[2].moved.flatMap { Documents.existing(for: $0) } != nil, "a: renamed on b: Nib follows it to its new name (\(nib(cases[2])))")
+            log.check(cases[3].moved.flatMap { Documents.existing(for: $0) } != nil, "a: its folder renamed on b: Nib follows it (\(nib(cases[3])))")
+            // This Mac's Sync Log for those files, in order.
+            let paths = Set(cases.flatMap { [$0.url.path] + ($0.moved.map { [$0.path] } ?? []) })
+            for event in events.read().dropFirst(before) where paths.contains(event.path) && !["receipt", "save", "upload"].contains(event.event) {
+                log.line("a: log \(SyncState.clock.string(from: event.time)) \(URL(fileURLWithPath: event.path).lastPathComponent) \(event.event): \(event.detail ?? "")")
+            }
+            // Away again: closed (a deleted file's text stays in History), and what's left removed.
+            for c in cases {
+                for url in [c.url] + (c.moved.map { [$0] } ?? []) { Documents.existing(for: url)?.editor.textView.window?.performClose(nil) }
+            }
+            _ = await waitFor(20) { cases.allSatisfy { Documents.existing(for: $0.url) == nil && $0.moved.flatMap { Documents.existing(for: $0) } == nil } }
+            for c in cases {
+                for url in [c.url] + (c.moved.map { [$0] } ?? []) {
+                    try? FileManager.default.removeItem(at: url)
+                    for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
+                    RecentFiles.shared.remove(url)
+                    for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
+                }
+            }
+            try? FileManager.default.removeItem(at: folder)
+            try? FileManager.default.removeItem(at: movedFolder)
+        } else {
+            await until(0)
+            let here = await waitFor(55) { cases.allSatisfy { FileManager.default.fileExists(atPath: $0.url.path) } }
+            log.line("b: the four files are here: \(here)")
+            await until(60)
+            // As Finder does, each coordinated: to the Trash, deleted, renamed, the folder renamed.
+            var inTrash: NSURL?
+            do {
+                try FileManager.default.trashItem(at: cases[0].url, resultingItemURL: &inTrash)
+                log.line("b: \(since(60)) moved \(cases[0].url.lastPathComponent) to the Trash")
+            } catch { log.line("b: \(since(60)) couldn't move it to the Trash: \(error.localizedDescription)") }
+            var error: NSError?
+            NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: cases[1].url, options: .forDeleting, error: &error) { target in
+                try? FileManager.default.removeItem(at: target)
+            }
+            log.line("b: \(since(60)) deleted \(cases[1].url.lastPathComponent)\(error.map { " (\($0.localizedDescription))" } ?? "")")
+            for (source, target) in [(cases[2].url, cases[2].moved!), (folder, movedFolder)] {
+                do {
+                    try await CloudControl.within(20) { try FileCommands.coordinatedMove(source, to: target, caseOnly: false) }
+                    log.line("b: \(since(60)) renamed \(source.lastPathComponent) to \(target.lastPathComponent)")
+                } catch { log.line("b: \(since(60)) couldn't rename \(source.lastPathComponent): \(error.localizedDescription)") }
+            }
+            // After a has looked (+240) and closed them: this run's own things removed.
+            await until(255)
+            if let trashed = inTrash as URL? { try? FileManager.default.removeItem(at: trashed) }   // the test file it put in the Trash, only that
+            try? FileManager.default.removeItem(at: cases[2].moved!)
+            try? FileManager.default.removeItem(at: movedFolder)
+            try? FileManager.default.removeItem(at: folder)
+            log.line("b: \(since(60)) cleared away")
+        }
+    }
+
     static func twoMac(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         let defaults = NibDefaults.store
         let role = defaults.string(forKey: "NibRole") ?? "a"

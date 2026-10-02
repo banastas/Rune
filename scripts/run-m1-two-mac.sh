@@ -10,11 +10,18 @@
 # merges (Keep Both). Then both add a line at the same moment in different places, a at the top,
 # b at the bottom: the refused Mac merges without a sheet. Both must end with every line once,
 # the same bytes, synced. About 3.5 minutes after the start.
+#
+# With `remote` after the time, the remote probe instead (SY12, §4.8 E): a opens four test files;
+# b, as Finder on the other Mac, moves one to the Trash, deletes one, renames one, and renames
+# the folder of the fourth; a says what iCloud brings it and what Nib shows. About 4.5 minutes.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-role=${1:?usage: run-m1-two-mac.sh a|b HH:MM}
-at=${2:?usage: run-m1-two-mac.sh a|b HH:MM}
+role=${1:?usage: run-m1-two-mac.sh a|b HH:MM [remote]}
+at=${2:?usage: run-m1-two-mac.sh a|b HH:MM [remote]}
+probe=${3:-}
 [[ $role == a || $role == b ]] || { echo "role is a or b"; exit 2; }
+[[ -z $probe || $probe == remote ]] || { echo "the third word, if any, is: remote"; exit 2; }
+scenario=two-mac${probe:+-$probe}
 export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}
 T0=$(date -j -f "%H:%M:%S" "$at:00" +%s)
 (( T0 > $(date +%s) + 60 )) || { echo "start time $at is less than a minute away (or past)"; exit 2; }
@@ -24,7 +31,7 @@ echo "==> Building nib (Debug, $SIGN signing)"
 scripts/build-nib.sh "$SIGN"   # and checks the app is newer than every source file
 APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
 mkdir -p build/scenarios
-LOG=$PWD/build/scenarios/two-mac-$role.log
+LOG=$PWD/build/scenarios/$scenario-$role.log
 # A clean start for the scenarios' own journal: one left by an earlier failed run would raise a
 # conflict at launch. (A scenario's Nib keeps its journal apart from the Nib in daily use's.)
 rm -f "$HOME/Library/Application Support/nib-scenarios/Journal/"*.json
@@ -45,8 +52,13 @@ if (( late > 30 )); then
   exit 3
 fi
 echo "==> [$(date +%H:%M:%S)] nib on $(scutil --get ComputerName), role $role; start $at"
-"$APP" -NibScenario two-mac -NibRole "$role" -NibAt "$T0" -NibMarker "m-$T0" -NibScenarioLog "$LOG" >/dev/null 2>&1 || true
+"$APP" -NibScenario "$scenario" -NibRole "$role" -NibAt "$T0" -NibMarker "m-$T0" -NibScenarioLog "$LOG" >/dev/null 2>&1 || true
 echo
 echo "================ paste this ================"
-echo "M1 two-Mac · role $role · $(scutil --get ComputerName)"
-grep -E "PASS|FAIL|SHA-256|sheet|merged by itself" "$LOG" || echo "no output"
+if [[ -n $probe ]]; then
+  echo "Two-Mac remote probe · role $role · $(scutil --get ComputerName)"
+  grep -vE "^[0-9:]+ scenario " "$LOG" || echo "no output"
+else
+  echo "M1 two-Mac · role $role · $(scutil --get ComputerName)"
+  grep -E "PASS|FAIL|SHA-256|sheet|merged by itself" "$LOG" || echo "no output"
+fi
