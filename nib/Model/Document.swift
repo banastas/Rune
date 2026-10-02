@@ -151,6 +151,12 @@ final class Document {
     @ObservationIgnored private var uploadBackoff: TimeInterval = 10
     @ObservationIgnored private var lastSaved = Date()
     @ObservationIgnored private var online = true
+    @ObservationIgnored private var watchingNetwork = false
+    /// Not on this Mac (evicted) and offline, or iCloud slow to bring it: the buffer is the last
+    /// version Nib saw, typing allowed, and nothing is read from or written to the file until it's
+    /// here (§4.8 F, §4.9 7).
+    @ObservationIgnored private(set) var awaitingDownload = false
+    @ObservationIgnored private var downloadTask: Task<Void, Never>?
     @ObservationIgnored private let pathMonitor = NWPathMonitor()
     /// Set while nib itself changes the buffer (a reload, a resolution), so it isn't counted as an edit.
     @ObservationIgnored private var applying = false
@@ -323,25 +329,52 @@ final class Document {
         step("iCloud's status")
         if answered == nil { record("open", detail: "iCloud didn't say how the file stands in 10 s: opening it anyway, and holding it once iCloud answers") }
         let status = answered ?? CloudControl.Status()
+        var shadow: (entry: HistoryEntry, data: Data)?
         if status.downloadStatus == "notDownloaded" {
+            // Evicted (§4.9, 7). Never a coordinated read that waits for the download: offline, it
+            // waits for good. Ask for it, and open it once it's here; when it doesn't come (offline,
+            // or iCloud slow), the copy Nib saw last, typing allowed (§4.8 F); with no copy, wait.
             state = .notDownloaded
-            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+            watchNetwork()
+            if !(await downloaded(within: 20)) {
+                if let copy = await shadowCopy() {
+                    shadow = copy
+                } else {
+                    state = .waiting(offlineNow ? "NOT ON THIS MAC · OFFLINE · IT OPENS WHEN ICLOUD RETURNS" : "NOT ON THIS MAC · WAITING FOR ICLOUD TO BRING IT")
+                    editor.textView.isEditable = false
+                    while !closing, !(await downloaded(within: 30)) {}
+                    guard !closing else { return }
+                    editor.textView.isEditable = true
+                    state = .notDownloaded
+                }
+            }
+            step("downloading")
         }
         var text = ""
-        do {
-            let (data, fingerprint) = try await io.run { try FileAccess.read(url, presenter: presenter) }
-            step("reading")
-            let decoded = TextFile.decode(data)
-            step("decoding")
+        if let shadow {
+            let decoded = TextFile.decode(shadow.data)
             text = decoded.text
             format = decoded.format
-            baseFingerprint = fingerprint
-            remember(text, sha: fingerprint.sha256)
-            recordHistory { history in try? history.record(data, parent: nil, source: "opened") }
-        } catch {
-            state = .problem("COULDN'T READ \(url.lastPathComponent.uppercased()) · \(short(error))")
-            record("problem", detail: CloudControl.describe(error))
-            return
+            baseFingerprint = Fingerprint(size: Int64(shadow.data.count), modified: 0, fileID: 0, sha256: shadow.entry.sha256)
+            uploadedSHA = shadow.entry.sha256   // a version this Mac had: a note naming it as the parent proves a merge's base (§4.6)
+            remember(text, sha: shadow.entry.sha256)
+            step("the copy Nib saw last")
+        } else {
+            do {
+                let (data, fingerprint) = try await io.run { try FileAccess.read(url, presenter: presenter) }
+                step("reading")
+                let decoded = TextFile.decode(data)
+                step("decoding")
+                text = decoded.text
+                format = decoded.format
+                baseFingerprint = fingerprint
+                remember(text, sha: fingerprint.sha256)
+                recordHistory { history in try? history.record(data, parent: nil, source: "opened") }
+            } catch {
+                state = .problem("COULDN'T READ \(url.lastPathComponent.uppercased()) · \(short(error))")
+                record("problem", detail: CloudControl.describe(error))
+                return
+            }
         }
         applying = true
         stepStart = Date()
@@ -360,7 +393,8 @@ final class Document {
             watchNoteFolder()
         }
         step("watching")
-        record("open", size: text.utf8.count, sha: baseFingerprint?.sha256, detail: steps.joined(separator: " · "))
+        record("open", size: text.utf8.count, sha: baseFingerprint?.sha256,
+               detail: (shadow.map { "not on this Mac and \(offlineNow ? "offline" : "iCloud slow to bring it"): the copy Nib saw last (\($0.entry.source), \(SyncState.clock.string(from: $0.entry.time))), typing to merge when the file comes · " } ?? "") + steps.joined(separator: " · "))
         #if DEBUG
         if self === Documents.scratch { AppDelegate.mark("text shown") }
         #endif
@@ -382,7 +416,13 @@ final class Document {
         #if DEBUG
         openSteps = steps
         #endif
-        state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : .saved(Date())
+        if let shadow {
+            state = .offline(shadow.entry.time)
+            awaitingDownload = true
+            editor.textView.alphaValue = 0.75   // slightly dimmed (§4.8 F)
+        } else {
+            state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : .saved(Date())
+        }
         ready = true
         #if DEBUG
         if self === Documents.scratch { AppDelegate.launchMoments.text = AppDelegate.launchMoments.text ?? Date() }
@@ -397,8 +437,15 @@ final class Document {
             return
         }
         watchNetwork()
-        if answered == nil { scheduleHoldRetry() } else { await hold(status) }
-        if held {
+        if shadow != nil { awaitDownload(); return }   // the rest once the file is here
+        await holdAndCatchUp(answered == nil ? nil : status)
+    }
+
+    /// An open file held (§4.3; with no answer from iCloud, held by the background retry once it
+    /// answers) and brought up to date: an upload a crash may have left, then what other Macs did.
+    private func holdAndCatchUp(_ status: CloudControl.Status?) async {
+        if let status { await hold(status) } else { scheduleHoldRetry() }
+        if held, let status {
             // Paused, iCloud's uploaded flag stops meaning anything (M0). A file left paused
             // by a crash may hold saves iCloud never got: upload it before trusting it.
             if status.uploaded, status.paused != true {
@@ -413,6 +460,82 @@ final class Document {
         let history = self.history
         Task { await journalQueue.run { history.thin() } }
         if dirty { scheduleSave() }
+    }
+
+    // MARK: - Not on this Mac (§4.8 F, §4.9 7)
+
+    /// This Mac offline, as the network monitor last said (or as the `evicted` scenario says).
+    private var offlineNow: Bool {
+        #if DEBUG
+        if TestHarness.offline { return true }
+        #endif
+        return !online
+    }
+
+    /// Asks iCloud for the file and waits for it: true once it's on this Mac; false when `seconds`
+    /// pass, this Mac is offline (after a moment for the network monitor to say), or it closes.
+    private func downloaded(within seconds: Double) async -> Bool {
+        let url = self.url, io = self.io, started = Date()
+        var asked = false
+        while !closing {
+            let waited = Date().timeIntervalSince(started)
+            if offlineNow {
+                if waited > 1.5 { return false }
+            } else if !asked {
+                asked = true
+                _ = try? await CloudControl.within(10) { try await io.run { try FileManager.default.startDownloadingUbiquitousItem(at: url) } }
+            }
+            if !offlineNow, let status = await CloudControl.status(url, within: 5), status.downloadStatus != "notDownloaded" { return true }
+            if waited >= seconds { return false }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        return false
+    }
+
+    /// The last version Nib saw of this file: History's newest (§6.4's shadow copy).
+    private func shadowCopy() async -> (entry: HistoryEntry, data: Data)? {
+        let history = self.history
+        return await journalQueue.run {
+            guard let entry = history.entries().max(by: { $0.time < $1.time }), let data = history.data(entry.sha256) else { return nil }
+            return (entry, data)
+        }
+    }
+
+    /// After opening from the copy: asks for the file whenever this Mac is online, until it's here.
+    private func awaitDownload() {
+        downloadTask?.cancel()
+        downloadTask = Task { [weak self] in
+            while let self, !Task.isCancelled, !self.closing {
+                if await self.downloaded(within: 30) {
+                    await self.downloadArrived()
+                    return
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    /// The file is on this Mac again: taken in over the copy as any version from iCloud is (§4.4).
+    /// The same as the copy, and the typing is saved over it; another, merged with the typing
+    /// (§4.7), or the buffer replaced when nothing was typed. Then held, as any open file.
+    private func downloadArrived() async {
+        let url = self.url, presenter = self.presenter, io = self.io
+        guard let (data, fingerprint) = try? await CloudControl.within(30, { try await io.run { try FileAccess.read(url, presenter: presenter) } }) else {
+            awaitDownload()   // not readable after all: ask again
+            return
+        }
+        let status = await CloudControl.status(url, within: 10)
+        let note = await notesQueue.run { Announcement.read(for: url) }
+        if let note { lastNote = note }
+        let who = note.flatMap { $0.sha256 == fingerprint.sha256 && $0.device != device ? $0.device : nil } ?? "another Mac"
+        record("reload", sha: fingerprint.sha256, detail: "the file is on this Mac again: taken in over the copy shown while it wasn't")
+        state = dirty ? .editing : status?.uploaded == true ? .synced(Date()) : .saved(Date())
+        // Still awaiting it until it's taken in: cleared before the waits above, a disk check
+        // took it in first, with no note, and put both whole versions between markers (the suite).
+        incoming(data, fingerprint: fingerprint, from: who, fromServer: true)
+        awaitingDownload = false
+        editor.textView.alphaValue = 1
+        await holdAndCatchUp(status)
     }
 
     /// A journal newer than the file means the last session ended before it saved (§4.8 G).
@@ -653,7 +776,7 @@ final class Document {
         editedHere = true
         editCount += 1
         schedule.edited()
-        state = .editing
+        if !awaitingDownload { state = .editing }   // the copy's line stays: nothing's saved till the file's here
         scheduleJournal()
         scheduleSave()
     }
@@ -853,7 +976,8 @@ final class Document {
     }
 
     func save(reason: String) async {
-        guard ready, locked == nil, dirty, !deleted || iCloudOff else { return }
+        // While the copy is shown (§4.8 F), typing goes to the journal only: the file isn't here.
+        guard ready, locked == nil, dirty, !deleted || iCloudOff, !awaitingDownload else { return }
         if iCloudOff { await saveToRecovery(); return }
         if editor.textView.hasMarkedText() {   // mid-composition (IME): wait for the commit
             scheduleSave(after: 0.3)
@@ -1148,7 +1272,8 @@ final class Document {
     /// The presenter or a check found the file different: look at what's there (§4.4 Check).
     func diskMayHaveChanged() async {
         if deleted { await deletedFileBack(); return }
-        guard ready, locked == nil, !saving, !refreshing, fetches == 0 else { return }
+        // Not on this Mac yet: a read now would wait for the download (`awaitDownload` brings it).
+        guard ready, locked == nil, !saving, !refreshing, fetches == 0, !awaitingDownload else { return }
         let url = self.url
         let presenter = self.presenter
         let saves = self.saves, refreshes = self.refreshes
@@ -1585,9 +1710,10 @@ final class Document {
     /// the note decides. No edits here: refresh. Edits: nothing to do, since the next
     /// upload is refused and the merge runs.
     func checkAnnouncement(reason: String) async {
-        guard ready, locked == nil, !refreshing, !closing else { return }
-        let url = self.url
-        guard let note = await notesQueue.run({ Announcement.read(for: url, fresh: true) }) else { return }
+        // Not offline: a fresh read evicts the note and waits for it to download again.
+        guard ready, locked == nil, !refreshing, !closing, !offlineNow else { return }
+        let url = self.url, queue = notesQueue
+        guard let note = try? await CloudControl.within(10, { await queue.run { Announcement.read(for: url, fresh: true) } }) else { return }
         lastNote = note
         upgradeIfProven()
         guard note.device != device, !handledAnnouncements.contains(note.sha256),
@@ -1776,7 +1902,7 @@ final class Document {
 
     /// Unheld files: iCloud's own upload state, pushed through the presenter.
     func cloudAttributesChanged() {
-        guard ready, !held, !dirty else { return }
+        guard ready, !held, !dirty, !awaitingDownload else { return }
         let url = self.url
         Task {
             guard let status = await CloudControl.status(url, within: 5), ready, !held, !dirty else { return }
@@ -2034,6 +2160,8 @@ final class Document {
     }
 
     private func watchNetwork() {
+        guard !watchingNetwork else { return }   // a monitor starts once
+        watchingNetwork = true
         pathMonitor.pathUpdateHandler = { [weak self] path in
             let up = path.status == .satisfied
             Task { @MainActor in
@@ -2052,6 +2180,7 @@ final class Document {
     /// Quitting: save, upload, hand the file back to iCloud (§4.3; a pause outlives the app).
     func close() async {
         closing = true
+        downloadTask?.cancel()
         Notifier.shared.closed(url)
         if deleted {
             // Nothing to save to, or hand back: the text goes into History, on Reopen Closed File.

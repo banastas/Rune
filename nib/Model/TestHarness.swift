@@ -33,6 +33,8 @@ enum TestHarness {
     static var diskFull = false
     /// The `full` scenario's own Trash: a scenario's Nib offers and empties only this, never the Mac's.
     static var fakeTrash: URL?
+    /// The `evicted` scenario: this Mac offline, as far as Nib's own files go (iCloud isn't asked).
+    static var offline = false
     /// The `icloudoff` scenario: as if iCloud Drive were off on this Mac.
     static var iCloudOff = false
     /// Hands the file back for real, taking the server's version, just before the next forced
@@ -107,6 +109,7 @@ enum TestHarness {
             case "deleted": await deletedScenario(log, marker)
             case "full": await fullScenario(Documents.scratch, log, marker)
             case "icloudoff": await iCloudOffScenario(log, marker)
+            case "evicted": await evictedScenario(log, marker)
             case "carets": await caretsScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
@@ -475,8 +478,13 @@ enum TestHarness {
         let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("palette-\(marker).js")
         let original = "const one = 1;\nconst two = 2;\nconst three = 3;\n"
         try? Data(original.utf8).write(to: url)
+        // A file of its own for the Nib Folder group (the test folder held earlier runs' files,
+        // until they were cleared away and the group came up empty: the suite, 2026-10-01).
+        let other = url.deletingLastPathComponent().appendingPathComponent("palette-folder-\(marker).md")
+        try? Data("# In the Nib folder \(marker)\n".utf8).write(to: other)
         defer {
             try? FileManager.default.removeItem(at: url)
+            try? FileManager.default.removeItem(at: other)
             NibDefaults.store.removeObject(forKey: "selection:" + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
         }
@@ -1692,6 +1700,141 @@ enum TestHarness {
         let synced = await waitFor(60) { document.held && isSynced(document) }
         log.check(synced && !FileManager.default.fileExists(atPath: recovery.path), "held and synced again, and the Recovery copy is gone (\(document.state.line))")
         log.check(Notifier.shared.withdrawn.contains(.iCloudOff), "and the notification's taken back")
+    }
+
+    /// §4.9 row 7 and §4.8 F: a file taken off this Mac, as Optimize Mac Storage does. Online, it
+    /// opens once iCloud brings it, the main thread never waiting on the download. Offline (as
+    /// the scenario says): the copy Nib saw last, dimmed, typing allowed and the file left alone;
+    /// then iCloud back, with another Mac's version meanwhile: merged with the typing from the
+    /// copy's version, saved, held and synced.
+    static func evictedScenario(_ log: HarnessLog, _ marker: String) async {
+        let folder = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("evicted-\(marker)", isDirectory: true)
+        let url = folder.appendingPathComponent("far-\(marker).md")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? Data("# Far \(marker)\n\nthe middle line\n".utf8).write(to: url)
+        defer {
+            TestHarness.offline = false
+            Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
+            try? FileManager.default.removeItem(at: folder)
+            for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
+            for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(url)
+        }
+        func open() async -> Document? {
+            AppDelegate.openFile(url)
+            _ = await waitFor(40) { Documents.existing(for: url)?.ready == true }
+            return Documents.existing(for: url)
+        }
+        func close(_ document: Document) async {
+            document.editor.textView.window?.performClose(nil)
+            _ = await waitFor(20) { Documents.existing(for: url) == nil }
+        }
+        /// Off this Mac, as Optimize Mac Storage takes it. iCloud refuses for a while after an
+        /// upload or a hand-back, so it's tried again, for up to a minute.
+        func evict() async -> Bool {
+            for _ in 0..<30 {
+                if (try? FileManager.default.evictUbiquitousItem(at: url)) != nil,
+                   await waitFor(5, { CloudControl.status(url).downloadStatus == "notDownloaded" }) { return true }
+                try? await Task.sleep(for: .seconds(2))
+            }
+            return false
+        }
+
+        // Opened, a line typed, synced, closed: History has that version, and iCloud the file.
+        guard let first = await open() else { log.check(false, "the file opened"); return }
+        await waitSynced(first, 30)
+        await type("- typed before it went \(marker)\n", into: first)
+        await first.flush(reason: "test")
+        await waitSynced(first, 30)
+        let synced = first.editor.textView.string
+        await close(first)
+        let gone = await evict()
+        log.check(gone, "taken off this Mac, as Optimize Mac Storage does (\(CloudControl.status(url).downloadStatus))")
+        guard gone else { return }
+
+        // Online: it opens once iCloud brings it, and the main thread never waits on the download.
+        let watch = StallWatch()
+        watch.start()
+        let asked = Date()
+        guard let second = await open() else { watch.stop(); log.check(false, "the evicted file opened"); return }
+        let here = await waitFor(30) { !second.awaitingDownload && second.editor.textView.string == synced }
+        let took = Date().timeIntervalSince(asked)
+        watch.stop()
+        log.check(here && watch.longest < 1, "online: it opens once iCloud brings it, \(String(format: "%.1f", took)) s, the main thread's longest wait \(Int(watch.longest * 1000)) ms")
+        await waitSynced(second, 30)
+        await close(second)
+        let goneAgain = await evict()
+        log.check(goneAgain, "taken off this Mac again")
+        guard goneAgain else { return }
+
+        // Offline: the copy Nib saw last, dimmed; typing allowed, and the file left alone.
+        TestHarness.offline = true
+        guard let third = await open() else { log.check(false, "it opened offline"); return }
+        let view = third.editor.textView
+        let copy = await waitFor(10) { third.state.line.hasPrefix("◐ OFFLINE · SHOWING THE COPY FROM") }
+        log.check(copy && third.awaitingDownload && view.string == synced && view.alphaValue < 1 && view.isEditable,
+                  "offline: the copy Nib saw last, dimmed, and typing allowed (\(third.state.line))")
+        let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
+        let before = events.read().count
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        view.insertText("- typed offline \(marker)\n", replacementRange: view.selectedRange())
+        await endOfEvent(view)
+        try? await Task.sleep(for: .seconds(2))
+        // What Nib did, from its Sync Log (iCloud may bring the file back by itself meanwhile, just
+        // after a hand-back: the suite, 2026-10-01).
+        let touched = events.read().dropFirst(before).filter { $0.path == url.path && ["save", "reload", "pause", "upload", "merge"].contains($0.event) }.map(\.event)
+        log.check(third.dirty && third.awaitingDownload && touched.isEmpty && third.state.line.hasPrefix("◐ OFFLINE"),
+                  "the typing goes into the journal, the strip still says so, and Nib neither reads nor writes the file (\(touched.isEmpty ? "nothing in the Sync Log" : touched.joined(separator: ", ")); iCloud: \(CloudControl.status(url).downloadStatus))")
+
+        // Meanwhile another Mac's version: the copy and a line at its end, with its note. Writing
+        // it here brings the file back as a download would; Nib leaves it until iCloud's back.
+        let format = third.format
+        let theirs = TextFile.encode(synced + "- typed on the other Mac \(marker)\n", as: format)
+        let note = Announcement(sha256: Digest.sha256(theirs), parent: Digest.sha256(TextFile.encode(synced, as: format)), device: "Test Mac", size: theirs.count)
+        try? note.write(for: url)
+        try? theirs.write(to: url)
+        try? await Task.sleep(for: .seconds(2))
+        log.check(third.awaitingDownload && !view.string.contains("typed on the other Mac \(marker)"), "while offline, the version that came isn't taken in")
+
+        // iCloud back: the file is taken in, merged with the typing from the copy's version.
+        TestHarness.offline = false
+        let merged = await waitFor(40) {
+            !third.awaitingDownload && view.string.contains("typed offline \(marker)") && view.string.contains("typed on the other Mac \(marker)")
+        }
+        log.check(merged && view.alphaValue == 1 && third.blocks.isEmpty, "iCloud back: the file comes, merged with the typing from the copy's version (\(third.notice ?? third.state.line))")
+        let saved = await waitFor(30) {
+            let text = fileText(third)
+            return text.contains("typed offline \(marker)") && text.contains("typed on the other Mac \(marker)")
+        }
+        // (Held once iCloud has the upload, as a first hold is, §4.3: seconds after it's synced.)
+        let settled = await waitFor(40) { third.held && isSynced(third) }
+        log.check(saved && settled, "saved, held and synced (\(third.state.line), held \(third.held))")
+        TestHarness.offline = false
+
+        // A file Nib never opened on this Mac, off it and offline: no copy to show, so the window
+        // waits, saying so, and it opens once iCloud's back.
+        let never = folder.appendingPathComponent("never-\(marker).md")
+        try? Data("# Never opened \(marker)\n".utf8).write(to: never)
+        let uploaded = await waitFor(60) { CloudControl.status(never).uploaded }
+        var evicted = false
+        for _ in 0..<30 where uploaded && !evicted {
+            if (try? FileManager.default.evictUbiquitousItem(at: never)) != nil, await waitFor(5, { CloudControl.status(never).downloadStatus == "notDownloaded" }) { evicted = true }
+            else { try? await Task.sleep(for: .seconds(2)) }
+        }
+        guard evicted else { log.check(false, "a file Nib never opened, taken off this Mac (uploaded \(uploaded))"); return }
+        TestHarness.offline = true
+        AppDelegate.openFile(never)
+        let waiting = await waitFor(30) { Documents.existing(for: never)?.state.line == "‖ NOT ON THIS MAC · OFFLINE · IT OPENS WHEN ICLOUD RETURNS" }
+        let unopened = Documents.existing(for: never)
+        log.check(waiting && unopened?.editor.textView.isEditable == false && unopened?.ready == false,
+                  "offline, a file Nib never saw here: no copy, so the window waits, saying so (\(unopened?.state.line ?? "no window"))")
+        TestHarness.offline = false
+        let opened = await waitFor(40) { Documents.existing(for: never)?.ready == true && Documents.existing(for: never)?.editor.textView.string == "# Never opened \(marker)\n" }
+        log.check(opened && Documents.existing(for: never)?.editor.textView.isEditable == true, "iCloud back: it opens (\(Documents.existing(for: never)?.state.line ?? "no window"))")
+        Documents.existing(for: never)?.editor.textView.window?.performClose(nil)
+        _ = await waitFor(20) { Documents.existing(for: never) == nil }
+        for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + never.path) }
+        RecentFiles.shared.remove(never)
     }
 
     /// Multiple carets (ED8), in an untitled buffer: the Selection menu's keys; typing at three
@@ -3741,6 +3884,31 @@ enum TestHarness {
             return item
         }
         if !restored.isEmpty { pasteboard.writeObjects(restored) }
+    }
+}
+
+/// The main thread's longest wait, sampled every 20 ms while it runs.
+@MainActor
+final class StallWatch {
+    private(set) var longest = 0.0
+    private var last = Date()
+    private var timer: Timer?
+
+    func start() {
+        last = Date()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                let now = Date()
+                self.longest = max(self.longest, now.timeIntervalSince(self.last))
+                self.last = now
+            }
+        }
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
     }
 }
 

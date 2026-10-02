@@ -294,6 +294,8 @@ private struct ScratchStep: View {
                 }
             }
             firstRunNote("The scratch file is where everything you jot down goes. It's in Nib's own folder in iCloud Drive, so every Mac signed in to your Apple Account opens the same file, and Nib keeps them the same. If one Mac already has it, this finds it; make it only on the first Mac.")
+            // §4.9 row 7: macOS has no way for an app to keep one file on the Mac (M0 checked).
+            firstRunNote("So that macOS never takes it off this Mac to free up space, Control-click iCloud Drive › Nib in Finder and choose Keep Downloaded. If it's off this Mac anyway, Nib brings it back when it opens, or shows the last copy it saw while you're offline.")
             if ScratchLocation.safetyRule {
                 firstRunNote("Until M1 has passed, Nib opens only test files, in iCloud Drive › Nib › Test, so for now this is its test file.")
             }

@@ -7,6 +7,9 @@ enum SyncState: Equatable {
     case opening
     /// Evicted by Optimize Mac Storage; downloading before it can be read.
     case notDownloaded
+    /// Not on this Mac and offline (or iCloud slow to bring it): the copy Nib saw last, from this
+    /// time, typing allowed, merged when the file comes (§4.8 F).
+    case offline(Date)
     /// Typed in the last second: in the journal, not yet in the file.
     case editing
     /// In the file on this Mac; iCloud doesn't have this version yet.
@@ -26,11 +29,19 @@ enum SyncState: Equatable {
         return formatter
     }()
 
+    /// "10:42", or "SEP 30 10:42" for another day.
+    static func moment(_ time: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = Calendar.current.isDateInToday(time) ? "HH:mm" : "MMM d HH:mm"
+        return formatter.string(from: time).uppercased()
+    }
+
     /// The strip's words, HUD grammar (W5).
     var line: String {
         switch self {
         case .opening: "· OPENING"
         case .notDownloaded: "◐ NOT ON THIS MAC · DOWNLOADING"
+        case .offline(let time): "◐ OFFLINE · SHOWING THE COPY FROM \(Self.moment(time)) · EDITS MERGE WHEN ICLOUD RETURNS"
         case .editing: "· EDITING"
         case .saved(let time): "= SAVED LOCALLY · \(Self.clock.string(from: time))"
         case .uploading(let time): "▲ UPLOADING · SAVED \(Self.clock.string(from: time))"
@@ -61,6 +72,7 @@ enum SyncState: Equatable {
         switch self {
         case .opening: "Opening"
         case .notDownloaded: "Not on this Mac, downloading"
+        case .offline(let time): "Offline, showing the copy from \(Self.moment(time).lowercased()); edits merge when iCloud returns"
         case .editing: "Editing"
         case .saved(let time): "Saved on this Mac at \(Self.clock.string(from: time)), not in iCloud yet"
         case .uploading: "Uploading to iCloud"
