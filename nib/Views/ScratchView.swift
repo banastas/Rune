@@ -66,7 +66,9 @@ struct DocumentView: View {
     }
 }
 
-/// The scratch window (SC1): never a tab among files.
+/// The scratch window (SC1): a tab among the files' (A5, the user's call, 2026-10-02: one window,
+/// as Sublime's), brought forward with its tab by Show Scratch. ⌘W closes it; Show Scratch and
+/// the Dock bring it back, a tab again.
 struct ScratchView: View {
     let document: Document
     @Environment(\.openWindow) private var openWindow
@@ -74,7 +76,9 @@ struct ScratchView: View {
     var body: some View {
         DocumentView(document: document)
             .background(WindowConfigurator { window in
-                window.tabbingMode = .disallowed
+                window.tabbingIdentifier = "nib.file"
+                window.tabbingMode = .preferred
+                FileWindow.joinTabs(window)
                 #if DEBUG
                 AppDelegate.launchMoments.window = AppDelegate.launchMoments.window ?? Date()   // §6.5's cold launch
                 #endif
@@ -91,27 +95,41 @@ struct ScratchView: View {
 struct FileWindow: View {
     let url: URL
     @Environment(\.openWindow) private var openWindow
+    /// Its document, got once as it first appears. Got in `body`, a redraw as the window closed
+    /// made a new one for the file just let go and opened it again, held, with no window (the
+    /// `files` scenario, 2026-10-02: an untitled tab's file stayed behind).
+    @State private var document: Document?
 
     var body: some View {
-        let document = Documents.document(for: url)
-        DocumentView(document: document)
-            .background(WindowConfigurator { window in
-                // Closed, not just hidden behind another tab: save, upload, hand the file back.
-                NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
-                    Task { @MainActor in await Documents.close(document) }
-                }
-                window.tabbingIdentifier = "nib.file"
-                window.tabbingMode = .preferred
-                Self.joinTabs(window)
-            })
-            .onAppear { AppDelegate.openFileWindow = { openWindow(value: $0) } }
+        ZStack {
+            if let document {
+                DocumentView(document: document)
+                    .background(WindowConfigurator { window in
+                        // Closing it saves, uploads and hands the file back (`Documents.watchClosing`).
+                        window.tabbingIdentifier = "nib.file"
+                        window.tabbingMode = .preferred
+                        Self.joinTabs(window)
+                    })
+            } else {
+                Color(nsColor: Scheme.background)   // a moment, till its document is got (empty, it never appeared)
+            }
+        }
+        .onAppear {
+            if document == nil { document = Documents.document(for: url) }
+            AppDelegate.openFileWindow = { openWindow(value: $0) }
+        }
     }
 
+    /// The window New and New Tab were chosen in: their tab goes there, if it takes tabs.
+    static weak var tabHost: NSWindow?
+
     /// SwiftUI shows the window before it can be set up, so it joins the other files' tabs by
-    /// hand, and again if AppKit ignored that while the window was still coming on screen.
+    /// hand, and again if AppKit ignored that while the window was still coming on screen: the
+    /// window New was chosen in, else the first that takes them (the scratch window's too).
     static func joinTabs(_ window: NSWindow, attempts: Int = 10) {
         guard attempts > 0 else { return }
-        let host = NSApp.windows.first { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible }
+        let chosen = tabHost.flatMap { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible ? $0 : nil }
+        let host = chosen ?? NSApp.windows.first { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible }
         if window.isVisible {
             guard let host else { return }                                   // the first file window
             if host.tabGroup?.windows.contains(window) == true { return }  // joined

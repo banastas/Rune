@@ -86,7 +86,9 @@ enum Untitled {
         let panel = NSSavePanel()
         panel.title = "Save “\(document.url.lastPathComponent)”"
         let name = document.url.lastPathComponent
-        panel.nameFieldStringValue = (name as NSString).pathExtension.isEmpty ? name + ".txt" : name   // "notes copy.md" as it is
+        // "notes copy.md" as it is; a new buffer named for its syntax, Markdown unless another was picked.
+        let suffix = document.pickedSyntax == .language(.markdown) ? ".md" : ".txt"
+        panel.nameFieldStringValue = (name as NSString).pathExtension.isEmpty ? name + suffix : name
         panel.directoryURL = ScratchLocation.url.deletingLastPathComponent()   // the test folder, until M1 passes (§8)
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let target = panel.url else { return }

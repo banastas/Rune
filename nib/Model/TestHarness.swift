@@ -1235,25 +1235,27 @@ enum TestHarness {
         }
         func text(_ url: URL) -> String? { try? String(contentsOf: url, encoding: .utf8) }
 
-        // Tabs: a, b, c and d (with a conflict block) in one window.
+        // Tabs: a, b, c and d (with a conflict block) in one window, the scratch file's (A5, 2026-10-02).
         for url in urls.prefix(4) { AppDelegate.openFile(url) }
         var docs: [Document] = []
         for url in urls.prefix(4) { if let open = await opened(url) { docs.append(open) } }
-        _ = await waitFor(10) { docs.first?.editor.textView.window?.tabGroup?.windows.count == 4 }
+        _ = await waitFor(10) { docs.first?.editor.textView.window?.tabGroup?.windows.count == 5 }
         let windows = docs.compactMap(\.editor.textView.window)
         let group = windows.first?.tabGroup
-        log.check(docs.count == 4 && group?.windows.count == 4, "four files, four tabs in one window (\(group?.windows.count ?? 0))")
+        log.check(docs.count == 4 && group?.windows.count == 5 && group?.windows.contains { $0 === AppDelegate.scratchWindow } == true,
+                  "four files and the scratch file, five tabs in one window (\(group?.windows.count ?? 0))")
         if docs.count == 4, let group {
             let two = AppDelegate.selectTab(2, in: windows[0])
             let second = group.selectedWindow === group.windows[1]
             let nine = AppDelegate.selectTab(9, in: windows[0])
-            log.check(two && second && nine && group.selectedWindow === group.windows[1], "⌘2 picks the second tab; ⌘9 with four only beeps")
+            log.check(two && second && nine && group.selectedWindow === group.windows[1], "⌘2 picks the second tab; ⌘9 with five only beeps")
             let d = docs[3]
             if let block = d.blocks.first { d.editor.textView.setSelectedRange(NSRange(location: block.range.location + 2, length: 0)) }
             let inBlock = d.activeCaretBlock != nil
             let one = AppDelegate.selectTab(1, in: windows[3]), four = AppDelegate.selectTab(4, in: windows[3])
             log.check(inBlock && !one && four, "with the caret in a conflict block ⌘1 is left to the Conflicts menu (Use the first version); ⌘4 still picks a tab")
-            log.check(!AppDelegate.selectTab(1, in: AppDelegate.scratchWindow), "the scratch window has no tabs: ⌘1 is left alone")
+            let first = AppDelegate.selectTab(1, in: AppDelegate.scratchWindow)
+            log.check(first && group.selectedWindow === group.windows[0], "⌘1 from the scratch file picks the first tab: it's one of them now")
         }
 
         // Duplicate: an untitled copy with the same text.
@@ -3098,9 +3100,48 @@ enum TestHarness {
                 .last { $0.path == url.path && $0.event == "pause" && ($0.detail == nil || $0.detail!.hasPrefix("held")) }?.detail ?? "held at once"
         }
         log.check(bothHeld, "both new files are held (\(tries.joined(separator: ", ")))")
+        // One window, as Sublime's (A5, the user's call, 2026-10-02): the scratch file a tab with them.
+        let scratchWindow = Documents.scratch.editor.textView.window
         log.check(openB && window(a)?.tabGroup?.windows.contains { $0 === window(b) } == true
-                  && window(a)?.tabGroup?.windows.contains { $0 === Documents.scratch.editor.textView.window } != true,
-                  "a second file is a tab beside it (\(window(a)?.tabGroup?.windows.count ?? 0) tabs; b: \(window(b)?.tabGroup?.windows.count ?? 0) tabs, id \(window(b)?.tabbingIdentifier ?? "none"), visible \(window(b)?.isVisible ?? false)), the scratch window apart")
+                  && window(a)?.tabGroup?.windows.contains { $0 === scratchWindow } == true,
+                  "a second file is a tab beside it, and the scratch file a tab in the same window (\(window(a)?.tabGroup?.windows.count ?? 0) tabs; id \(window(b)?.tabbingIdentifier ?? "none"))")
+
+        // File › New (⌘N) and New Tab (⌘T): an empty file, a tab in the window in front, in
+        // Markdown. File › Close (⌘W): the tab in front (the window, when it's the only one).
+        let file = NSApp.mainMenu?.items.first { $0.title == "File" }?.submenu
+        func key(_ title: String) -> String? {
+            file?.items.first { $0.title == title }.map { ($0.keyEquivalentModifierMask.contains(.shift) ? "⇧" : "") + "⌘" + $0.keyEquivalent.uppercased() }
+        }
+        log.check(key("New") == "⌘N" && key("New Tab") == "⌘T" && key("Close") == "⌘W",
+                  "File: New \(key("New") ?? "none"), New Tab \(key("New Tab") ?? "none"), Close \(key("Close") ?? "none")")
+        let before = Set(Documents.all.map(\.url))
+        ScenarioFocus.take()
+        scratchWindow?.makeKeyAndOrderFront(nil)
+        if let index = file?.items.firstIndex(where: { $0.title == "New Tab" }) { file?.performActionForItem(at: index) }
+        let made = await waitFor(10) { Documents.all.contains { !before.contains($0.url) && $0.untitled && $0.ready && $0.editor.textView.window != nil } }
+        let fresh = Documents.all.first { !before.contains($0.url) && $0.untitled }
+        log.check(made && fresh.flatMap { $0.editor.textView.window?.tabGroup?.windows.contains { $0 === scratchWindow } } == true
+                  && fresh?.pickedSyntax == .language(.markdown) && fresh?.editor.textView.string.isEmpty == true,
+                  "New Tab from the scratch file: an empty file, a tab beside it, in Markdown (\(fresh?.url.lastPathComponent ?? "none"), \(fresh?.pickedSyntax?.name ?? "automatic"))")
+        if let fresh, let tab = fresh.editor.textView.window {
+            let url = fresh.url
+            // Close goes to the window in front, as ⌘W from the keys: this tab, once it's there.
+            tab.makeKeyAndOrderFront(nil)
+            let inFront = await waitFor(5) { NSApp.keyWindow === tab }
+            if let index = file?.items.firstIndex(where: { $0.title == "Close" }) { file?.performActionForItem(at: index) }
+            let closed = await waitFor(10) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+            // (Its document not made again as its window went: `FileWindow.document`.)
+            var detail = closed ? "closed" : "still open"
+            if !inFront { detail += ", not in front" }
+            if let listed = Documents.existing(for: url), listed !== fresh { detail += ", another document made for it" }
+            log.check(closed && scratchWindow?.isVisible == true, "File › Close closes the tab in front, the others staying, its file let go (\(detail))")
+            if !closed {   // not left for the next launch
+                Untitled.letGo(url)
+                tab.performClose(nil)
+                _ = await waitFor(10) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+            }
+        }
+        ScenarioFocus.giveBackNow()
         if let tabs = window(b), let frame = tabs.contentView?.superview,
            let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
             try? await Task.sleep(for: .milliseconds(500))

@@ -37,6 +37,22 @@ enum Documents {
         MenuBarController.shared.refresh()
     }
 
+    /// Any window closing lets go of the file whose text is in it: one watch for every window,
+    /// by the text it holds. A watch a window, set where its view first landed, missed a tab
+    /// made from the scratch window (it landed in one window and closed in another), and its
+    /// buffer stayed open with no window and its untitled file stayed behind (2026-10-02).
+    static func watchClosing() {
+        // As it's posted (no queue): queued for later, the window's view had gone by then.
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: nil) { note in
+            guard let window = note.object as? NSWindow else { return }
+            MainActor.assumeIsolated {
+                for document in files.values where document.editor.textView.window === window {
+                    Task { await close(document) }
+                }
+            }
+        }
+    }
+
     /// Its window has closed: save, upload, hand the file back to iCloud, and forget it. An
     /// untitled buffer goes to History (ED3); either goes on File › Reopen Closed File. Not
     /// when quitting: then untitled buffers stay, to come back at the next launch.

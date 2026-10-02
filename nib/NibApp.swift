@@ -78,9 +78,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     nonisolated static func mark(_ name: String) { launchMarks.append((name, Date())) }
     #endif
 
-    /// File › New, ⌘N (ED3).
+    /// File › New (⌘N) and New Tab (⌘T), ED3: an empty file, a tab in the window in front (the
+    /// scratch file's too, A5), in Markdown until another syntax is picked (the user's call,
+    /// 2026-10-02).
     static func newUntitled() {
         guard let url = Untitled.create() else { NSSound.beep(); return }
+        NibDefaults.store.set(SyntaxPick.language(.markdown).stored, forKey: "syntax:" + url.path)
+        FileWindow.tabHost = NSApp.keyWindow ?? NSApp.mainWindow
         openFile(url)
     }
 
@@ -150,6 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Documents.watchClosing()
         let document = Self.document
         // First run (AP5): with no scratch file yet, none is made until the welcome window says so.
         let firstRun = FirstRun.needed
@@ -362,6 +367,9 @@ struct NibCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("New") { AppDelegate.newUntitled() }
                 .keyboardShortcut("n")
+            // A browser's and Terminal's key for a tab: the same, a tab in the window in front.
+            Button("New Tab") { AppDelegate.newUntitled() }
+                .keyboardShortcut("t")
             Button("Open…") { AppDelegate.showOpenPanel() }
                 .keyboardShortcut("o")
             OpenRecentMenu()
@@ -373,6 +381,12 @@ struct NibCommands: Commands {
                 .disabled(ClosedItems.shared.items.isEmpty)
         }
         CommandGroup(replacing: .saveItem) {
+            // Close is in this group too: replacing the group took it, and ⌘W with it (the user,
+            // 2026-10-02). The window in front: a file's tab (saved, uploaded, handed back), the
+            // scratch window (⌥Space or the Dock brings it back), Settings, History, the Sync Log.
+            Button("Close") { NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: nil) }
+                .keyboardShortcut("w")
+            Divider()
             // Everything saves by itself; ⌘S saves and uploads now. An untitled buffer asks
             // where to put it (W3).
             Button(document?.untitled == true ? "Save…" : "Save") {
