@@ -65,7 +65,7 @@ final class Document {
     private(set) var highlightingOff = false
     /// The file's size in bytes, as last read or saved (ED9's strip).
     private(set) var fileBytes = 0
-    /// Over 5 MB, History keeps the version opened and the one closed with, not every save:
+    /// Over 5 MB, History keeps the version opened and the one closed with, none of the saves between:
     /// at 42 MB a save a pause was gigabytes a day (ED9). Set when a save went unrecorded.
     @ObservationIgnored private var historyBehind = false
     /// The syntax picked from the strip or View › Syntax, which the file keeps; nil follows
@@ -1028,11 +1028,7 @@ final class Document {
                 if held { savedWhileHeld = fingerprint.sha256 }
                 remember(text, sha: fingerprint.sha256)
                 fileBytes = data.count
-                if data.count <= Self.historyEverySave {
-                    recordHistory { history in try? history.record(data, parent: base?.sha256, source: "saved") }
-                } else {
-                    historyBehind = true   // the version closed with goes in (ED9)
-                }
+                historySaved(data, parent: base?.sha256, sha: fingerprint.sha256, keep: reason == "merge")
                 if !pendingResolved.isEmpty || !pendingTrash.isEmpty { settleOthers() }
                 savedEditCount = snapshot
                 lastSaved = Date()
@@ -1481,9 +1477,12 @@ final class Document {
     private(set) var historyChanged = 0
 
     private func recordHistory(_ work: @escaping @Sendable (History) -> Void) {
-        let history = self.history
+        let history = self.history, pending = takePendingHistory()   // first, so History stays in order
         Task {
-            await journalQueue.run { work(history) }
+            await journalQueue.run {
+                if let pending { try? history.record(pending.data, parent: pending.parent, source: "saved", time: pending.time) }
+                work(history)
+            }
             historyChanged += 1
         }
     }
@@ -1530,10 +1529,10 @@ final class Document {
     }
 
     /// A version this Mac has already had: identical to the buffer or the file, taken in
-    /// before, or kept in History. Its text adds nothing.
+    /// before, or one History knows (kept, or saved here and not kept). Its text adds nothing.
     private func alreadyHave(_ text: String, sha: String) -> Bool {
         holds(text) || sha == baseFingerprint?.sha256 || incorporated.contains(sha)
-            || superseded.contains(sha) || history.contains(sha)
+            || superseded.contains(sha) || history.has(sha)
     }
 
     private func handleConflictVersion(_ version: CloudControl.ConflictVersion) {
@@ -1664,14 +1663,17 @@ final class Document {
         return superseded
     }
 
-    /// The version's text, kept for later merges: the last eight, never the one on the server.
+    /// The version's text, kept for later merges: the last eight, never the one on the server
+    /// or the one blocks written two-way wait to merge from (`upgradeIfProven`). A merge's base
+    /// is always one of those, so it never depends on History keeping it.
     private func remember(_ text: String, sha: String?) {
         guard let sha, versions[sha] == nil else { return }
         versions[sha] = text
         versionOrder.append(sha)
         // Two over 5 MB (ED9): eight copies of a 42 MB text were 670 MB of memory.
         let most = (text as NSString).length > Editor.highlightLimit ? 2 : 8
-        while versionOrder.count > most, let i = versionOrder.firstIndex(where: { $0 != uploadedSHA }) {
+        let waiting = unproven?.uploadedBefore
+        while versionOrder.count > most, let i = versionOrder.firstIndex(where: { $0 != uploadedSHA && $0 != waiting }) {
             versions[versionOrder.remove(at: i)] = nil
         }
     }
@@ -2089,6 +2091,7 @@ final class Document {
         let text = editor.textView.string
         guard !text.isEmpty else { return }
         let data = TextFile.encode(text, as: format)
+        if let pending = takePendingHistory() { try? history.record(pending.data, parent: pending.parent, source: "saved", time: pending.time) }
         try? history.record(data, parent: baseFingerprint?.sha256, source: "deleted elsewhere")
         ClosedItems.shared.add(.init(path: url.path, name: url.lastPathComponent, untitled: true, sha256: Digest.sha256(data), time: Date()))
     }
@@ -2143,6 +2146,7 @@ final class Document {
         fileWatch?.cancel()
         noteWatch?.cancel()
         pausedFiles.remove(old.path)
+        await recordClosingVersion()   // a save waiting for its span's end, under the old path, then carried
         FileCommands.carrySettings(from: old, to: newURL)
         let window = editor.textView.window
         Documents.forget(self)
@@ -2202,7 +2206,12 @@ final class Document {
         closing = true
         downloadTask?.cancel()
         Notifier.shared.closed(url)
-        defer { recordClosingVersion() }
+        await letGo()
+        await recordClosingVersion()   // waited for: Nib may quit next
+    }
+
+    /// Saves, uploads and hands the file back; a deleted file's text goes into History.
+    private func letGo() async {
         if deleted {
             // Nothing to save to, or hand back: the text goes into History, on Reopen Closed File.
             journalTask?.cancel()
@@ -2367,16 +2376,70 @@ final class Document {
 
     // MARK: - Large files (ED9)
 
-    /// Every saved version goes into History up to this size; above it, the version opened and
-    /// the one closed with (and merges, restores, other Macs' versions).
+    /// Saves go into History, by the rule below, up to this size; above it, only the version
+    /// closed with (and those opened, merged, restored, from other Macs), ED9.
     static let historyEverySave = 5_000_000
 
-    /// Closing a big file: its last saved version into History, once (`historyBehind`).
-    private func recordClosingVersion() {
-        guard historyBehind, !dirty else { return }
-        historyBehind = false
-        let data = TextFile.encode(editor.textView.string, as: format), base = baseFingerprint?.sha256
-        recordHistory { history in try? history.record(data, parent: base, source: "closed") }
+    /// Of the saves, History keeps the newest of each span: 5 minutes from the span's first save.
+    static var historySpan: TimeInterval {
+        #if DEBUG
+        if let span = TestHarness.historySpan { return span }   // the `history` scenario's
+        #endif
+        return 300
+    }
+
+    /// The newest save of the span now running, waiting for its end to go into History.
+    @ObservationIgnored private var historyPending: (data: Data, parent: String?, time: Date)?
+    @ObservationIgnored private var historyTask: Task<Void, Never>?
+
+    /// A save, for History (open question 22, the user's call: b). Every version opened, merged,
+    /// from another Mac, restored or closed with goes in; of the plain saves, the newest of each
+    /// five minutes: a save every 1-5 s of typing was 720 whole copies an hour, 1.7 GB at the
+    /// scratch file's 2.4 MB, kept a day. Each save is known as seen, kept or not (receipts).
+    private func historySaved(_ data: Data, parent: String?, sha: String?, keep: Bool) {
+        let history = self.history
+        if let sha { Task { await journalQueue.run { history.noteSeen(sha) } } }
+        guard data.count <= Self.historyEverySave else {
+            historyBehind = true   // the version closed with goes in (ED9)
+            return
+        }
+        if keep {
+            // Nib's own change (a merge, blocks written, Revert To): kept as it is.
+            recordHistory { history in try? history.record(data, parent: parent, source: "saved") }
+            return
+        }
+        let starting = historyPending == nil
+        historyPending = (data, parent, Date())
+        guard starting else { return }
+        let span = Self.historySpan
+        historyTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(span))
+            guard !Task.isCancelled else { return }
+            self?.recordHistory { _ in }   // the span is over: its newest save goes in
+        }
+    }
+
+    /// The save waiting for its span's end, to go into History now (something else goes in after it).
+    private func takePendingHistory() -> (data: Data, parent: String?, time: Date)? {
+        defer { historyPending = nil }
+        historyTask?.cancel()
+        historyTask = nil
+        return historyPending
+    }
+
+    /// Closing: the version closed with into History, before the window (or Nib) goes: a save
+    /// waiting for its span's end, or a big file's last save (`historyBehind`), once.
+    private func recordClosingVersion() async {
+        let history = self.history, pending = takePendingHistory()
+        let big = historyBehind && !dirty
+        if big { historyBehind = false }
+        let closed = big ? (data: TextFile.encode(editor.textView.string, as: format), parent: baseFingerprint?.sha256) : nil
+        guard pending != nil || closed != nil else { return }
+        await journalQueue.run {
+            if let pending { try? history.record(pending.data, parent: pending.parent, source: "saved", time: pending.time) }
+            if let closed { try? history.record(closed.data, parent: closed.parent, source: "closed") }
+        }
+        historyChanged += 1
     }
 
     // MARK: - Helpers

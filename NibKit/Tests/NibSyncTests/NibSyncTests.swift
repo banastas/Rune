@@ -328,6 +328,27 @@ func scratchFolder() -> URL {
         history.thin(now: now.addingTimeInterval(28 * 86_400))   // day 3 is 31 days old then
         #expect(!history.has(thinned))
     }
+
+    @Test func aSaveNotKeptIsStillOneThisMacHad() throws {
+        // Open question 22: the saves between History's five-minute ones keep no copy, but a
+        // receipt naming one isn't news (SY14), for History's 30 days, through thinning.
+        let history = History(root: scratchFolder(), path: "/tmp/scratch.md")
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        let skipped = Digest.sha256(Data("skipped".utf8)), old = Digest.sha256(Data("old".utf8))
+        history.noteSeen(old, time: now.addingTimeInterval(-31 * 86_400))
+        history.noteSeen(skipped, time: now.addingTimeInterval(-60))
+        history.noteSeen(skipped, time: now)
+        try history.record(Data("kept".utf8), parent: nil, source: "saved", time: now)
+        #expect(!history.contains(skipped) && history.has(skipped) && history.has(old))
+        #expect(!history.has(Digest.sha256(Data("never here".utf8))))
+        history.thin(now: now)
+        #expect(history.has(skipped) && !history.has(old))   // 31 days old: gone
+        let lines = try String(contentsOf: history.directory.appendingPathComponent("thinned.txt"), encoding: .utf8)
+        #expect(lines.split(separator: "\n").count == 1)   // seen twice: one line, its latest time
+        #expect(history.entries().count == 1)
+        history.thin(now: now.addingTimeInterval(31 * 86_400))
+        #expect(!history.has(skipped))
+    }
 }
 
 @Suite struct DuplicateTests {

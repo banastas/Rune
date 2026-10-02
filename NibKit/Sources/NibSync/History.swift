@@ -1,8 +1,9 @@
-// History (PRD SY13, §6.4, guarantee 2): every version of a file this Mac saved or took in,
-// kept on this Mac for 30 days and thinned (all of the last day, one an hour for a week,
-// one a day to 30 days), so any text Nib ever had can come back. Local only, never
-// synced: it can hold secrets from the scratch file (§4.9, 23). Versions are stored once
-// each, by SHA-256; an index in JSON Lines lists them with where each came from.
+// History (PRD SY13, §6.4, guarantee 2): the versions of a file this Mac opened, took in,
+// merged, restored or closed with, and the newest save of each five minutes (the document
+// decides which, open question 22), kept on this Mac for 30 days and thinned (all of the last
+// day, one an hour for a week, one a day to 30 days). Local only, never synced: it can hold
+// secrets from the scratch file (§4.9, 23). Versions are stored once each, by SHA-256; an
+// index in JSON Lines lists them with where each came from.
 
 import Foundation
 import NibText
@@ -35,18 +36,39 @@ public final class History: Sendable {
     }
 
     private var index: URL { directory.appendingPathComponent("index.jsonl") }
-    /// The versions thinning let go, a line each ("<sha256> <time>"): versions this Mac still had.
+    /// Versions this Mac had and keeps no copy of, a line each ("<sha256> <time>"): let go by
+    /// thinning, or never kept (`noteSeen`).
     private var thinned: URL { directory.appendingPathComponent("thinned.txt") }
 
-    /// Whether this Mac had this version in the 30 days History covers: kept, or let go by
-    /// thinning since. For receipts (SY14): a version another Mac loaded a day ago, and thinned
-    /// here since, isn't one this Mac hasn't seen (the suite, 2026-09-30: the Air's receipt from
-    /// the day before read as "▼ NEWER ON BILL'S MACBOOK AIR · NOT HERE YET").
+    /// Whether this Mac had this version in the 30 days History covers: kept, let go by thinning
+    /// since, or saved and not kept. For receipts (SY14): a version another Mac loaded a day ago,
+    /// and thinned here since, isn't one this Mac hasn't seen (the suite, 2026-09-30: the Air's
+    /// receipt from the day before read as "▼ NEWER ON BILL'S MACBOOK AIR · NOT HERE YET").
     public func has(_ sha: String) -> Bool {
         if contains(sha) { return true }
-        guard let text = try? String(contentsOf: thinned, encoding: .utf8) else { return false }
-        return text.split(separator: "\n").contains { $0.hasPrefix(sha + " ") }
+        // Searched as bytes, not split into lines: it has a line for each save of 30 days.
+        // "<sha256> " can only match at a line's start.
+        guard let lines = try? Data(contentsOf: thinned) else { return false }
+        return lines.range(of: Data((sha + " ").utf8)) != nil
     }
+    /// A version this Mac had and doesn't keep a copy of: a save between History's five-minute
+    /// ones, or a big file's (open question 22, ED9). Known as seen for the 30 days History
+    /// covers, as a thinned version is, so a receipt naming it isn't news (SY14). Appended here;
+    /// `thin` folds it in with the rest.
+    public func noteSeen(_ sha: String, time: Date = Date()) {
+        lock.withLock {
+            let line = Data("\(sha) \(ISO8601DateFormatter().string(from: time))\n".utf8)
+            if let handle = try? FileHandle(forWritingTo: thinned) {
+                defer { try? handle.close() }
+                _ = try? handle.seekToEnd()
+                try? handle.write(contentsOf: line)
+            } else {
+                try? FileManager.default.createDirectory(at: thinned.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try? line.write(to: thinned, options: .atomic)
+            }
+        }
+    }
+
     private func versionURL(_ sha: String) -> URL { directory.appendingPathComponent("versions", isDirectory: true).appendingPathComponent(sha) }
 
     private static let encoder: JSONEncoder = {

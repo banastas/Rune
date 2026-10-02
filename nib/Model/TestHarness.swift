@@ -40,6 +40,8 @@ enum TestHarness {
     static var largeFileAsked: [String] = []
     /// The `icloudoff` scenario: as if iCloud Drive were off on this Mac.
     static var iCloudOff = false
+    /// The `history` scenario's span for History's saves, in place of 5 minutes.
+    static var historySpan: TimeInterval?
     /// Hands the file back for real, taking the server's version, just before the next forced
     /// refresh: the hold lost as a hand-back a moment before can lose it (`refusal-lost-hold`).
     static var loseHoldBeforeRefresh = NibDefaults.store.bool(forKey: "NibLoseHold")
@@ -164,6 +166,7 @@ enum TestHarness {
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
             case "untitled-quit": await untitledQuit(log, marker)
+            case "history-closed": await historyClosed(document, log, marker)
             case "two-mac": await twoMac(document, log, marker)
             case "two-mac-remote": await twoMacRemote(log, marker)
             default: log.line("FAIL unknown scenario")
@@ -3377,26 +3380,55 @@ enum TestHarness {
 
     /// History (SY13): each saved version is kept; Revert To puts one back as an edit, and the
     /// version it replaced can be put back in turn.
+    /// History (open question 22): of two saves in one span, only the newer goes in, at the
+    /// span's end, with the time it was saved; the one let go still counts as seen here
+    /// (receipts); Revert To goes in at once; the save Nib quits with goes in (`history-closed`).
     static func historyScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        TestHarness.historySpan = 5
         await waitReady(document)
         await waitSynced(document, 20)
+        func fileSHA() -> String { Digest.sha256((try? Data(contentsOf: document.url)) ?? Data()) }
         await type("\n- history one \(marker)\n", into: document)
         _ = await waitFor(10) { fileText(document).contains("history one \(marker)") && !document.dirty }
+        let one = fileSHA(), typedTwo = Date()
         await type("- history two \(marker)\n", into: document)
         _ = await waitFor(10) { fileText(document).contains("history two \(marker)") && !document.dirty }
-        _ = await waitFor(5) { document.history.entries().contains { text(document, $0).contains("history two \(marker)") } }
+        let two = fileSHA(), savedTwo = Date()
+        let waited = !document.history.entries().contains { $0.sha256 == one || $0.sha256 == two }
+        let kept = await waitFor(10) { document.history.entries().contains { $0.sha256 == two } }
         let entries = document.history.entries()
-        let one = entries.last { text(document, $0).contains("history one \(marker)") && !text(document, $0).contains("history two \(marker)") }
-        let two = entries.last { text(document, $0).contains("history two \(marker)") }
-        log.check(one != nil && two != nil, "both saved versions are in History (\(entries.count) versions)")
-        guard let one, let two else { return }
-        document.restore(one)
-        let back = await waitFor(10) { fileText(document).contains("history one \(marker)") && !fileText(document).contains("history two \(marker)") }
+        log.check(waited && kept && !entries.contains { $0.sha256 == one },
+                  "two saves in one span: only the newer went into History, at the span's end (\(entries.count) versions)")
+        let entry = entries.last { $0.sha256 == two }
+        // Between typing it and seeing it in the file (a coordinated read can wait behind the upload).
+        log.check(entry.map { $0.time >= typedTwo && $0.time <= savedTwo } == true,
+                  "with the time it was saved (\(entry.map { String(format: "%.1f", $0.time.timeIntervalSince(typedTwo)) } ?? "?") s after typing it began), not the span's end")
+        log.check(document.history.has(one), "the save let go still counts as one this Mac had (receipts)")
+        let opened = entries.last { $0.source == "opened" }
+        log.check(opened != nil, "the version as opened is in History")
+        guard let opened, let entry else { return }
+        document.restore(opened)
+        let back = await waitFor(10) { !fileText(document).contains("history one \(marker)") && !document.dirty }
         log.check(back && document.notice?.contains("BACK TO THE VERSION FROM") == true, "Revert To: the earlier version, in the buffer and the file (\(document.notice ?? "no notice"))")
-        document.restore(two)
+        let atOnce = await waitFor(3) { document.history.entries().last.map { !text(document, $0).contains("history one \(marker)") && $0.time > savedTwo } == true }
+        log.check(atOnce, "and it went into History at once, not at a span's end")
+        document.restore(entry)
         let again = await waitFor(10) { fileText(document).contains("history two \(marker)") }
         log.check(again, "and the version it replaced came back from History")
-        log.check(document.history.entries().contains { $0.source == "opened" }, "the version as opened is in History")
+        // The last save, waiting for its span's end when Nib quits: in History before Nib goes.
+        TestHarness.historySpan = 600
+        await type("- history closed \(marker)\n", into: document)
+        _ = await waitFor(10) { fileText(document).contains("history closed \(marker)") && !document.dirty }
+        log.check(!document.history.entries().contains { text(document, $0).contains("history closed \(marker)") },
+                  "the last save waits for its span's end (history-closed checks it went in at the quit)")
+    }
+
+    /// After `history`: the save Nib quit with, waiting for its span's end, went into History as it quit.
+    static func historyClosed(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        let entries = document.history.entries()
+        let closed = entries.last { $0.source == "saved" && text(document, $0).contains("history closed \(marker)") }
+        log.check(closed != nil, "the save Nib quit with is in History, as saved (\(entries.suffix(3).map(\.source).joined(separator: ", ")))")
     }
 
     static func text(_ document: Document, _ entry: HistoryEntry) -> String {
