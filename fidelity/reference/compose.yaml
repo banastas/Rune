@@ -1,0 +1,41 @@
+# Services for the feed tools, generated for the fidelity harness.
+version: "3.9"
+
+x-defaults: &defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+
+services:
+  feed:
+    <<: *defaults
+    image: example/feed-tools:1.4.2
+    command: ["node", "dist/feed.js", "--port", "8080"]
+    ports:
+      - "8080:8080"
+      - 9229:9229
+    environment:
+      NODE_ENV: production
+      FEED_URL: https://example.com/podcast/feed.xml
+      RETRIES: 3
+      DEBUG: false
+      TIMEOUT: 2.5
+      PROXY: ~
+    healthcheck:
+      test: curl -f http://localhost:8080/health || exit 1
+      interval: 30s
+  worker:
+    <<: *defaults
+    image: 'example/feed-worker:latest'
+    depends_on: [feed]
+    volumes:
+      - ./data:/data:ro
+    labels:
+      description: >
+        Fetches new episodes every hour
+        and writes them to the cache.
+      notes: |
+        Keep the cache under 2 GB.
+        Started: 2026-10-01

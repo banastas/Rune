@@ -14,7 +14,8 @@ let package = Package(
         // `-scheme nib` from the app (builds that compiled only this, 2026-09-29).
         .executable(name: "nib-cli", targets: ["NibCLI"]),
     ],
-    // tree-sitter and grammars for HL1's languages (§6.3; BSD-3-Clause and MIT); CSS, JavaScript and XML are vendored.
+    // tree-sitter and grammars for HL1's languages (§6.3; BSD-3-Clause and MIT); CSS, JavaScript and HL8's
+    // grammars are vendored (Vendor/README.md).
     dependencies: [
         .package(url: "https://github.com/tree-sitter/swift-tree-sitter", from: "0.25.0"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-html", from: "0.23.2"),
@@ -38,7 +39,9 @@ let package = Package(
             .product(name: "TreeSitterJSON", package: "tree-sitter-json"),
             .product(name: "TreeSitterBash", package: "tree-sitter-bash"),
             .product(name: "TreeSitterMarkdown", package: "tree-sitter-markdown"),
-            "TreeSitterXML",
+            "TreeSitterXML", "TreeSitterTypeScript", "TreeSitterTSX", "TreeSitterPython", "TreeSitterYAML", "TreeSitterTOML",
+            "TreeSitterMake", "TreeSitterDiff", "TreeSitterGitCommit", "TreeSitterGitIgnore", "TreeSitterGitAttributes",
+            "TreeSitterGitConfig", "TreeSitterINI",
         ], resources: [.copy("Queries"), .copy("Themes")]),
         // CSS and JavaScript, vendored (Vendor/README.md): their manifests drop the external scanner.
         .target(name: "TreeSitterCSS", path: "Vendor/tree-sitter-css", sources: ["src/parser.c", "src/scanner.c"],
@@ -49,6 +52,33 @@ let package = Package(
         // second package with the same module. Its scanner includes ../../common/scanner.h.
         .target(name: "TreeSitterXML", path: "Vendor/tree-sitter-xml", sources: ["xml/src/parser.c", "xml/src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("xml/src")]),
+        // HL8's list (2026-10-02), vendored too: most of their manifests name SwiftTreeSitter by its old
+        // address or look for the scanner with FileManager, and three have none. TypeScript's two
+        // grammars share a scanner header (../../common/scanner.h); YAML's scanner includes schema.core.c.
+        .target(name: "TreeSitterTypeScript", path: "Vendor/tree-sitter-typescript", sources: ["typescript/src/parser.c", "typescript/src/scanner.c"],
+                publicHeadersPath: "bindings/swift/TreeSitterTypeScript", cSettings: [.headerSearchPath("typescript/src")]),
+        .target(name: "TreeSitterTSX", path: "Vendor/tree-sitter-typescript", sources: ["tsx/src/parser.c", "tsx/src/scanner.c"],
+                publicHeadersPath: "bindings/swift/TreeSitterTSX", cSettings: [.headerSearchPath("tsx/src")]),
+        .target(name: "TreeSitterPython", path: "Vendor/tree-sitter-python", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterYAML", path: "Vendor/tree-sitter-yaml", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterTOML", path: "Vendor/tree-sitter-toml", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterMake", path: "Vendor/tree-sitter-make", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterDiff", path: "Vendor/tree-sitter-diff", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterGitCommit", path: "Vendor/tree-sitter-gitcommit", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterGitIgnore", path: "Vendor/tree-sitter-gitignore", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterGitAttributes", path: "Vendor/tree-sitter-gitattributes", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterGitConfig", path: "Vendor/tree-sitter-git-config", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterINI", path: "Vendor/tree-sitter-ini", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         // The fidelity harness's comparison (fidelity/run.sh): Nib's colors against Sublime's dump.
         .executableTarget(name: "NibFidelity", dependencies: ["NibSyntax", "NibText"]),
         // The `nib` command-line tool (AP4): asks the running app, through NibSync's Bridge.

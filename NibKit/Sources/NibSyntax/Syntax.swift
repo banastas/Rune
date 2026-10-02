@@ -18,9 +18,24 @@ import TreeSitterJSON
 import TreeSitterMarkdown
 import TreeSitterMarkdownInline
 import TreeSitterXML
+import TreeSitterTypeScript
+import TreeSitterTSX
+import TreeSitterPython
+import TreeSitterYAML
+import TreeSitterTOML
+import TreeSitterMake
+import TreeSitterDiff
+import TreeSitterGitCommit
+import TreeSitterGitIgnore
+import TreeSitterGitAttributes
+import TreeSitterGitConfig
+import TreeSitterINI
 
 public enum SyntaxLanguage: String, CaseIterable, Sendable {
     case html, css, javascript, json, markdown, markdownInline = "markdown-inline", shell, xml
+    // HL8's list (2026-10-02).
+    case jsx, typescript, tsx, diff, gitCommit = "git-commit", gitIgnore = "git-ignore", gitAttributes = "git-attributes",
+         gitConfig = "git-config", makefile, yaml, toml, python, ini
 
     /// For the strip (HL1).
     public var name: String {
@@ -32,10 +47,24 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .markdown, .markdownInline: "Markdown"
         case .shell: "Shell"
         case .xml: "XML"
+        case .jsx: "JSX"
+        case .typescript: "TypeScript"
+        case .tsx: "TSX"
+        case .diff: "Diff"
+        case .gitCommit: "Git Commit"
+        case .gitIgnore: "Git Ignore"
+        case .gitAttributes: "Git Attributes"
+        case .gitConfig: "Git Config"
+        case .makefile: "Makefile"
+        case .yaml: "YAML"
+        case .toml: "TOML"
+        case .python: "Python"
+        case .ini: "INI"
         }
     }
 
-    /// The outermost scope, as Sublime's syntax names it (Markdown's inline layer has none of its own).
+    /// The outermost scope, as Sublime's syntax names it (Markdown's inline layer has none of its
+    /// own; INI, which Sublime doesn't color, takes the name Sublime's INI packages give it).
     public var rootScope: String? {
         switch self {
         case .html: "text.html.basic"
@@ -46,6 +75,19 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .markdownInline: nil
         case .shell: "source.shell.bash"
         case .xml: "text.xml"
+        case .jsx: "source.jsx"
+        case .typescript: "source.ts"
+        case .tsx: "source.tsx"
+        case .diff: "source.diff"
+        case .gitCommit: "text.git.commit"
+        case .gitIgnore: "text.git.ignore"
+        case .gitAttributes: "text.git.attributes"
+        case .gitConfig: "text.git.config"
+        case .makefile: "source.makefile"
+        case .yaml: "source.yaml"
+        case .toml: "source.toml"
+        case .python: "source.python"
+        case .ini: "source.ini"
         }
     }
 
@@ -53,12 +95,37 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         switch self {
         case .html: Language(tree_sitter_html())
         case .css: Language(tree_sitter_css())
-        case .javascript: Language(tree_sitter_javascript())
+        case .javascript, .jsx: Language(tree_sitter_javascript())
         case .json: Language(tree_sitter_json())
         case .markdown: Language(tree_sitter_markdown())
         case .markdownInline: Language(tree_sitter_markdown_inline())
         case .shell: Language(tree_sitter_bash())
         case .xml: Language(tree_sitter_xml())
+        case .typescript: Language(tree_sitter_typescript())
+        case .tsx: Language(tree_sitter_tsx())
+        case .diff: Language(tree_sitter_diff())
+        case .gitCommit: Language(tree_sitter_gitcommit())
+        case .gitIgnore: Language(tree_sitter_gitignore())
+        case .gitAttributes: Language(tree_sitter_gitattributes())
+        case .gitConfig: Language(tree_sitter_git_config())
+        case .makefile: Language(tree_sitter_make())
+        case .yaml: Language(tree_sitter_yaml())
+        case .toml: Language(tree_sitter_toml())
+        case .python: Language(tree_sitter_python())
+        case .ini: Language(tree_sitter_ini())
+        }
+    }
+
+    /// The query files a language's query is made of, in order (a later pattern wins where two
+    /// capture the same text). JavaScript's grammar reads JSX, in a .js file too, and so does
+    /// TSX's; TypeScript's grammar names some of JavaScript's nodes differently
+    /// (`public_field_definition`, `type_identifier`), so it has its own.
+    var queryFiles: [String] {
+        switch self {
+        case .javascript, .jsx: ["javascript", "jsx"]
+        case .typescript: ["typescript"]
+        case .tsx: ["typescript", "jsx"]
+        default: [rawValue]
         }
     }
 
@@ -66,8 +133,12 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
     var query: Query? {
         Self.queries.withLock { cache in
             if let known = cache[self] { return known }
-            guard let url = Bundle.module.url(forResource: rawValue, withExtension: "scm", subdirectory: "Queries"),
-                  let data = try? Data(contentsOf: url) else { return nil }
+            var data = Data()
+            for file in queryFiles {
+                guard let url = Bundle.module.url(forResource: file, withExtension: "scm", subdirectory: "Queries"),
+                      let part = try? Data(contentsOf: url) else { return nil }
+                data += part + Data("\n".utf8)
+            }
             let query = try? Query(language: tsLanguage, data: data)
             cache[self] = query
             return query
@@ -76,33 +147,88 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
 
     private static let queries = Mutex<[SyntaxLanguage: Query?]>([:])
 
-    /// By name, then by the first line: a shebang (HL1), or XML's declaration or a DOCTYPE
-    /// that isn't HTML's (HL8, as Sublime's XML syntax has it); nil is plain text.
+    /// Why the query doesn't compile (a node type or field the grammar doesn't have, a bad
+    /// predicate), or nil when it does: for writing queries (`nib-fidelity --queries`).
+    public var queryProblem: String? {
+        var data = Data()
+        for file in queryFiles {
+            guard let url = Bundle.module.url(forResource: file, withExtension: "scm", subdirectory: "Queries"),
+                  let part = try? Data(contentsOf: url) else { return "\(file).scm is missing" }
+            data += part + Data("\n".utf8)
+        }
+        do { _ = try Query(language: tsLanguage, data: data); return nil } catch { return "\(error)" }
+    }
+
+    /// By name, then by the first line: a shebang (HL1), or what Sublime's syntaxes look for there
+    /// (XML's declaration, a DOCTYPE that isn't HTML's, `%YAML`, a .git/config's `[core]`, a
+    /// diff's header); nil is plain text. Names and extensions as Sublime's syntaxes list them
+    /// (HL8), with `.env` read as shell and INI's, which Sublime doesn't color, Nib's own.
     public static func detect(fileName: String, firstLine: String? = nil) -> (language: SyntaxLanguage, root: String)? {
         let name = fileName.lowercased()
         let ext = (name as NSString).pathExtension
+        switch name {
+        case ".zshrc", ".zprofile", ".zshenv", ".zlogin", ".zlogout": return (.shell, "source.shell.zsh")
+        case ".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".profile", ".bash_aliases": return (.shell, "source.shell.bash")
+        case "makefile", "gnumakefile", "makefile.am", "makefile.in", "ocamlmakefile": return (.makefile, "source.makefile")
+        case "commit_editmsg", "merge_msg", "tag_editmsg": return (.gitCommit, "text.git.commit")
+        case ".gitignore": return (.gitIgnore, "text.git.ignore")
+        case ".gitattributes": return (.gitAttributes, "text.git.attributes")
+        case ".gitconfig", ".gitmodules": return (.gitConfig, "text.git.config")
+        case "pipfile", "cargo.lock", "gopkg.lock", "mise.lock", "pdm.lock", "poetry.lock", "uv.lock": return (.toml, "source.toml")
+        case "citation.cff": return (.yaml, "source.yaml")
+        case "sconstruct", "sconscript", "snakefile": return (.python, "source.python")
+        case "pipfile.lock", "sublime_session": return (.json, "source.json")
+        case ".editorconfig": return (.ini, "source.ini")
+        case ".env": return (.shell, "source.shell.bash")
+        default: break
+        }
+        if name.hasPrefix(".env.") { return (.shell, "source.shell.bash") }   // .env.local, .env.production
         switch ext {
         case "html", "htm", "xhtml": return (.html, "text.html.basic")
         case "css": return (.css, "source.css")
         case "js", "mjs", "cjs": return (.javascript, "source.js")
-        case "json", "jsonc", "json5": return (.json, "source.json")
+        case "json", "jsonc", "json5",
+             // Sublime's own settings files, notebooks and the rest of what Sublime reads as JSON.
+             "sublime-build", "sublime-color-scheme", "sublime-commands", "sublime-completions", "sublime-file-icons",
+             "sublime-keymap", "sublime-macro", "sublime-menu", "sublime-mousemap", "sublime-project", "sublime-settings",
+             "sublime-theme", "sublime-merge-theme", "sublime-workspace", "hidden-color-scheme", "ipynb", "gltf", "avsc":
+            return (.json, "source.json")
         case "md", "markdown", "mdown", "mkd": return (.markdown, "text.html.markdown")
         case "zsh": return (.shell, "source.shell.zsh")
-        case "sh", "bash", "command": return (.shell, "source.shell.bash")
+        case "sh", "bash", "command", "ash", "bashrc", "env": return (.shell, "source.shell.bash")
         // Sublime's XML extensions, and the ones it doesn't list in its menus (tmTheme, csproj…).
         case "xml", "tld", "dtml", "rng", "rss", "opml", "slnx", "svg", "xaml",
              "sublime-snippet", "tmlanguage", "hidden-tmlanguage", "tmpreferences", "tmsnippet", "tmtheme", "hidden-tmtheme",
              "csproj", "fsproj", "sqlproj", "vbproj", "vcproj", "vcxproj", "dae", "props", "drawio", "targets":
             return (.xml, "text.xml")
+        case "jsx": return (.jsx, "source.jsx")
+        case "ts", "mts", "cts": return (.typescript, "source.ts")
+        case "tsx": return (.tsx, "source.tsx")
+        case "diff", "patch": return (.diff, "source.diff")
+        case "gitignore": return (.gitIgnore, "text.git.ignore")
+        case "gitattributes": return (.gitAttributes, "text.git.attributes")
+        case "gitconfig": return (.gitConfig, "text.git.config")
+        case "mk", "mak", "make": return (.makefile, "source.makefile")
+        case "yaml", "yml", "sublime-syntax": return (.yaml, "source.yaml")
+        case "toml", "tml": return (.toml, "source.toml")
+        case "py", "py3", "pyw", "pyi", "pyx", "pxd", "pxi", "rpy", "cpy", "gyp", "gypi", "vpy", "smk", "wscript", "bazel", "bzl":
+            return (.python, "source.python")
+        case "ini", "cfg": return (.ini, "source.ini")
         default: break
         }
-        if [".zshrc", ".zprofile", ".zshenv", ".zlogin", ".zlogout"].contains(name) { return (.shell, "source.shell.zsh") }
-        if [".bashrc", ".bash_profile", ".bash_login", ".bash_logout", ".profile"].contains(name) { return (.shell, "source.shell.bash") }
-        if let line = firstLine, line.hasPrefix("#!") {
+        guard let line = firstLine else { return nil }
+        if line.hasPrefix("#!") {
             if line.contains("zsh") { return (.shell, "source.shell.zsh") }
             if line.contains("bash") || line.hasSuffix("/sh") || line.contains("/sh ") || line.contains("env sh") { return (.shell, "source.shell.bash") }
+            if line.range(of: #"\b(?:python(?:\d(?:\.\d+)?)?|uv)\b"#, options: .regularExpression) != nil { return (.python, "source.python") }
+            if line.range(of: #"\bts-node(?:-script)?\b"#, options: .regularExpression) != nil { return (.typescript, "source.ts") }
+            if line.range(of: #"\b(?:node|js|bun)\b"#, options: .regularExpression) != nil { return (.javascript, "source.js") }
+            if line.range(of: #"\bmake\b"#, options: .regularExpression) != nil { return (.makefile, "source.makefile") }
         }
-        if let line = firstLine, line.range(of: xmlFirstLine, options: .regularExpression) != nil { return (.xml, "text.xml") }
+        if line.range(of: xmlFirstLine, options: .regularExpression) != nil { return (.xml, "text.xml") }
+        if line.hasPrefix("%YAML") { return (.yaml, "source.yaml") }
+        if line.hasPrefix("[core]") { return (.gitConfig, "text.git.config") }   // a repository's .git/config
+        if line.range(of: diffFirstLine, options: .regularExpression) != nil { return (.diff, "source.diff") }
         return nil
     }
 
@@ -110,6 +236,9 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
     /// or a DOCTYPE other than HTML's (a plist's). The line comes without its line break, so
     /// the line's end stands in for it (and a CRLF file's line ends with its \r).
     static let xmlFirstLine = #"^(?:<\?xml(?:\s|$)|\s*<([\w-]+):Envelope\s+xmlns:\1\s*=\s*"http://schemas\.xmlsoap\.org/soap/envelope/"\s*>|\s*(?i:<!DOCTYPE\s+(?!html(?:[ \t\r\f>]|$))))"#
+
+    /// Sublime's first_line_match for a diff: the header of one in any of the forms it knows.
+    static let diffFirstLine = #"^(?:=== modified file|====\s*//.+\s-\s.+\s+====|Index: |Prereq: |--- [^%]|\*\*\*.*\d{4}\s*$|\d+(,\d+)*[adc]\d+(,\d+)*$)"#
 }
 
 extension Theme {
@@ -248,8 +377,20 @@ public enum Highlighter {
                 closer = String(decoding: injection.language.closer, as: UTF16.self)
             }
             let inner = NSRange(location: part.location + range.location, length: part.length)
+            // Its holes (make's references in a recipe) blanked, the same length, for its parser.
+            var piece = source.substring(with: part)
+            if !injection.holes.isEmpty {
+                let blanked = NSMutableString(string: piece)
+                for hole in injection.holes {
+                    let cut = NSIntersectionRange(hole, part)
+                    guard cut.length > 0 else { continue }
+                    blanked.replaceCharacters(in: NSRange(location: cut.location - part.location, length: cut.length),
+                                              with: String(repeating: "_", count: cut.length))
+                }
+                piece = blanked as String
+            }
             collect(text, inner, injection.language, roots: injection.scopes, level: level + 1, window: window,
-                    string: source.substring(with: part) + closer, into: &spans)
+                    string: piece + closer, into: &spans)
         }
     }
 
@@ -285,12 +426,31 @@ public enum Highlighter {
             guard token.contains("://") || token.hasPrefix("/") else { return }
             each(#"://|/|\?"#) { mark($0.range.location, $0.range.length, kind) }
         }
-        if scope.hasPrefix("string.quoted.") {
+        if scope.hasPrefix("string.quoted."), scope.hasSuffix(".python") {
+            // f"…", r'…', b"""…""": the prefix a storage type, then the quotes, three or one.
+            let prefix = token.prefix { "rRbBuUfF".contains($0) }.count
+            let body = token.dropFirst(prefix)
+            let quote = body.hasPrefix("\"\"\"") || body.hasPrefix("'''") ? 3 : body.hasPrefix("\"") || body.hasPrefix("'") ? 1 : 0
+            if prefix > 0 { mark(0, prefix, "storage.type.string.python") }
+            if quote > 0 {
+                mark(prefix, quote, "punctuation.definition.string.begin.python")
+                // The closing quotes, if it has them yet (not while it's being typed).
+                if n >= prefix + 2 * quote, token.hasSuffix(String(body.prefix(quote))) {
+                    mark(n - quote, quote, "punctuation.definition.string.end.python")
+                }
+            }
+            // %-formatting's placeholders (not in a raw string, which is a regular expression).
+            if !token.hasPrefix("r"), !token.hasPrefix("br") {
+                each(#"%[-#0 +]*(?:\*|\d+)?(?:\.(?:\*|\d+))?[diouxXeEfFgGcrsa]"#) { mark($0.range.location, $0.range.length, "constant.other.placeholder.python") }
+            }
+        } else if scope.hasPrefix("string.quoted.") {
             if scope.hasSuffix(".shell") { each(#"\\."#) { mark($0.range.location, 2, "constant.character.escape.shell") } }
             let quotes: Set<unichar> = [0x22, 0x27, 0x60]   // " ' `
             if n == 1, quotes.contains(t.character(at: 0)) { mark(0, 1, "punctuation.definition.string") }   // a quote on its own (XML's declaration)
-            if n > 1, quotes.contains(t.character(at: 0)) { mark(0, 1, "punctuation.definition.string.begin") }
-            if n > 1, quotes.contains(t.character(at: n - 1)) { mark(n - 1, 1, "punctuation.definition.string.end") }
+            // Three quotes are the marks of a block string (TOML's, Python's docstrings).
+            let triple = n >= 6 && (token.hasPrefix("\"\"\"") || token.hasPrefix("'''")) ? 3 : 1
+            if n > 1, quotes.contains(t.character(at: 0)) { mark(0, triple, "punctuation.definition.string.begin") }
+            if n > 1, quotes.contains(t.character(at: n - 1)) { mark(n - triple, triple, "punctuation.definition.string.end") }
             if scope.hasSuffix(".html") {
                 urlSeparators("punctuation.separator.path.html")
                 each("&[A-Za-z0-9#]+;") { m in
@@ -301,6 +461,60 @@ public enum Highlighter {
             }
         } else if scope.hasPrefix("markup.underline.link") {
             urlSeparators("punctuation.separator.path.markdown")
+        } else if scope == "constant.other.datetime.toml" || scope == "constant.other.time.toml" {
+            // 2026-10-01T08:00:00Z: the separators plain, the zone a modifier.
+            each(#"(?<=\d)-(?=\d)"#) { mark($0.range.location, 1, "punctuation.separator.date.toml") }
+            each(#"(?<=\d)[Tt ](?=\d)"#) { mark($0.range.location, 1, "punctuation.separator.datetime.toml") }
+            each(":") { mark($0.range.location, 1, "punctuation.separator.time.toml") }
+            each(#"(?<=\d)\.(?=\d)"#) { mark($0.range.location, 1, "punctuation.separator.decimal.toml") }
+            each(#"[Zz]$"#) { mark($0.range.location, 1, "storage.modifier.timezone.toml") }
+        } else if scope.hasSuffix("source.regexp.python") {
+            // A raw string, as a regular expression: classes like \d, the any-character dot and
+            // anchors are keywords to Sublime; the rest is plain.
+            each(#"\\[dDwWsSbBAZ]"#) { mark($0.range.location, 2, "keyword.control.character-class.regexp") }
+            each(#"(?<!\\)\."#) { mark($0.range.location, 1, "keyword.other.any.regexp") }
+            each(#"(?<!\\)[\^$]"#) { mark($0.range.location, 1, "keyword.control.anchor.regexp") }
+        } else if scope == "constant.other.format-spec.python", token.hasPrefix(":") {
+            mark(0, 1, "punctuation.separator.format-spec.python")
+        } else if scope == "string.unquoted.value.ini" {
+            // A value's booleans, as Git Config's are, and its quotes.
+            each(#"^\s*((?i:true|false|yes|no|on|off))\s*$"#) { mark($0.range(at: 1).location, $0.range(at: 1).length, "constant.language.ini") }
+            each(#"^\s*(")[^"]*(")\s*$"#) { m in
+                mark(m.range(at: 1).location, 1, "punctuation.definition.string.begin.ini")
+                mark(m.range(at: 2).location, 1, "punctuation.definition.string.end.ini")
+            }
+        } else if scope == "meta.diff.range.unified" {
+            // @@ -12,9 +12,11 @@ export function parseFeed(xml) {: the section after the second @@.
+            each(#"^@@ [^@]*@@ ?(.+)$"#) { mark($0.range(at: 1).location, $0.range(at: 1).length, "entity.name.section.diff") }
+        } else if scope == "meta.range.unified.diff" {
+            if n > 0 { mark(0, 1, "support.function.diff") }   // the range's - or +
+            each(",") { mark($0.range.location, 1, "punctuation.separator.sequence.diff") }
+        } else if scope == "meta.header.from-file.diff" || scope == "meta.header.to-file.diff" {
+            if token == "/dev/null" { mark(0, n, "constant.language.null.diff") }
+            else { each("/") { mark($0.range.location, 1, "punctuation.separator.path.diff") } }
+        } else if scope == "meta.message.git.commit" {
+            // "Fixes #142": the keyword, and the reference with its #.
+            each(#"\b((?:[Cc]lose[sd]?|[Ff]ix(?:e[sd])?|[Rr]esolve[sd]?))\s+(#(\d+))"#) { m in
+                mark(m.range(at: 1).location, m.range(at: 1).length, "keyword.other.resolved-issue.git")
+                mark(m.range(at: 2).location, m.range(at: 2).length, "constant.other.reference.issue.git")
+                mark(m.range(at: 2).location, 1, "punctuation.definition.reference.issue.git")
+            }
+        } else if scope == "keyword.other.change-list.git.commit" || scope == "markup.heading.git.commit", token.hasSuffix(":") {
+            // "modified:" and "Changes to be committed:": the colon isn't the word's.
+            mark(n - 1, 1, scope.hasPrefix("keyword") ? "punctuation.separator.key-value.change-list.git.commit" : "comment.line.git.commit")
+        } else if scope == "entity.name.function.makefile" || scope == "string.unquoted.makefile" {
+            each("%") { mark($0.range.location, 1, "variable.language.makefile") }   // a pattern rule's stem
+        } else if scope == "meta.function-call.arguments.makefile" {
+            each(",") { mark($0.range.location, 1, "punctuation.separator.makefile") }
+            each(#"\*"#) { mark($0.range.location, 1, "constant.other.wildcard.asterisk.makefile") }
+        } else if scope.hasPrefix("entity.name.pattern.git") {
+            // A pattern's dots, which Sublime counts as separators, but not in a directory's
+            // name (`.vscode/`, where `.DS_Store`'s is one).
+            each(#"(?<!\\)\.(?![^/]*/)"#) { mark($0.range.location, 1, "punctuation.separator.path.glob.git") }
+        } else if scope == "meta.brackets.git.attributes", n > 2 {
+            mark(0, 1, "punctuation.definition.brackets.begin.git.attributes")
+            mark(1, n - 2, "string.unquoted.git.attributes")
+            mark(n - 1, 1, "punctuation.definition.brackets.end.git.attributes")
         } else if scope.hasPrefix("string.regexp") {
             // /\s+/g: the slashes are the string's own marks, the quantifiers operators.
             if token.hasPrefix("/") { mark(0, 1, "punctuation.definition.string.begin") }
@@ -343,7 +557,7 @@ public enum Highlighter {
                 mark(m.range(at: 2).location, m.range(at: 2).length, "constant.language.doctype.html")
             }
         } else if scope.hasPrefix("comment.") {
-            if scope.hasPrefix("comment.block.documentation") {
+            if scope.hasPrefix("comment.block.documentation"), !scope.hasSuffix(".python") {
                 each(#"@[A-Za-z]+"#) { mark($0.range.location, $0.range.length, "entity.other.attribute-name.documentation") }
             }
             if token.hasPrefix("/*") {
@@ -359,17 +573,18 @@ public enum Highlighter {
             else if token.hasPrefix("//") { mark(0, 2, "punctuation.definition.comment") }
             else if token.hasPrefix("<!--") { mark(0, 4, "punctuation.definition.comment.begin"); if n > 6, token.hasSuffix("-->") { mark(n - 3, 3, "punctuation.definition.comment.end") } }
             else if token.hasPrefix("#!") { mark(0, 2, "punctuation.definition.comment") }
-            else if token.hasPrefix("#") { mark(0, 1, "punctuation.definition.comment") }
+            else if token.hasPrefix("#") || token.hasPrefix(";") { mark(0, 1, "punctuation.definition.comment") }
         } else if scope.hasPrefix("keyword.control.at-rule"), token.hasPrefix("@") {
             mark(0, 1, "punctuation.definition.keyword")
-        } else if scope.hasPrefix("constant.character.entity"), token.hasPrefix("&") {
-            // &#169; and &#x2014;: the # and x are the entity's marks too. XML's ; ends it.
+        } else if scope.hasPrefix("constant.character.entity") || scope.hasPrefix("constant.character.escape"), token.hasPrefix("&") {
+            // &#169; and &#x2014;: the # and x are the entity's marks too. XML's ; ends it. (JSX's
+            // &rarr; is an escape to Sublime, with the same marks.)
             mark(0, token.hasPrefix("&#x") || token.hasPrefix("&#X") ? 3 : token.hasPrefix("&#") ? 2 : 1, "punctuation.definition.entity")
             if token.hasSuffix(";") { mark(n - 1, 1, scope.hasSuffix(".xml") ? "punctuation.terminator.entity.xml" : "punctuation.definition.entity") }
         } else if scope.hasPrefix("variable.parameter.xml"), token.hasPrefix("%") {
             mark(0, 1, "punctuation.definition.parameter.xml")
             if token.hasSuffix(";") { mark(n - 1, 1, "punctuation.terminator.parameter.xml") }
-        } else if scope.hasPrefix("variable"), token.hasPrefix("$") {
+        } else if scope.hasPrefix("variable"), !scope.hasSuffix(".makefile"), token.hasPrefix("$") {
             mark(0, token.hasPrefix("${") ? 2 : 1, "punctuation.definition.variable")
         }
         return out
@@ -415,6 +630,9 @@ enum Injections {
         var range: NSRange
         var language: SyntaxLanguage
         var scopes: [String]
+        /// Stretches of it that are the host's (make's references in a recipe's shell): blanked
+        /// for the embedded language's parser, which reads a word there, and colored by the host.
+        var holes: [NSRange] = []
     }
 
     /// The embedded languages that touch `window` (a whole text when it's all of it).
@@ -429,6 +647,12 @@ enum Injections {
                     found.append(Injection(range: raw.range, language: script ? .javascript : .css,
                                            scopes: [script ? "source.js.embedded.html" : "source.css.embedded.html"]))
                 }
+                return
+            case (.makefile, "shell_text"?), (.makefile, "shell_command"?):
+                // A recipe's shell, and $(shell …)'s; make's references in it are holes.
+                var holes: [NSRange] = []
+                node.enumerateChildren { if $0.isNamed { holes.append($0.range) } }
+                found.append(Injection(range: node.range, language: .shell, scopes: ["source.shell.embedded.makefile"], holes: holes))
                 return
             case (.markdown, "inline"?):
                 found.append(Injection(range: node.range, language: .markdownInline, scopes: []))
@@ -465,6 +689,15 @@ enum Injections {
             // XML by the names Sublime's Markdown gives it.
             "xml": (.xml, "xml", "text.xml"), "atom": (.xml, "xml", "text.xml"), "plist": (.xml, "xml", "text.xml"),
             "svg": (.xml, "xml", "text.xml"), "xjb": (.xml, "xml", "text.xml"), "xsd": (.xml, "xml", "text.xml"), "xsl": (.xml, "xml", "text.xml"),
+            // HL8's, and the other names Sublime's Markdown has for these.
+            "console": (.shell, "shell", "source.shell.bash"), "shell-script": (.shell, "shell", "source.shell.bash"),
+            "node": (.javascript, "javascript", "source.js"), "jsonc": (.json, "json", "source.json"),
+            "jsx": (.jsx, "jsx", "source.jsx"), "tsx": (.tsx, "tsx", "source.tsx"),
+            "typescript": (.typescript, "typescript", "source.ts"), "ts": (.typescript, "typescript", "source.ts"), "tsnode": (.typescript, "typescript", "source.ts"),
+            "diff": (.diff, "diff", "source.diff"), "udiff": (.diff, "diff", "source.diff"), "patch": (.diff, "diff", "source.diff"),
+            "make": (.makefile, "makefile", "source.makefile"), "makefile": (.makefile, "makefile", "source.makefile"), "mf": (.makefile, "makefile", "source.makefile"),
+            "python": (.python, "python", "source.python"), "python3": (.python, "python", "source.python"), "py": (.python, "python", "source.python"),
+            "toml": (.toml, "toml", "source.toml"), "yaml": (.yaml, "yaml", "source.yaml"), "yml": (.yaml, "yaml", "source.yaml"),
         ]
         guard let (language, id, root) = table[name] else { return nil }
         return (language, ["markup.raw.code-fence.\(id).markdown-gfm", root])

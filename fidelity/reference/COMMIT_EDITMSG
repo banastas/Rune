@@ -1,0 +1,22 @@
+Keep episodes without audio out of the feed list
+
+Items with no <enclosure> made empty rows, and the title fell back to
+"undefined" when a feed left it out. Filter them first, and name the
+untitled ones.
+
+Fixes #142.
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch feed-fixes
+# Your branch is up to date with 'origin/feed-fixes'.
+#
+# Changes to be committed:
+#	modified:   src/feed.js
+#	deleted:    README.md
+#	new file:   test/feed.test.js
+#
+# Untracked files:
+#	notes.txt
+#

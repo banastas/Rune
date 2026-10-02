@@ -650,7 +650,8 @@ final class Document {
     }
 
     static func pauseTrouble(_ error: Error) -> String {
-        (error as? CloudControl.ControlError) == .unsupported
+        if let still = error as? StillUploading { return "iCloud is still uploading it after \(Int(still.seconds.rounded())) s" }
+        return (error as? CloudControl.ControlError) == .unsupported
             ? "iCloud answered \"not supported\" (it can, a moment after a hand-back)" : CloudControl.describe(error)
     }
 
@@ -696,18 +697,33 @@ final class Document {
     }
 
     /// Until iCloud isn't uploading the file (checked every quarter second, for up to 15 s: a
-    /// 30 KB file took 3 s), or it stops answering; closing ends the wait, and the hold.
+    /// 30 KB file took 3 s), or it stops answering; closing ends the wait, and the hold. Still
+    /// uploading then, it isn't paused (`StillUploading`), as that's the crash: the hold is tried
+    /// again later, the file unheld meanwhile. A file back with iCloud Drive (the `icloudoff`
+    /// scenario, 2026-10-02) was still "uploading" after the 15 s, as iCloud said, and the pause
+    /// made then went unanswered for its 20 s. Not uploading but not uploaded either, it's paused
+    /// once the 15 s are up, as before (whether that's safe with no network isn't known, §8 M2).
     private func waitForUpload(limit: Double = 15) async throws -> Double {
         let url = self.url, started = Date()
+        var uploading = false   // as iCloud last said
         while Date().timeIntervalSince(started) < limit {
             guard !closing else { throw CancellationError() }
+            uploading = false
             guard let status = await CloudControl.status(url, within: 5) else { break }
             // A paused file doesn't upload; one iCloud doesn't sync has nothing to wait for.
             guard status.paused != true, status.ubiquitous, status.uploading || !status.uploaded else { break }
+            uploading = status.uploading
             try? await Task.sleep(for: .milliseconds(250))
         }
         guard !closing else { throw CancellationError() }
-        return Date().timeIntervalSince(started)
+        let waited = Date().timeIntervalSince(started)
+        if uploading { throw StillUploading(seconds: waited) }
+        return waited
+    }
+
+    /// The wait for iCloud's upload ran out with iCloud still uploading the file: not paused.
+    struct StillUploading: Error {
+        var seconds: Double
     }
 
     /// A pause made a moment after another launch handed the file back can be undone by that
@@ -2625,8 +2641,9 @@ enum SyntaxPick: Hashable {
     case plain
     case language(SyntaxLanguage)
 
-    /// In the menus' order.
-    static let all: [SyntaxPick] = [.plain] + [SyntaxLanguage.html, .css, .javascript, .json, .markdown, .shell, .xml].map { .language($0) }
+    /// In the menus' order: plain text, then the languages by name.
+    static let all: [SyntaxPick] = [.plain] + SyntaxLanguage.allCases.filter { $0 != .markdownInline }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }.map { .language($0) }
 
     var name: String {
         switch self {

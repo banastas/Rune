@@ -1,0 +1,1367 @@
+{
+"file": "COMMIT_EDITMSG",
+"syntax": "Git Commit",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "Keep episodes without audio out of the feed list\n\nItems with no <enclosure> made empty rows, and the title fell back to\n\"undefined\" when a feed left it out. Filter them first, and name the\nuntitled ones.\n\nFixes #142.\n\n# Please enter the commit message for your changes. Lines starting\n# with '#' will be ignored, and an empty message aborts the commit.\n#\n# On branch feed-fixes\n# Your branch is up to date with 'origin/feed-fixes'.\n#\n# Changes to be committed:\n#\tmodified:   src/feed.js\n#\tdeleted:    README.md\n#\tnew file:   test/feed.test.js\n#\n# Untracked files:\n#\tnotes.txt\n#\n",
+"tokens": [
+[
+0,
+5,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+5,
+14,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+14,
+22,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+22,
+28,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+28,
+32,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+32,
+35,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+35,
+39,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+39,
+44,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+44,
+48,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+48,
+49,
+"text.git.commit meta.subject.git.commit markup.heading.subject.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+49,
+50,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+50,
+56,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+56,
+61,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+61,
+64,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+64,
+65,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+65,
+76,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+76,
+81,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+81,
+87,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+87,
+93,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+93,
+97,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+97,
+101,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+101,
+107,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+107,
+112,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+112,
+117,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+117,
+119,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+119,
+120,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+120,
+132,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+132,
+137,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+137,
+139,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+139,
+144,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+144,
+149,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+149,
+152,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+152,
+157,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+157,
+164,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+164,
+169,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+169,
+176,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+176,
+180,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+180,
+185,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+185,
+188,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+188,
+189,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+189,
+198,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+198,
+203,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+203,
+204,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+204,
+205,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+205,
+210,
+"text.git.commit meta.message.git.commit meta.reference.issue.git keyword.other.resolved-issue.git",
+"#ec475d",
+null,
+false,
+false
+],
+[
+210,
+211,
+"text.git.commit meta.message.git.commit meta.reference.issue.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+211,
+212,
+"text.git.commit meta.message.git.commit meta.reference.issue.git constant.other.reference.issue.git punctuation.definition.reference.issue.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+212,
+215,
+"text.git.commit meta.message.git.commit meta.reference.issue.git constant.other.reference.issue.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+215,
+216,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+216,
+217,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+217,
+218,
+"text.git.commit meta.message.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+218,
+219,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+219,
+220,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+220,
+227,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+227,
+233,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+233,
+237,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+237,
+244,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+244,
+252,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+252,
+256,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+256,
+261,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+261,
+270,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+270,
+276,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+276,
+284,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+284,
+285,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+285,
+286,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+286,
+287,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+287,
+292,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+292,
+296,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+296,
+301,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+301,
+304,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+304,
+313,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+313,
+317,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+317,
+320,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+320,
+326,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+326,
+334,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+334,
+341,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+341,
+345,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+345,
+352,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+352,
+353,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+353,
+354,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+354,
+355,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+355,
+356,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+356,
+357,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+357,
+360,
+"text.git.commit comment.line.git.commit markup.heading.on-branch.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+360,
+366,
+"text.git.commit comment.line.git.commit markup.heading.on-branch.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+366,
+367,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+367,
+377,
+"text.git.commit comment.line.git.commit entity.name.reference.branch.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+377,
+378,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+378,
+379,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+379,
+380,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+380,
+385,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+385,
+392,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+392,
+395,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+395,
+398,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+398,
+401,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+401,
+406,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+406,
+411,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+411,
+418,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+418,
+419,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+419,
+431,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+431,
+432,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+432,
+433,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+433,
+434,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+434,
+435,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+435,
+436,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+436,
+444,
+"text.git.commit comment.line.git.commit markup.heading.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+444,
+447,
+"text.git.commit comment.line.git.commit markup.heading.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+447,
+450,
+"text.git.commit comment.line.git.commit markup.heading.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+450,
+459,
+"text.git.commit comment.line.git.commit markup.heading.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+459,
+460,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+460,
+461,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+461,
+462,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+462,
+463,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+463,
+471,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit keyword.other.change-list.git.commit",
+"#ec475d",
+null,
+false,
+false
+],
+[
+471,
+472,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit punctuation.separator.key-value.change-list.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+472,
+475,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+475,
+478,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit string.unquoted.git.commit markup.changed.file.content.git.commit",
+"#e7ce57",
+"#4a4a0f",
+false,
+false
+],
+[
+478,
+479,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit string.unquoted.git.commit markup.changed.file.content.git.commit",
+"#e7ce57",
+"#4a4a0f",
+false,
+false
+],
+[
+479,
+486,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit string.unquoted.git.commit markup.changed.file.content.git.commit",
+"#e7ce57",
+"#4a4a0f",
+false,
+false
+],
+[
+486,
+487,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+487,
+488,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+488,
+489,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+489,
+496,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit keyword.other.change-list.git.commit",
+"#ec475d",
+null,
+false,
+false
+],
+[
+496,
+497,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit punctuation.separator.key-value.change-list.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+497,
+501,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+501,
+510,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit string.unquoted.git.commit markup.deleted.file.git.commit",
+"#ec475d",
+"#3b0c08",
+false,
+false
+],
+[
+510,
+511,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+511,
+512,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+512,
+513,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+513,
+517,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit keyword.other.change-list.git.commit",
+"#ec475d",
+null,
+false,
+false
+],
+[
+517,
+521,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit keyword.other.change-list.git.commit",
+"#ec475d",
+null,
+false,
+false
+],
+[
+521,
+522,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit punctuation.separator.key-value.change-list.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+522,
+525,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+525,
+529,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit string.unquoted.git.commit markup.inserted.file.git.commit",
+"#78bc65",
+"#253b22",
+false,
+false
+],
+[
+529,
+530,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit string.unquoted.git.commit markup.inserted.file.git.commit",
+"#78bc65",
+"#253b22",
+false,
+false
+],
+[
+530,
+542,
+"text.git.commit comment.line.git.commit meta.change-list.git.commit string.unquoted.git.commit markup.inserted.file.git.commit",
+"#78bc65",
+"#253b22",
+false,
+false
+],
+[
+542,
+543,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+543,
+544,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+544,
+545,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+545,
+546,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+546,
+547,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+547,
+557,
+"text.git.commit comment.line.git.commit markup.heading.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+557,
+562,
+"text.git.commit comment.line.git.commit markup.heading.git.commit",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+562,
+563,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+563,
+564,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+564,
+565,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+565,
+566,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+566,
+575,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+575,
+576,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+],
+[
+576,
+577,
+"text.git.commit comment.line.git.commit punctuation.definition.comment.git.commit",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+577,
+578,
+"text.git.commit comment.line.git.commit",
+"#848484",
+null,
+false,
+false
+]
+]
+}

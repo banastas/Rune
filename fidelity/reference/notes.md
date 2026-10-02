@@ -32,6 +32,16 @@ console.log(`Total: ${total.toFixed(2)}`);
 <enclosure url="https://cdn.example.com/q4.mp3" length="1840" type="audio/mpeg"/>
 ```
 
+```python
+total = sum(len(feed.episodes) for feed in feeds)
+print(f"{total:,} episodes in {len(feeds)} feeds")
+```
+
+```yaml
+retries: 3
+sources: [main, archive]
+```
+
 ---
 
 Some ~~old~~ notes, a line with `inline code`, and a footnote.[^1]

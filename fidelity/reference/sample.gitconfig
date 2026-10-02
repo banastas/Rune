@@ -1,0 +1,26 @@
+# A user's Git settings, generated for the fidelity harness
+[user]
+	name = Sam Example
+	email = sam@example.com
+[core]
+	editor = nib -w
+	autocrlf = input
+	excludesfile = ~/.gitignore
+[alias]
+	st = status --short
+	lg = log --oneline --graph --decorate -20
+	last = "log -1 HEAD"
+[pull]
+	rebase = true
+[init]
+	defaultBranch = main
+[remote "origin"]
+	url = git@github.com:example/feed-tools.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "main"]
+	remote = origin
+	merge = refs/heads/main
+; an older comment style
+[color]
+	ui = auto
+	diff = 1

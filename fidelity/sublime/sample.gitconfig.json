@@ -1,0 +1,1754 @@
+{
+"file": "sample.gitconfig",
+"syntax": "Git Config",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "# A user's Git settings, generated for the fidelity harness\n[user]\n\tname = Sam Example\n\temail = sam@example.com\n[core]\n\teditor = nib -w\n\tautocrlf = input\n\texcludesfile = ~/.gitignore\n[alias]\n\tst = status --short\n\tlg = log --oneline --graph --decorate -20\n\tlast = \"log -1 HEAD\"\n[pull]\n\trebase = true\n[init]\n\tdefaultBranch = main\n[remote \"origin\"]\n\turl = git@github.com:example/feed-tools.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n[branch \"main\"]\n\tremote = origin\n\tmerge = refs/heads/main\n; an older comment style\n[color]\n\tui = auto\n\tdiff = 1\n",
+"tokens": [
+[
+0,
+1,
+"text.git.config comment.line.git punctuation.definition.comment.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1,
+2,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+2,
+4,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+4,
+11,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+11,
+15,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+15,
+25,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+25,
+35,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+35,
+39,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+39,
+43,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+43,
+52,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+52,
+59,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+59,
+60,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+60,
+61,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+61,
+65,
+"text.git.config meta.section.git.config meta.brackets.git.config entity.name.section.git.config",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+65,
+66,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+66,
+67,
+"text.git.config meta.section.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+67,
+68,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+68,
+72,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+72,
+73,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+73,
+74,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+74,
+75,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+75,
+79,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+79,
+86,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+86,
+87,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+87,
+88,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+88,
+93,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+93,
+94,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+94,
+95,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+95,
+96,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+96,
+111,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+111,
+112,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+112,
+113,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+113,
+117,
+"text.git.config meta.section.git.config meta.brackets.git.config entity.name.section.git.config",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+117,
+118,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+118,
+119,
+"text.git.config meta.section.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+119,
+120,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+120,
+126,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+126,
+127,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+127,
+128,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+128,
+129,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+129,
+133,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+133,
+135,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+135,
+136,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+136,
+137,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+137,
+145,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+145,
+146,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+146,
+147,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+147,
+148,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+148,
+153,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+153,
+154,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+154,
+155,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+155,
+167,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+167,
+168,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+168,
+169,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+169,
+170,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+170,
+182,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+182,
+183,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+183,
+184,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+184,
+189,
+"text.git.config meta.section.git.config meta.brackets.git.config entity.name.section.git.config",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+189,
+190,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+190,
+191,
+"text.git.config meta.section.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+191,
+192,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+192,
+194,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+194,
+195,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+195,
+196,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+196,
+197,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+197,
+204,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+204,
+211,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+211,
+212,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+212,
+213,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+213,
+215,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+215,
+216,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+216,
+217,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+217,
+218,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+218,
+222,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+222,
+232,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+232,
+240,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+240,
+251,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+251,
+254,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+254,
+255,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+255,
+256,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+256,
+260,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+260,
+261,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+261,
+262,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+262,
+263,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+263,
+264,
+"text.git.config meta.mapping.value.git.config string.quoted.double.git.config punctuation.definition.string.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+264,
+268,
+"text.git.config meta.mapping.value.git.config string.quoted.double.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+268,
+271,
+"text.git.config meta.mapping.value.git.config string.quoted.double.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+271,
+275,
+"text.git.config meta.mapping.value.git.config string.quoted.double.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+275,
+276,
+"text.git.config meta.mapping.value.git.config string.quoted.double.git.config punctuation.definition.string.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+276,
+277,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+277,
+278,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+278,
+282,
+"text.git.config meta.section.git.config meta.brackets.git.config entity.name.section.git.config",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+282,
+283,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+283,
+284,
+"text.git.config meta.section.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+284,
+285,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+285,
+291,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+291,
+292,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+292,
+293,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+293,
+294,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+294,
+298,
+"text.git.config meta.mapping.value.git.config constant.language.git.config",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+298,
+299,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+299,
+300,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+300,
+304,
+"text.git.config meta.section.git.config meta.brackets.git.config entity.name.section.git.config",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+304,
+305,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+305,
+306,
+"text.git.config meta.section.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+306,
+307,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+307,
+320,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+320,
+321,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+321,
+322,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+322,
+323,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+323,
+327,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+327,
+328,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+328,
+329,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+329,
+335,
+"text.git.config meta.section.git.config meta.brackets.git.config entity.name.section.git.config",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+335,
+336,
+"text.git.config meta.section.git.config meta.brackets.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+336,
+337,
+"text.git.config meta.section.git.config meta.brackets.git.config string.quoted.double.git.config punctuation.definition.string.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+337,
+343,
+"text.git.config meta.section.git.config meta.brackets.git.config string.quoted.double.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+343,
+344,
+"text.git.config meta.section.git.config meta.brackets.git.config string.quoted.double.git.config punctuation.definition.string.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+344,
+345,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+345,
+346,
+"text.git.config meta.section.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+346,
+347,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+347,
+350,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+350,
+351,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+351,
+352,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+352,
+353,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+353,
+375,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+375,
+376,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+376,
+390,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+390,
+391,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+391,
+392,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+392,
+397,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+397,
+398,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+398,
+399,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+399,
+400,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+400,
+405,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+405,
+406,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+406,
+418,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+418,
+419,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+419,
+426,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+426,
+427,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+427,
+435,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+435,
+436,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+436,
+437,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+437,
+443,
+"text.git.config meta.section.git.config meta.brackets.git.config entity.name.section.git.config",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+443,
+444,
+"text.git.config meta.section.git.config meta.brackets.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+444,
+445,
+"text.git.config meta.section.git.config meta.brackets.git.config string.quoted.double.git.config punctuation.definition.string.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+445,
+449,
+"text.git.config meta.section.git.config meta.brackets.git.config string.quoted.double.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+449,
+450,
+"text.git.config meta.section.git.config meta.brackets.git.config string.quoted.double.git.config punctuation.definition.string.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+450,
+451,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+451,
+452,
+"text.git.config meta.section.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+452,
+453,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+453,
+459,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+459,
+460,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+460,
+461,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+461,
+462,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+462,
+468,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+468,
+469,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+469,
+470,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+470,
+475,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+475,
+476,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+476,
+477,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+477,
+478,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+478,
+482,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+482,
+483,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+483,
+488,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+488,
+489,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+489,
+493,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+493,
+494,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+494,
+495,
+"text.git.config comment.line.git punctuation.definition.comment.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+495,
+496,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+496,
+499,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+499,
+505,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+505,
+513,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+513,
+518,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+518,
+519,
+"text.git.config comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+519,
+520,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.begin.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+520,
+525,
+"text.git.config meta.section.git.config meta.brackets.git.config entity.name.section.git.config",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+525,
+526,
+"text.git.config meta.section.git.config meta.brackets.git.config punctuation.section.brackets.end.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+526,
+527,
+"text.git.config meta.section.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+527,
+528,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+528,
+530,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+530,
+531,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+531,
+532,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+532,
+533,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+533,
+537,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+537,
+538,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+538,
+539,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+539,
+543,
+"text.git.config meta.mapping.key.git.config string.unquoted.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+543,
+544,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+544,
+545,
+"text.git.config meta.mapping.git.config punctuation.separator.key-value.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+545,
+546,
+"text.git.config meta.mapping.git.config",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+546,
+547,
+"text.git.config meta.mapping.value.git.config string.unquoted.value.git.config",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+547,
+548,
+"text.git.config",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

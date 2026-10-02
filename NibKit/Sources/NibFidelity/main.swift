@@ -20,6 +20,15 @@ if arguments[1] == "--tree", arguments.count > 2 {
     print(Highlighter.tree(text, language: language).replacingOccurrences(of: ") (", with: ")\n ("))
     exit(0)
 }
+if arguments[1] == "--queries" {
+    // Every language's query compiled, or why it isn't.
+    var bad = 0
+    for language in SyntaxLanguage.allCases {
+        if let problem = language.queryProblem { bad += 1; print("\(language.rawValue): \(problem)") }
+    }
+    print(bad == 0 ? "every query compiles" : "\(bad) don't")
+    exit(bad == 0 ? 0 : 1)
+}
 if arguments[1] == "--nodes", arguments.count > 2 {
     // Every node with its text, unnamed ones too, for writing queries.
     let url = URL(fileURLWithPath: arguments[2])

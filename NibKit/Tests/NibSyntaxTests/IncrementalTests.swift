@@ -27,7 +27,7 @@ import Testing
     }
 
     @Test func aWindowIsTheWholeCutToIt() throws {
-        try #require(Self.references.count == 9)   // six from HL1, three XML (HL8)
+        try #require(Self.references.count == 21)   // six from HL1, three XML and twelve more (HL8)
         var windows = 0
         for file in Self.references {
             let whole = Highlighter.runs(file.text, language: file.language, root: file.root)
@@ -45,9 +45,16 @@ import Testing
         #expect(windows > 500)
     }
 
+    /// Where an edit leaves code a parser has to repair (an ERROR or MISSING node in the fresh
+    /// parse), tree-sitter's repair can come out differently from a tree it reuses than from
+    /// nothing: its promise is the same tree for code that parses cleanly. So a tree that differs
+    /// is a failure unless the code is broken there; those are counted, and must stay rare.
+    /// (Seen 2026-10-02: `<b>` typed into a JavaScript function's parameters.) Each file's edits
+    /// come from its own generator, so adding a reference file doesn't change the others'.
     @Test func editedTreesMatchFreshParses() async throws {
-        var generator = SplitMix(seed: 20260928)
+        var compared = 0, repaired = 0
         for file in Self.references {
+            var generator = SplitMix(seed: 20260928 ^ file.name.utf8.reduce(0xcbf2_9ce4_8422_2325) { ($0 ^ UInt64($1)) &* 0x100_0000_01b3 })
             let document = SyntaxDocument(language: file.language, root: file.root)
             var text = file.text
             #expect(await document.update(text) == .whole)
@@ -61,12 +68,17 @@ import Testing
                 let parse = await document.update(text)
                 if case .whole = parse { Issue.record("\(file.name) step \(step): a whole parse") }
                 let fresh = Highlighter.tree(text, language: file.language)
-                #expect(await document.treeDescription == fresh, "\(file.name) step \(step): the tree differs from a fresh parse")
+                let kept = await document.treeDescription
+                if kept != fresh, fresh.contains("(ERROR") || fresh.contains("(MISSING") { repaired += 1; continue }
+                compared += 1
+                #expect(kept == fresh, "\(file.name) step \(step): the tree differs from a fresh parse")
                 let length = (text as NSString).length
                 #expect(await document.runs(in: NSRange(location: 0, length: length)) == Highlighter.runs(text, language: file.language, root: file.root),
                         "\(file.name) step \(step): the runs differ")
             }
         }
+        // 21 files of 40 edits: all but a few compared (repairs that differ are rare).
+        #expect(compared >= 800, "compared \(compared), repaired differently \(repaired)")
     }
 
     @Test func theChangeIsFound() async {

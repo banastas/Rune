@@ -47,6 +47,49 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
         #expect(SyntaxLanguage.detect(fileName: "index", firstLine: "<!DOCTYPE html") == nil)
         #expect(SyntaxLanguage.detect(fileName: "index", firstLine: "<!DOCTYPE html\r") == nil)
         #expect(SyntaxLanguage.detect(fileName: "notes.md", firstLine: "<?xml version=\"1.0\"?>")?.language == .markdown)   // the name first
+        // HL8's list, by Sublime's names and first lines.
+        let named: [(String, SyntaxLanguage)] = [
+            ("App.jsx", .jsx), ("store.ts", .typescript), ("vite.config.mts", .typescript), ("Panel.tsx", .tsx),
+            ("fix.diff", .diff), ("0001-feed.patch", .diff), ("COMMIT_EDITMSG", .gitCommit), ("MERGE_MSG", .gitCommit),
+            (".gitignore", .gitIgnore), ("global.gitignore", .gitIgnore), (".gitattributes", .gitAttributes),
+            (".gitconfig", .gitConfig), (".gitmodules", .gitConfig), ("Makefile", .makefile), ("GNUmakefile", .makefile),
+            ("rules.mk", .makefile), ("compose.yaml", .yaml), ("ci.yml", .yaml), ("pyproject.toml", .toml), ("Cargo.lock", .toml),
+            ("Pipfile", .toml), ("tool.py", .python), ("stubs.pyi", .python), ("SConstruct", .python), ("setup.cfg", .ini),
+            ("settings.ini", .ini), (".editorconfig", .ini), ("Preferences.sublime-settings", .json), ("Untitled.ipynb", .json),
+        ]
+        for (name, language) in named {
+            #expect(SyntaxLanguage.detect(fileName: name)?.language == language, "\(name)")
+        }
+        for name in [".env", ".env.local", "production.env"] {
+            #expect(SyntaxLanguage.detect(fileName: name)?.root == "source.shell.bash", "\(name)")
+        }
+        #expect(SyntaxLanguage.detect(fileName: "fetch", firstLine: "#!/usr/bin/env python3")?.language == .python)
+        #expect(SyntaxLanguage.detect(fileName: "run", firstLine: "#!/usr/bin/env -S uv run --script")?.language == .python)
+        #expect(SyntaxLanguage.detect(fileName: "serve", firstLine: "#!/usr/bin/env node")?.language == .javascript)
+        #expect(SyntaxLanguage.detect(fileName: "task", firstLine: "#!/usr/bin/env ts-node")?.language == .typescript)
+        #expect(SyntaxLanguage.detect(fileName: "build", firstLine: "#!/usr/bin/make -f")?.language == .makefile)
+        #expect(SyntaxLanguage.detect(fileName: "spec", firstLine: "%YAML 1.2")?.language == .yaml)
+        #expect(SyntaxLanguage.detect(fileName: "config", firstLine: "[core]")?.language == .gitConfig)   // a repository's .git/config
+        #expect(SyntaxLanguage.detect(fileName: "changes", firstLine: "--- a/src/feed.js")?.language == .diff)
+        #expect(SyntaxLanguage.detect(fileName: "changes", firstLine: "Index: src/feed.js")?.language == .diff)
+        #expect(SyntaxLanguage.detect(fileName: "notes.txt", firstLine: "# Notes") == nil)
+    }
+
+    /// Nib's own colors where Sublime has none (HL8): INI as Git's config files, .env as shell.
+    @Test func iniAndEnv() {
+        let ini = "; settings\n[server]\nhost = example.com\ndebug = true\nname = \"Night Shift\"\n"
+        #expect(color(of: "server", in: ini, .ini) == "#E7CE57")
+        #expect(color(of: "host", in: ini, .ini) == "#50B4D8")
+        #expect(color(of: "example", in: ini, .ini) == "#50B4D8")
+        #expect(color(of: "true", in: ini, .ini) == "#EF7C2B")
+        #expect(color(of: "settings", in: ini, .ini) == "#848484")
+        #expect(color(of: "\"Night", in: ini, .ini) == "#F8F8F2")
+        let env = "export API_KEY=\"abc123\"\nPORT=8080\n# local only\n"
+        let (language, root) = SyntaxLanguage.detect(fileName: ".env")!
+        #expect(color(of: "PORT", in: env, language, root: root) == "#78BC65")
+        #expect(color(of: "abc123", in: env, language, root: root) == "#50B4D8")
+        #expect(color(of: "8080", in: env, language, root: root) == "#EF7C2B")
+        #expect(color(of: "local", in: env, language, root: root) == "#848484")
     }
 
     @Test func sublimesScopes() {
@@ -106,6 +149,7 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
         let dumps = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil))?.filter { $0.pathExtension == "json" } ?? []
         try #require(!dumps.isEmpty, "no Sublime dump: run fidelity/run.sh")
         var same = 0, total = 0
+        var perFile: [String: (same: Int, total: Int)] = [:]   // each file holds the bar too (21 of them)
         for dump in dumps {
             let json = try JSONSerialization.jsonObject(with: Data(contentsOf: dump)) as! [String: Any]
             let text = json["text"] as! String
@@ -121,13 +165,20 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
             for (range, style) in Highlighter.styles(text, language: language, root: root, theme: theme) {
                 for i in range.location..<min(NSMaxRange(range), got.count) { got[i] = style.foreground.hex }
             }
+            var fileSame = 0, fileTotal = 0
             for (i, scalar) in scalars.enumerated() where !CharacterSet.whitespacesAndNewlines.contains(scalar) {
-                total += 1
-                if expected[i] == got[utf16At[i]] { same += 1 }
+                fileTotal += 1
+                if expected[i] == got[utf16At[i]] { fileSame += 1 }
             }
+            same += fileSame
+            total += fileTotal
+            perFile[json["file"] as! String] = (fileSame, fileTotal)
         }
         let share = 100 * Double(same) / Double(total)
         #expect(share >= 98, "fidelity \(share)% (HL7 wants 98%)")
+        for (name, file) in perFile {
+            #expect(100 * Double(file.same) / Double(file.total) >= 98, "\(name): \(file.same) of \(file.total)")
+        }
     }
 }
 
