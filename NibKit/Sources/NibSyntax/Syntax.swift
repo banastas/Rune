@@ -30,12 +30,23 @@ import TreeSitterGitIgnore
 import TreeSitterGitAttributes
 import TreeSitterGitConfig
 import TreeSitterINI
+import TreeSitterGo
+import TreeSitterRust
+import TreeSitterRuby
+import TreeSitterJava
+import TreeSitterC
+import TreeSitterLua
+import TreeSitterPHP
+import TreeSitterSQL
+import TreeSitterRST
 
 public enum SyntaxLanguage: String, CaseIterable, Sendable {
     case html, css, javascript, json, markdown, markdownInline = "markdown-inline", shell, xml
     // HL8's list (2026-10-02).
     case jsx, typescript, tsx, diff, gitCommit = "git-commit", gitIgnore = "git-ignore", gitAttributes = "git-attributes",
          gitConfig = "git-config", makefile, yaml, toml, python, ini
+    // Its second tier.
+    case go, rust, ruby, java, c, lua, php, sql, rst
 
     /// For the strip (HL1).
     public var name: String {
@@ -60,6 +71,15 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .toml: "TOML"
         case .python: "Python"
         case .ini: "INI"
+        case .go: "Go"
+        case .rust: "Rust"
+        case .ruby: "Ruby"
+        case .java: "Java"
+        case .c: "C"
+        case .lua: "Lua"
+        case .php: "PHP"
+        case .sql: "SQL"
+        case .rst: "reStructuredText"
         }
     }
 
@@ -88,6 +108,15 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .toml: "source.toml"
         case .python: "source.python"
         case .ini: "source.ini"
+        case .go: "source.go"
+        case .rust: "source.rust"
+        case .ruby: "source.ruby"
+        case .java: "source.java"
+        case .c: "source.c"
+        case .lua: "source.lua"
+        case .php: "embedding.php"
+        case .sql: "source.sql"
+        case .rst: "text.restructuredtext"
         }
     }
 
@@ -113,6 +142,15 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .toml: Language(tree_sitter_toml())
         case .python: Language(tree_sitter_python())
         case .ini: Language(tree_sitter_ini())
+        case .go: Language(tree_sitter_go())
+        case .rust: Language(tree_sitter_rust())
+        case .ruby: Language(tree_sitter_ruby())
+        case .java: Language(tree_sitter_java())
+        case .c: Language(tree_sitter_c())
+        case .lua: Language(tree_sitter_lua())
+        case .php: Language(tree_sitter_php())
+        case .sql: Language(tree_sitter_sql())
+        case .rst: Language(tree_sitter_rst())
         }
     }
 
@@ -180,6 +218,9 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case "pipfile.lock", "sublime_session": return (.json, "source.json")
         case ".editorconfig": return (.ini, "source.ini")
         case ".env": return (.shell, "source.shell.bash")
+        case "appfile", "appraisals", "berksfile", "brewfile", "cheffile", "deliverfile", "fastfile", "gemfile", "guardfile",
+             "podfile", "rakefile", "rantfile", "scanfile", "snapfile", "thorfile", "vagrantfile", "capfile", ".irbrc", ".pryrc", ".simplecov":
+            return (.ruby, "source.ruby")
         default: break
         }
         if name.hasPrefix(".env.") { return (.shell, "source.shell.bash") }   // .env.local, .env.production
@@ -214,6 +255,16 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case "py", "py3", "pyw", "pyi", "pyx", "pxd", "pxi", "rpy", "cpy", "gyp", "gypi", "vpy", "smk", "wscript", "bazel", "bzl":
             return (.python, "source.python")
         case "ini", "cfg": return (.ini, "source.ini")
+        case "go": return (.go, "source.go")
+        case "rs": return (.rust, "source.rust")
+        case "rb", "rbi", "rbx", "rjs", "rabl", "rake", "capfile", "jbuilder", "gemspec", "podspec", "irbrc", "pryrc", "prawn", "thor":
+            return (.ruby, "source.ruby")
+        case "java", "bsh": return (.java, "source.java")
+        case "c", "h": return (.c, "source.c")
+        case "lua": return (.lua, "source.lua")
+        case "php", "php3", "php4", "php5", "php7", "php8", "phps", "phpt", "phtml": return (.php, "embedding.php")
+        case "sql", "ddl", "dml": return (.sql, "source.sql")
+        case "rst", "rest": return (.rst, "text.restructuredtext")
         default: break
         }
         guard let line = firstLine else { return nil }
@@ -224,7 +275,13 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
             if line.range(of: #"\bts-node(?:-script)?\b"#, options: .regularExpression) != nil { return (.typescript, "source.ts") }
             if line.range(of: #"\b(?:node|js|bun)\b"#, options: .regularExpression) != nil { return (.javascript, "source.js") }
             if line.range(of: #"\bmake\b"#, options: .regularExpression) != nil { return (.makefile, "source.makefile") }
+            if line.range(of: #"\bj?ruby\b"#, options: .regularExpression) != nil { return (.ruby, "source.ruby") }
+            if line.range(of: #"\b(?:cargo|rust)\b"#, options: .regularExpression) != nil { return (.rust, "source.rust") }
+            if line.range(of: #"\b(?:bsh|java)\b"#, options: .regularExpression) != nil { return (.java, "source.java") }
+            if line.range(of: #"\blua\b"#, options: .regularExpression) != nil { return (.lua, "source.lua") }
+            if line.range(of: #"[^-]\bphp(?:\d+(?:\.\d+){0,2})?\b"#, options: .regularExpression) != nil { return (.php, "embedding.php") }
         }
+        if line.range(of: #"^\s*<\?php\b"#, options: .regularExpression) != nil { return (.php, "embedding.php") }
         if line.range(of: xmlFirstLine, options: .regularExpression) != nil { return (.xml, "text.xml") }
         if line.hasPrefix("%YAML") { return (.yaml, "source.yaml") }
         if line.hasPrefix("[core]") { return (.gitConfig, "text.git.config") }   // a repository's .git/config
@@ -445,6 +502,16 @@ public enum Highlighter {
             }
         } else if scope.hasPrefix("string.quoted.") {
             if scope.hasSuffix(".shell") { each(#"\\."#) { mark($0.range.location, 2, "constant.character.escape.shell") } }
+            if scope == "string.quoted.single.java", n > 2 { mark(1, n - 2, "constant.character.literal.java") }   // ':'
+            if scope.hasPrefix("string.quoted.other.lt-gt"), n > 1 {   // #include <stdio.h>
+                mark(0, 1, "punctuation.definition.string.begin"); mark(n - 1, 1, "punctuation.definition.string.end")
+            }
+            if scope == "string.quoted.double.c" {   // printf's conversions: "%zu", "%-8.2f"
+                each(#"%[-+ #0]*(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:hh|h|ll|l|j|z|t|L)?[diouxXeEfFgGaAcspn]"#) { mark($0.range.location, $0.range.length, "constant.other.placeholder.c") }
+            }
+            if scope.hasSuffix(".go") {   // fmt's verbs: "%w", "%-8.2f"
+                each(#"%[-+# 0]*(?:\d+|\*)?(?:\.(?:\d+|\*))?[vTtbcdoOqxXUeEfFgGspw]"#) { mark($0.range.location, $0.range.length, "constant.other.placeholder.go") }
+            }
             let quotes: Set<unichar> = [0x22, 0x27, 0x60]   // " ' `
             if n == 1, quotes.contains(t.character(at: 0)) { mark(0, 1, "punctuation.definition.string") }   // a quote on its own (XML's declaration)
             // Three quotes are the marks of a block string (TOML's, Python's docstrings).
@@ -483,6 +550,30 @@ public enum Highlighter {
                 mark(m.range(at: 1).location, 1, "punctuation.definition.string.begin.ini")
                 mark(m.range(at: 2).location, 1, "punctuation.definition.string.end.ini")
             }
+        } else if scope == "meta.annotation.go" {
+            // A struct tag, `xml:"title,attr"`: its backticks, each key and its quoted value.
+            if n > 1 { mark(0, 1, "punctuation.definition.annotation.begin.go"); mark(n - 1, 1, "punctuation.definition.annotation.end.go") }
+            each(#"([A-Za-z_][A-Za-z0-9_]*)(:)("[^"]*")"#) { m in
+                mark(m.range(at: 1).location, m.range(at: 1).length, "variable.annotation.go")
+                mark(m.range(at: 2).location, 1, "punctuation.separator.key-value.go")
+                let value = m.range(at: 3)
+                mark(value.location, value.length, "string.quoted.double.go")
+                mark(value.location, 1, "punctuation.definition.string.begin.go")
+                mark(NSMaxRange(value) - 1, 1, "punctuation.definition.string.end.go")
+                each(",") { if NSLocationInRange($0.range.location, value) { mark($0.range.location, 1, "punctuation.separator.sequence.go") } }
+            }
+        } else if scope == "meta.format.rust" {
+            // A format macro's string: {}, {title}, {:?}, {0:>8} (not {{ }}).
+            each(#"(?<!\{)\{[A-Za-z0-9_.]*(?::[^{}]*)?\}(?!\})"#) { mark($0.range.location, $0.range.length, "constant.other.placeholder.rust") }
+        } else if scope.hasPrefix("constant.numeric"), scope.hasSuffix(".rust") {
+            // 0.75_f64: the type after the number (whose point is the number's, to Sublime).
+            if let suffix = token.range(of: #"_?(?:[iu](?:8|16|32|64|128|size)|f32|f64)$"#, options: .regularExpression) {
+                let at = token.distance(from: token.startIndex, to: suffix.lowerBound) + (token[suffix].hasPrefix("_") ? 1 : 0)
+                mark(at, n - at, "storage.type.numeric.rust")
+            }
+        } else if scope == "meta.preprocessor.macro.value.c" {
+            // A #define's value: its numbers, as Sublime reads them there.
+            each(#"(?<![\w.])\d+(?:\.\d+)?[uUlLfF]*(?![\w.])"#) { mark($0.range.location, $0.range.length, "constant.numeric.value.c") }
         } else if scope == "meta.diff.range.unified" {
             // @@ -12,9 +12,11 @@ export function parseFeed(xml) {: the section after the second @@.
             each(#"^@@ [^@]*@@ ?(.+)$"#) { mark($0.range(at: 1).location, $0.range(at: 1).length, "entity.name.section.diff") }
@@ -558,7 +649,9 @@ public enum Highlighter {
             }
         } else if scope.hasPrefix("comment.") {
             if scope.hasPrefix("comment.block.documentation"), !scope.hasSuffix(".python") {
-                each(#"@[A-Za-z]+"#) { mark($0.range.location, $0.range.length, "entity.other.attribute-name.documentation") }
+                // JSDoc's @param an attribute name; Javadoc's @author a tag, as each has it.
+                let tag = scope.hasSuffix(".java") ? "entity.name.tag.documentation.javadoc" : "entity.other.attribute-name.documentation"
+                each(#"@[A-Za-z]+"#) { mark($0.range.location, $0.range.length, tag) }
             }
             if token.hasPrefix("/*") {
                 mark(0, token.hasPrefix("/**") && !token.hasPrefix("/**/") ? 3 : 2, "punctuation.definition.comment.begin")
@@ -570,6 +663,13 @@ public enum Highlighter {
                 mark(0, 2, "punctuation.definition.comment")
                 each(#"[A-Za-z0-9_.+-]+\s*$"#) { mark($0.range.location, $0.range.length, "constant.language.shebang") }
             }
+            else if let open = token.range(of: #"^--\[=*\["#, options: .regularExpression) {   // Lua's --[[ … ]]
+                let length = token.distance(from: open.lowerBound, to: open.upperBound)
+                mark(0, length, "punctuation.definition.comment.begin")
+                if n >= length + 2, token.hasSuffix("]") { mark(n - (length - 2), length - 2, "punctuation.definition.comment.end") }
+            }
+            else if token.hasPrefix("--"), scope.hasSuffix(".lua") || scope.hasSuffix(".sql") { mark(0, 2, "punctuation.definition.comment") }
+            else if token.hasPrefix("///") || token.hasPrefix("//!") { mark(0, 3, "punctuation.definition.comment") }   // a doc comment's
             else if token.hasPrefix("//") { mark(0, 2, "punctuation.definition.comment") }
             else if token.hasPrefix("<!--") { mark(0, 4, "punctuation.definition.comment.begin"); if n > 6, token.hasSuffix("-->") { mark(n - 3, 3, "punctuation.definition.comment.end") } }
             else if token.hasPrefix("#!") { mark(0, 2, "punctuation.definition.comment") }
@@ -586,6 +686,8 @@ public enum Highlighter {
             if token.hasSuffix(";") { mark(n - 1, 1, "punctuation.terminator.parameter.xml") }
         } else if scope.hasPrefix("variable"), !scope.hasSuffix(".makefile"), token.hasPrefix("$") {
             mark(0, token.hasPrefix("${") ? 2 : 1, "punctuation.definition.variable")
+        } else if scope.hasPrefix("variable.other.readwrite"), scope.hasSuffix(".ruby"), token.hasPrefix("@") {
+            mark(0, token.hasPrefix("@@") ? 2 : 1, "punctuation.definition.variable.ruby")   // @feeds, @@count
         }
         return out
     }
@@ -698,6 +800,10 @@ enum Injections {
             "make": (.makefile, "makefile", "source.makefile"), "makefile": (.makefile, "makefile", "source.makefile"), "mf": (.makefile, "makefile", "source.makefile"),
             "python": (.python, "python", "source.python"), "python3": (.python, "python", "source.python"), "py": (.python, "python", "source.python"),
             "toml": (.toml, "toml", "source.toml"), "yaml": (.yaml, "yaml", "source.yaml"), "yml": (.yaml, "yaml", "source.yaml"),
+            "go": (.go, "go", "source.go"), "golang": (.go, "go", "source.go"), "rust": (.rust, "rust", "source.rust"), "rs": (.rust, "rust", "source.rust"),
+            "ruby": (.ruby, "ruby", "source.ruby"), "rb": (.ruby, "ruby", "source.ruby"), "rbx": (.ruby, "ruby", "source.ruby"),
+            "java": (.java, "java", "source.java"), "c": (.c, "c", "source.c"), "h": (.c, "c", "source.c"), "lua": (.lua, "lua", "source.lua"),
+            "sql": (.sql, "sql", "source.sql"),
         ]
         guard let (language, id, root) = table[name] else { return nil }
         return (language, ["markup.raw.code-fence.\(id).markdown-gfm", root])

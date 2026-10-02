@@ -1,0 +1,4517 @@
+{
+"file": "index.php",
+"syntax": "PHP",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "<?php\n// A feed page, generated for the fidelity harness.\ndeclare(strict_types=1);\n\nnamespace Feeds;\n\nuse Feeds\\Store\\FeedStore;\n\nconst PAGE_SIZE = 20;\n\nfinal class Page\n{\n    private array $episodes = [];\n\n    public function __construct(private FeedStore $store, public string $title = 'Episodes')\n    {\n        $this->episodes = $store->newest(PAGE_SIZE);\n    }\n\n    public function count(): int\n    {\n        return count($this->episodes);\n    }\n\n    /** @return list<array{title: string, url: ?string}> */\n    public function rows(): array\n    {\n        return array_map(fn ($e) => ['title' => $e->title, 'url' => $e->url ?? null], $this->episodes);\n    }\n}\n\n$page = new Page(new FeedStore(__DIR__ . '/cache'));\n$empty = $page->count() === 0;\n?>\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <title><?= htmlspecialchars($page->title) ?></title>\n</head>\n<body>\n  <h1 class=\"title\"><?php echo $page->title; ?></h1>\n  <?php if ($empty): ?>\n    <p>No episodes yet.</p>\n  <?php else: ?>\n    <ul>\n      <?php foreach ($page->rows() as $i => $row): ?>\n        <li data-index=\"<?= $i ?>\"><a href=\"<?= $row['url'] ?>\"><?= $row['title'] ?></a></li>\n      <?php endforeach; ?>\n    </ul>\n  <?php endif; ?>\n</body>\n</html>\n",
+"tokens": [
+[
+0,
+5,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+5,
+6,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+6,
+8,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php punctuation.definition.comment.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+8,
+9,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+9,
+11,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+11,
+16,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+16,
+22,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+22,
+32,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+32,
+36,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+36,
+40,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+40,
+49,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+49,
+57,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+57,
+58,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html comment.line.double-slash.php",
+"#848484",
+null,
+false,
+false
+],
+[
+58,
+65,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.declaration.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+65,
+66,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+66,
+78,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php constant.other.php",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+78,
+79,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php keyword.operator.assignment.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+79,
+80,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php meta.number.integer.decimal.php constant.numeric.value.php",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+80,
+81,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+81,
+82,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+82,
+83,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+83,
+84,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+84,
+93,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.namespace.php keyword.declaration.namespace.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+93,
+94,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.namespace.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+94,
+99,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.namespace.php entity.name.namespace.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+99,
+100,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+100,
+101,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+101,
+102,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+102,
+105,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.use.php keyword.declaration.use.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+105,
+106,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.use.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+106,
+111,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.use.php meta.path.php variable.namespace.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+111,
+112,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.use.php meta.path.php punctuation.accessor.namespace.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+112,
+117,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.use.php meta.path.php variable.namespace.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+117,
+118,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.use.php meta.path.php punctuation.accessor.namespace.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+118,
+127,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.use.php meta.path.php support.class.php",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+127,
+128,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+128,
+129,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+129,
+130,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+130,
+135,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.declaration.constant.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+135,
+136,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+136,
+145,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html entity.name.constant.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+145,
+146,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+146,
+147,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.operator.assignment.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+147,
+148,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+148,
+150,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.number.integer.decimal.php constant.numeric.value.php",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+150,
+151,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+151,
+152,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+152,
+153,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+153,
+158,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html storage.modifier.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+158,
+159,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+159,
+164,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php keyword.declaration.class.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+164,
+165,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+165,
+169,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php entity.name.class.php",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+169,
+170,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+170,
+171,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php punctuation.section.block.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+171,
+172,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+172,
+176,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+176,
+183,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php storage.modifier.access.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+183,
+184,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+184,
+189,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.type.php storage.type.primitive.php",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+189,
+190,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+190,
+191,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+191,
+199,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+199,
+200,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+200,
+201,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php keyword.operator.assignment.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+201,
+202,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+202,
+203,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.sequence.array.empty.php punctuation.section.sequence.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+203,
+204,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.sequence.array.empty.php punctuation.section.sequence.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+204,
+205,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+205,
+206,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+206,
+207,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+207,
+211,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+211,
+217,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php storage.modifier.access.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+217,
+218,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+218,
+226,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php keyword.declaration.function.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+226,
+227,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+227,
+238,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php entity.name.function.constructor.php support.function.magic.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+238,
+239,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+239,
+246,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php storage.modifier.access.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+246,
+247,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+247,
+256,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php meta.type.php support.class.php",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+256,
+257,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php meta.type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+257,
+258,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php variable.parameter.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+258,
+263,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php variable.parameter.php",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+263,
+264,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php punctuation.separator.sequence.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+264,
+265,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+265,
+271,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php storage.modifier.access.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+271,
+272,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+272,
+278,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php meta.type.php storage.type.primitive.php",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+278,
+279,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php meta.type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+279,
+280,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php variable.parameter.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+280,
+285,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php variable.parameter.php",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+285,
+286,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+286,
+287,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php keyword.operator.assignment.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+287,
+288,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+288,
+289,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php meta.string.php string.quoted.single.php punctuation.definition.string.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+289,
+297,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php meta.string.php string.quoted.single.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+297,
+298,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php meta.string.php string.quoted.single.php punctuation.definition.string.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+298,
+299,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+299,
+300,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+300,
+304,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+304,
+305,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.section.block.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+305,
+306,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+306,
+314,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+314,
+315,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php variable.language.this.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+315,
+319,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php variable.language.this.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+319,
+321,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+321,
+329,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php variable.other.member.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+329,
+330,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+330,
+331,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php keyword.operator.assignment.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+331,
+332,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+332,
+333,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+333,
+338,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+338,
+340,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+340,
+346,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.identifier.php variable.function.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+346,
+347,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+347,
+356,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php constant.other.php",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+356,
+357,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+357,
+358,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+358,
+359,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+359,
+363,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+363,
+364,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.section.block.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+364,
+365,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+365,
+366,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+366,
+370,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+370,
+376,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php storage.modifier.access.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+376,
+377,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+377,
+385,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php keyword.declaration.function.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+385,
+386,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+386,
+391,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php entity.name.function.php",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+391,
+392,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+392,
+393,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+393,
+394,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.function.return-type.php punctuation.separator.colon.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+394,
+395,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.return-type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+395,
+398,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.return-type.php storage.type.primitive.php",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+398,
+399,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.return-type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+399,
+403,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.return-type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+403,
+404,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.section.block.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+404,
+405,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+405,
+413,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+413,
+419,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php keyword.control.flow.return.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+419,
+420,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+420,
+425,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.identifier.php meta.function-call.identifier.php support.function.array.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+425,
+426,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+426,
+427,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php variable.language.this.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+427,
+431,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php variable.language.this.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+431,
+433,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+433,
+441,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php variable.other.member.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+441,
+442,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+442,
+443,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+443,
+444,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+444,
+448,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+448,
+449,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.section.block.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+449,
+450,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+450,
+451,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+451,
+455,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+455,
+458,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php punctuation.definition.comment.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+458,
+459,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php",
+"#848484",
+null,
+false,
+false
+],
+[
+459,
+466,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php entity.name.tag.documentation.phpdoc.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+466,
+467,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php",
+"#848484",
+null,
+false,
+false
+],
+[
+467,
+471,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php",
+"#848484",
+null,
+false,
+false
+],
+[
+471,
+472,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php",
+"#848484",
+null,
+false,
+false
+],
+[
+472,
+485,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php",
+"#848484",
+null,
+false,
+false
+],
+[
+485,
+493,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php",
+"#848484",
+null,
+false,
+false
+],
+[
+493,
+498,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php",
+"#848484",
+null,
+false,
+false
+],
+[
+498,
+508,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php",
+"#848484",
+null,
+false,
+false
+],
+[
+508,
+510,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php comment.block.documentation.phpdoc.php punctuation.definition.comment.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+510,
+511,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+511,
+515,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+515,
+521,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php storage.modifier.access.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+521,
+522,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+522,
+530,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php keyword.declaration.function.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+530,
+531,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+531,
+535,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php entity.name.function.php",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+535,
+536,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+536,
+537,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.parameters.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+537,
+538,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.function.return-type.php punctuation.separator.colon.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+538,
+539,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.return-type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+539,
+544,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.return-type.php storage.type.primitive.php",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+544,
+545,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.return-type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+545,
+549,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.return-type.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+549,
+550,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.section.block.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+550,
+551,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+551,
+559,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+559,
+565,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php keyword.control.flow.return.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+565,
+566,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+566,
+575,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.identifier.php meta.function-call.identifier.php support.function.array.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+575,
+576,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+576,
+578,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php keyword.declaration.function.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+578,
+579,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+579,
+580,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.parameters.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+580,
+581,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.parameters.php meta.group.php variable.parameter.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+581,
+582,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.parameters.php meta.group.php variable.parameter.php",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+582,
+583,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.parameters.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+583,
+584,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+584,
+586,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php keyword.declaration.function.arrow.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+586,
+587,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+587,
+588,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php punctuation.section.sequence.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+588,
+589,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php meta.string.php string.quoted.single.php punctuation.definition.string.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+589,
+594,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php meta.string.php string.quoted.single.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+594,
+595,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php meta.string.php string.quoted.single.php punctuation.definition.string.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+595,
+596,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+596,
+598,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php punctuation.separator.key-value.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+598,
+599,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+599,
+600,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+600,
+601,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+601,
+603,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+603,
+608,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php variable.other.member.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+608,
+609,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php punctuation.separator.sequence.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+609,
+610,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+610,
+611,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php meta.string.php string.quoted.single.php punctuation.definition.string.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+611,
+614,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php meta.string.php string.quoted.single.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+614,
+615,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php meta.string.php string.quoted.single.php punctuation.definition.string.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+615,
+616,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+616,
+618,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php punctuation.separator.key-value.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+618,
+619,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+619,
+620,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+620,
+621,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+621,
+623,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+623,
+626,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php variable.other.member.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+626,
+627,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+627,
+629,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php keyword.operator.null-coalescing.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+629,
+630,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+630,
+634,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php constant.language.null.php",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+634,
+635,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php meta.function.anonymous.php meta.sequence.array.php punctuation.section.sequence.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+635,
+636,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.separator.sequence.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+636,
+637,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+637,
+638,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php variable.language.this.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+638,
+642,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php variable.language.this.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+642,
+644,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+644,
+652,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php variable.other.member.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+652,
+653,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php meta.function-call.arguments.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+653,
+654,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+654,
+655,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+655,
+659,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+659,
+660,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php meta.function.php meta.block.php punctuation.section.block.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+660,
+661,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+661,
+662,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.class.php meta.block.php punctuation.section.block.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+662,
+663,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+663,
+664,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+664,
+665,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+665,
+669,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+669,
+670,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+670,
+671,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.operator.assignment.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+671,
+672,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+672,
+675,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php keyword.other.new.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+675,
+676,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+676,
+680,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.identifier.php support.class.php",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+680,
+681,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+681,
+684,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php keyword.other.new.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+684,
+685,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+685,
+694,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.identifier.php support.class.php",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+694,
+695,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+695,
+702,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php constant.language.builtin.php",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+702,
+703,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+703,
+704,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php keyword.operator.concatenation.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+704,
+705,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+705,
+706,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.string.php string.quoted.single.php punctuation.definition.string.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+706,
+707,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.string.php string.quoted.single.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+707,
+712,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.string.php string.quoted.single.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+712,
+713,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.string.php string.quoted.single.php punctuation.definition.string.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+713,
+714,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php meta.instantiation.php meta.function-call.arguments.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+714,
+715,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.instantiation.php meta.function-call.arguments.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+715,
+716,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+716,
+717,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+717,
+718,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+718,
+723,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+723,
+724,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+724,
+725,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.operator.assignment.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+725,
+726,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+726,
+727,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+727,
+731,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+731,
+733,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+733,
+738,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.identifier.php variable.function.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+738,
+739,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.arguments.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+739,
+740,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.arguments.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+740,
+741,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+741,
+744,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.operator.comparison.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+744,
+745,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+745,
+746,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.number.integer.decimal.php constant.numeric.value.php",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+746,
+747,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+747,
+748,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+748,
+750,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+750,
+751,
+"embedding.php text.html.php meta.embedded.php meta.html-newline-after-php.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+751,
+753,
+"embedding.php text.html.php meta.tag.sgml.doctype.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+753,
+760,
+"embedding.php text.html.php meta.tag.sgml.doctype.html keyword.declaration.doctype.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+760,
+761,
+"embedding.php text.html.php meta.tag.sgml.doctype.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+761,
+765,
+"embedding.php text.html.php meta.tag.sgml.doctype.html constant.language.doctype.html",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+765,
+766,
+"embedding.php text.html.php meta.tag.sgml.doctype.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+766,
+767,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+767,
+768,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+768,
+772,
+"embedding.php text.html.php meta.tag.structure.any.html entity.name.tag.structure.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+772,
+773,
+"embedding.php text.html.php meta.tag.structure.any.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+773,
+777,
+"embedding.php text.html.php meta.tag.structure.any.html meta.attribute-with-value.html entity.other.attribute-name.html",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+777,
+778,
+"embedding.php text.html.php meta.tag.structure.any.html meta.attribute-with-value.html punctuation.separator.key-value.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+778,
+779,
+"embedding.php text.html.php meta.tag.structure.any.html meta.attribute-with-value.html meta.string.html string.quoted.double.html punctuation.definition.string.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+779,
+781,
+"embedding.php text.html.php meta.tag.structure.any.html meta.attribute-with-value.html meta.string.html string.quoted.double.html",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+781,
+782,
+"embedding.php text.html.php meta.tag.structure.any.html meta.attribute-with-value.html meta.string.html string.quoted.double.html punctuation.definition.string.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+782,
+783,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+783,
+784,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+784,
+785,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+785,
+789,
+"embedding.php text.html.php meta.tag.structure.any.html entity.name.tag.structure.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+789,
+790,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+790,
+791,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+791,
+793,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+793,
+794,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+794,
+799,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+799,
+800,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+800,
+803,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+803,
+804,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+804,
+820,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.identifier.php meta.function-call.identifier.php support.function.string.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+820,
+821,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.arguments.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+821,
+822,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.arguments.php meta.group.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+822,
+826,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.arguments.php meta.group.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+826,
+828,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.arguments.php meta.group.php punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+828,
+833,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.arguments.php meta.group.php variable.other.member.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+833,
+834,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.arguments.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+834,
+835,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+835,
+837,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+837,
+839,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+839,
+844,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+844,
+845,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+845,
+846,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+846,
+848,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+848,
+852,
+"embedding.php text.html.php meta.tag.structure.any.html entity.name.tag.structure.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+852,
+853,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+853,
+854,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+854,
+855,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+855,
+859,
+"embedding.php text.html.php meta.tag.structure.any.html entity.name.tag.structure.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+859,
+860,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+860,
+861,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+861,
+863,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+863,
+864,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+864,
+866,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+866,
+867,
+"embedding.php text.html.php meta.tag.block.any.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+867,
+872,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.class.html entity.other.attribute-name.class.html",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+872,
+873,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.class.html punctuation.separator.key-value.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+873,
+874,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.class.html meta.string.html string.quoted.double.html punctuation.definition.string.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+874,
+879,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.class.html meta.class-name.html meta.string.html string.quoted.double.html",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+879,
+880,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.class.html meta.string.html string.quoted.double.html punctuation.definition.string.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+880,
+881,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+881,
+886,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+886,
+887,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+887,
+891,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.identifier.php support.function.builtin.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+891,
+892,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.function-call.identifier.php meta.function-call.identifier.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+892,
+893,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+893,
+897,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+897,
+899,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+899,
+904,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.member.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+904,
+905,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+905,
+906,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+906,
+908,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+908,
+910,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+910,
+912,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+912,
+913,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+913,
+914,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+914,
+916,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+916,
+921,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+921,
+922,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+922,
+924,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.control.conditional.if.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+924,
+925,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+925,
+926,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+926,
+927,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+927,
+932,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+932,
+933,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+933,
+934,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.separator.colon.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+934,
+935,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+935,
+937,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+937,
+938,
+"embedding.php text.html.php meta.embedded.php meta.html-newline-after-php.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+938,
+942,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+942,
+943,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+943,
+944,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+944,
+945,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+945,
+948,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+948,
+957,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+957,
+961,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+961,
+963,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+963,
+964,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+964,
+965,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+965,
+966,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+966,
+968,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+968,
+973,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+973,
+974,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+974,
+978,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.control.conditional.else.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+978,
+979,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.separator.colon.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+979,
+980,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+980,
+982,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+982,
+983,
+"embedding.php text.html.php meta.embedded.php meta.html-newline-after-php.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+983,
+987,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+987,
+988,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+988,
+990,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+990,
+991,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+991,
+992,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+992,
+998,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+998,
+1003,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1003,
+1004,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1004,
+1011,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.control.loop.for.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1011,
+1012,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1012,
+1013,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1013,
+1014,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1014,
+1018,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1018,
+1020,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php punctuation.accessor.arrow.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1020,
+1024,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php meta.function-call.identifier.php variable.function.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1024,
+1025,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php meta.function-call.arguments.php meta.group.php punctuation.section.group.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1025,
+1026,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php meta.function-call.arguments.php meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1026,
+1027,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1027,
+1029,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php keyword.other.as.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1029,
+1030,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1030,
+1031,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1031,
+1032,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1032,
+1033,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1033,
+1035,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php punctuation.separator.key-value.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1035,
+1036,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1036,
+1037,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1037,
+1040,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1040,
+1041,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.group.php punctuation.section.group.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1041,
+1042,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.separator.colon.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1042,
+1043,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1043,
+1045,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1045,
+1046,
+"embedding.php text.html.php meta.embedded.php meta.html-newline-after-php.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1046,
+1054,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1054,
+1055,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1055,
+1057,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1057,
+1058,
+"embedding.php text.html.php meta.tag.block.any.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1058,
+1068,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html entity.other.attribute-name.html",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+1068,
+1069,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html punctuation.separator.key-value.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1069,
+1070,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html meta.string.html string.quoted.double.html punctuation.definition.string.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1070,
+1073,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html meta.string.html meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1073,
+1074,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html meta.string.html meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1074,
+1075,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html meta.string.html meta.embedded.php source.php.embedded.html variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1075,
+1076,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html meta.string.html meta.embedded.php source.php.embedded.html variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1076,
+1077,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html meta.string.html meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1077,
+1079,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html meta.string.html meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1079,
+1080,
+"embedding.php text.html.php meta.tag.block.any.html meta.attribute-with-value.html meta.string.html string.quoted.double.html punctuation.definition.string.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1080,
+1081,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1081,
+1082,
+"embedding.php text.html.php meta.tag.inline.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1082,
+1083,
+"embedding.php text.html.php meta.tag.inline.any.html entity.name.tag.inline.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1083,
+1084,
+"embedding.php text.html.php meta.tag.inline.any.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1084,
+1088,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html entity.other.attribute-name.href.html",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+1088,
+1089,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html punctuation.separator.key-value.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1089,
+1090,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.string.html string.quoted.double.html punctuation.definition.string.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1090,
+1093,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1093,
+1094,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1094,
+1095,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1095,
+1098,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1098,
+1099,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html meta.item-access.php punctuation.section.brackets.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1099,
+1100,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html meta.item-access.php meta.string.php string.quoted.single.php punctuation.definition.string.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1100,
+1103,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html meta.item-access.php meta.string.php string.quoted.single.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1103,
+1104,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html meta.item-access.php meta.string.php string.quoted.single.php punctuation.definition.string.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1104,
+1105,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html meta.item-access.php punctuation.section.brackets.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1105,
+1106,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1106,
+1108,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.path.url.html meta.string.html meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1108,
+1109,
+"embedding.php text.html.php meta.tag.inline.any.html meta.attribute-with-value.href.html meta.string.html string.quoted.double.html punctuation.definition.string.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1109,
+1110,
+"embedding.php text.html.php meta.tag.inline.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1110,
+1113,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1113,
+1114,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1114,
+1115,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php punctuation.definition.variable.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1115,
+1118,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html variable.other.php",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1118,
+1119,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.item-access.php punctuation.section.brackets.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1119,
+1120,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.item-access.php meta.string.php string.quoted.single.php punctuation.definition.string.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1120,
+1125,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.item-access.php meta.string.php string.quoted.single.php",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1125,
+1126,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.item-access.php meta.string.php string.quoted.single.php punctuation.definition.string.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1126,
+1127,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html meta.item-access.php punctuation.section.brackets.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1127,
+1128,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1128,
+1130,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1130,
+1132,
+"embedding.php text.html.php meta.tag.inline.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1132,
+1133,
+"embedding.php text.html.php meta.tag.inline.any.html entity.name.tag.inline.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1133,
+1134,
+"embedding.php text.html.php meta.tag.inline.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1134,
+1136,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1136,
+1138,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1138,
+1139,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1139,
+1140,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1140,
+1146,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1146,
+1151,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1151,
+1152,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1152,
+1162,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.control.loop.end.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1162,
+1163,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1163,
+1164,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1164,
+1166,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1166,
+1167,
+"embedding.php text.html.php meta.embedded.php meta.html-newline-after-php.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1167,
+1171,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1171,
+1173,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1173,
+1175,
+"embedding.php text.html.php meta.tag.block.any.html entity.name.tag.block.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1175,
+1176,
+"embedding.php text.html.php meta.tag.block.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1176,
+1177,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1177,
+1179,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1179,
+1184,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.begin.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1184,
+1185,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1185,
+1190,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html keyword.control.conditional.end.php",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1190,
+1191,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html punctuation.terminator.statement.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1191,
+1192,
+"embedding.php text.html.php meta.embedded.php source.php.embedded.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1192,
+1194,
+"embedding.php text.html.php meta.embedded.php punctuation.section.embedded.end.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1194,
+1195,
+"embedding.php text.html.php meta.embedded.php meta.html-newline-after-php.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1195,
+1197,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1197,
+1201,
+"embedding.php text.html.php meta.tag.structure.any.html entity.name.tag.structure.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1201,
+1202,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1202,
+1203,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1203,
+1205,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.begin.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1205,
+1209,
+"embedding.php text.html.php meta.tag.structure.any.html entity.name.tag.structure.any.html",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1209,
+1210,
+"embedding.php text.html.php meta.tag.structure.any.html punctuation.definition.tag.end.html",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1210,
+1211,
+"embedding.php text.html.php",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

@@ -1,0 +1,3905 @@
+{
+"file": "config.lua",
+"syntax": "Lua",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "-- Settings for the feed tools. Generated for the fidelity harness.\nlocal M = {}\n\nlocal DEFAULT_RETRIES = 3\n\nM.feeds = {\n  { url = \"https://example.com/podcast/feed.xml\", weight = 1.0 },\n  { url = 'https://example.org/other.xml', weight = 0.5, enabled = false },\n}\n\n--[[\n  Long comments run on\n  over lines.\n]]\nfunction M.load(path, opts)\n  opts = opts or {}\n  local file, err = io.open(path, \"r\")\n  if not file then\n    return nil, \"can't open \" .. path .. \": \" .. tostring(err)\n  end\n  local text = file:read(\"*a\")\n  file:close()\n  local count = 0\n  for line in text:gmatch(\"[^\\n]+\") do\n    count = count + 1\n  end\n  return { lines = count, retries = opts.retries or DEFAULT_RETRIES }\nend\n\nlocal function newest(items, n)\n  local out = {}\n  for i = 1, math.min(n, #items) do\n    out[#out + 1] = items[i]\n  end\n  return out\nend\n\nM.newest = newest\n\nsetmetatable(M, {\n  __index = function(_, key)\n    error(string.format(\"no setting %q\", key), 2)\n  end,\n})\n\nreturn M\n",
+"tokens": [
+[
+0,
+2,
+"source.lua comment.line.lua punctuation.definition.comment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+2,
+3,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+3,
+12,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+12,
+16,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+16,
+20,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+20,
+25,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+25,
+32,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+32,
+42,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+42,
+46,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+46,
+50,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+50,
+59,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+59,
+67,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+67,
+68,
+"source.lua comment.line.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+68,
+73,
+"source.lua storage.modifier.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+73,
+74,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+74,
+75,
+"source.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+75,
+76,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+76,
+77,
+"source.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+77,
+78,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+78,
+79,
+"source.lua meta.mapping.lua punctuation.section.block.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+79,
+80,
+"source.lua meta.mapping.lua punctuation.section.block.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+80,
+81,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+81,
+82,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+82,
+87,
+"source.lua storage.modifier.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+87,
+88,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+88,
+103,
+"source.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+103,
+104,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+104,
+105,
+"source.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+105,
+106,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+106,
+107,
+"source.lua meta.number.integer.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+107,
+108,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+108,
+109,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+109,
+110,
+"source.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+110,
+111,
+"source.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+111,
+116,
+"source.lua meta.property.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+116,
+117,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+117,
+118,
+"source.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+118,
+119,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+119,
+120,
+"source.lua meta.mapping.lua punctuation.section.block.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+120,
+121,
+"source.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+121,
+123,
+"source.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+123,
+124,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.section.block.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+124,
+125,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+125,
+128,
+"source.lua meta.mapping.lua meta.mapping.key.lua string.unquoted.key.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+128,
+129,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+129,
+130,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.separator.key-value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+130,
+131,
+"source.lua meta.mapping.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+131,
+132,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+132,
+151,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+151,
+152,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+152,
+159,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+159,
+160,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+160,
+168,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+168,
+169,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+169,
+170,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.separator.field.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+170,
+171,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+171,
+177,
+"source.lua meta.mapping.lua meta.mapping.key.lua string.unquoted.key.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+177,
+178,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+178,
+179,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.separator.key-value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+179,
+180,
+"source.lua meta.mapping.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+180,
+181,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.number.float.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+181,
+182,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.number.float.decimal.lua constant.numeric.value.lua punctuation.separator.decimal.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+182,
+183,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.number.float.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+183,
+184,
+"source.lua meta.mapping.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+184,
+185,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.section.block.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+185,
+186,
+"source.lua meta.mapping.lua punctuation.separator.field.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+186,
+187,
+"source.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+187,
+189,
+"source.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+189,
+190,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.section.block.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+190,
+191,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+191,
+194,
+"source.lua meta.mapping.lua meta.mapping.key.lua string.unquoted.key.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+194,
+195,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+195,
+196,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.separator.key-value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+196,
+197,
+"source.lua meta.mapping.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+197,
+198,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.single.lua punctuation.definition.string.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+198,
+217,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.single.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+217,
+218,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.single.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+218,
+227,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.single.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+227,
+228,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.string.lua string.quoted.single.lua punctuation.definition.string.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+228,
+229,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.separator.field.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+229,
+230,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+230,
+236,
+"source.lua meta.mapping.lua meta.mapping.key.lua string.unquoted.key.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+236,
+237,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+237,
+238,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.separator.key-value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+238,
+239,
+"source.lua meta.mapping.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+239,
+240,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.number.float.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+240,
+241,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.number.float.decimal.lua constant.numeric.value.lua punctuation.separator.decimal.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+241,
+242,
+"source.lua meta.mapping.lua meta.mapping.value.lua meta.number.float.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+242,
+243,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.separator.field.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+243,
+244,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+244,
+251,
+"source.lua meta.mapping.lua meta.mapping.key.lua string.unquoted.key.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+251,
+252,
+"source.lua meta.mapping.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+252,
+253,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.separator.key-value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+253,
+254,
+"source.lua meta.mapping.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+254,
+259,
+"source.lua meta.mapping.lua meta.mapping.value.lua constant.language.boolean.false.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+259,
+260,
+"source.lua meta.mapping.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+260,
+261,
+"source.lua meta.mapping.lua meta.mapping.lua punctuation.section.block.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+261,
+262,
+"source.lua meta.mapping.lua punctuation.separator.field.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+262,
+263,
+"source.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+263,
+264,
+"source.lua meta.mapping.lua punctuation.section.block.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+264,
+265,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+265,
+266,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+266,
+270,
+"source.lua comment.block.lua punctuation.definition.comment.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+270,
+271,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+271,
+273,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+273,
+278,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+278,
+287,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+287,
+291,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+291,
+293,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+293,
+294,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+294,
+296,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+296,
+301,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+301,
+307,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+307,
+308,
+"source.lua comment.block.lua",
+"#848484",
+null,
+false,
+false
+],
+[
+308,
+310,
+"source.lua comment.block.lua punctuation.definition.comment.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+310,
+311,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+311,
+319,
+"source.lua meta.function.lua meta.block.lua keyword.declaration.function.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+319,
+320,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+320,
+321,
+"source.lua meta.function.lua meta.block.lua meta.name.function variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+321,
+322,
+"source.lua meta.function.lua meta.block.lua meta.name.function punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+322,
+326,
+"source.lua meta.function.lua meta.block.lua meta.name.function meta.property.lua entity.name.function.lua",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+326,
+327,
+"source.lua meta.function.lua meta.block.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+327,
+331,
+"source.lua meta.function.lua meta.block.lua meta.group.lua variable.parameter.function.lua",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+331,
+332,
+"source.lua meta.function.lua meta.block.lua meta.group.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+332,
+333,
+"source.lua meta.function.lua meta.block.lua meta.group.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+333,
+337,
+"source.lua meta.function.lua meta.block.lua meta.group.lua variable.parameter.function.lua",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+337,
+338,
+"source.lua meta.function.lua meta.block.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+338,
+339,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+339,
+341,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+341,
+345,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+345,
+346,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+346,
+347,
+"source.lua meta.function.lua meta.block.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+347,
+348,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+348,
+352,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+352,
+353,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+353,
+355,
+"source.lua meta.function.lua meta.block.lua keyword.operator.logical.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+355,
+356,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+356,
+357,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.section.block.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+357,
+358,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.section.block.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+358,
+359,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+359,
+361,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+361,
+366,
+"source.lua meta.function.lua meta.block.lua storage.modifier.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+366,
+367,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+367,
+371,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+371,
+372,
+"source.lua meta.function.lua meta.block.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+372,
+373,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+373,
+376,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+376,
+377,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+377,
+378,
+"source.lua meta.function.lua meta.block.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+378,
+379,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+379,
+381,
+"source.lua meta.function.lua meta.block.lua support.constant.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+381,
+382,
+"source.lua meta.function.lua meta.block.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+382,
+386,
+"source.lua meta.function.lua meta.block.lua meta.property.lua support.function.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+386,
+387,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+387,
+391,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+391,
+392,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+392,
+393,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+393,
+394,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+394,
+395,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+395,
+396,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+396,
+397,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+397,
+398,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+398,
+400,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+400,
+402,
+"source.lua meta.function.lua meta.block.lua keyword.control.conditional.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+402,
+403,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+403,
+406,
+"source.lua meta.function.lua meta.block.lua keyword.operator.logical.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+406,
+407,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+407,
+411,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+411,
+412,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+412,
+416,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.control.conditional.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+416,
+417,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+417,
+421,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+421,
+427,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.control.return.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+427,
+428,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+428,
+431,
+"source.lua meta.function.lua meta.block.lua meta.block.lua constant.language.null.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+431,
+432,
+"source.lua meta.function.lua meta.block.lua meta.block.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+432,
+433,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+433,
+434,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+434,
+440,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+440,
+445,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+445,
+446,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+446,
+447,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+447,
+449,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.operator.concatenation.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+449,
+450,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+450,
+454,
+"source.lua meta.function.lua meta.block.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+454,
+455,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+455,
+457,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.operator.concatenation.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+457,
+458,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+458,
+459,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+459,
+461,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+461,
+462,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+462,
+463,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+463,
+465,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.operator.concatenation.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+465,
+466,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+466,
+474,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.function-call.lua support.function.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+474,
+475,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+475,
+478,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+478,
+479,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+479,
+480,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+480,
+482,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+482,
+485,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.control.end.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+485,
+486,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+486,
+488,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+488,
+493,
+"source.lua meta.function.lua meta.block.lua storage.modifier.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+493,
+494,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+494,
+498,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+498,
+499,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+499,
+500,
+"source.lua meta.function.lua meta.block.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+500,
+501,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+501,
+505,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+505,
+506,
+"source.lua meta.function.lua meta.block.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+506,
+510,
+"source.lua meta.function.lua meta.block.lua meta.property.lua meta.function-call.lua variable.function.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+510,
+511,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+511,
+512,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+512,
+514,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+514,
+515,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+515,
+516,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+516,
+517,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+517,
+519,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+519,
+523,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+523,
+524,
+"source.lua meta.function.lua meta.block.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+524,
+529,
+"source.lua meta.function.lua meta.block.lua meta.property.lua meta.function-call.lua variable.function.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+529,
+530,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+530,
+531,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+531,
+532,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+532,
+534,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+534,
+539,
+"source.lua meta.function.lua meta.block.lua storage.modifier.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+539,
+540,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+540,
+545,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+545,
+546,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+546,
+547,
+"source.lua meta.function.lua meta.block.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+547,
+548,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+548,
+549,
+"source.lua meta.function.lua meta.block.lua meta.number.integer.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+549,
+550,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+550,
+552,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+552,
+555,
+"source.lua meta.function.lua meta.block.lua keyword.control.loop.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+555,
+556,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+556,
+560,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+560,
+561,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+561,
+563,
+"source.lua meta.function.lua meta.block.lua keyword.control.loop.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+563,
+564,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+564,
+568,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+568,
+569,
+"source.lua meta.function.lua meta.block.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+569,
+575,
+"source.lua meta.function.lua meta.block.lua meta.property.lua meta.function-call.lua variable.function.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+575,
+576,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+576,
+577,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+577,
+579,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+579,
+581,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua constant.character.escape.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+581,
+583,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+583,
+584,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+584,
+585,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+585,
+586,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+586,
+588,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.control.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+588,
+589,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+589,
+593,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+593,
+598,
+"source.lua meta.function.lua meta.block.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+598,
+599,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+599,
+600,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+600,
+601,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+601,
+606,
+"source.lua meta.function.lua meta.block.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+606,
+607,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+607,
+608,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.operator.arithmetic.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+608,
+609,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+609,
+610,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.number.integer.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+610,
+611,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+611,
+613,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+613,
+616,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.control.end.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+616,
+617,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+617,
+619,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+619,
+625,
+"source.lua meta.function.lua meta.block.lua keyword.control.return.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+625,
+626,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+626,
+627,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.section.block.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+627,
+628,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+628,
+633,
+"source.lua meta.function.lua meta.block.lua meta.mapping.key.lua string.unquoted.key.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+633,
+634,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+634,
+635,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.separator.key-value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+635,
+636,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+636,
+641,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+641,
+642,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.separator.field.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+642,
+643,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+643,
+650,
+"source.lua meta.function.lua meta.block.lua meta.mapping.key.lua string.unquoted.key.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+650,
+651,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+651,
+652,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.separator.key-value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+652,
+653,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+653,
+657,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+657,
+658,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+658,
+665,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua meta.property.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+665,
+666,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+666,
+668,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua keyword.operator.logical.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+668,
+669,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+669,
+684,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+684,
+685,
+"source.lua meta.function.lua meta.block.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+685,
+686,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.section.block.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+686,
+687,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+687,
+690,
+"source.lua meta.function.lua meta.block.lua keyword.control.end.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+690,
+691,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+691,
+692,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+692,
+697,
+"source.lua storage.modifier.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+697,
+698,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+698,
+706,
+"source.lua meta.function.lua meta.block.lua keyword.declaration.function.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+706,
+707,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+707,
+713,
+"source.lua meta.function.lua meta.block.lua meta.name.function entity.name.function.lua",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+713,
+714,
+"source.lua meta.function.lua meta.block.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+714,
+719,
+"source.lua meta.function.lua meta.block.lua meta.group.lua variable.parameter.function.lua",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+719,
+720,
+"source.lua meta.function.lua meta.block.lua meta.group.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+720,
+721,
+"source.lua meta.function.lua meta.block.lua meta.group.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+721,
+722,
+"source.lua meta.function.lua meta.block.lua meta.group.lua variable.parameter.function.lua",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+722,
+723,
+"source.lua meta.function.lua meta.block.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+723,
+724,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+724,
+726,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+726,
+731,
+"source.lua meta.function.lua meta.block.lua storage.modifier.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+731,
+732,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+732,
+735,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+735,
+736,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+736,
+737,
+"source.lua meta.function.lua meta.block.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+737,
+738,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+738,
+739,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.section.block.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+739,
+740,
+"source.lua meta.function.lua meta.block.lua meta.mapping.lua punctuation.section.block.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+740,
+741,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+741,
+743,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+743,
+746,
+"source.lua meta.function.lua meta.block.lua keyword.control.loop.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+746,
+747,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+747,
+748,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+748,
+749,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+749,
+750,
+"source.lua meta.function.lua meta.block.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+750,
+751,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+751,
+752,
+"source.lua meta.function.lua meta.block.lua meta.number.integer.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+752,
+753,
+"source.lua meta.function.lua meta.block.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+753,
+754,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+754,
+758,
+"source.lua meta.function.lua meta.block.lua support.constant.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+758,
+759,
+"source.lua meta.function.lua meta.block.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+759,
+762,
+"source.lua meta.function.lua meta.block.lua meta.property.lua support.function.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+762,
+763,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+763,
+764,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+764,
+765,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+765,
+766,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+766,
+767,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua keyword.operator.length.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+767,
+772,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+772,
+773,
+"source.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+773,
+774,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+774,
+776,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.control.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+776,
+777,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+777,
+781,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+781,
+784,
+"source.lua meta.function.lua meta.block.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+784,
+785,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua punctuation.section.brackets.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+785,
+786,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua keyword.operator.length.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+786,
+789,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+789,
+790,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+790,
+791,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua keyword.operator.arithmetic.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+791,
+792,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+792,
+793,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua meta.number.integer.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+793,
+794,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua punctuation.section.brackets.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+794,
+795,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+795,
+796,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+796,
+797,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+797,
+802,
+"source.lua meta.function.lua meta.block.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+802,
+803,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua punctuation.section.brackets.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+803,
+804,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+804,
+805,
+"source.lua meta.function.lua meta.block.lua meta.block.lua meta.brackets.lua punctuation.section.brackets.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+805,
+806,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+806,
+808,
+"source.lua meta.function.lua meta.block.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+808,
+811,
+"source.lua meta.function.lua meta.block.lua meta.block.lua keyword.control.end.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+811,
+812,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+812,
+814,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+814,
+820,
+"source.lua meta.function.lua meta.block.lua keyword.control.return.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+820,
+821,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+821,
+824,
+"source.lua meta.function.lua meta.block.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+824,
+825,
+"source.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+825,
+828,
+"source.lua meta.function.lua meta.block.lua keyword.control.end.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+828,
+829,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+829,
+830,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+830,
+831,
+"source.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+831,
+832,
+"source.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+832,
+838,
+"source.lua meta.property.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+838,
+839,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+839,
+840,
+"source.lua keyword.operator.assignment.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+840,
+841,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+841,
+847,
+"source.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+847,
+848,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+848,
+849,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+849,
+861,
+"source.lua meta.function-call.lua support.function.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+861,
+862,
+"source.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+862,
+863,
+"source.lua meta.function-call.arguments.lua meta.group.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+863,
+864,
+"source.lua meta.function-call.arguments.lua meta.group.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+864,
+865,
+"source.lua meta.function-call.arguments.lua meta.group.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+865,
+866,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.lua punctuation.section.block.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+866,
+867,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+867,
+869,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+869,
+876,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.key.lua entity.name.function.lua support.function.metamethod.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+876,
+877,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+877,
+878,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.lua punctuation.separator.key-value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+878,
+879,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+879,
+887,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua keyword.declaration.function.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+887,
+888,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+888,
+889,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.group.lua variable.parameter.function.lua",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+889,
+890,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.group.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+890,
+891,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.group.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+891,
+894,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.group.lua variable.parameter.function.lua",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+894,
+895,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+895,
+896,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+896,
+900,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+900,
+905,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.lua support.function.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+905,
+906,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+906,
+912,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua support.constant.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+912,
+913,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.accessor.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+913,
+919,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.property.lua support.function.builtin.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+919,
+920,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+920,
+921,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.begin.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+921,
+924,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+924,
+932,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+932,
+934,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+934,
+935,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua meta.string.lua string.quoted.double.lua punctuation.definition.string.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+935,
+936,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+936,
+937,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+937,
+940,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+940,
+941,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+941,
+942,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.separator.comma.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+942,
+943,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+943,
+944,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua meta.number.integer.decimal.lua constant.numeric.value.lua",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+944,
+945,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+945,
+946,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+946,
+948,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+948,
+951,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.value.lua meta.function.lua meta.block.lua keyword.control.end.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+951,
+952,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.lua punctuation.separator.field.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+952,
+953,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+953,
+954,
+"source.lua meta.function-call.arguments.lua meta.group.lua meta.mapping.lua punctuation.section.block.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+954,
+955,
+"source.lua meta.function-call.arguments.lua meta.group.lua punctuation.section.group.end.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+955,
+956,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+956,
+957,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+957,
+963,
+"source.lua keyword.control.return.lua",
+"#ec475d",
+null,
+false,
+false
+],
+[
+963,
+964,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+964,
+965,
+"source.lua variable.other.lua",
+"#78bc65",
+null,
+false,
+false
+],
+[
+965,
+966,
+"source.lua",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

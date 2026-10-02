@@ -511,9 +511,11 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// and diffs. INI's, which Sublime doesn't color, is its usual `;`.
     var commentStyle: CommentStyle? {
         switch syntax?.language {
-        case .javascript, .jsx, .typescript, .tsx: .line("//")
-        case .shell, .python, .yaml, .toml, .makefile, .gitCommit, .gitIgnore, .gitAttributes, .gitConfig: .line("#")
+        case .javascript, .jsx, .typescript, .tsx, .go, .rust, .java, .c, .php: .line("//")
+        case .shell, .python, .yaml, .toml, .makefile, .gitCommit, .gitIgnore, .gitAttributes, .gitConfig, .ruby: .line("#")
         case .ini: .line(";")
+        case .lua, .sql: .line("--")
+        case .rst: .line("..")
         case .css: .block("/*", "*/")
         case .html, .markdown, .markdownInline, .xml: .block("<!--", "-->")
         case .json, .diff, nil: nil

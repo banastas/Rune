@@ -1,0 +1,6335 @@
+{
+"file": "cache.rs",
+"syntax": "Rust",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "//! A small cache of feed episodes. Generated for the fidelity harness.\n\nuse std::collections::HashMap;\nuse std::time::{Duration, Instant};\n\nconst MAX_ENTRIES: usize = 1_024;\n\n/// One cached value and when it stops being fresh.\n#[derive(Debug, Clone)]\npub struct Entry<T> {\n    value: T,\n    expires: Instant,\n}\n\n#[derive(Debug, Default)]\npub struct Cache<T: Clone> {\n    entries: HashMap<String, Entry<T>>,\n    hits: u64,\n}\n\npub enum Lookup<'a, T> {\n    Fresh(&'a T),\n    Stale,\n    Missing,\n}\n\nimpl<T: Clone> Cache<T> {\n    pub fn new() -> Self {\n        Self { entries: HashMap::new(), hits: 0 }\n    }\n\n    pub fn insert(&mut self, key: &str, value: T, ttl: Duration) -> Option<T> {\n        if self.entries.len() >= MAX_ENTRIES {\n            self.evict();\n        }\n        let entry = Entry { value, expires: Instant::now() + ttl };\n        self.entries.insert(key.to_owned(), entry).map(|old| old.value)\n    }\n\n    pub fn get(&mut self, key: &str) -> Lookup<'_, T> {\n        match self.entries.get(key) {\n            Some(entry) if entry.expires > Instant::now() => {\n                self.hits += 1;\n                Lookup::Fresh(&entry.value)\n            }\n            Some(_) => Lookup::Stale,\n            None => Lookup::Missing,\n        }\n    }\n\n    fn evict(&mut self) {\n        let now = Instant::now();\n        self.entries.retain(|_, entry| entry.expires > now);\n    }\n}\n\nfn main() {\n    let mut cache: Cache<String> = Cache::new();\n    cache.insert(\"nsn-42\", \"Plain Text Forever\".to_string(), Duration::from_secs(60));\n    if let Lookup::Fresh(title) = cache.get(\"nsn-42\") {\n        println!(\"cached: {title} ({} hits)\", cache.hits);\n    }\n    let ratio = 0.75_f64 * 2.0;\n    assert!(ratio > 1.0, \"ratio was {}\", ratio);\n}\n",
+"tokens": [
+[
+0,
+3,
+"source.rust comment.line.documentation.rust punctuation.definition.comment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+3,
+4,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+4,
+6,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+6,
+12,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+12,
+18,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+18,
+21,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+21,
+26,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+26,
+36,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+36,
+46,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+46,
+50,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+50,
+54,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+54,
+63,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+63,
+71,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+71,
+72,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+72,
+73,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+73,
+76,
+"source.rust keyword.declaration.import.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+76,
+77,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+77,
+80,
+"source.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+80,
+82,
+"source.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+82,
+93,
+"source.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+93,
+95,
+"source.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+95,
+102,
+"source.rust meta.path.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+102,
+103,
+"source.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+103,
+104,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+104,
+107,
+"source.rust keyword.declaration.import.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+107,
+108,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+108,
+111,
+"source.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+111,
+113,
+"source.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+113,
+117,
+"source.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+117,
+119,
+"source.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+119,
+120,
+"source.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+120,
+128,
+"source.rust meta.block.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+128,
+129,
+"source.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+129,
+130,
+"source.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+130,
+137,
+"source.rust meta.block.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+137,
+138,
+"source.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+138,
+139,
+"source.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+139,
+140,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+140,
+141,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+141,
+146,
+"source.rust keyword.declaration.variable.constant.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+146,
+147,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+147,
+158,
+"source.rust entity.name.constant.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+158,
+159,
+"source.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+159,
+160,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+160,
+165,
+"source.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+165,
+166,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+166,
+167,
+"source.rust keyword.operator.assignment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+167,
+168,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+168,
+173,
+"source.rust constant.numeric.integer.decimal.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+173,
+174,
+"source.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+174,
+175,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+175,
+176,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+176,
+179,
+"source.rust comment.line.documentation.rust punctuation.definition.comment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+179,
+180,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+180,
+184,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+184,
+191,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+191,
+197,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+197,
+201,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+201,
+206,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+206,
+209,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+209,
+215,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+215,
+221,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+221,
+227,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+227,
+228,
+"source.rust comment.line.documentation.rust",
+"#848484",
+null,
+false,
+false
+],
+[
+228,
+229,
+"source.rust meta.annotation.rust punctuation.definition.annotation.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+229,
+230,
+"source.rust meta.annotation.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+230,
+236,
+"source.rust meta.annotation.rust meta.path.rust variable.annotation.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+236,
+237,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+237,
+242,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+242,
+243,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+243,
+244,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+244,
+249,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+249,
+250,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+250,
+251,
+"source.rust meta.annotation.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+251,
+252,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+252,
+255,
+"source.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+255,
+256,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+256,
+262,
+"source.rust meta.struct.rust keyword.declaration.struct.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+262,
+263,
+"source.rust meta.struct.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+263,
+268,
+"source.rust meta.struct.rust meta.struct.rust meta.generic.rust entity.name.struct.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+268,
+269,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+269,
+270,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+270,
+271,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+271,
+272,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+272,
+273,
+"source.rust meta.struct.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+273,
+274,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+274,
+278,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+278,
+283,
+"source.rust meta.struct.rust meta.block.rust variable.other.member.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+283,
+284,
+"source.rust meta.struct.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+284,
+285,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+285,
+286,
+"source.rust meta.struct.rust meta.block.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+286,
+287,
+"source.rust meta.struct.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+287,
+288,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+288,
+292,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+292,
+299,
+"source.rust meta.struct.rust meta.block.rust variable.other.member.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+299,
+300,
+"source.rust meta.struct.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+300,
+301,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+301,
+308,
+"source.rust meta.struct.rust meta.block.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+308,
+309,
+"source.rust meta.struct.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+309,
+310,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+310,
+311,
+"source.rust meta.struct.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+311,
+312,
+"source.rust meta.struct.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+312,
+313,
+"source.rust meta.struct.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+313,
+314,
+"source.rust meta.annotation.rust punctuation.definition.annotation.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+314,
+315,
+"source.rust meta.annotation.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+315,
+321,
+"source.rust meta.annotation.rust meta.path.rust variable.annotation.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+321,
+322,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+322,
+327,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+327,
+328,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+328,
+329,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+329,
+336,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+336,
+337,
+"source.rust meta.annotation.rust meta.annotation.parameters.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+337,
+338,
+"source.rust meta.annotation.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+338,
+339,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+339,
+342,
+"source.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+342,
+343,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+343,
+349,
+"source.rust meta.struct.rust keyword.declaration.struct.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+349,
+350,
+"source.rust meta.struct.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+350,
+355,
+"source.rust meta.struct.rust meta.struct.rust meta.generic.rust entity.name.struct.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+355,
+356,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+356,
+357,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+357,
+358,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+358,
+359,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+359,
+364,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+364,
+365,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+365,
+366,
+"source.rust meta.struct.rust meta.generic.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+366,
+367,
+"source.rust meta.struct.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+367,
+368,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+368,
+372,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+372,
+379,
+"source.rust meta.struct.rust meta.block.rust variable.other.member.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+379,
+380,
+"source.rust meta.struct.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+380,
+381,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+381,
+388,
+"source.rust meta.struct.rust meta.block.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+388,
+389,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+389,
+395,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+395,
+396,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+396,
+397,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+397,
+402,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+402,
+403,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+403,
+404,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+404,
+405,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+405,
+406,
+"source.rust meta.struct.rust meta.block.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+406,
+407,
+"source.rust meta.struct.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+407,
+408,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+408,
+412,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+412,
+416,
+"source.rust meta.struct.rust meta.block.rust variable.other.member.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+416,
+417,
+"source.rust meta.struct.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+417,
+418,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+418,
+421,
+"source.rust meta.struct.rust meta.block.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+421,
+422,
+"source.rust meta.struct.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+422,
+423,
+"source.rust meta.struct.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+423,
+424,
+"source.rust meta.struct.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+424,
+425,
+"source.rust meta.struct.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+425,
+426,
+"source.rust meta.struct.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+426,
+429,
+"source.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+429,
+430,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+430,
+434,
+"source.rust meta.enum.rust keyword.declaration.enum.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+434,
+435,
+"source.rust meta.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+435,
+441,
+"source.rust meta.enum.rust meta.enum.rust meta.generic.rust entity.name.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+441,
+442,
+"source.rust meta.enum.rust meta.generic.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+442,
+444,
+"source.rust meta.enum.rust meta.generic.rust meta.generic.rust storage.modifier.lifetime.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+444,
+445,
+"source.rust meta.enum.rust meta.generic.rust meta.generic.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+445,
+446,
+"source.rust meta.enum.rust meta.generic.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+446,
+447,
+"source.rust meta.enum.rust meta.generic.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+447,
+448,
+"source.rust meta.enum.rust meta.generic.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+448,
+449,
+"source.rust meta.enum.rust meta.generic.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+449,
+450,
+"source.rust meta.enum.rust meta.block.rust meta.enum.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+450,
+451,
+"source.rust meta.block.rust meta.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+451,
+455,
+"source.rust meta.block.rust meta.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+455,
+460,
+"source.rust meta.block.rust meta.enum.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+460,
+461,
+"source.rust meta.block.rust meta.enum.rust meta.struct.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+461,
+462,
+"source.rust meta.block.rust meta.enum.rust meta.struct.rust meta.group.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+462,
+464,
+"source.rust meta.block.rust meta.enum.rust meta.struct.rust meta.group.rust storage.modifier.lifetime.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+464,
+465,
+"source.rust meta.block.rust meta.enum.rust meta.struct.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+465,
+466,
+"source.rust meta.block.rust meta.enum.rust meta.struct.rust meta.group.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+466,
+467,
+"source.rust meta.block.rust meta.enum.rust meta.struct.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+467,
+468,
+"source.rust meta.block.rust meta.enum.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+468,
+469,
+"source.rust meta.block.rust meta.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+469,
+473,
+"source.rust meta.block.rust meta.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+473,
+478,
+"source.rust meta.block.rust meta.enum.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+478,
+479,
+"source.rust meta.block.rust meta.enum.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+479,
+480,
+"source.rust meta.block.rust meta.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+480,
+484,
+"source.rust meta.block.rust meta.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+484,
+491,
+"source.rust meta.block.rust meta.enum.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+491,
+492,
+"source.rust meta.block.rust meta.enum.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+492,
+493,
+"source.rust meta.block.rust meta.enum.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+493,
+494,
+"source.rust meta.block.rust meta.enum.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+494,
+495,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+495,
+496,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+496,
+500,
+"source.rust meta.impl.rust keyword.declaration.impl.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+500,
+501,
+"source.rust meta.impl.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+501,
+502,
+"source.rust meta.impl.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+502,
+503,
+"source.rust meta.impl.rust meta.generic.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+503,
+504,
+"source.rust meta.impl.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+504,
+509,
+"source.rust meta.impl.rust meta.generic.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+509,
+510,
+"source.rust meta.impl.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+510,
+511,
+"source.rust meta.impl.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+511,
+516,
+"source.rust meta.impl.rust meta.generic.rust entity.name.impl.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+516,
+517,
+"source.rust meta.impl.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+517,
+518,
+"source.rust meta.impl.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+518,
+519,
+"source.rust meta.impl.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+519,
+520,
+"source.rust meta.impl.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+520,
+521,
+"source.rust meta.impl.rust meta.impl.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+521,
+522,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+522,
+526,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+526,
+529,
+"source.rust meta.impl.rust meta.block.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+529,
+530,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+530,
+532,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust keyword.declaration.function.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+532,
+533,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+533,
+536,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust entity.name.function.rust",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+536,
+537,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+537,
+538,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+538,
+539,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+539,
+541,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+541,
+542,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+542,
+546,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+546,
+547,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+547,
+548,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+548,
+549,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+549,
+557,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+557,
+561,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust keyword.other.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+561,
+562,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+562,
+563,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+563,
+564,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+564,
+571,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+571,
+572,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+572,
+573,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+573,
+580,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+580,
+582,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+582,
+585,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+585,
+586,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+586,
+587,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+587,
+588,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+588,
+589,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+589,
+593,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+593,
+594,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+594,
+595,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+595,
+596,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust constant.numeric.integer.decimal.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+596,
+597,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+597,
+598,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+598,
+599,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+599,
+603,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+603,
+604,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+604,
+605,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+605,
+606,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+606,
+610,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+610,
+613,
+"source.rust meta.impl.rust meta.block.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+613,
+614,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+614,
+616,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust keyword.declaration.function.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+616,
+617,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+617,
+623,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust entity.name.function.rust",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+623,
+624,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+624,
+625,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+625,
+628,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+628,
+629,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+629,
+633,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+633,
+634,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+634,
+635,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+635,
+638,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+638,
+639,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+639,
+640,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+640,
+641,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+641,
+644,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+644,
+645,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+645,
+646,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+646,
+651,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+651,
+652,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+652,
+653,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+653,
+654,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+654,
+655,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+655,
+656,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+656,
+659,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+659,
+660,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+660,
+661,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+661,
+669,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+669,
+670,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+670,
+671,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+671,
+673,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+673,
+674,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+674,
+680,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+680,
+681,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+681,
+682,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+682,
+683,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+683,
+684,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+684,
+685,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+685,
+686,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+686,
+694,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+694,
+696,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust keyword.control.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+696,
+697,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+697,
+701,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust variable.language.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+701,
+702,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+702,
+709,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+709,
+710,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+710,
+713,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+713,
+714,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+714,
+715,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+715,
+716,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+716,
+718,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust keyword.operator.comparison.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+718,
+719,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+719,
+730,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust constant.other.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+730,
+731,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+731,
+732,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+732,
+733,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+733,
+745,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+745,
+749,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust variable.language.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+749,
+750,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+750,
+755,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+755,
+756,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+756,
+757,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+757,
+758,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+758,
+759,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+759,
+767,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+767,
+768,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+768,
+769,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+769,
+777,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+777,
+780,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust keyword.declaration.variable.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+780,
+781,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+781,
+786,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+786,
+787,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+787,
+788,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust keyword.operator.assignment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+788,
+789,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+789,
+794,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+794,
+795,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+795,
+796,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+796,
+797,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+797,
+802,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+802,
+803,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+803,
+804,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+804,
+811,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+811,
+812,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+812,
+813,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+813,
+820,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+820,
+822,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+822,
+825,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+825,
+826,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+826,
+827,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+827,
+828,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+828,
+829,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust keyword.operator.arithmetic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+829,
+830,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+830,
+833,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+833,
+834,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+834,
+835,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+835,
+836,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+836,
+837,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+837,
+845,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+845,
+849,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust variable.language.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+849,
+850,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+850,
+857,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+857,
+858,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+858,
+864,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+864,
+865,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+865,
+868,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+868,
+869,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+869,
+877,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+877,
+878,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+878,
+879,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+879,
+880,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+880,
+881,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+881,
+886,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+886,
+887,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+887,
+888,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+888,
+891,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+891,
+892,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+892,
+893,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust punctuation.section.parameters.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+893,
+896,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+896,
+897,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust punctuation.section.parameters.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+897,
+898,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+898,
+901,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+901,
+902,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+902,
+907,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+907,
+908,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+908,
+909,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+909,
+913,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+913,
+914,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+914,
+915,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+915,
+916,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+916,
+920,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+920,
+923,
+"source.rust meta.impl.rust meta.block.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+923,
+924,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+924,
+926,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust keyword.declaration.function.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+926,
+927,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+927,
+930,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust entity.name.function.rust",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+930,
+931,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+931,
+932,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+932,
+935,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+935,
+936,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+936,
+940,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+940,
+941,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+941,
+942,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+942,
+945,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+945,
+946,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+946,
+947,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+947,
+948,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+948,
+951,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+951,
+952,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+952,
+953,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+953,
+955,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+955,
+956,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+956,
+962,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+962,
+963,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+963,
+965,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust storage.modifier.lifetime.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+965,
+966,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+966,
+967,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+967,
+968,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+968,
+969,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+969,
+970,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.return-type.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+970,
+971,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+971,
+972,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+972,
+980,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+980,
+985,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust keyword.control.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+985,
+986,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+986,
+990,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust variable.language.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+990,
+991,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+991,
+998,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+998,
+999,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+999,
+1002,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1002,
+1003,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1003,
+1006,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1006,
+1007,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1007,
+1008,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1008,
+1009,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1009,
+1010,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1010,
+1022,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1022,
+1026,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1026,
+1027,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1027,
+1032,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1032,
+1033,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1033,
+1034,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1034,
+1036,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust keyword.control.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1036,
+1037,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1037,
+1042,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1042,
+1043,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1043,
+1050,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1050,
+1051,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1051,
+1052,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust keyword.operator.comparison.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1052,
+1053,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1053,
+1060,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1060,
+1062,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1062,
+1065,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1065,
+1066,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1066,
+1067,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1067,
+1068,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1068,
+1070,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1070,
+1071,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1071,
+1072,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1072,
+1073,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1073,
+1089,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1089,
+1093,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.path.rust variable.language.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1093,
+1094,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1094,
+1098,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1098,
+1099,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1099,
+1101,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust keyword.operator.assignment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1101,
+1102,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1102,
+1103,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust constant.numeric.integer.decimal.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1103,
+1104,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1104,
+1105,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1105,
+1121,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1121,
+1127,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1127,
+1129,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1129,
+1134,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1134,
+1135,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1135,
+1136,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.group.rust keyword.operator.bitwise.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1136,
+1141,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.group.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1141,
+1142,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.group.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1142,
+1147,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.group.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1147,
+1148,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1148,
+1149,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1149,
+1161,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1161,
+1162,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1162,
+1163,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1163,
+1175,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1175,
+1179,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1179,
+1180,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1180,
+1181,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1181,
+1182,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1182,
+1183,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1183,
+1185,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1185,
+1186,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1186,
+1192,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1192,
+1194,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1194,
+1199,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1199,
+1200,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1200,
+1201,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1201,
+1213,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1213,
+1217,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1217,
+1218,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1218,
+1220,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1220,
+1221,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1221,
+1227,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1227,
+1229,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1229,
+1236,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1236,
+1237,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1237,
+1238,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1238,
+1246,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1246,
+1247,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1247,
+1248,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1248,
+1252,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1252,
+1253,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1253,
+1254,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1254,
+1255,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1255,
+1259,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1259,
+1261,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust keyword.declaration.function.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1261,
+1262,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1262,
+1267,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust entity.name.function.rust",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+1267,
+1268,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1268,
+1269,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust keyword.operator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1269,
+1272,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1272,
+1273,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1273,
+1277,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1277,
+1278,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1278,
+1279,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1279,
+1280,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.function.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1280,
+1281,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1281,
+1289,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1289,
+1292,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust keyword.declaration.variable.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1292,
+1293,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1293,
+1296,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1296,
+1297,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1297,
+1298,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust keyword.operator.assignment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1298,
+1299,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1299,
+1306,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1306,
+1308,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1308,
+1311,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1311,
+1312,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1312,
+1313,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1313,
+1314,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1314,
+1315,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1315,
+1323,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1323,
+1327,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust variable.language.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1327,
+1328,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1328,
+1335,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1335,
+1336,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1336,
+1342,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1342,
+1343,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1343,
+1344,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust punctuation.section.parameters.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1344,
+1345,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1345,
+1346,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1346,
+1347,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1347,
+1352,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1352,
+1353,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust punctuation.section.parameters.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1353,
+1354,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1354,
+1359,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1359,
+1360,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1360,
+1367,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1367,
+1368,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1368,
+1369,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust keyword.operator.comparison.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1369,
+1370,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1370,
+1373,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust meta.function.closure.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1373,
+1374,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1374,
+1375,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1375,
+1376,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1376,
+1380,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1380,
+1381,
+"source.rust meta.impl.rust meta.block.rust meta.function.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1381,
+1382,
+"source.rust meta.impl.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1382,
+1383,
+"source.rust meta.impl.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1383,
+1384,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1384,
+1385,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1385,
+1387,
+"source.rust meta.function.rust keyword.declaration.function.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1387,
+1388,
+"source.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1388,
+1392,
+"source.rust meta.function.rust entity.name.function.rust",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+1392,
+1393,
+"source.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1393,
+1394,
+"source.rust meta.function.rust meta.function.rust meta.function.parameters.rust punctuation.section.parameters.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1394,
+1395,
+"source.rust meta.function.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1395,
+1396,
+"source.rust meta.function.rust meta.function.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1396,
+1397,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1397,
+1401,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1401,
+1404,
+"source.rust meta.function.rust meta.block.rust keyword.declaration.variable.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1404,
+1405,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1405,
+1408,
+"source.rust meta.function.rust meta.block.rust storage.modifier.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1408,
+1409,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1409,
+1414,
+"source.rust meta.function.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1414,
+1415,
+"source.rust meta.function.rust meta.block.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1415,
+1416,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1416,
+1421,
+"source.rust meta.function.rust meta.block.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1421,
+1422,
+"source.rust meta.function.rust meta.block.rust meta.generic.rust punctuation.definition.generic.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1422,
+1428,
+"source.rust meta.function.rust meta.block.rust meta.generic.rust support.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1428,
+1429,
+"source.rust meta.function.rust meta.block.rust meta.generic.rust punctuation.definition.generic.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1429,
+1430,
+"source.rust meta.function.rust meta.block.rust meta.generic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1430,
+1431,
+"source.rust meta.function.rust meta.block.rust keyword.operator.assignment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1431,
+1432,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1432,
+1437,
+"source.rust meta.function.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1437,
+1439,
+"source.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1439,
+1442,
+"source.rust meta.function.rust meta.block.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1442,
+1443,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1443,
+1444,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1444,
+1445,
+"source.rust meta.function.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1445,
+1446,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1446,
+1450,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1450,
+1455,
+"source.rust meta.function.rust meta.block.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1455,
+1456,
+"source.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1456,
+1462,
+"source.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1462,
+1463,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1463,
+1464,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1464,
+1470,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1470,
+1471,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1471,
+1472,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1472,
+1473,
+"source.rust meta.function.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1473,
+1474,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1474,
+1480,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1480,
+1485,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1485,
+1492,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1492,
+1493,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1493,
+1494,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1494,
+1503,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1503,
+1504,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1504,
+1505,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1505,
+1506,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1506,
+1507,
+"source.rust meta.function.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1507,
+1515,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1515,
+1517,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1517,
+1526,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1526,
+1527,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1527,
+1529,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.group.rust constant.numeric.integer.decimal.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1529,
+1530,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1530,
+1531,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1531,
+1532,
+"source.rust meta.function.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1532,
+1533,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1533,
+1537,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1537,
+1539,
+"source.rust meta.function.rust meta.block.rust keyword.control.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1539,
+1540,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1540,
+1543,
+"source.rust meta.function.rust meta.block.rust keyword.declaration.variable.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1543,
+1544,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1544,
+1550,
+"source.rust meta.function.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1550,
+1552,
+"source.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1552,
+1557,
+"source.rust meta.function.rust meta.block.rust meta.path.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1557,
+1558,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1558,
+1563,
+"source.rust meta.function.rust meta.block.rust meta.group.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1563,
+1564,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1564,
+1565,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1565,
+1566,
+"source.rust meta.function.rust meta.block.rust keyword.operator.assignment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1566,
+1567,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1567,
+1572,
+"source.rust meta.function.rust meta.block.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1572,
+1573,
+"source.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1573,
+1576,
+"source.rust meta.function.rust meta.block.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1576,
+1577,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1577,
+1578,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1578,
+1584,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1584,
+1585,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1585,
+1586,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1586,
+1587,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1587,
+1588,
+"source.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1588,
+1589,
+"source.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1589,
+1597,
+"source.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1597,
+1605,
+"source.rust meta.function.rust meta.block.rust meta.block.rust support.macro.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1605,
+1606,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1606,
+1607,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1607,
+1615,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1615,
+1622,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust constant.other.placeholder.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1622,
+1623,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1623,
+1624,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1624,
+1626,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust constant.other.placeholder.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1626,
+1627,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1627,
+1632,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1632,
+1633,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1633,
+1634,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1634,
+1635,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1635,
+1640,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1640,
+1641,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1641,
+1645,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust meta.path.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1645,
+1646,
+"source.rust meta.function.rust meta.block.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1646,
+1647,
+"source.rust meta.function.rust meta.block.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1647,
+1648,
+"source.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1648,
+1652,
+"source.rust meta.function.rust meta.block.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1652,
+1653,
+"source.rust meta.function.rust meta.block.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1653,
+1654,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1654,
+1658,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1658,
+1661,
+"source.rust meta.function.rust meta.block.rust keyword.declaration.variable.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1661,
+1662,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1662,
+1667,
+"source.rust meta.function.rust meta.block.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1667,
+1668,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1668,
+1669,
+"source.rust meta.function.rust meta.block.rust keyword.operator.assignment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1669,
+1670,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1670,
+1675,
+"source.rust meta.function.rust meta.block.rust constant.numeric.float.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1675,
+1678,
+"source.rust meta.function.rust meta.block.rust storage.type.numeric.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1678,
+1679,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1679,
+1680,
+"source.rust meta.function.rust meta.block.rust keyword.operator.arithmetic.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1680,
+1681,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1681,
+1684,
+"source.rust meta.function.rust meta.block.rust constant.numeric.float.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1684,
+1685,
+"source.rust meta.function.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1685,
+1686,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1686,
+1690,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1690,
+1697,
+"source.rust meta.function.rust meta.block.rust meta.group.rust support.macro.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1697,
+1698,
+"source.rust meta.function.rust meta.block.rust meta.group.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1698,
+1703,
+"source.rust meta.function.rust meta.block.rust meta.group.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1703,
+1704,
+"source.rust meta.function.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1704,
+1705,
+"source.rust meta.function.rust meta.block.rust meta.group.rust keyword.operator.comparison.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1705,
+1706,
+"source.rust meta.function.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1706,
+1709,
+"source.rust meta.function.rust meta.block.rust meta.group.rust constant.numeric.float.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1709,
+1710,
+"source.rust meta.function.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1710,
+1711,
+"source.rust meta.function.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1711,
+1712,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1712,
+1718,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1718,
+1722,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1722,
+1724,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust constant.other.placeholder.rust",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1724,
+1725,
+"source.rust meta.function.rust meta.block.rust meta.group.rust string.quoted.double.rust punctuation.definition.string.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1725,
+1726,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1726,
+1727,
+"source.rust meta.function.rust meta.block.rust meta.group.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1727,
+1732,
+"source.rust meta.function.rust meta.block.rust meta.group.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1732,
+1733,
+"source.rust meta.function.rust meta.block.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1733,
+1734,
+"source.rust meta.function.rust meta.block.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1734,
+1735,
+"source.rust meta.function.rust meta.block.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1735,
+1736,
+"source.rust meta.function.rust meta.block.rust punctuation.section.block.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1736,
+1737,
+"source.rust",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

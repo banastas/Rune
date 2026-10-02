@@ -41,7 +41,8 @@ let package = Package(
             .product(name: "TreeSitterMarkdown", package: "tree-sitter-markdown"),
             "TreeSitterXML", "TreeSitterTypeScript", "TreeSitterTSX", "TreeSitterPython", "TreeSitterYAML", "TreeSitterTOML",
             "TreeSitterMake", "TreeSitterDiff", "TreeSitterGitCommit", "TreeSitterGitIgnore", "TreeSitterGitAttributes",
-            "TreeSitterGitConfig", "TreeSitterINI",
+            "TreeSitterGitConfig", "TreeSitterINI", "TreeSitterGo", "TreeSitterRust", "TreeSitterRuby", "TreeSitterJava",
+            "TreeSitterC", "TreeSitterLua", "TreeSitterPHP", "TreeSitterSQL", "TreeSitterRST",
         ], resources: [.copy("Queries"), .copy("Themes")]),
         // CSS and JavaScript, vendored (Vendor/README.md): their manifests drop the external scanner.
         .target(name: "TreeSitterCSS", path: "Vendor/tree-sitter-css", sources: ["src/parser.c", "src/scanner.c"],
@@ -78,6 +79,27 @@ let package = Package(
         .target(name: "TreeSitterGitConfig", path: "Vendor/tree-sitter-git-config", sources: ["src/parser.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterINI", path: "Vendor/tree-sitter-ini", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        // HL8's second tier. PHP is the grammar that reads the HTML round <?php ?> (its scanner
+        // includes ../../common/scanner.h); SQL's comes from its release tarball (the repository
+        // doesn't hold a generated parser); reStructuredText's scanner includes its own folder.
+        .target(name: "TreeSitterGo", path: "Vendor/tree-sitter-go", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterRust", path: "Vendor/tree-sitter-rust", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterRuby", path: "Vendor/tree-sitter-ruby", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterJava", path: "Vendor/tree-sitter-java", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterC", path: "Vendor/tree-sitter-c", sources: ["src/parser.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterLua", path: "Vendor/tree-sitter-lua", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterPHP", path: "Vendor/tree-sitter-php", sources: ["php/src/parser.c", "php/src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("php/src")]),
+        .target(name: "TreeSitterSQL", path: "Vendor/tree-sitter-sql", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        .target(name: "TreeSitterRST", path: "Vendor/tree-sitter-rst", sources: ["src/parser.c", "src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         // The fidelity harness's comparison (fidelity/run.sh): Nib's colors against Sublime's dump.
         .executableTarget(name: "NibFidelity", dependencies: ["NibSyntax", "NibText"]),
