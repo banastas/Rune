@@ -350,6 +350,7 @@ struct NibCommands: Commands {
     @FocusedValue(\.nibDocument) private var document
     @AppStorage("editorLineNumbers", store: NibDefaults.store) private var lineNumbers = true
     @AppStorage("editorInvisibles", store: NibDefaults.store) private var invisibles = false
+    @AppStorage("editorMinimap", store: NibDefaults.store) private var minimap = true
     @Environment(\.openWindow) private var openWindow
 
     private func send(_ action: Selector) { NSApp.sendAction(action, to: nil, from: nil) }
@@ -397,9 +398,10 @@ struct NibCommands: Commands {
         CommandGroup(after: .toolbar) {
             Menu("Syntax") { SyntaxMenuItems(document: document) }
                 .disabled(document == nil)
-            // Line numbers and invisibles (ED6), for every window; Settings › Editor too.
+            // Line numbers, invisibles (ED6) and the minimap (ED11), for every window; Settings › Editor too.
             Button(lineNumbers ? "Hide Line Numbers" : "Show Line Numbers") { lineNumbers.toggle() }
             Button(invisibles ? "Hide Invisibles" : "Show Invisibles") { invisibles.toggle() }
+            Button(minimap ? "Hide Minimap" : "Show Minimap") { minimap.toggle() }
         }
         // Nib doesn't print; ⌘P and ⇧⌘P are Sublime's palette keys.
         CommandGroup(replacing: .printItem) {}

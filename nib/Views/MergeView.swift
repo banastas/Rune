@@ -19,7 +19,7 @@ final class MergeSession {
     let second: ConflictText.Side
     let marks: (first: [ConflictText.LineMark], second: [ConflictText.LineMark])
     let total: Int
-    @ObservationIgnored let editor = Editor()
+    @ObservationIgnored let editor = Editor(minimap: false)
     private(set) var blocks: [ConflictBlock] = []
     private(set) var caretBlock: Int?
     /// Set by the sheet: Escape in the result cancels.

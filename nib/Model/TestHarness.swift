@@ -120,6 +120,7 @@ enum TestHarness {
             case "evicted": await evictedScenario(log, marker)
             case "large": await largeScenario(log, marker)
             case "carets": await caretsScenario(log, marker)
+            case "minimap": await minimapScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -2235,6 +2236,148 @@ enum TestHarness {
             Documents.existing(for: buffer)?.editor.textView.window?.performClose(nil)
             _ = await waitFor(10) { Documents.existing(for: buffer) == nil }
         }
+    }
+
+    /// The minimap (ED11): on by default beside the scroller, the text beside it; each word a bar
+    /// in its syntax color; the box over the lines in view, following the scroll; a click in it
+    /// scrolls there, and a drag of the box scrolls with it; View › Hide Minimap gives the text
+    /// its width back. Then 2 MB of JavaScript: the minimap's draw, a jump to its middle, and a
+    /// keystroke, timed (Debug).
+    static func minimapScenario(_ log: HarnessLog, _ marker: String) async {
+        func open(_ text: String, _ name: String) async -> Document? {
+            guard let url = Untitled.create(text: text, name: name) else { return nil }
+            AppDelegate.openFile(url)
+            _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+            return Documents.existing(for: url)
+        }
+        /// Closed and gone: a buffer leaves the list as its closing begins, and one still on its
+        /// way out at the quit comes back at the next launch (the first runs, 2026-10-02).
+        func close(_ document: Document) async {
+            let url = document.url
+            Untitled.letGo(url)
+            document.editor.textView.window?.performClose(nil)
+            _ = await waitFor(15) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+        }
+        /// The editor's first and last lines in view.
+        func firstLine(_ editor: Editor) -> Int {
+            let view = editor.textView, origin = view.textContainerOrigin
+            let at = view.characterIndexForInsertion(at: NSPoint(x: origin.x + 1, y: max(view.visibleRect.minY, origin.y) + 1))
+            return editor.lineIndex.line(at: at == NSNotFound ? 0 : at)
+        }
+        func lastLine(_ editor: Editor) -> Int {
+            let view = editor.textView, origin = view.textContainerOrigin
+            let at = view.characterIndexForInsertion(at: NSPoint(x: origin.x + 1, y: view.visibleRect.maxY - 1))
+            return editor.lineIndex.line(at: at == NSNotFound ? 0 : at)
+        }
+        let defaults = NibDefaults.store
+        defer { defaults.removeObject(forKey: "editorMinimap") }
+
+        // 3,000 lines of JavaScript, a long comment every 100th (it wraps).
+        let js = (1...3_000).map { $0 % 100 == 0 ? "// \(String(repeating: "a long comment that wraps, line \($0); ", count: 10))\n" : "let item\($0) = \"text \($0)\"; // note \($0)\n" }.joined()
+        guard let document = await open(js, "minimap-\(marker).js") else { log.check(false, "a JavaScript buffer opened"); return }
+        let editor = document.editor, view = editor.textView
+        guard let minimap = editor.minimap else { log.check(false, "a minimap, on by default"); await close(document); return }
+        _ = await waitFor(10) { minimap.drawnBars > 0 && minimap.drawnColors.count >= 3 }
+        let clip = editor.scrollView.contentView.frame
+        log.check(!minimap.isHidden && minimap.frame.width == MinimapView.width && minimap.frame.minX >= clip.maxX - 0.5 && view.frame.width <= clip.width + 0.5,
+                  "on by default, beside the scroller, the text beside it (\(Int(minimap.frame.width)) points; the text \(Int(clip.width)))")
+        log.check(minimap.drawnColors.count >= 3, "each word a bar in its syntax color (\(minimap.drawnBars) bars in \(minimap.drawnColors.count) colors; drawn in \(String(format: "%.1f", minimap.drawMilliseconds)) ms)")
+        let height = minimap.bounds.height
+        log.check(minimap.drawnBox.minY.magnitude < 1 && firstLine(editor) == 1, "at the top, the box at the top (\(Int(minimap.drawnBox.minY))-\(Int(minimap.drawnBox.maxY)) of \(Int(height)))")
+
+        // The text scrolled to its middle: the box in the minimap's middle.
+        editor.scroll(toTop: editor.lineIndex.start(ofLine: 1_500) ?? 0)
+        minimap.display()
+        let middle = minimap.drawnBox.midY / height
+        log.check(abs(firstLine(editor) - 1_500) <= 2 && abs(middle - 0.5) < 0.1,
+                  "scrolled to line \(firstLine(editor)) of 3,000: the box follows, its middle \(Int(middle * 100))% down")
+
+        // A click near the bottom of the minimap: the line drawn there comes to the middle of the view.
+        let target = minimap.line(atY: height * 0.9) ?? 0
+        minimap.simulateDrag(from: height * 0.9, to: [])
+        let (top, bottom) = (firstLine(editor), lastLine(editor))
+        minimap.display()
+        // (The middle by rows: a wrapped line below it takes several.)
+        log.check(target > 1_550 && top <= target && target <= bottom && abs((top + bottom) / 2 - target) <= max(3, (bottom - top) / 4),
+                  "a click 90% down the minimap brings the line drawn there, \(target), to the middle of the view (lines \(top)-\(bottom))")
+        // The box dragged up: the text goes with it.
+        let box = minimap.drawnBox
+        minimap.simulateDrag(from: box.midY, to: [box.midY - 40, height * 0.1])
+        let dragged = firstLine(editor)
+        minimap.display()
+        log.check(dragged < 700 && abs(minimap.drawnBox.midY - height * 0.1) < max(40, minimap.drawnBox.height),
+                  "dragging the box up scrolls the text with it (line \(dragged) at the top; the box at \(Int(minimap.drawnBox.midY)), dragged to \(Int(height * 0.1)))")
+
+        // View › Hide Minimap: the text has its width back; Show brings it again.
+        let viewMenu = NSApp.mainMenu?.items.first { $0.title == "View" }?.submenu
+        let hideItem = viewMenu?.items.first { $0.title == "Hide Minimap" }
+        defaults.set(false, forKey: "editorMinimap")
+        let hid = await waitFor(5) { editor.minimap == nil }
+        let wider = editor.scrollView.contentView.frame.width
+        defaults.set(true, forKey: "editorMinimap")
+        let back = await waitFor(5) { editor.minimap != nil && !(editor.minimap?.isHidden ?? true) }
+        log.check(hideItem != nil && hid && wider >= clip.width + MinimapView.width - 1 && back,
+                  "View › Hide Minimap: gone, the text \(Int(wider)) points wide (from \(Int(clip.width))); Show Minimap brings it back")
+
+        await close(document)
+
+        // A picture of text like a podcast feed's (tags, long descriptions that wrap), to look at.
+        let items = (1...40).map { n in
+            """
+                <item>
+                  <title>Episode \(n): Notes on the work</title>
+                  <description>&lt;p&gt;A paragraph about episode \(n), long enough to wrap in the editor and in the minimap, as the descriptions in a feed do. It goes on for a while, then ends.&lt;/p&gt;</description>
+                  <link>https://example.com/posts/episode-\(n)/</link>
+                  <guid isPermaLink="false">\(UUID().uuidString.lowercased())</guid>
+                  <pubDate>Fri, \(n % 28 + 1) Sep 2026 00:00:00 GMT</pubDate>
+                  <enclosure url="https://example.com/audio/episode-\(n).mp3" length="\(16_000_000 + n * 1_000)" type="audio/mpeg"/>
+                </item>
+
+            """
+        }.joined()
+        if let feed = await open("<!DOCTYPE html>\n<html>\n<body>\n<channel>\n" + items + "</channel>\n</body>\n</html>\n", "minimap-look-\(marker).html") {
+            _ = await waitFor(10) { (feed.editor.minimap?.drawnColors.count ?? 0) >= 3 }
+            feed.editor.scroll(toTop: feed.editor.lineIndex.start(ofLine: 60) ?? 0)
+            try? await Task.sleep(for: .milliseconds(600))   // its colors, for what the minimap shows
+            feed.editor.minimap?.display()
+            if let frame = feed.editor.textView.window?.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+                frame.cacheDisplay(in: frame.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("minimap.png"))
+            }
+            await close(feed)
+        }
+
+        // 2 MB of JavaScript: the draw, a jump to the middle, a keystroke.
+        let big = (1...45_000).map { "let item\($0) = \"text \($0)\"; // note \($0)\n" }.joined()
+        guard let large = await open(big, "minimap-big-\(marker).js"), let bigMap = large.editor.minimap else { log.check(false, "a 2 MB buffer opened, with its minimap"); return }
+        _ = await waitFor(15) { bigMap.drawnBars > 0 && bigMap.drawnColors.count >= 3 }
+        var started = Date()
+        bigMap.display()
+        let drawn = Date().timeIntervalSince(started)
+        started = Date()
+        large.editor.scroll(toTop: large.editor.lineIndex.start(ofLine: 22_500) ?? 0)
+        let jumped = Date().timeIntervalSince(started)
+        let landed = firstLine(large.editor)
+        bigMap.display()
+        let bigView = large.editor.textView
+        bigView.setSelectedRange(NSRange(location: large.editor.lineIndex.start(ofLine: landed + 2) ?? 0, length: 0))
+        try? await Task.sleep(for: .milliseconds(500))   // the jump's layout and colors done
+        // Ten keystrokes, as typed: the slowest, on the main thread (the minimap only notes each).
+        var slowest = 0.0
+        for character in "minimap 10" {
+            started = Date()
+            bigView.insertText(String(character), replacementRange: bigView.selectedRange())
+            slowest = max(slowest, Date().timeIntervalSince(started))
+            try? await Task.sleep(for: .milliseconds(30))
+        }
+        try? await Task.sleep(for: .milliseconds(250))   // its redraw after the typing, the rows worked out again
+        started = Date()
+        bigMap.display()
+        let redrawn = Date().timeIntervalSince(started)
+        log.check(drawn < 0.05 && jumped < 0.5 && abs(landed - 22_500) <= 2 && slowest < 0.05 && redrawn < 0.08,
+                  "\(String(format: "%.1f", Double(big.utf8.count) / 1_000_000)) MB, 45,000 lines: drawn in \(Int(drawn * 1000)) ms, a jump to its middle \(Int(jumped * 1000)) ms (line \(landed)), the slowest of ten keystrokes \(Int(slowest * 1000)) ms, drawn after them \(Int(redrawn * 1000)) ms (Debug)")
+        for _ in 0..<10 { bigView.undoManager?.undo() }
+        await close(large)
     }
 
     /// VoiceOver (AX1, AX2): the strip's summary; its indentation, encoding and line endings in words; a notice said as a sentence;

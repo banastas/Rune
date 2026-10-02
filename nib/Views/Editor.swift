@@ -10,7 +10,7 @@ import NibText
 
 @MainActor
 final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
-    let scrollView: NSScrollView
+    let scrollView: EditorScrollView
     let textView: NibTextView
     weak var document: Document?
     /// The editor's own undo history (ED1): it lives as long as the buffer, so closing and
@@ -19,8 +19,13 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// Find and replace (ED7): its bar, its matches, drawn here in the scheme's find colors.
     let find = FindSession()
 
-    override init() {
-        scrollView = NSScrollView()
+    /// The minimap beside the scroller (ED11), while it's on; never in the merge view's panes.
+    private(set) var minimap: MinimapView?
+    private let allowsMinimap: Bool
+
+    init(minimap: Bool = true) {
+        allowsMinimap = minimap
+        scrollView = EditorScrollView()
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = true
         scrollView.backgroundColor = Scheme.background
@@ -80,6 +85,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             MainActor.assumeIsolated {
                 self?.render()
                 self?.ruler?.needsDisplay = true
+                self?.minimap?.needsDisplay = true
                 if self?.textView.multi == true { self?.textView.updateCaretViews() }   // placed for real once in view
             }
         }
@@ -100,6 +106,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         highlighted = blocks
         textView.conflictBlocks = blocks
         render(force: true)
+        minimap?.needsDisplay = true
     }
 
     /// For an editor with no document (the merge view's result): told of changes and caret moves.
@@ -201,7 +208,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// The tree, kept across edits, and the styles worked out for `styled`: the text in view
     /// with a wider margin than `render` draws, so scrolling a little needs nothing new (§6.3).
     private var syntaxDocument: SyntaxDocument?
-    private var styles: [(range: NSRange, style: Style)] = []
+    private(set) var styles: [(range: NSRange, style: Style)] = []
     private var styled = NSRange(location: 0, length: 0)
     private var highlightTask: Task<Void, Never>?
     private var highlightPending = false
@@ -254,6 +261,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         applyTabWidth()   // a font's space width sets it
         ruler?.fit()
         ruler?.needsDisplay = true
+        minimap?.schemeChanged()
         rendered = NSRange(location: 0, length: 0)
         scheduleHighlight(after: 0)
         render(force: true)
@@ -290,13 +298,49 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             self.styles = result
             self.styled = window
             self.render(force: true)
+            self.minimap?.needsDisplay = true
         }
     }
 
-    /// The text in view, with 12,000 characters either side (`render` draws 3,000 either side).
+    /// The text in view, with 12,000 characters either side (`render` draws 3,000 either side),
+    /// and what the minimap shows (ED11).
     private func styleWindow() -> NSRange {
-        let view = visibleRange(), length = (textView.string as NSString).length
-        return NSIntersectionRange(NSRange(location: max(0, view.location - 12_000), length: view.length + 24_000), NSRange(location: 0, length: length))
+        let view = visibleRange(), length = textView.textStorage?.length ?? 0
+        var window = NSRange(location: max(0, view.location - 12_000), length: view.length + 24_000)
+        if let shown = minimapWanted() { window = NSUnionRange(window, shown) }
+        return NSIntersectionRange(window, NSRange(location: 0, length: length))
+    }
+
+    /// What the minimap shows, for its colors: at most 200,000 characters of it, round the view.
+    private func minimapWanted() -> NSRange? {
+        guard let minimap, !minimap.isHidden, let shown = minimap.shownRange(), shown.length > 0 else { return nil }
+        guard shown.length > 200_000 else { return shown }
+        let start = min(max(shown.location, visibleRange().location - 100_000), NSMaxRange(shown) - 200_000)
+        return NSRange(location: start, length: 200_000)
+    }
+
+    /// The minimap drew what it shows: its colors too, if they aren't here (it draws again when
+    /// they come). Asked once for a stretch, so a stretch that can't be styled isn't asked again.
+    func minimapDrew() {
+        guard syntaxDocument != nil, !highlightPending, let wanted = minimapWanted(),
+              NSIntersectionRange(wanted, styled).length < wanted.length,
+              minimapAsked.map({ NSIntersectionRange(wanted, $0).length < wanted.length }) ?? true else { return }
+        minimapAsked = wanted
+        scheduleHighlight(after: 0.15)
+    }
+
+    private var minimapAsked: NSRange?
+
+    /// The row with `location` at the top of the view (the minimap's click and drag): laid out
+    /// there first, which TextKit 2 does without laying out the text before it.
+    func scroll(toTop location: Int) {
+        guard let layout = textView.textLayoutManager, let content = layout.textContentManager,
+              let at = content.location(content.documentRange.location, offsetBy: location) else { return }
+        layout.ensureLayout(for: content.location(at, offsetBy: 1).flatMap { NSTextRange(location: at, end: $0) } ?? NSTextRange(location: at))
+        guard let fragment = layout.textLayoutFragment(for: at) else { return }
+        let within = content.offset(from: fragment.rangeInElement.location, to: at)
+        let row = fragment.textLineFragments.first { NSMaxRange($0.characterRange) > within } ?? fragment.textLineFragments.last
+        textView.scroll(NSPoint(x: 0, y: max(0, fragment.layoutFragmentFrame.minY + (row?.typographicBounds.minY ?? 0))))
     }
 
     /// The text in view, and a margin: syntax colors and backgrounds as rendering attributes
@@ -532,6 +576,8 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         guard editedMask.contains(.editedCharacters) else { return }
         MainActor.assumeIsolated {
             textView.textChangedForCarets()   // Undo Selection's steps were for the text before
+            minimap?.textChanged()
+            minimapAsked = nil
             lastEdit = editedRange
             if let storage = textView.textStorage { lineIndex.update(storage.mutableString, edited: editedRange, delta: delta) }
             ruler?.needsDisplay = true
@@ -553,12 +599,17 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// The gutter, while line numbers are on.
     private(set) var ruler: LineNumberRuler?
 
-    /// Settings › Editor and the View menu: line numbers (on unless turned off), invisibles
-    /// (off unless turned on), for every editor at once.
+    /// Settings › Editor and the View menu: line numbers and the minimap (on unless turned
+    /// off), invisibles (off unless turned on), for every editor at once.
     func applyDisplaySettings() {
         let defaults = NibDefaults.store
         let numbers = defaults.object(forKey: "editorLineNumbers") == nil || defaults.bool(forKey: "editorLineNumbers")   // "NO" from the command line too
         let invisibles = defaults.bool(forKey: "editorInvisibles")
+        let wantsMinimap = allowsMinimap && (defaults.object(forKey: "editorMinimap") == nil || defaults.bool(forKey: "editorMinimap"))
+        if wantsMinimap != (minimap != nil) {
+            minimap = wantsMinimap ? MinimapView(editor: self) : nil
+            scrollView.minimap = minimap
+        }
         if numbers != (ruler != nil && scrollView.rulersVisible) {
             if numbers {
                 let gutter = ruler ?? LineNumberRuler(scrollView: scrollView, editor: self)

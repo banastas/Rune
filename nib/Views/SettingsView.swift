@@ -93,6 +93,7 @@ struct EditorSettings: View {
     @AppStorage("editorSpaces", store: NibDefaults.store) private var spaces = false
     @AppStorage("editorLineNumbers", store: NibDefaults.store) private var lineNumbers = true
     @AppStorage("editorInvisibles", store: NibDefaults.store) private var invisibles = false
+    @AppStorage("editorMinimap", store: NibDefaults.store) private var minimap = true
     @AppStorage("saveTrimsTrailingWhitespace", store: NibDefaults.store) private var trimOnSave = false
     @AppStorage("saveEnsuresFinalNewline", store: NibDefaults.store) private var newlineOnSave = false
     private static let families: [String] = {
@@ -126,7 +127,8 @@ struct EditorSettings: View {
             Section {
                 Toggle("Show line numbers", isOn: $lineNumbers)
                 Toggle("Show invisibles", isOn: $invisibles)
-                note("Line numbers in a gutter down the left, the caret's line brighter. Invisibles are spaces as dots and tabs as arrows, in the color scheme's own faint color. Both are in the View menu too, and Import from Sublime Text sets them to Sublime's.")
+                Toggle("Show minimap", isOn: $minimap)
+                note("Line numbers in a gutter down the left, the caret's line brighter. Invisibles are spaces as dots and tabs as arrows, in the color scheme's own faint color. Import from Sublime Text sets these two to Sublime's. The minimap is the text at a seventh of its size beside the scroller, the lines in view under a box: click or drag in it to scroll. All three are in the View menu too.")
             }
             Section {
                 Toggle("⌘S trims trailing whitespace", isOn: $trimOnSave)
