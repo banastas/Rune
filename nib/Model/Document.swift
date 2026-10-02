@@ -87,6 +87,8 @@ final class Document {
         }
     }
     @ObservationIgnored private var shownPalette: PaletteSession?
+    /// Asked for, its list on the way (`showPalette`).
+    @ObservationIgnored var paletteComing = false
     private(set) var detectedSyntax: SyntaxLanguage?
     /// The conflict blocks in the buffer (§5.4), kept current as it changes, and the one the
     /// caret is in: ⌘1, ⌘2 and ⌘3 resolve it.
@@ -2526,14 +2528,38 @@ extension Document {
     /// ⌘P, ⌘K, ⇧⌘P: the palette over this window. The commands are listed now, as the menus
     /// are with this window in front, before the sheet takes the focus.
     func showPalette(_ kind: PaletteSession.Kind) {
-        guard merge == nil, palette == nil else { NSSound.beep(); return }
-        palette = PaletteSession(kind, for: self)
+        guard merge == nil, palette == nil, !paletteComing else { NSSound.beep(); return }
+        let session = PaletteSession(kind, for: self)
+        guard kind == .headings else { palette = session; return }
+        // Go to Heading's list is made first: the sheet comes up with it (`PaletteSession.ready`).
+        paletteComing = true
+        Task {
+            await session.ready()
+            paletteComing = false
+            if merge == nil, palette == nil { palette = session }
+        }
     }
+
 
     /// The palette has gone: what was chosen in it, if anything.
     func finishPalette() {
         shownPalette?.finish()
         shownPalette = nil
+    }
+
+    /// ⌘R's pick (SC7): the caret at the heading's line, the heading near the top of the view,
+    /// two lines above it in sight. Undo Selection (⌘U) goes back.
+    func goToHeading(at location: Int) {
+        let view = editor.textView
+        view.window?.makeFirstResponder(view)
+        let location = min(location, view.textStorage?.length ?? 0)
+        view.setSelectedRange(NSRange(location: location, length: 0))
+        // Put there, then again once TextKit has laid the text out there: from afar, it went where
+        // TextKit guessed the line was, 26 lines off (`headings`).
+        let line = editor.lineIndex.line(at: location)
+        let top = editor.lineIndex.start(ofLine: max(1, line - 2)) ?? location
+        editor.scroll(toTop: top)
+        DispatchQueue.main.async { [weak self] in self?.editor.scroll(toTop: top) }
     }
 
     /// Go to Line: "12", or "12:5" for a column too. False if it isn't a line number.
@@ -2559,6 +2585,15 @@ extension Document {
 // MARK: Syntax (HL1)
 
 extension Document {
+    /// The language the text is read as: the pick, or what the file's name and first line say.
+    var language: SyntaxLanguage? {
+        switch pickedSyntax {
+        case nil: detectedSyntax
+        case .plain: nil
+        case .language(let language): language
+        }
+    }
+
     /// Picks the file's syntax from the strip or View › Syntax, kept for the file; nil is
     /// Automatic. Only the colors change: it isn't an edit.
     func pickSyntax(_ pick: SyntaxPick?) {

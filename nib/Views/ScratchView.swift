@@ -43,7 +43,8 @@ struct DocumentView: View {
         // Go to File and the command palette (KB2, KB3): what was chosen runs once it's gone.
         .sheet(item: Binding(get: { document.palette }, set: { document.palette = $0 }),
                onDismiss: { document.finishPalette() }) { session in
-            CommandPalette(entries: session.entries, prompt: session.prompt, extra: session.lineEntry) { session.choose($0) }
+            CommandPalette(entries: session.entries, prompt: session.prompt, extra: session.lineEntry,
+                           empty: session.empty, initial: session.initial) { session.choose($0) }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { note in
             guard isOwnWindow(note.object) else { return }

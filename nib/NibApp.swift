@@ -472,6 +472,8 @@ struct NibCommands: Commands {
             Button("Join Lines") { send(#selector(NibTextView.joinLines(_:))) }.keyboardShortcut("j")
             Divider()
             Button("Go to Line…") { document?.goingToLine = true }.keyboardShortcut("g", modifiers: .control).disabled(document == nil)
+            // Sublime's Goto Symbol (SC7): a Markdown file's headings.
+            Button("Go to Heading…") { AppDelegate.showPalette(.headings, in: document) }.keyboardShortcut("r").disabled(document == nil)
         }
         // Multiple carets (ED8), on Sublime's keys; Escape is one caret again.
         CommandMenu("Selection") {

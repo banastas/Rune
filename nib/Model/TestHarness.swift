@@ -123,6 +123,7 @@ enum TestHarness {
             case "minimap": await minimapScenario(log, marker)
             case "mdlist": await markdownListScenario(log, marker)
             case "widescroll": await wideScrollScenario(log, marker)
+            case "headings": await headingsScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -2384,6 +2385,121 @@ enum TestHarness {
         await close(large)
     }
 
+    /// Go to Heading (SC7, ⌘R): a Markdown file's headings in order, from the caret's section,
+    /// filtered as typed; one chosen puts the caret there and the heading near the top. A
+    /// JavaScript file has none; a 2.4 MB file's come without holding up the main thread.
+    static func headingsScenario(_ log: HarnessLog, _ marker: String) async {
+        func open(_ text: String, _ name: String) async -> Document? {
+            guard let url = Untitled.create(text: text, name: name) else { return nil }
+            AppDelegate.openFile(url)
+            _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+            return Documents.existing(for: url)
+        }
+        func close(_ document: Document) async {
+            let url = document.url
+            Untitled.letGo(url)
+            _ = await waitFor(5) { document.editor.textView.window?.attachedSheet == nil }   // a window with a sheet doesn't close
+            document.editor.textView.window?.performClose(nil)
+            _ = await waitFor(15) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+        }
+        func firstLine(_ document: Document) -> Int {
+            let view = document.editor.textView, origin = view.textContainerOrigin
+            let at = view.characterIndexForInsertion(at: NSPoint(x: origin.x + 1, y: max(view.visibleRect.minY, origin.y) + 1))
+            return document.editor.lineIndex.line(at: at == NSNotFound ? 0 : at)
+        }
+        let textMenu = NSApp.mainMenu?.items.first { $0.title == "Text" }?.submenu
+        let item = textMenu?.items.first { $0.title == "Go to Heading…" }
+        log.check(item?.keyEquivalent == "r" && item?.keyEquivalentModifierMask == .command, "Text › Go to Heading…, ⌘R")
+
+        let body = (1...40).map { "Line \($0) of the section, \(marker).\n" }.joined()
+        let text = "# Notes \(marker)\n\n" + body + "## Week one\n\n" + body + "```bash\n# not a heading\n```\n\n### Monday\n\n" + body
+            + "\nWeek two\n--------\n\n" + body + "## Week three\n\n" + body + body + body   // room below it, to come to the top
+        guard let document = await open(text, "headings-\(marker).md") else { log.check(false, "a Markdown buffer opened"); return }
+        let ns = text as NSString
+        document.editor.textView.setSelectedRange(NSRange(location: ns.range(of: "### Monday").location + 20, length: 0))   // in Monday's section
+        AppDelegate.showPalette(.headings, in: document)
+        _ = await waitFor(5) { (document.palette?.entries.count ?? 0) > 0 }
+        guard let session = document.palette else { log.check(false, "the headings came up"); await close(document); return }
+        let listed = session.entries.map { "\($0.group) \($0.name)" }
+        let monday = session.entries.first { $0.name == "Monday" }
+        log.check(listed == ["# Notes \(marker)", "## Week one", "### Monday", "## Week two", "## Week three"] && session.prompt == "Go to a heading",
+                  "the headings in order, at their levels, not the comment in code (\(listed.joined(separator: " · ")))")
+        log.check(session.initial == monday?.id && monday?.detail == "Line \(document.editor.lineIndex.line(at: ns.range(of: "### Monday").location))",
+                  "the list starts on the caret's section, Monday, with its line (\(monday?.detail ?? "none"))")
+        let filtered = CommandPalette.results(for: "week t", in: session.entries).map(\.name)
+        log.check(filtered.prefix(2) == ["Week two", "Week three"], "typing filters them, as in Go to File (\(filtered.joined(separator: ", ")))")
+        // Week three chosen: the caret there, the heading near the top.
+        if let three = session.entries.first(where: { $0.name == "Week three" }) {
+            session.choose(three)
+            document.palette = nil
+            let target = ns.range(of: "## Week three").location, line = document.editor.lineIndex.line(at: target)
+            let went = await waitFor(5) { document.editor.textView.selectedRange().location == target }
+            try? await Task.sleep(for: .milliseconds(300))
+            // (Two lines above it in sight, give or take the part of a line the scroll stops at.)
+            log.check(went && abs(firstLine(document) - (line - 2)) <= 1, "choosing one puts the caret at it, the heading near the top (line \(firstLine(document)) at the top, the heading at \(line))")
+        }
+        _ = await waitFor(3) { document.palette == nil }
+        // Coming up doesn't hold the main thread (a list filled after the sheet came up did, 0.3 s).
+        _ = await waitFor(5) { document.editor.textView.window?.attachedSheet == nil }
+        try? await Task.sleep(for: .milliseconds(300))
+        let watch = StallWatch()
+        watch.start()
+        AppDelegate.showPalette(.headings, in: document)
+        _ = await waitFor(5) { (document.palette?.entries.count ?? 0) > 0 }
+        try? await Task.sleep(for: .milliseconds(300))
+        watch.stop()
+        document.palette = nil
+        _ = await waitFor(5) { document.editor.textView.window?.attachedSheet == nil }
+        try? await Task.sleep(for: .milliseconds(300))
+        let files = StallWatch()
+        files.start()
+        AppDelegate.showPalette(.files, in: document)
+        try? await Task.sleep(for: .milliseconds(600))
+        files.stop()
+        // Against Go to File's: the palette's sheet itself holds the main thread a while (Debug).
+        let paletteCost = files.longest
+        log.check(watch.longest <= max(0.15, paletteCost * 1.3 + 0.05),
+                  "it comes up as quickly as Go to File (its longest wait \(Int(watch.longest * 1000)) ms, Go to File's \(Int(paletteCost * 1000)) ms, Debug)")
+        document.palette = nil
+        await close(document)
+
+        // A JavaScript file: none, and the list says why.
+        if let script = await open("// Go to Heading in a script \(marker)\nfunction f() {}\n", "headings-\(marker).js") {
+            AppDelegate.showPalette(.headings, in: script)
+            _ = await waitFor(3) { script.palette != nil }
+            log.check(script.palette?.entries.isEmpty == true && script.palette?.empty == "No headings: ⌘R lists a Markdown file's",
+                      "a JavaScript file: no headings, and the list says why (\(script.palette?.empty ?? "no palette"))")
+            script.palette = nil
+            _ = await waitFor(3) { script.palette == nil }
+            await close(script)
+        }
+
+        // 2.4 MB, a heading every 100 lines: found off the main thread.
+        var big = "# Big \(marker)\n"
+        for n in 1...35_000 { big += n % 100 == 0 ? "## Section \(n)\n" : "Line \(n): see https://example.com/\(n) and the config.json file.\n" }
+        if let large = await open(big, "headings-big-\(marker).md") {
+            try? await Task.sleep(for: .seconds(2))   // its opening's own work done: colors, the minimap
+            var times: [(took: Double, longest: Double, came: Bool)] = []
+            for _ in 0..<2 {   // the second time, the palette's sheet is made a second time too
+                let watch = StallWatch()
+                watch.start()
+                let asked = Date()
+                AppDelegate.showPalette(.headings, in: large)
+                let came = await waitFor(10) { (large.palette?.entries.count ?? 0) == 351 }
+                let took = Date().timeIntervalSince(asked)
+                try? await Task.sleep(for: .milliseconds(300))
+                watch.stop()
+                times.append((took, watch.longest, came))
+                large.palette = nil
+                _ = await waitFor(5) { large.editor.textView.window?.attachedSheet == nil }
+                try? await Task.sleep(for: .milliseconds(300))
+            }
+            log.check(times.allSatisfy { $0.came && $0.longest <= max(0.15, paletteCost * 1.3 + 0.05) },
+                      "2.4 MB, 351 headings: listed in \(times.map { "\(Int($0.took * 1000)) ms" }.joined(separator: " and ")), found off the main thread: its longest wait \(times.map { "\(Int($0.longest * 1000)) ms" }.joined(separator: " and ")), as the palette's own (Debug)")
+            await close(large)
+        }
+    }
+
     /// A scroll to a stretch taller than the view, then typing: TextKit 2 kept the stretch to scroll
     /// to and used it after the edits had changed the text under it, and crashed (the `mdlist`
     /// scenario's first runs, 2026-10-02: `__NSTextViewScrollContainerViewToTextRange`).
@@ -4511,19 +4627,25 @@ enum TestHarness {
 @MainActor
 final class StallWatch {
     private(set) var longest = 0.0
+    /// When the longest wait ended.
+    private(set) var longestEnded: Date?
     private var last = Date()
     private var timer: Timer?
 
     func start() {
         last = Date()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.02, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 let now = Date()
-                self.longest = max(self.longest, now.timeIntervalSince(self.last))
+                if now.timeIntervalSince(self.last) > self.longest { self.longest = now.timeIntervalSince(self.last); self.longestEnded = now }
                 self.last = now
             }
         }
+        // In every mode: a sheet coming up runs the run loop in another, and a timer in the
+        // default mode alone took that for the main thread being held (`headings`, 2026-10-02).
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     func stop() {

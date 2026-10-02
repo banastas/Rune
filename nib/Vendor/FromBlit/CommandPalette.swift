@@ -21,6 +21,9 @@ struct CommandPalette: View {
     var prompt = "Go to a file"
     /// Entries made from the query itself, above the rest (":12" is a line to go to).
     var extra: (String) -> [PaletteEntry] = { _ in [] }
+    /// What an empty list says, and the entry the list starts on (Nib: Go to Heading's section).
+    var empty = "No matches"
+    var initial: PaletteEntry.ID? = nil
     let onSelect: (PaletteEntry) -> Void
     @State private var query = ""
     @State private var highlighted: PaletteEntry.ID?
@@ -102,16 +105,20 @@ struct CommandPalette: View {
             }
             .frame(height: 300)
             .overlay {
-                if results.isEmpty { Text("No matches").foregroundStyle(.tertiary) }
+                if results.isEmpty { Text(entries.isEmpty ? empty : "No matches").foregroundStyle(.tertiary) }
             }
         }
         .frame(width: 520)
         .onAppear {
             fieldFocused = true
-            highlighted = results.first?.id
+            highlighted = initial ?? results.first?.id
         }
         .onChange(of: query) { highlighted = results.first?.id }
-        .onChange(of: entries) { if highlighted == nil || !results.contains(where: { $0.id == highlighted }) { highlighted = results.first?.id } }
+        .onChange(of: entries) {
+            if highlighted == nil || !results.contains(where: { $0.id == highlighted }) {
+                highlighted = query.isEmpty && results.contains(where: { $0.id == initial }) ? initial : results.first?.id
+            }
+        }
     }
 
     private func move(_ delta: Int) {

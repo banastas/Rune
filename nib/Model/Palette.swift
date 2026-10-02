@@ -2,15 +2,18 @@
 // ⇧⌘P), on Blit's palette. Go to File lists the scratch file, the open files, the recent
 // ones (newest first), then the text files in Nib's folder, each once; ":12" goes to line 12
 // of the file in front, as Sublime's Goto Anything does. The command palette lists every menu
-// command that can be chosen now, named as in the menu (W3), with its keys.
+// command that can be chosen now, named as in the menu (W3), with its keys. Go to Heading (SC7,
+// ⌘R, Sublime's Goto Symbol) lists a Markdown file's headings in order, from the section the
+// caret is in.
 
 import AppKit
+import NibText
 import UniformTypeIdentifiers
 
 @MainActor
 @Observable
 final class PaletteSession: Identifiable {
-    enum Kind { case files, commands }
+    enum Kind { case files, commands, headings }
 
     let kind: Kind
     private(set) var entries: [PaletteEntry] = []
@@ -20,7 +23,16 @@ final class PaletteSession: Identifiable {
     /// the sheet.
     @ObservationIgnored private var chosen: (() -> Void)?
 
-    var prompt: String { kind == .files ? "Go to a file, a recent file or the scratch" : "Run a command" }
+    var prompt: String {
+        switch kind {
+        case .files: "Go to a file, a recent file or the scratch"
+        case .commands: "Run a command"
+        case .headings: "Go to a heading"
+        }
+    }
+    /// What the list says when there's nothing in it, and the entry it starts on.
+    private(set) var empty = "No matches"
+    private(set) var initial: PaletteEntry.ID?
 
     init(_ kind: Kind, for document: Document) {
         self.kind = kind
@@ -28,6 +40,7 @@ final class PaletteSession: Identifiable {
         switch kind {
         case .files: listFiles()
         case .commands: listCommands()
+        case .headings: listHeadings()
         }
     }
 
@@ -106,6 +119,40 @@ final class PaletteSession: Identifiable {
         return found.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
     }
 
+    // MARK: Go to Heading (SC7)
+
+    @ObservationIgnored private var listing: Task<Void, Never>?
+
+    /// The list made: Go to Heading's comes off the main thread, and the sheet waits for it. A
+    /// sheet whose list came a moment after it held the main thread a third of a second while
+    /// SwiftUI made it again, five headings or 351 (`headings`, Debug).
+    func ready() async { await listing?.value }
+
+    /// The headings, found off the main thread in a copy of the text (35,000 lines took a
+    /// quarter of a second, Debug), the list starting on the caret's section.
+    private func listHeadings() {
+        guard let document else { return }
+        guard document.language == .markdown else {
+            empty = "No headings: ⌘R lists a Markdown file's"
+            return
+        }
+        let text = document.editor.textView.string, caret = document.editor.textView.selectedRange().location
+        listing = Task { [weak self] in
+            let found = await Task.detached(priority: .userInitiated) { Headings.markdown(in: text as NSString) }.value
+            guard let self else { return }
+            var list: [PaletteEntry] = []
+            for heading in found {
+                let id = "heading:\(heading.location)"
+                list.append(PaletteEntry(id: id, name: heading.title, detail: "Line \(heading.line)", symbol: "number",
+                                         group: String(repeating: "#", count: heading.level)))
+                actions[id] = { [weak document] in document?.goToHeading(at: heading.location) }
+            }
+            initial = found.last { $0.location <= caret }.map { "heading:\($0.location)" }
+            empty = found.isEmpty ? "No headings in \(document.url.lastPathComponent)" : "No matches"
+            entries = list
+        }
+    }
+
     // MARK: Commands
 
     /// Every menu command that can be chosen now: the menus as they are with this window in
@@ -129,7 +176,7 @@ final class PaletteSession: Identifiable {
                 continue
             }
             guard item.isEnabled, item.action != nil, item.action != #selector(NSWindow.makeKeyAndOrderFront(_:)),
-                  !["Go to File…", "Command Palette…"].contains(item.title) else { continue }
+                  !["Go to File…", "Command Palette…", "Go to Heading…"].contains(item.title) else { continue }
             let id = (path + [item.title, String(index)]).joined(separator: "\u{1F}")
             entries.append(PaletteEntry(id: id, name: item.title, detail: path.joined(separator: " › "), symbol: "command",
                                         group: "", shortcut: Self.keys(of: item)))
