@@ -1033,6 +1033,10 @@ final class NibTextView: NSTextView {
     /// under the text.
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
+        #if DEBUG
+        guidesDrawn = 0
+        underlinesDrawn = 0
+        #endif
         let frames = conflictBlocks.map { frameGeometry($0) }
         for frame in frames.compactMap({ $0 }) where frame.box.intersects(rect) {
             Scheme.conflictBlock.setFill()
@@ -1064,9 +1068,6 @@ final class NibTextView: NSTextView {
         guard let first = layout.textLayoutFragment(for: CGPoint(x: 0, y: max(0, rect.minY - origin.y)))
                 ?? layout.textLayoutFragment(for: content.documentRange.location) else { return }
         Scheme.guide.setFill()
-        #if DEBUG
-        guidesDrawn = 0
-        #endif
         layout.enumerateTextLayoutFragments(from: first.rangeInElement.location, options: [.ensuresLayout]) { fragment in
             let frame = fragment.layoutFragmentFrame
             guard origin.y + frame.minY <= rect.maxY else { return false }
@@ -1121,9 +1122,6 @@ final class NibTextView: NSTextView {
     /// The brackets at the caret, underlined as the scheme says (`brackets_*` beside it,
     /// `bracket_contents_*` round it), and the HTML element's tag names, stippled.
     private func drawMatches(in rect: NSRect) {
-        #if DEBUG
-        underlinesDrawn = 0
-        #endif
         if let match = matchedBrackets {
             let color = match.beside ? Scheme.bracketsForeground : Scheme.bracketContentsForeground
             let stippled = Scheme.stippled(match.beside ? "brackets_options" : "bracket_contents_options", else: false)

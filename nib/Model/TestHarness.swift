@@ -124,6 +124,7 @@ enum TestHarness {
             case "mdlist": await markdownListScenario(log, marker)
             case "widescroll": await wideScrollScenario(log, marker)
             case "headings": await headingsScenario(log, marker)
+            case "pairs": await pairsScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -1727,7 +1728,8 @@ enum TestHarness {
         func close(_ url: URL) async {
             Untitled.letGo(url)
             Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
-            _ = await waitFor(30) { Documents.existing(for: url) == nil }
+            // Its file gone too: a 42 MB buffer still closing at the quit came back at every launch after (2026-10-02).
+            _ = await waitFor(30) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
         }
         func ms(_ t: TimeInterval) -> String { "\(Int((t * 1000).rounded())) ms" }
         func open(_ url: URL) async -> (Document, TimeInterval)? {
@@ -2383,6 +2385,108 @@ enum TestHarness {
                   "\(String(format: "%.1f", Double(big.utf8.count) / 1_000_000)) MB, 45,000 lines: drawn in \(Int(drawn * 1000)) ms, a jump to its middle \(Int(jumped * 1000)) ms (line \(landed)), the slowest of ten keystrokes \(Int(slowest * 1000)) ms, drawn after them \(Int(redrawn * 1000)) ms (Debug)")
         for _ in 0..<10 { bigView.undoManager?.undo() }
         await close(large)
+    }
+
+    /// ED10, as in Sublime: closing pairs as typed (an opener closed before a space or the line's
+    /// end, not before a word; a quote not after a letter; a closer stepped over; Backspace taking
+    /// an empty pair; Return between braces opening an indented line; a selection wrapped); the
+    /// brackets at the caret underlined, beside it or round it; an HTML element's tag names;
+    /// indent guides; and each off in Settings › Editor.
+    static func pairsScenario(_ log: HarnessLog, _ marker: String) async {
+        let defaults = NibDefaults.store
+        defaults.set(true, forKey: "editorAutoPairs")   // off for the other scenarios' typing
+        defer { for key in ["editorAutoPairs", "editorIndentGuides", "editorMatchBrackets"] { defaults.removeObject(forKey: key) } }
+        func open(_ text: String, _ name: String) async -> Document? {
+            guard let url = Untitled.create(text: text, name: name) else { return nil }
+            AppDelegate.openFile(url)
+            _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+            return Documents.existing(for: url)
+        }
+        func close(_ document: Document) async {
+            let url = document.url
+            Untitled.letGo(url)
+            _ = await waitFor(5) { document.editor.textView.window?.attachedSheet == nil }
+            document.editor.textView.window?.performClose(nil)
+            _ = await waitFor(15) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+        }
+        let start = "function f() {\n    if (x) {\n        y();\n    }\n}\n"
+        guard let js = await open(start, "pairs-\(marker).js") else { log.check(false, "a JavaScript buffer"); return }
+        let view = js.editor.textView
+        _ = await waitFor(3) { view.autoPairs }
+        func type(_ s: String) { for c in s { view.insertText(String(c), replacementRange: NSRange(location: NSNotFound, length: 0)) } }
+        func tail(_ count: Int) -> String { String(view.string.suffix(count)) }
+        func caretFromEnd() -> Int { (view.string as NSString).length - view.selectedRange().location }
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+
+        type("call(")
+        let opened = tail(6) == "call()" && caretFromEnd() == 1
+        type("a)")
+        log.check(opened && tail(7) == "call(a)" && caretFromEnd() == 0, "( closes itself before the line's end, and ) steps over the one already there (\(tail(7).debugDescription))")
+        type(" [")
+        let bracket = tail(3) == " []"
+        view.deleteBackward(nil)
+        log.check(bracket && tail(8) == "call(a) " && caretFromEnd() == 0, "Backspace between an empty pair takes both (\(tail(8).debugDescription))")
+        type("x = don't + b")
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length - 1, length: 0))   // before the b
+        type("(")
+        log.check(tail(14) == "x = don't + (b", "no pair for an apostrophe after a letter, or for ( before a word (\(tail(14).debugDescription))")
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        type("\nwhile (z) {")
+        view.insertNewline(nil)
+        let opening = tail(18) == "while (z) {\n    \n}" && caretFromEnd() == 2
+        log.check(opening, "Return between braces: a line between, a step in, the closer under (\(tail(18).debugDescription), the caret \(caretFromEnd()) from the end)")
+        let word = (view.string as NSString).range(of: "don't")
+        view.setSelectedRange(word)
+        type("\"")
+        log.check(view.string.contains("\"don't\"") && view.selectedRange() == NSRange(location: word.location + 1, length: word.length), "a selection is wrapped, and still selected inside")
+
+        // The brackets at the caret.
+        let ns = view.string as NSString
+        let call = ns.range(of: "call(a)")
+        view.setSelectedRange(NSRange(location: NSMaxRange(call), length: 0))
+        let beside = view.matchedBrackets
+        let y = ns.range(of: "y();")
+        view.setSelectedRange(NSRange(location: y.location, length: 0))
+        let inside = view.matchedBrackets
+        let ifBrace = ns.range(of: "if (x) {").location + 7, ifClose = ns.range(of: "    }\n}").location + 4
+        log.check(beside == Brackets.Match(open: call.location + 4, close: NSMaxRange(call) - 1, beside: true)
+                  && inside == Brackets.Match(open: ifBrace, close: ifClose, beside: false),
+                  "the brackets beside the caret matched, and with none beside it the pair round it (\(beside.map { "\($0.open)-\($0.close)" } ?? "none"), \(inside.map { "\($0.open)-\($0.close) inside" } ?? "none"))")
+        view.display()
+        let underlined = view.underlinesDrawn, guides = view.guidesDrawn
+        log.check(underlined == 2 && guides >= 4, "drawn: both brackets underlined, and the indent guides (\(underlined) underlines, \(guides) guides)")
+        // A picture, to look at: the caret after call(a)'s ), its pair underlined.
+        view.setSelectedRange(NSRange(location: NSMaxRange(call), length: 0))
+        if let frame = view.window?.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("pairs.png"))
+        }
+
+        // Each off in Settings › Editor.
+        defaults.set(false, forKey: "editorIndentGuides")
+        defaults.set(false, forKey: "editorMatchBrackets")
+        defaults.set(false, forKey: "editorAutoPairs")
+        _ = await waitFor(3) { !view.autoPairs && !view.showsIndentGuides && !view.matchBrackets }
+        view.display()
+        let before = view.string
+        view.setSelectedRange(NSRange(location: (before as NSString).length, length: 0))
+        type("(")
+        log.check(view.guidesDrawn == 0 && view.matchedBrackets == nil && view.string == before + "(",
+                  "Settings › Editor turns each off: no guides, nothing underlined, ( only typed")
+        await close(js)
+
+        // An HTML element's tags, with the caret inside it.
+        defaults.removeObject(forKey: "editorMatchBrackets")
+        guard let html = await open("<div class=\"note\">\n  <p>Some text \(marker)</p>\n</div>\n", "pairs-\(marker).html") else { return }
+        let hview = html.editor.textView, hs = hview.string as NSString
+        _ = await waitFor(5) { hview.matchBrackets }
+        try? await Task.sleep(for: .milliseconds(500))   // the tree made
+        hview.setSelectedRange(NSRange(location: hs.range(of: "Some").location + 2, length: 0))
+        let p = hs.range(of: "<p>").location + 1, pEnd = hs.range(of: "</p>").location + 2
+        let tagged = await waitFor(5) { hview.matchedTags == [NSRange(location: p, length: 1), NSRange(location: pEnd, length: 1)] }
+        hview.display()
+        log.check(tagged && hview.underlinesDrawn == 2, "in HTML, the element round the caret: <p> and </p> underlined, stippled (\(hview.matchedTags.map { "\(hs.substring(with: $0))@\($0.location)" }))")
+        await close(html)
     }
 
     /// Go to Heading (SC7, ⌘R): a Markdown file's headings in order, from the caret's section,
