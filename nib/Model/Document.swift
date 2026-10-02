@@ -1910,7 +1910,8 @@ final class Document {
         }
     }
 
-    /// The file was deleted, or moved to the Trash, by another app (§4.8 E, §4.9 8): the text
+    /// The file was deleted (by another app, or on another Mac: the two-Mac probe), or moved to
+    /// this Mac's Trash by another app (§4.8 E, §4.9 8): the text
     /// stays, journaled as typing goes on, and nothing saves it or makes the file again by itself
     /// (the delete may have been meant). The banner offers Restore (the text written back where
     /// it was, held and uploaded) and Close (the text kept in History, on Reopen Closed File); the
@@ -2095,7 +2096,7 @@ final class Document {
             return
         }
         following = true
-        record("move", detail: "moved to \(newURL.path) by another app: following it")
+        record("move", detail: "moved to \(newURL.path), by another app or on another Mac: following it")
         Task { await follow(to: newURL) }
     }
 

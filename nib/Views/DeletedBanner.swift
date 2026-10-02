@@ -28,7 +28,9 @@ struct DeletedBanner: View {
                     Text("Your text is saved in Nib's Recovery folder, and goes back into the file when iCloud Drive is on again.")
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("\(document.url.lastPathComponent) was \(document.deletedToTrash ? "moved to the Trash" : "deleted") by another app.")
+                    // A move to this Mac's Trash is this Mac's; a deletion may be another Mac's too, which
+                    // arrives as a deletion, its Trash being its own (the two-Mac probe, 2026-10-01).
+                    Text("\(document.url.lastPathComponent) was \(document.deletedToTrash ? "moved to the Trash by another app." : "deleted, by another app or on another Mac.")")
                     Text("Your text is still here, and in Nib's journal. Nothing makes the file again until you restore it.")
                         .foregroundStyle(.secondary)
                 }

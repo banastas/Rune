@@ -2319,15 +2319,18 @@ enum TestHarness {
         log.check(ConflictText.hasMarkers(fileText(document)) && ours(document, marker).count == 1, "a block, saved into the file")
         guard let found = ours(document, marker).first else { return }
         view.setSelectedRange(NSRange(location: found.first.location, length: 0))
-        let atBlock = await waitFor(2) { document.caretBlock != nil }
+        let atBlock = await waitFor(5) { document.caretBlock != nil }
         document.resolveBlock(.both)
         await endOfEvent(view)
-        try? await Task.sleep(for: .milliseconds(600))
+        // The journal waited for, not a fixed 600 ms: on a busy Mac it came later, and this
+        // scenario's SIGKILL then left its block in the test file for every block scenario after
+        // it to trip on (two suites, 2026-10-01).
         let journal = Journal(directory: NibPaths.support.appendingPathComponent("Journal"))
         let both = "- ours \(marker)\n- theirs \(marker)\n"
-        let journaled = journal.read(path: document.url.path)?.text.contains(both) == true
-        log.check(atBlock && ours(document, marker).isEmpty && journaled && fileText(document).contains("- ours \(marker)\n======="),
-                  "Keep Both in the buffer and the journal; the file still has the block (saving held off)")
+        let journaled = await waitFor(5) { journal.read(path: document.url.path)?.text.contains(both) == true }
+        let left = ours(document, marker).count, inFile = fileText(document).contains("- ours \(marker)\n=======")
+        log.check(atBlock && left == 0 && journaled && inFile,
+                  "Keep Both in the buffer and the journal; the file still has the block (saving held off) (at the block \(atBlock), \(left) left, journaled \(journaled), in the file \(inFile); \(document.blocks.count) blocks in all)")
         log.line("SIGKILL")
         kill(getpid(), SIGKILL)
     }
@@ -2538,6 +2541,10 @@ enum TestHarness {
                   && session.second.text.contains("theirs 1 \(marker)") && !session.second.text.contains("mine 4 \(marker)"),
                   "each pane holds one version's whole text (\(session.first.label) · \(session.second.label))")
         log.check(session.marks.first.contains(.changed) && session.marks.second.contains(.changed), "and marks what differs (~)")
+        // From this run's first block (a block another scenario left in the test file would come
+        // first, and be the one resolved).
+        let own = session.blocks.first { (session.result as NSString).substring(with: $0.range).contains(marker) }
+        if let own { session.editor.textView.setSelectedRange(NSRange(location: own.first.location, length: 0)) }
         for choice in [ConflictBlock.Choice.first, .second, .both] {
             session.resolve(choice)   // each moves the caret on to the next block
             await endOfEvent(session.editor.textView)

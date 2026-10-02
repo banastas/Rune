@@ -12,7 +12,7 @@ public enum Alerts {
         case conflict
         /// A save, the journal, or the Recovery folder couldn't be written (§4.9, 13).
         case saveFailed
-        /// Deleted, or moved to the Trash, by another app (§4.8 E, §4.9, 8).
+        /// Deleted, by another app or on another Mac, or moved to this Mac's Trash (§4.8 E, §4.9, 8).
         case deleted
         /// iCloud Drive turned off, the file gone with it (§4.9, 11).
         case iCloudOff
@@ -59,7 +59,7 @@ public enum Alerts {
 
     public static func deleted(_ name: String, trash: Bool) -> Alert {
         Alert(kind: .deleted, title: trash ? "\(name) was moved to the Trash" : "\(name) was deleted",
-              body: "Another app did it. Your text is still in Nib, and Restore puts the file back.")
+              body: "\(trash ? "Another app" : "Another app, or another Mac,") did it. Your text is still in Nib, and Restore puts the file back.")
     }
 
     public static func iCloudOff(_ name: String) -> Alert {
