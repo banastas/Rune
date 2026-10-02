@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE catalog [
+  <!ELEMENT catalog (book+)>
+  <!ELEMENT book (title, author*, price?, note)>
+  <!ELEMENT title (#PCDATA)>
+  <!ELEMENT author (#PCDATA)>
+  <!ELEMENT price (#PCDATA)>
+  <!ELEMENT note (#PCDATA | em)*>
+  <!ELEMENT em (#PCDATA)>
+  <!ATTLIST book id ID #REQUIRED
+                 format (paperback | hardcover | ebook) "paperback"
+                 lang CDATA #IMPLIED>
+  <!ATTLIST price currency NMTOKEN #FIXED "USD">
+  <!ENTITY publisher "Quiet Press">
+  <!ENTITY % common SYSTEM "common.ent">
+  %common;
+  <!NOTATION jpeg SYSTEM "image/jpeg">
+]>
+<catalog>
+  <!-- Two books, made up for the fidelity harness. -->
+  <book id="b1" format="hardcover" lang="en">
+    <title>The Text Editor's Handbook</title>
+    <author>R. Okafor</author>
+    <author>M. Lindqvist</author>
+    <price currency="USD">34.50</price>
+    <note>From &publisher;, with <em>new</em> chapters on sync.</note>
+  </book>
+  <book id="b2" format="ebook">
+    <title>Small Apps, Long Lives</title>
+    <author>J. Park</author>
+    <note>Out of print<![CDATA[ (see <archive> & "notes") ]]>.</note>
+    <empty/>
+  </book>
+</catalog>

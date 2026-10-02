@@ -28,6 +28,10 @@ const total = invoices.reduce((sum, { amount }) => sum + amount, 0);
 console.log(`Total: ${total.toFixed(2)}`);
 ```
 
+```xml
+<enclosure url="https://cdn.example.com/q4.mp3" length="1840" type="audio/mpeg"/>
+```
+
 ---
 
 Some ~~old~~ notes, a line with `inline code`, and a footnote.[^1]

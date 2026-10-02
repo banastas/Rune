@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/styles/feed.xsl"?>
+<!-- A podcast feed, generated for the fidelity harness: RSS 2.0 with the iTunes,
+     Atom and content namespaces, as a podcast host publishes it. -->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Night Shift Notes</title>
+    <link>https://example.com/podcast</link>
+    <atom:link href="https://example.com/podcast/feed.xml" rel="self" type="application/rss+xml"/>
+    <language>en-us</language>
+    <copyright>&#169; 2026 Night Shift Media</copyright>
+    <itunes:author>Night Shift Media</itunes:author>
+    <itunes:owner>
+      <itunes:name>Night Shift Media</itunes:name>
+      <itunes:email>hello@example.com</itunes:email>
+    </itunes:owner>
+    <itunes:image href="https://cdn.example.com/art/cover-3000.jpg"/>
+    <itunes:category text="Technology">
+      <itunes:category text="Software How-To"/>
+    </itunes:category>
+    <itunes:category text="Arts &amp; Design"/>
+    <itunes:explicit>false</itunes:explicit>
+    <description>Short talks about tools, text and the craft of building small apps &#x2014; one a week.</description>
+    <item>
+      <title>Episode 42: Plain Text Forever</title>
+      <itunes:episode>42</itunes:episode>
+      <itunes:episodeType>full</itunes:episodeType>
+      <guid isPermaLink='false'>nsn-0042</guid>
+      <pubDate>Thu, 01 Oct 2026 08:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/audio/nsn-0042.mp3?src=feed&amp;v=2" length="48211234" type="audio/mpeg"/>
+      <itunes:duration>00:42:17</itunes:duration>
+      <description>Why we keep notes in text files, and what it takes to sync them.</description>
+      <content:encoded><![CDATA[<p>Show notes, with <a href="https://example.com/42">links</a> &amp; a list:</p>
+<ul><li>Scratch files</li><li>Sync</li></ul>]]></content:encoded>
+    </item>
+    <item>
+      <title>Episode 41: Colors &lt;and&gt; Themes</title>
+      <itunes:episode>41</itunes:episode>
+      <guid isPermaLink="false">nsn-0041</guid>
+      <pubDate>Thu, 24 Sep 2026 08:00:00 GMT</pubDate>
+      <enclosure url="https://cdn.example.com/audio/nsn-0041.mp3" length="39114017" type="audio/mpeg"/>
+      <itunes:duration>2537</itunes:duration>
+      <itunes:explicit>false</itunes:explicit>
+      <!-- <itunes:block>Yes</itunes:block> -->
+    </item>
+  </channel>
+</rss>

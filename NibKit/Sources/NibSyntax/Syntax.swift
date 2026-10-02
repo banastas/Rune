@@ -17,9 +17,10 @@ import TreeSitterJavaScript
 import TreeSitterJSON
 import TreeSitterMarkdown
 import TreeSitterMarkdownInline
+import TreeSitterXML
 
 public enum SyntaxLanguage: String, CaseIterable, Sendable {
-    case html, css, javascript, json, markdown, markdownInline = "markdown-inline", shell
+    case html, css, javascript, json, markdown, markdownInline = "markdown-inline", shell, xml
 
     /// For the strip (HL1).
     public var name: String {
@@ -30,6 +31,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .json: "JSON"
         case .markdown, .markdownInline: "Markdown"
         case .shell: "Shell"
+        case .xml: "XML"
         }
     }
 
@@ -43,6 +45,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .markdown: "text.html.markdown"
         case .markdownInline: nil
         case .shell: "source.shell.bash"
+        case .xml: "text.xml"
         }
     }
 
@@ -55,6 +58,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .markdown: Language(tree_sitter_markdown())
         case .markdownInline: Language(tree_sitter_markdown_inline())
         case .shell: Language(tree_sitter_bash())
+        case .xml: Language(tree_sitter_xml())
         }
     }
 
@@ -72,7 +76,8 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
 
     private static let queries = Mutex<[SyntaxLanguage: Query?]>([:])
 
-    /// By name, then by a shebang on the first line (HL1); nil is plain text.
+    /// By name, then by the first line: a shebang (HL1), or XML's declaration or a DOCTYPE
+    /// that isn't HTML's (HL8, as Sublime's XML syntax has it); nil is plain text.
     public static func detect(fileName: String, firstLine: String? = nil) -> (language: SyntaxLanguage, root: String)? {
         let name = fileName.lowercased()
         let ext = (name as NSString).pathExtension
@@ -84,6 +89,11 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case "md", "markdown", "mdown", "mkd": return (.markdown, "text.html.markdown")
         case "zsh": return (.shell, "source.shell.zsh")
         case "sh", "bash", "command": return (.shell, "source.shell.bash")
+        // Sublime's XML extensions, and the ones it doesn't list in its menus (tmTheme, csproj…).
+        case "xml", "tld", "dtml", "rng", "rss", "opml", "slnx", "svg", "xaml",
+             "sublime-snippet", "tmlanguage", "hidden-tmlanguage", "tmpreferences", "tmsnippet", "tmtheme", "hidden-tmtheme",
+             "csproj", "fsproj", "sqlproj", "vbproj", "vcproj", "vcxproj", "dae", "props", "drawio", "targets":
+            return (.xml, "text.xml")
         default: break
         }
         if [".zshrc", ".zprofile", ".zshenv", ".zlogin", ".zlogout"].contains(name) { return (.shell, "source.shell.zsh") }
@@ -92,8 +102,14 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
             if line.contains("zsh") { return (.shell, "source.shell.zsh") }
             if line.contains("bash") || line.hasSuffix("/sh") || line.contains("/sh ") || line.contains("env sh") { return (.shell, "source.shell.bash") }
         }
+        if let line = firstLine, line.range(of: xmlFirstLine, options: .regularExpression) != nil { return (.xml, "text.xml") }
         return nil
     }
+
+    /// Sublime's first_line_match for XML: a declaration (`<?xml version…`), a SOAP envelope,
+    /// or a DOCTYPE other than HTML's (a plist's). The line comes without its line break, so
+    /// the line's end stands in for it (and a CRLF file's line ends with its \r).
+    static let xmlFirstLine = #"^(?:<\?xml(?:\s|$)|\s*<([\w-]+):Envelope\s+xmlns:\1\s*=\s*"http://schemas\.xmlsoap\.org/soap/envelope/"\s*>|\s*(?i:<!DOCTYPE\s+(?!html(?:[ \t\r\f>]|$))))"#
 }
 
 extension Theme {
@@ -118,6 +134,24 @@ public enum Highlighter {
         let parser = Parser()
         guard (try? parser.setLanguage(language.tsLanguage)) != nil, let tree = parser.parse(text) else { return "" }
         return tree.rootNode?.sExpressionString ?? ""
+    }
+
+    /// Every node, the unnamed ones too (a quote, a keyword, what an ERROR holds), one a line
+    /// with its text, for writing queries (`nib-fidelity --nodes`).
+    public static func nodes(_ text: String, language: SyntaxLanguage) -> String {
+        let parser = Parser()
+        guard (try? parser.setLanguage(language.tsLanguage)) != nil, let tree = parser.parse(text), let root = tree.rootNode else { return "" }
+        let source = text as NSString
+        var lines: [String] = []
+        func walk(_ node: Node, _ depth: Int) {
+            let type = node.nodeType ?? "?"
+            let leaf = node.childCount == 0
+            let part = leaf ? " “" + source.substring(with: node.range).replacingOccurrences(of: "\n", with: "⏎") + "”" : ""
+            lines.append(String(repeating: "  ", count: depth) + (node.isNamed ? type : "'\(type)'") + (node.isMissing ? " MISSING" : "") + part)
+            node.enumerateChildren { walk($0, depth + 1) }
+        }
+        walk(root, 0)
+        return lines.joined(separator: "\n")
     }
 
     /// Every character's scopes, as runs covering the whole text (or only `window` of it).
@@ -234,10 +268,11 @@ public enum Highlighter {
     }
 
     /// Characters tree-sitter keeps inside one token that Sublime scopes apart: quotes, comment
-    /// markers, the `@` of an at-rule, the `!` of `!important`, an entity's `&` and `;`, a
-    /// shell variable's `$` (all `punctuation.definition.*`, which An Old Hope draws plain);
-    /// a number's decimal point and sign; DOCTYPE's words; a URL's separators; an entity in an
-    /// attribute value; a documentation comment's `@param`.
+    /// markers, the `@` of an at-rule, the `!` of `!important`, an entity's `&` (`&#`, `&#x`)
+    /// and `;`, a shell variable's `$` (all `punctuation.definition.*`, which An Old Hope draws
+    /// plain); a number's decimal point and sign; DOCTYPE's words; a URL's separators; an entity
+    /// in an attribute value; a documentation comment's `@param`; an XML name's namespace and
+    /// its colon (`itunes:image`).
     static func delimiters(of scope: String, in token: String) -> [(NSRange, String)] {
         let t = token as NSString, n = t.length
         var out: [(NSRange, String)] = []
@@ -253,7 +288,8 @@ public enum Highlighter {
         if scope.hasPrefix("string.quoted.") {
             if scope.hasSuffix(".shell") { each(#"\\."#) { mark($0.range.location, 2, "constant.character.escape.shell") } }
             let quotes: Set<unichar> = [0x22, 0x27, 0x60]   // " ' `
-            if n > 0, quotes.contains(t.character(at: 0)) { mark(0, 1, "punctuation.definition.string.begin") }
+            if n == 1, quotes.contains(t.character(at: 0)) { mark(0, 1, "punctuation.definition.string") }   // a quote on its own (XML's declaration)
+            if n > 1, quotes.contains(t.character(at: 0)) { mark(0, 1, "punctuation.definition.string.begin") }
             if n > 1, quotes.contains(t.character(at: n - 1)) { mark(n - 1, 1, "punctuation.definition.string.end") }
             if scope.hasSuffix(".html") {
                 urlSeparators("punctuation.separator.path.html")
@@ -296,7 +332,12 @@ public enum Highlighter {
         } else if scope.hasPrefix("constant.numeric") {
             each(#"\."#) { mark($0.range.location, 1, "punctuation.separator.decimal") }
             if token.hasPrefix("-") || token.hasPrefix("+") { mark(0, 1, "keyword.operator.arithmetic") }
-        } else if scope.hasPrefix("meta.tag.sgml.doctype") {
+        } else if scope.hasSuffix(".localname.xml"), let colon = token.utf16.firstIndex(of: 0x3A) {
+            // itunes:image: the namespace, then the colon (a name's localname is the rest).
+            let at = token.utf16.distance(from: token.utf16.startIndex, to: colon)
+            mark(0, at, String(scope.dropLast("localname.xml".count)) + "namespace.xml")
+            mark(at, 1, "punctuation.separator.namespace.xml")
+        } else if scope.hasPrefix("meta.tag.sgml.doctype"), scope.hasSuffix(".html") {
             each("(?i)(doctype)\\s+(\\w+)") { m in
                 mark(m.range(at: 1).location, m.range(at: 1).length, "keyword.declaration.doctype.html")
                 mark(m.range(at: 2).location, m.range(at: 2).length, "constant.language.doctype.html")
@@ -322,8 +363,12 @@ public enum Highlighter {
         } else if scope.hasPrefix("keyword.control.at-rule"), token.hasPrefix("@") {
             mark(0, 1, "punctuation.definition.keyword")
         } else if scope.hasPrefix("constant.character.entity"), token.hasPrefix("&") {
-            mark(0, 1, "punctuation.definition.entity")
-            if token.hasSuffix(";") { mark(n - 1, 1, "punctuation.definition.entity") }
+            // &#169; and &#x2014;: the # and x are the entity's marks too. XML's ; ends it.
+            mark(0, token.hasPrefix("&#x") || token.hasPrefix("&#X") ? 3 : token.hasPrefix("&#") ? 2 : 1, "punctuation.definition.entity")
+            if token.hasSuffix(";") { mark(n - 1, 1, scope.hasSuffix(".xml") ? "punctuation.terminator.entity.xml" : "punctuation.definition.entity") }
+        } else if scope.hasPrefix("variable.parameter.xml"), token.hasPrefix("%") {
+            mark(0, 1, "punctuation.definition.parameter.xml")
+            if token.hasSuffix(";") { mark(n - 1, 1, "punctuation.terminator.parameter.xml") }
         } else if scope.hasPrefix("variable"), token.hasPrefix("$") {
             mark(0, token.hasPrefix("${") ? 2 : 1, "punctuation.definition.variable")
         }
@@ -417,6 +462,9 @@ enum Injections {
             "shell": (.shell, "shell", "source.shell.bash"), "zsh": (.shell, "shell", "source.shell.zsh"),
             "js": (.javascript, "javascript", "source.js"), "javascript": (.javascript, "javascript", "source.js"),
             "json": (.json, "json", "source.json"), "css": (.css, "css", "source.css"), "html": (.html, "html", "text.html.basic"),
+            // XML by the names Sublime's Markdown gives it.
+            "xml": (.xml, "xml", "text.xml"), "atom": (.xml, "xml", "text.xml"), "plist": (.xml, "xml", "text.xml"),
+            "svg": (.xml, "xml", "text.xml"), "xjb": (.xml, "xml", "text.xml"), "xsd": (.xml, "xml", "text.xml"), "xsl": (.xml, "xml", "text.xml"),
         ]
         guard let (language, id, root) = table[name] else { return nil }
         return (language, ["markup.raw.code-fence.\(id).markdown-gfm", root])

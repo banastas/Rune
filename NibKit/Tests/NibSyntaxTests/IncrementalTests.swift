@@ -27,7 +27,7 @@ import Testing
     }
 
     @Test func aWindowIsTheWholeCutToIt() throws {
-        try #require(Self.references.count == 6)
+        try #require(Self.references.count == 9)   // six from HL1, three XML (HL8)
         var windows = 0
         for file in Self.references {
             let whole = Highlighter.runs(file.text, language: file.language, root: file.root)

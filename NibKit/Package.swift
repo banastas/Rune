@@ -14,7 +14,7 @@ let package = Package(
         // `-scheme nib` from the app (builds that compiled only this, 2026-09-29).
         .executable(name: "nib-cli", targets: ["NibCLI"]),
     ],
-    // tree-sitter and grammars for HL1's languages (§6.3; BSD-3-Clause and MIT); CSS and JavaScript are vendored.
+    // tree-sitter and grammars for HL1's languages (§6.3; BSD-3-Clause and MIT); CSS, JavaScript and XML are vendored.
     dependencies: [
         .package(url: "https://github.com/tree-sitter/swift-tree-sitter", from: "0.25.0"),
         .package(url: "https://github.com/tree-sitter/tree-sitter-html", from: "0.23.2"),
@@ -38,12 +38,17 @@ let package = Package(
             .product(name: "TreeSitterJSON", package: "tree-sitter-json"),
             .product(name: "TreeSitterBash", package: "tree-sitter-bash"),
             .product(name: "TreeSitterMarkdown", package: "tree-sitter-markdown"),
+            "TreeSitterXML",
         ], resources: [.copy("Queries"), .copy("Themes")]),
         // CSS and JavaScript, vendored (Vendor/README.md): their manifests drop the external scanner.
         .target(name: "TreeSitterCSS", path: "Vendor/tree-sitter-css", sources: ["src/parser.c", "src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterJavaScript", path: "Vendor/tree-sitter-javascript", sources: ["src/parser.c", "src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        // XML (HL8), vendored too: its manifest depends on SwiftTreeSitter by its old address, a
+        // second package with the same module. Its scanner includes ../../common/scanner.h.
+        .target(name: "TreeSitterXML", path: "Vendor/tree-sitter-xml", sources: ["xml/src/parser.c", "xml/src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("xml/src")]),
         // The fidelity harness's comparison (fidelity/run.sh): Nib's colors against Sublime's dump.
         .executableTarget(name: "NibFidelity", dependencies: ["NibSyntax", "NibText"]),
         // The `nib` command-line tool (AP4): asks the running app, through NibSync's Bridge.

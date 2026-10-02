@@ -2626,7 +2626,7 @@ enum SyntaxPick: Hashable {
     case language(SyntaxLanguage)
 
     /// In the menus' order.
-    static let all: [SyntaxPick] = [.plain] + [SyntaxLanguage.html, .css, .javascript, .json, .markdown, .shell].map { .language($0) }
+    static let all: [SyntaxPick] = [.plain] + [SyntaxLanguage.html, .css, .javascript, .json, .markdown, .shell, .xml].map { .language($0) }
 
     var name: String {
         switch self {

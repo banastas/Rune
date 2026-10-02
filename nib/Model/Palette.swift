@@ -137,9 +137,9 @@ final class PaletteSession: Identifiable {
             return
         }
         let text = document.editor.textView.string, caret = document.editor.textView.selectedRange().location
-        listing = Task { [weak self] in
+        listing = Task { [weak self, weak document] in
             let found = await Task.detached(priority: .userInitiated) { Headings.markdown(in: text as NSString) }.value
-            guard let self else { return }
+            guard let self, let document else { return }
             var list: [PaletteEntry] = []
             for heading in found {
                 let id = "heading:\(heading.location)"

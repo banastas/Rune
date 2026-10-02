@@ -513,7 +513,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         case .javascript: .line("//")
         case .shell: .line("#")
         case .css: .block("/*", "*/")
-        case .html, .markdown, .markdownInline: .block("<!--", "-->")
+        case .html, .markdown, .markdownInline, .xml: .block("<!--", "-->")
         case .json, nil: nil
         }
     }
@@ -668,7 +668,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         }
         let caret = view.selectedRange().location
         view.matchedBrackets = Brackets.match(in: storage.mutableString, caret: caret)
-        guard syntax?.language == .html, let syntaxDocument, !highlightPending else { view.matchedTags = []; return }
+        guard syntax?.language == .html || syntax?.language == .xml, let syntaxDocument, !highlightPending else { view.matchedTags = []; return }
         tagTask = Task { [weak self] in
             let names = await syntaxDocument.enclosingTagNames(at: caret)
             guard !Task.isCancelled, let self, self.textView.selectedRange() == NSRange(location: caret, length: 0) else { return }
