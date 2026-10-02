@@ -531,6 +531,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     nonisolated func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
         guard editedMask.contains(.editedCharacters) else { return }
         MainActor.assumeIsolated {
+            textView.textChangedForCarets()   // Undo Selection's steps were for the text before
             lastEdit = editedRange
             if let storage = textView.textStorage { lineIndex.update(storage.mutableString, edited: editedRange, delta: delta) }
             ruler?.needsDisplay = true
@@ -608,6 +609,13 @@ final class NibTextView: NSTextView {
     var typingRun: CaretRun?
     /// The count, for the strip.
     var onCarets: ((Int) -> Void)?
+    /// Undo Selection's steps (⌘U, ⇧⌘U): the carets before each change since the last edit.
+    var caretHistory = CaretHistory()
+    /// The characters changed, and the steps start over once the change is done (`textChangedForCarets`).
+    var caretSettlePending = false
+    /// While Undo Selection puts carets back, or the mouse is held: no step of their own.
+    var restoringCarets = 0
+    var trackingMouse = false
 
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
@@ -615,6 +623,7 @@ final class NibTextView: NSTextView {
             carets = nil
             caretsChanged()
         }
+        if !stillSelecting { noteCarets() }   // a drag's end, not each place on the way
     }
 
     override func doCommand(by selector: Selector) {

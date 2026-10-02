@@ -10,6 +10,8 @@
 // insertion indicators for the carets, the selection color under the text for selections), and
 // makes the edits with undo steps of its own that put every caret back. Anything it doesn't do
 // at several carets (⌘A, a plain click, Page Down) goes back to one caret, then works as ever.
+// Undo Selection (⌘U) takes back the last change to the carets since the last edit, and Redo
+// Selection (⇧⌘U) puts it back (NibText's `CaretHistory`).
 
 import AppKit
 import NibText
@@ -68,6 +70,7 @@ extension NibTextView {
         updateCaretViews()
         needsDisplay = true
         onCarets?(carets?.count ?? 1)
+        noteCarets()
     }
 
     // MARK: Drawing
@@ -428,6 +431,25 @@ extension NibTextView {
         setCarets(carets.adding(Caret(range: found)))
     }
 
+    /// Selection › Skip to Next Occurrence (Sublime's ⌘K ⌘D; the ⌘K chords wait for open
+    /// question 10): the last selection ⌘D added goes, and the next occurrence after it comes in
+    /// its place. From a caret, its word, as ⌘D.
+    @objc func skipToNextOccurrence(_ sender: Any?) {
+        let text = string as NSString, carets = currentCarets, primary = carets.primaryCaret
+        guard !primary.isEmpty else { selectNextOccurrence(sender); return }
+        if !multi { wholeWordSearch = expandedWord == primary.range }
+        let needle = text.substring(with: primary.range)
+        let others = carets.all.indices.filter { $0 != carets.primary }.map { carets.all[$0].range }
+        guard let found = Occurrences.next(needle, in: text, after: NSMaxRange(primary.range), wholeWord: wholeWordSearch, taken: others),
+              found != primary.range else {
+            NSSound.beep()
+            onNotice?("NO MORE OF “\(needle.count > 30 ? needle.prefix(30) + "…" : needle)” · \(carets.count) SELECTED")
+            return
+        }
+        if !multi { expandedWord = wholeWordSearch ? found : nil }
+        setCarets(carets.replacingPrimary(with: Caret(range: found)))
+    }
+
     /// ⌃⌘G: every occurrence of the selection's text (of the caret's word, a whole word).
     @objc func selectAllOccurrences(_ sender: Any?) {
         let text = string as NSString, carets = currentCarets, primary = carets.primaryCaret
@@ -470,6 +492,8 @@ extension NibTextView {
 
     /// ⌘-click: a caret more there, or the one there gone; held and dragged, it selects.
     func commandClick(_ event: NSEvent) {
+        trackingMouse = true
+        defer { trackingMouse = false; noteCarets() }   // the click and its drag, one step
         let index = characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))
         let carets = currentCarets
         if let fewer = carets.removing(at: index) {
@@ -487,6 +511,8 @@ extension NibTextView {
     /// ⌥-drag: a column, a selection a line from where the drag began to where it is (a line too
     /// short for it, a caret at its end). False when the mouse didn't move: a plain click.
     func columnDrag(_ event: NSEvent) -> Bool {
+        trackingMouse = true
+        defer { trackingMouse = false; noteCarets() }
         let start = convert(event.locationInWindow, from: nil)
         var moved = false
         track { point in
@@ -534,6 +560,58 @@ extension NibTextView {
             if event.type == .leftMouseUp { break }
             autoscroll(with: event)
         }
+    }
+
+    // MARK: Undo Selection (⌘U, ⇧⌘U)
+
+    /// A change to the carets, for Undo Selection: from a key, a click or a command. Not while
+    /// Undo Selection puts carets back, or while the mouse is held (its end counts), and not the
+    /// carets an edit moves: an edit starts the steps over.
+    func noteCarets() {
+        guard restoringCarets == 0, !trackingMouse, !caretSettlePending else { return }
+        caretHistory.changed(to: currentCarets)
+    }
+
+    /// The characters changed: the steps were for the text before. They start over from the
+    /// carets the change leaves, once it's done: an edit sets the selection more than once on its
+    /// way (⌘Z puts the text back, then the carets), and none of those is a step.
+    func textChangedForCarets() {
+        guard !caretSettlePending else { return }
+        caretSettlePending = true
+        DispatchQueue.main.async { [weak self] in self?.settleCaretsAfterEdit() }
+    }
+
+    private func settleCaretsAfterEdit() {
+        guard caretSettlePending else { return }
+        caretSettlePending = false
+        caretHistory.textChanged(carets: currentCarets)
+    }
+
+    /// ⌘U: the carets as they were before their last change since the last edit (Sublime's soft
+    /// undo, without the edits: ⌘Z takes those back).
+    @objc func undoSelection(_ sender: Any?) {
+        settleCaretsAfterEdit()   // an edit just now: nothing to take back
+        guard let previous = caretHistory.undo() else { NSSound.beep(); return }
+        restoreCarets(previous)
+    }
+
+    /// ⇧⌘U: the carets Undo Selection last took back.
+    @objc func redoSelection(_ sender: Any?) {
+        settleCaretsAfterEdit()
+        guard let next = caretHistory.redo() else { NSSound.beep(); return }
+        restoreCarets(next)
+    }
+
+    private func restoreCarets(_ carets: Carets) {
+        // Steps are for the text as it is (an edit starts them over), so each fits; if not, none.
+        guard NSMaxRange(carets.all[carets.count - 1].range) <= (string as NSString).length else {
+            caretHistory = CaretHistory()
+            NSSound.beep()
+            return
+        }
+        restoringCarets += 1
+        defer { restoringCarets -= 1 }
+        setCarets(carets)
     }
 
     // MARK: The clipboard

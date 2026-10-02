@@ -40,8 +40,11 @@ enum TestHarness {
     static var largeFileAsked: [String] = []
     /// The `icloudoff` scenario: as if iCloud Drive were off on this Mac.
     static var iCloudOff = false
-    /// The `history` scenario's span for History's saves, in place of 5 minutes.
+    /// The `history` scenario's span for History's saves, in place of 5 minutes; and its quit
+    /// cut off by the 10 s watchdog after its save, as when iCloud is slow to take the file back
+    /// (-NibSlowQuit; the suite at 00:19 on 2026-10-02 lost the version closed with that way).
     static var historySpan: TimeInterval?
+    static let slowQuit = NibDefaults.store.bool(forKey: "NibSlowQuit")
     /// Hands the file back for real, taking the server's version, just before the next forced
     /// refresh: the hold lost as a hand-back a moment before can lose it (`refusal-lost-hold`).
     static var loseHoldBeforeRefresh = NibDefaults.store.bool(forKey: "NibLoseHold")
@@ -1996,6 +1999,54 @@ enum TestHarness {
         undo?.undo()
         log.check(view.string == start, "one undo")
 
+        // Skip to Next Occurrence (Sublime's ⌘K ⌘D): the one ⌘D added last goes, the next comes.
+        // Then Undo Selection (⌘U) takes back each change to the carets, and Redo Selection (⇧⌘U)
+        // puts it back; an edit starts them over.
+        let undoKey = menu?.items.first { $0.title == "Undo Selection" }, redoKey = menu?.items.first { $0.title == "Redo Selection" }
+        log.check(undoKey?.keyEquivalent == "u" && undoKey?.keyEquivalentModifierMask == .command
+                  && redoKey?.keyEquivalent.lowercased() == "u" && (redoKey?.keyEquivalent == "U" || redoKey?.keyEquivalentModifierMask.contains(.shift) == true)
+                  && menu?.items.contains { $0.title == "Skip to Next Occurrence" } == true,
+                  "Selection: Undo Selection ⌘U, Redo Selection ⇧⌘U, Skip to Next Occurrence (\(key("Undo Selection")), \(key("Redo Selection")), \(key("Skip to Next Occurrence")))")
+        let names = Occurrences.all("name", in: start as NSString, wholeWord: true).map(\.location)
+        func places() -> [Int] { view.currentCarets.ranges.map(\.location) }
+        // Each command its own event, as from the keys: an edit's steps start over once its event is done.
+        try? await Task.sleep(for: .milliseconds(20))
+        view.setCarets(Carets([Caret(line + 5)]))
+        view.selectNextOccurrence(nil)
+        view.selectNextOccurrence(nil)
+        view.skipToNextOccurrence(nil)
+        log.check(names.count == 3 && places() == [names[0], names[2]] && view.currentCarets.primaryCaret.range.location == names[2],
+                  "Skip to Next Occurrence: the second \"name\" goes and the third comes in its place (\(places()), of \(names))")
+        view.undoSelection(nil)
+        let back1 = places()
+        view.undoSelection(nil)
+        let back2 = places()
+        view.undoSelection(nil)
+        let back3 = view.currentCarets.ranges
+        view.undoSelection(nil)   // the three selections the undo above put back, before the caret was set
+        let back4 = view.currentCarets.ranges
+        view.undoSelection(nil)   // nothing before them: that undo's edit started the steps over (a beep)
+        let back5 = view.currentCarets.ranges
+        log.check(back1 == [names[0], names[1]] && back2 == [names[0]] && back3 == [NSRange(location: line + 5, length: 0)]
+                  && back4 == names.map { NSRange(location: $0, length: 4) } && back5 == back4,
+                  "⌘U: each change to the carets taken back, to the carets the last edit left, and no further (\(back1), \(back2), \(back3), \(back4.count) selections)")
+        view.redoSelection(nil)
+        view.redoSelection(nil)
+        view.redoSelection(nil)
+        log.check(places() == [names[0], names[1]] && view.string == start, "⇧⌘U: put back, change by change, the text untouched (\(places()))")
+        type("x")
+        let afterTyping = view.currentCarets.ranges
+        view.undoSelection(nil)
+        log.check(view.currentCarets.ranges == afterTyping, "an edit starts the steps over: ⌘U after typing leaves the carets (⌘Z is for the edit)")
+        undo?.undo()
+        try? await Task.sleep(for: .milliseconds(20))
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        command(#selector(NSResponder.moveRight(_:)))
+        command(#selector(NSResponder.moveRight(_:)))
+        view.undoSelection(nil)
+        log.check(view.string == start && view.carets == nil && view.selectedRange() == NSRange(location: 1, length: 0),
+                  "one caret: → →, then ⌘U, one move back (\(view.selectedRange().location))")
+
         // ⇧⌘L on four lines, ⌘→, a semicolon each.
         view.setSelectedRange(NSRange(location: 0, length: 23))
         view.splitSelectionIntoLines(nil)
@@ -2788,8 +2839,11 @@ enum TestHarness {
         _ = await waitFor(3) { window(a)?.tabGroup?.windows.contains { $0 === window(b) } == true }
         // Just created, and iCloud's helper often doesn't answer at first: held all the same, on a later try.
         let bothHeld = await waitFor(60) { Documents.existing(for: a)?.held == true && Documents.existing(for: b)?.held == true }
-        let tries = [a, b].map { url in SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read()
-            .last { $0.path == url.path && $0.event == "pause" && ($0.detail == nil || $0.detail!.hasPrefix("held")) }?.detail ?? "held at once" }
+        let tries = [a, b].map { url -> String in
+            guard Documents.existing(for: url)?.held == true else { return "not held in 60 s" }
+            return SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read()
+                .last { $0.path == url.path && $0.event == "pause" && ($0.detail == nil || $0.detail!.hasPrefix("held")) }?.detail ?? "held at once"
+        }
         log.check(bothHeld, "both new files are held (\(tries.joined(separator: ", ")))")
         log.check(openB && window(a)?.tabGroup?.windows.contains { $0 === window(b) } == true
                   && window(a)?.tabGroup?.windows.contains { $0 === Documents.scratch.editor.textView.window } != true,
@@ -3333,7 +3387,9 @@ enum TestHarness {
         let moved = view.selectedRange().location
         log.check(document.editor.position(of: moved) == counted(moved), "and after an edit above the caret: \(document.editor.position(of: moved)) (counted \(counted(moved)))")
         view.window?.performClose(nil)
-        _ = await waitFor(20) { Documents.existing(for: url) == nil }
+        // Closed and handed back to iCloud, and only then removed (the defer): a document leaves
+        // the list as its closing begins, and the file removed then was left paused (2026-10-01).
+        _ = await waitFor(20) { Documents.existing(for: url) == nil && !document.held }
     }
 
     /// The Sync Log window (SY13, A13): Window › Sync Log (⌥⌘L), newest first, following the
@@ -3423,7 +3479,8 @@ enum TestHarness {
                   "the last save waits for its span's end (history-closed checks it went in at the quit)")
     }
 
-    /// After `history`: the save Nib quit with, waiting for its span's end, went into History as it quit.
+    /// After `history`: the save Nib quit with, waiting for its span's end, went into History as it
+    /// quit, though the quit was cut off by its watchdog before iCloud took the file back.
     static func historyClosed(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
         let entries = document.history.entries()

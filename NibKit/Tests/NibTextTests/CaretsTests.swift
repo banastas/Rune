@@ -190,3 +190,57 @@ import Testing
         }
     }
 }
+
+@Suite struct CaretHistoryTests {
+    @Test func takesBackEachChangeAndPutsItBack() {
+        var history = CaretHistory()
+        let one = Carets([Caret(3)])
+        let two = one.adding(Caret(anchor: 10, head: 13))     // ⌘D
+        let three = two.adding(Caret(anchor: 20, head: 23))   // ⌘D again
+        history.changed(to: one)
+        history.changed(to: two)
+        history.changed(to: three)
+        history.changed(to: three)   // told again, nothing changed: not a step
+        #expect(history.undo() == two)
+        #expect(history.undo() == one)
+        #expect(history.undo() == nil, "nothing before the first")
+        #expect(history.redo() == two)
+        #expect(history.redo() == three)
+        #expect(history.redo() == nil)
+        // Taken back, then changed another way: what was taken back can't be put back.
+        _ = history.undo()
+        history.changed(to: Carets([Caret(5)]))
+        #expect(history.redo() == nil)
+        #expect(history.undo() == two)
+    }
+
+    @Test func anEditStartsItOver() {
+        var history = CaretHistory()
+        history.changed(to: Carets([Caret(1)]))
+        history.changed(to: Carets([Caret(2)]))
+        history.textChanged(carets: Carets([Caret(3)]))   // typed: the steps were for the old text
+        #expect(history.undo() == nil)
+        history.changed(to: Carets([Caret(1)]))
+        #expect(history.undo() == Carets([Caret(3)]))
+    }
+
+    @Test func onlyThePlacesCount() {
+        // A run of ↑ sets a goal x: the same places, not a step.
+        var history = CaretHistory()
+        history.changed(to: Carets([Caret(4)]))
+        history.changed(to: Carets([Caret(anchor: 4, head: 4, goal: 120)]))
+        #expect(history.undo() == nil)
+    }
+
+    @Test func keepsAtMostFiftyStepsAndTwentyThousandCarets() {
+        var history = CaretHistory()
+        for location in 0...60 { history.changed(to: Carets([Caret(location)])) }
+        #expect(history.back.count == CaretHistory.mostSteps)
+        #expect(history.back.first == Carets([Caret(10)]), "the oldest let go")
+        // Find All's 10,000 carets, three times: the oldest goes so the rest stay under the limit.
+        var big = CaretHistory()
+        for round in 0..<3 { big.changed(to: Carets((0..<10_000).map { Caret($0 * 3 + round) })) }
+        big.changed(to: Carets([Caret(0)]))
+        #expect(big.back.count == 2 && big.back.reduce(0) { $0 + $1.count } == 20_000)
+    }
+}

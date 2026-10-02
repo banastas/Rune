@@ -91,8 +91,8 @@ run mergeview
 run duplicates
 run conflictversions
 hmarker="history-$(date +%s)"
-run history -NibMarker "$hmarker"
-run history-closed -NibMarker "$hmarker"   # the save it quit with went into History as it quit
+run history -NibMarker "$hmarker" -NibSlowQuit YES   # its quit cut off by the 10 s watchdog, as when iCloud is slow
+run history-closed -NibMarker "$hmarker"   # the save it quit with went into History all the same
 run files
 run syntax
 run themes

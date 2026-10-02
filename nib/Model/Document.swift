@@ -1004,7 +1004,7 @@ final class Document {
         var uploadNow: Bool?
         let text = editor.textView.string
         let snapshot = editCount
-        let data = TextFile.encode(text, as: format)
+        let format = self.format
         let base = baseFingerprint
         let url = self.url
         let presenter = self.presenter
@@ -1016,9 +1016,12 @@ final class Document {
             // When the write itself began: a slow save is either a wait behind other file work on
             // this queue or a slow coordinated write, and the Sync Log says which (the two-Mac runs
             // on the evening of 2026-09-29 had saves of 1-11 s, against under 0.5 s at 10:55).
-            let (outcome, began) = try await io.run { () throws -> (WriteOutcome, Date) in
+            // The text is encoded there too, not on the main thread, which it held for ~150 ms a
+            // save at 42 MB (ED9) and ~9 ms at the scratch file's 2.4 MB.
+            let (outcome, began, data) = try await io.run { () throws -> (WriteOutcome, Date, Data) in
                 let began = Date()
-                return (try FileAccess.write(data, to: url, base: base, presenter: presenter), began)
+                let data = TextFile.encode(text, as: format)
+                return (try FileAccess.write(data, to: url, base: base, presenter: presenter), began, data)
             }
             switch outcome {
             case .written(let fingerprint):
@@ -2206,8 +2209,11 @@ final class Document {
         closing = true
         downloadTask?.cancel()
         Notifier.shared.closed(url)
+        // History first: a quit has 10 s (its watchdog), and iCloud's steps after the save can
+        // take them all (the suite, 00:19: the version closed with was lost that way). A save
+        // the closing itself makes goes in at once (`historySaved`).
+        await recordClosingVersion()
         await letGo()
-        await recordClosingVersion()   // waited for: Nib may quit next
     }
 
     /// Saves, uploads and hands the file back; a deleted file's text goes into History.
@@ -2231,6 +2237,10 @@ final class Document {
         record("quit", detail: "closing")
         editor.saveSelection(for: url)
         await flush(reason: "quit")
+        #if DEBUG
+        // The `history` scenario: iCloud's steps from here taking longer than a quit's 10 s.
+        if TestHarness.slowQuit { try? await Task.sleep(for: .seconds(15)) }
+        #endif
         // Nothing unsaved: the journal goes, a big text's snapshot with it (a quit with unsent
         // edits writes it again, below), and a write still waiting on the last keystroke with it.
         // Unsaved (the save failed): the journal has every keystroke.
@@ -2399,6 +2409,12 @@ final class Document {
     private func historySaved(_ data: Data, parent: String?, sha: String?, keep: Bool) {
         let history = self.history
         if let sha { Task { await journalQueue.run { history.noteSeen(sha) } } }
+        if closing {
+            // The version closed with, whatever its size: in at once, before iCloud's steps.
+            historyBehind = false
+            recordHistory { history in try? history.record(data, parent: parent, source: "saved") }
+            return
+        }
         guard data.count <= Self.historyEverySave else {
             historyBehind = true   // the version closed with goes in (ED9)
             return
@@ -2428,7 +2444,8 @@ final class Document {
     }
 
     /// Closing: the version closed with into History, before the window (or Nib) goes: a save
-    /// waiting for its span's end, or a big file's last save (`historyBehind`), once.
+    /// waiting for its span's end, or a big file's last save (`historyBehind`), once. A save the
+    /// closing makes after this goes in by itself (`historySaved`).
     private func recordClosingVersion() async {
         let history = self.history, pending = takePendingHistory()
         let big = historyBehind && !dirty

@@ -460,12 +460,15 @@ struct NibCommands: Commands {
         // Multiple carets (ED8), on Sublime's keys; Escape is one caret again.
         CommandMenu("Selection") {
             Button("Add Next Occurrence") { send(#selector(NibTextView.selectNextOccurrence(_:))) }.keyboardShortcut("d")
+            Button("Skip to Next Occurrence") { send(#selector(NibTextView.skipToNextOccurrence(_:))) }   // ⌘K ⌘D: open question 10
             Button("Select All Occurrences") { send(#selector(NibTextView.selectAllOccurrences(_:))) }.keyboardShortcut("g", modifiers: [.command, .control])
             Button("Split into Lines") { send(#selector(NibTextView.splitSelectionIntoLines(_:))) }.keyboardShortcut("l", modifiers: [.command, .shift])
             Divider()
             Button("Add Caret Above") { send(#selector(NibTextView.addCaretAbove(_:))) }.keyboardShortcut(.upArrow, modifiers: [.control, .shift])
             Button("Add Caret Below") { send(#selector(NibTextView.addCaretBelow(_:))) }.keyboardShortcut(.downArrow, modifiers: [.control, .shift])
             Divider()
+            Button("Undo Selection") { send(#selector(NibTextView.undoSelection(_:))) }.keyboardShortcut("u")
+            Button("Redo Selection") { send(#selector(NibTextView.redoSelection(_:))) }.keyboardShortcut("u", modifiers: [.command, .shift])
             Button("One Caret (⎋)") { send(#selector(NibTextView.singleCaret(_:))) }
         }
         CommandMenu("Conflicts") { ConflictMenuItems(document: document) }
