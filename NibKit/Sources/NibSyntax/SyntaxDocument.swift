@@ -356,6 +356,31 @@ public actor SyntaxDocument {
         return runs(in: window).map { ($0.range, styles!.style(for: $0.scopes)) }
     }
 
+    /// Sublime's match_tags (PRD ED10): in HTML, the innermost element round `offset`, its start
+    /// tag's name and its end tag's, from the tree. None outside an element, or for one without
+    /// an end tag (a void element, one left open).
+    public func enclosingTagNames(at offset: Int) -> [NSRange] {
+        guard language == .html, let slice, let root = slice.tree.rootNode else { return [] }
+        let local = offset - slice.range.location
+        guard local >= 0, local <= slice.range.length else { return [] }
+        let at = UInt32(local * 2)   // the tree counts bytes of UTF-16
+        var node = root.descendant(in: at..<at)
+        while let current = node {
+            if let kind = current.nodeType, kind == "element" || kind == "script_element" || kind == "style_element" {
+                var names: [NSRange] = []
+                current.enumerateChildren { child in
+                    guard child.nodeType == "start_tag" || child.nodeType == "end_tag" else { return }
+                    child.enumerateChildren { part in
+                        if part.nodeType == "tag_name" { names.append(NSRange(location: part.range.location + slice.range.location, length: part.range.length)) }
+                    }
+                }
+                if names.count == 2 { return names }
+            }
+            node = current.parent
+        }
+        return []
+    }
+
     /// The tree as tree-sitter prints it, for tests: incremental and fresh parses must agree.
     public var treeDescription: String { slice?.tree.rootNode?.sExpressionString ?? "" }
 

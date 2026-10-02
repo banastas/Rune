@@ -102,6 +102,31 @@ public struct Carets: Equatable, Sendable {
         return (edits, Carets(after, primary: primary))
     }
 
+    /// Typing `typed` at every caret, each closing its pair, wrapping its selection or stepping
+    /// over a closer as `AutoPairs` says for it, with `pairs` (ED10); else as `replacing` does.
+    /// The edits, in the text as it is, and the carets after.
+    public func typing(_ typed: String, in text: NSString, pairs: Bool) -> (edits: [Edit], after: Carets) {
+        guard pairs else { return replacing(with: [typed]) }
+        var edits: [Edit] = [], after: [Caret] = [], shift = 0
+        let length = (typed as NSString).length
+        for caret in all {
+            let range = caret.range
+            switch AutoPairs.typing(typed, in: text, selection: range) {
+            case .edit(let made, let replacement, let selection):
+                edits.append(Edit(range: made, replacement: replacement))
+                after.append(Caret(anchor: selection.location + shift, head: NSMaxRange(selection) + shift))
+                shift += (replacement as NSString).length - made.length
+            case .skip(let to):
+                after.append(Caret(to + shift))
+            case nil:
+                edits.append(Edit(range: range, replacement: typed))
+                after.append(Caret(range.location + shift + length))
+                shift += length - range.length
+            }
+        }
+        return (edits, Carets(after, primary: primary))
+    }
+
     /// A deletion at each caret: a selection deletes itself; an empty caret, `span(head)`, the
     /// range to delete from it (the character before it, the word, back to the line's start), or
     /// nothing when it's nil (at the very start, say). Deletions that overlap become one.

@@ -242,7 +242,8 @@ extension NibTextView {
 
     /// Typing at every caret.
     func typeAtCarets(_ text: String) {
-        let (edits, after) = currentCarets.replacing(with: [text])
+        guard let storage = textStorage else { return }
+        let (edits, after) = currentCarets.typing(text, in: storage.mutableString, pairs: autoPairs)
         perform(edits, then: after, action: "Typing", typing: true)
     }
 
@@ -279,7 +280,10 @@ extension NibTextView {
         case #selector(insertBacktab(_:)):
             outdentLines(nil)
         case #selector(deleteBackward(_:)), #selector(deleteBackwardByDecomposingPreviousCharacter(_:)):
-            delete("Delete") { $0 == 0 ? nil : text.rangeOfComposedCharacterSequence(at: $0 - 1) }
+            let pairs = autoPairs
+            delete("Delete") { head in
+                (pairs ? AutoPairs.deleting(in: text, caret: head) : nil) ?? (head == 0 ? nil : text.rangeOfComposedCharacterSequence(at: head - 1))
+            }
         case #selector(deleteForward(_:)):
             delete("Delete") { $0 >= text.length ? nil : text.rangeOfComposedCharacterSequence(at: $0) }
         case #selector(deleteWordBackward(_:)):

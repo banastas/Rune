@@ -84,3 +84,20 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
         #expect(share >= 98, "fidelity \(share)% (HL7 wants 98%)")
     }
 }
+
+@Suite struct TagMatchTests {
+    @Test func theInnermostElementsTags() async {
+        let html = "<div class=\"a\">\n  <p>Some <b>bold</b> text</p>\n  <br>\n</div>\n"
+        let ns = html as NSString
+        let document = SyntaxDocument(language: .html, root: "text.html.basic")
+        await document.update(html)
+        func names(_ marker: String, _ shift: Int = 0) async -> [String] {
+            await document.enclosingTagNames(at: ns.range(of: marker).location + shift).map { "\(ns.substring(with: $0))@\($0.location)" }
+        }
+        let p = ns.range(of: "<p>").location + 1, pEnd = ns.range(of: "</p>").location + 2
+        #expect(await names("Some") == ["p@\(p)", "p@\(pEnd)"])
+        #expect(await names("bold") == ["b@\(ns.range(of: "<b>").location + 1)", "b@\(ns.range(of: "</b>").location + 2)"])
+        #expect(await names("<br>", 1).first == "div@1")   // a void element has no end tag: the element round it
+        #expect(await document.enclosingTagNames(at: ns.length).isEmpty)
+    }
+}

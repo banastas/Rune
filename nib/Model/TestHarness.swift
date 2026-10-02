@@ -324,7 +324,7 @@ enum TestHarness {
         await endOfEvent(sview)
         log.check(sview.string.contains("<!-- comment me \(marker) -->"), "in Markdown: <!-- -->")
         let menu = NSApp.mainMenu?.items.first { $0.title == "Text" }?.submenu?.items.filter { !$0.isHidden && !$0.isSeparatorItem }.map(\.title) ?? []
-        log.check(menu == ["Indent", "Outdent", "Toggle Comment", "Duplicate Line", "Move Line Up", "Move Line Down", "Select Line", "Join Lines", "Go to Line…"],
+        log.check(menu == ["Indent", "Outdent", "Toggle Comment", "Duplicate Line", "Move Line Up", "Move Line Down", "Select Line", "Join Lines", "Go to Line…", "Go to Heading…"],
                   "the Text menu: \(menu.joined(separator: ", "))")
     }
 
@@ -3401,7 +3401,7 @@ enum TestHarness {
         log.check(schemes.current.name == "Scenario Paper \(marker)" && hex(view.backgroundColor) == "#FAFAF7" && recolored,
                   "Import File: the scheme is used, background \(hex(view.backgroundColor)), heading \(drawn(at: heading))")
         let report = schemes.report ?? ""
-        log.check(report.contains("IMPORTED SCENARIO PAPER") && report.contains("1 RULE · 5 GLOBALS USED · 1 NOT DRAWN YET (GUIDES)")
+        log.check(report.contains("IMPORTED SCENARIO PAPER") && report.contains("1 RULE · 6 GLOBALS USED") && !report.contains("NOT DRAWN")
                   && report.contains("LIGHT BACKGROUND · NIB'S WINDOWS STAY DARK"), "and reported: \(report)")
         log.check(NSApp.effectiveAppearance.name == .darkAqua && view.window?.effectiveAppearance.name == .darkAqua, "Nib's windows stay dark")
         try? await Task.sleep(for: .seconds(1))

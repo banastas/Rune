@@ -94,6 +94,9 @@ struct EditorSettings: View {
     @AppStorage("editorLineNumbers", store: NibDefaults.store) private var lineNumbers = true
     @AppStorage("editorInvisibles", store: NibDefaults.store) private var invisibles = false
     @AppStorage("editorMinimap", store: NibDefaults.store) private var minimap = true
+    @AppStorage("editorIndentGuides", store: NibDefaults.store) private var indentGuides = true
+    @AppStorage("editorMatchBrackets", store: NibDefaults.store) private var matchBrackets = true
+    @AppStorage("editorAutoPairs", store: NibDefaults.store) private var autoPairs = true
     @AppStorage("saveTrimsTrailingWhitespace", store: NibDefaults.store) private var trimOnSave = false
     @AppStorage("saveEnsuresFinalNewline", store: NibDefaults.store) private var newlineOnSave = false
     private static let families: [String] = {
@@ -128,7 +131,10 @@ struct EditorSettings: View {
                 Toggle("Show line numbers", isOn: $lineNumbers)
                 Toggle("Show invisibles", isOn: $invisibles)
                 Toggle("Show minimap", isOn: $minimap)
-                note("Line numbers in a gutter down the left, the caret's line brighter. Invisibles are spaces as dots and tabs as arrows, in the color scheme's own faint color. Import from Sublime Text sets these two to Sublime's. The minimap is the text at a seventh of its size beside the scroller, the lines in view under a box: click or drag in it to scroll. All three are in the View menu too.")
+                Toggle("Show indent guides", isOn: $indentGuides)
+                Toggle("Underline matching brackets and tags", isOn: $matchBrackets)
+                Toggle("Close brackets and quotes as you type", isOn: $autoPairs)
+                note("Line numbers in a gutter down the left, the caret's line brighter. Invisibles are spaces as dots and tabs as arrows, in the color scheme's own faint color. Import from Sublime Text sets these two to Sublime's. The minimap is the text at a seventh of its size beside the scroller, the lines in view under a box: click or drag in it to scroll. All three are in the View menu too. Indent guides, matching brackets and tags, and closing pairs are as in Sublime, in the color scheme's own colors; Import from Sublime Text sets them to Sublime's.")
             }
             Section {
                 Toggle("⌘S trims trailing whitespace", isOn: $trimOnSave)

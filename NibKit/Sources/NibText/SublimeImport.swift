@@ -30,6 +30,10 @@ public struct SublimeImport: Sendable {
         /// and `ensure_newline_at_eof_on_save`: Nib does them on ⌘S (ED6).
         public var trimOnSave: Bool? = nil
         public var newlineOnSave: Bool? = nil
+        /// `draw_indent_guides`, `match_brackets` (and `match_tags`) and `auto_match_enabled` (ED10).
+        public var indentGuides: Bool? = nil
+        public var matchBrackets: Bool? = nil
+        public var autoPairs: Bool? = nil
     }
 
     public enum Failure: Error, CustomStringConvertible {
@@ -104,7 +108,17 @@ public struct SublimeImport: Sendable {
                      lineNumbers: (settings["line_numbers"] as? NSNumber).map(\.boolValue),
                      invisibles: Self.drawsAllWhiteSpace(settings["draw_white_space"]),
                      trimOnSave: Self.trims(settings["trim_trailing_white_space_on_save"]),
-                     newlineOnSave: (settings["ensure_newline_at_eof_on_save"] as? NSNumber).map(\.boolValue))
+                     newlineOnSave: (settings["ensure_newline_at_eof_on_save"] as? NSNumber).map(\.boolValue),
+                     indentGuides: (settings["draw_indent_guides"] as? NSNumber).map(\.boolValue),
+                     matchBrackets: Self.matches(settings),
+                     autoPairs: (settings["auto_match_enabled"] as? NSNumber).map(\.boolValue))
+    }
+
+    /// `match_brackets` and `match_tags`: off only when both are (Nib has one switch for the two).
+    static func matches(_ settings: [String: Any]) -> Bool? {
+        let brackets = (settings["match_brackets"] as? NSNumber).map(\.boolValue), tags = (settings["match_tags"] as? NSNumber).map(\.boolValue)
+        guard brackets != nil || tags != nil else { return nil }
+        return (brackets ?? true) || (tags ?? true)
     }
 
     /// `trim_trailing_white_space_on_save`: true, "all" or "not_on_caret" is on; false or "none" off.

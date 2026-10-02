@@ -45,6 +45,21 @@ enum Scheme {
     static var gutter: NSColor { NSColor(theme.gutter) }
     static var gutterForeground: NSColor { NSColor(theme.gutterForeground) }
     static var gutterForegroundHighlight: NSColor { global("gutter_foreground_highlight") ?? foreground }
+    /// ED10: indent guides in the scheme's `guide` (An Old Hope's #2D2D2D); the brackets beside
+    /// the caret underlined in its `brackets_foreground` (#F8F8F0), the pair round it in its
+    /// `bracket_contents_foreground`; an HTML element's tag names in `tags_foreground`, or their
+    /// own color.
+    static var guide: NSColor { global("guide") ?? foreground.withAlphaComponent(0.12) }
+    static var bracketsForeground: NSColor { global("brackets_foreground") ?? foreground }
+    static var bracketContentsForeground: NSColor { global("bracket_contents_foreground") ?? bracketsForeground }
+    static var tagsForeground: NSColor { global("tags_foreground") ?? NSColor(theme.style(for: "entity.name.tag.html").foreground) }
+    /// "underline", "stippled_underline", "squiggly_underline", "foreground", "bold" or "glow";
+    /// Nib draws the underlines (a stippled one dotted), and an underline for the others.
+    static func stippled(_ option: String, else fallback: Bool) -> Bool {
+        guard let value = theme.globals[option] else { return fallback }
+        return value.hasPrefix("stippled") || value.hasPrefix("squiggly")
+    }
+
     /// Show Invisibles (ED6): the scheme's `invisibles` (An Old Hope's #3B3A32, faint on purpose).
     static var invisibles: NSColor { global("invisibles") ?? foreground.withAlphaComponent(0.3) }
     /// Find's other matches (ED7): the scheme's `find_highlight` behind them, and its
@@ -233,6 +248,10 @@ final class Schemes {
             // Line numbers and invisibles (ED6), as Sublime shows them.
             if let numbers = found.lineNumbers { defaults.set(numbers, forKey: "editorLineNumbers") }
             if let invisibles = found.invisibles { defaults.set(invisibles, forKey: "editorInvisibles") }
+            // Indent guides, matching brackets and tags, closing pairs (ED10), as Sublime has them.
+            if let guides = found.indentGuides { defaults.set(guides, forKey: "editorIndentGuides") }
+            if let matches = found.matchBrackets { defaults.set(matches, forKey: "editorMatchBrackets") }
+            if let pairs = found.autoPairs { defaults.set(pairs, forKey: "editorAutoPairs") }
             // Tidying on ⌘S (ED6), as Sublime does on save.
             if let trim = found.trimOnSave { defaults.set(trim, forKey: "saveTrimsTrailingWhitespace") }
             if let newline = found.newlineOnSave { defaults.set(newline, forKey: "saveEnsuresFinalNewline") }

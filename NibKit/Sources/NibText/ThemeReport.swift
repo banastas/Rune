@@ -11,7 +11,9 @@ public enum ThemeReport {
     /// The globals Nib's editor draws (HL5); the rest are counted as not drawn yet.
     public static let drawn: Set<String> = ["background", "foreground", "caret", "selection", "inactive_selection", "line_highlight",
                                                   "find_highlight", "find_highlight_foreground",
-                                                  "gutter", "gutter_foreground", "gutter_foreground_highlight", "invisibles"]
+                                                  "gutter", "gutter_foreground", "gutter_foreground_highlight", "invisibles",
+                                                  "guide", "brackets_foreground", "brackets_options", "bracket_contents_foreground",
+                                                  "bracket_contents_options", "tags_foreground", "tags_options"]
 
     /// The report's facts, in order; the caller adds its own (the font) and joins them with " · ".
     public static func facts(for theme: Theme) -> [String] {

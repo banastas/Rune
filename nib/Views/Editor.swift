@@ -114,6 +114,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     var onSelection: (() -> Void)?
 
     func textDidChange(_ notification: Notification) {
+        textView.matchedTags = []   // till the tree has the edit (`updateMatches`)
         document?.textDidChange()
         onChange?()
         scheduleHighlight()
@@ -299,6 +300,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             self.styled = window
             self.render(force: true)
             self.minimap?.needsDisplay = true
+            self.updateMatches()   // the tree has the edits now: the tags round the caret
         }
     }
 
@@ -529,6 +531,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
     func textViewDidChangeSelection(_ notification: Notification) {
         textView.needsDisplay = true   // the current-line highlight follows the caret
+        updateMatches()
         ruler?.needsDisplay = true     // and the gutter's bright number
         if !shownMatches.isEmpty {
             find.selectionChanged()
@@ -643,7 +646,37 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             }
         }
         if textView.showsInvisibles != invisibles { textView.showsInvisibles = invisibles }
+        // ED10, on unless turned off, as in Sublime. Closing pairs are off for the scenarios'
+        // typing unless one turns them on: they type text as it's to end up.
+        let guides = defaults.object(forKey: "editorIndentGuides") == nil || defaults.bool(forKey: "editorIndentGuides")
+        let matches = defaults.object(forKey: "editorMatchBrackets") == nil || defaults.bool(forKey: "editorMatchBrackets")
+        let pairs = defaults.object(forKey: "editorAutoPairs") == nil ? NibDefaults.scenario == nil : defaults.bool(forKey: "editorAutoPairs")
+        if textView.showsIndentGuides != guides { textView.showsIndentGuides = guides }
+        if textView.matchBrackets != matches { textView.matchBrackets = matches; updateMatches() }
+        textView.autoPairs = pairs
     }
+
+    /// ED10: the brackets at the caret, now; the HTML element round it, from the tree, a moment
+    /// after (and again when the tree has caught up with an edit).
+    func updateMatches() {
+        tagTask?.cancel()
+        let view = textView
+        guard view.matchBrackets, !view.multi, view.selectedRange().length == 0, let storage = view.textStorage else {
+            view.matchedBrackets = nil
+            view.matchedTags = []
+            return
+        }
+        let caret = view.selectedRange().location
+        view.matchedBrackets = Brackets.match(in: storage.mutableString, caret: caret)
+        guard syntax?.language == .html, let syntaxDocument, !highlightPending else { view.matchedTags = []; return }
+        tagTask = Task { [weak self] in
+            let names = await syntaxDocument.enclosingTagNames(at: caret)
+            guard !Task.isCancelled, let self, self.textView.selectedRange() == NSRange(location: caret, length: 0) else { return }
+            self.textView.matchedTags = names
+        }
+    }
+
+    private var tagTask: Task<Void, Never>?
 
     // MARK: Caret per Mac (SC3): local, never synced
 
@@ -717,7 +750,29 @@ final class NibTextView: NSTextView {
             typeAtCarets((string as? NSAttributedString)?.string ?? string as? String ?? "")
             return
         }
+        // A key typed (not a paste, not Nib's own insert): its pair closed, a selection wrapped,
+        // or a closer that's already there stepped over (ED10, `AutoPairs`).
+        if autoPairs, replacementRange.location == NSNotFound, !hasMarkedText(), let storage = textStorage,
+           let action = AutoPairs.typing((string as? NSAttributedString)?.string ?? string as? String ?? "", in: storage.mutableString, selection: selectedRange()) {
+            switch action {
+            case .edit(let range, let text, let selection):
+                super.insertText(text, replacementRange: range)
+                setSelectedRange(selection)
+            case .skip(let to):
+                setSelectedRange(NSRange(location: to, length: 0))
+            }
+            return
+        }
         super.insertText(string, replacementRange: replacementRange)
+    }
+
+    /// Backspace between an empty pair takes both (ED10).
+    override func deleteBackward(_ sender: Any?) {
+        if autoPairs, !multi, !hasMarkedText(), selectedRange().length == 0, let storage = textStorage,
+           let pair = AutoPairs.deleting(in: storage.mutableString, caret: selectedRange().location) {
+            setSelectedRange(pair)
+        }
+        super.deleteBackward(sender)
     }
 
     /// An input method composing (marked text): at one caret.
@@ -746,6 +801,19 @@ final class NibTextView: NSTextView {
     }
     /// Show Invisibles (ED6): spaces as dots, tabs as arrows, in the scheme's `invisibles`.
     var showsInvisibles = false { didSet { needsDisplay = true } }
+    /// ED10 (Settings › Editor, on as in Sublime): closing brackets and quotes as they're typed,
+    /// underlining matching brackets and tags, indent guides.
+    var autoPairs = true
+    var matchBrackets = true { didSet { needsDisplay = true } }
+    var showsIndentGuides = true { didSet { needsDisplay = true } }
+    /// What's underlined: the brackets at the caret, and the HTML element's tag names round it.
+    var matchedBrackets: Brackets.Match? { didSet { if oldValue != matchedBrackets { needsDisplay = true } } }
+    var matchedTags: [NSRange] = [] { didSet { if oldValue != matchedTags { needsDisplay = true } } }
+    #if DEBUG
+    /// Drawn last, for the `pairs` scenario.
+    private(set) var guidesDrawn = 0
+    private(set) var underlinesDrawn = 0
+    #endif
     #if DEBUG
     /// Dots and arrows drawn last, for the `gutter` scenario.
     private(set) var invisiblesDrawn = (dots: 0, arrows: 0)
@@ -931,6 +999,13 @@ final class NibTextView: NSTextView {
         let line = s.lineRange(for: NSRange(location: caret, length: 0))
         let before = s.substring(with: NSRange(location: line.location, length: caret - line.location))
         let lead = before.prefix { $0 == " " || $0 == "\t" }
+        // Between brackets: a line between, a step further in, the closer under the opener's line (ED10).
+        if autoPairs, selectedRange().length == 0, let storage = textStorage,
+           let made = AutoPairs.newline(in: storage.mutableString, caret: caret, indent: String(lead), unit: indentation.unit) {
+            insertText(made.text, replacementRange: selectedRange())
+            setSelectedRange(NSRange(location: caret + made.caret, length: 0))
+            return
+        }
         insertText("\n" + lead, replacementRange: selectedRange())
     }
 
@@ -972,6 +1047,113 @@ final class NibTextView: NSTextView {
             if let frame, frame.box.insetBy(dx: 0, dy: -12).intersects(rect) { drawFrame(block, frame) }
         }
         if showsInvisibles { drawInvisibles(in: rect) }
+        if showsIndentGuides { drawIndentGuides(in: rect) }
+        if matchBrackets { drawMatches(in: rect) }
+    }
+
+    // MARK: Indent guides and matching brackets (ED10)
+
+    /// A guide at each step of a line's indentation, on its first row, dotted, as Sublime draws
+    /// them by default (its "solid" option off); a blank line takes the guides of the lines round
+    /// it, the fewer.
+    private func drawIndentGuides(in rect: NSRect) {
+        guard let layout = textLayoutManager, let content = layout.textContentManager, let storage = textStorage else { return }
+        let text = storage.mutableString, origin = textContainerOrigin
+        let space = (" " as NSString).size(withAttributes: [.font: font ?? Scheme.font]).width
+        let tab = max(1, indentation.width)
+        guard let first = layout.textLayoutFragment(for: CGPoint(x: 0, y: max(0, rect.minY - origin.y)))
+                ?? layout.textLayoutFragment(for: content.documentRange.location) else { return }
+        Scheme.guide.setFill()
+        #if DEBUG
+        guidesDrawn = 0
+        #endif
+        layout.enumerateTextLayoutFragments(from: first.rangeInElement.location, options: [.ensuresLayout]) { fragment in
+            let frame = fragment.layoutFragmentFrame
+            guard origin.y + frame.minY <= rect.maxY else { return false }
+            guard let row = fragment.textLineFragments.first else { return true }
+            let start = content.offset(from: content.documentRange.location, to: fragment.rangeInElement.location)
+            let steps = (Self.indentColumns(text, line: start, tab: tab) + tab - 1) / tab
+            guard steps > 0 else { return true }
+            let left = origin.x + frame.minX + row.typographicBounds.minX + row.locationForCharacter(at: row.characterRange.location).x
+            let top = (origin.y + frame.minY + row.typographicBounds.minY).rounded(.down)
+            let bottom = origin.y + frame.minY + row.typographicBounds.maxY
+            for step in 0..<steps {
+                let x = (left + CGFloat(step * tab) * space).rounded(.down)
+                var y = top
+                while y < bottom { NSRect(x: x, y: y, width: 1, height: 1).fill(); y += 2 }
+                #if DEBUG
+                guidesDrawn += 1
+                #endif
+            }
+            return true
+        }
+    }
+
+    /// A line's indentation in columns (a tab to the next stop); a blank line's, the fewer of the
+    /// non-blank lines round it (a hundred lines either way at most).
+    private static func indentColumns(_ text: NSString, line start: Int, tab: Int) -> Int {
+        func measure(_ at: Int) -> Int? {   // nil for a blank line
+            var columns = 0, i = at
+            while i < text.length {
+                let c = text.character(at: i)
+                if c == 0x20 { columns += 1 } else if c == 0x09 { columns = (columns / tab + 1) * tab } else { return c == 0x0A ? nil : columns }
+                i += 1
+            }
+            return nil
+        }
+        if let columns = measure(start) { return columns }
+        var before: Int?, after: Int?, at = start, steps = 0
+        while before == nil, at > 0, steps < 100 {
+            at = text.lineRange(for: NSRange(location: at - 1, length: 0)).location
+            before = measure(at)
+            steps += 1
+        }
+        at = NSMaxRange(text.lineRange(for: NSRange(location: start, length: 0)))
+        steps = 0
+        while after == nil, at < text.length, steps < 100 {
+            after = measure(at)
+            at = NSMaxRange(text.lineRange(for: NSRange(location: at, length: 0)))
+            steps += 1
+        }
+        return min(before ?? 0, after ?? 0)
+    }
+
+    /// The brackets at the caret, underlined as the scheme says (`brackets_*` beside it,
+    /// `bracket_contents_*` round it), and the HTML element's tag names, stippled.
+    private func drawMatches(in rect: NSRect) {
+        #if DEBUG
+        underlinesDrawn = 0
+        #endif
+        if let match = matchedBrackets {
+            let color = match.beside ? Scheme.bracketsForeground : Scheme.bracketContentsForeground
+            let stippled = Scheme.stippled(match.beside ? "brackets_options" : "bracket_contents_options", else: false)
+            for offset in [match.open, match.close] { underline(NSRange(location: offset, length: 1), color: color, stippled: stippled, in: rect) }
+        }
+        for name in matchedTags { underline(name, color: Scheme.tagsForeground, stippled: Scheme.stippled("tags_options", else: true), in: rect) }
+    }
+
+    private func underline(_ range: NSRange, color: NSColor, stippled: Bool, in rect: NSRect) {
+        guard let layout = textLayoutManager, let content = layout.textContentManager, NSMaxRange(range) <= (textStorage?.length ?? 0),
+              let start = content.location(content.documentRange.location, offsetBy: range.location),
+              let fragment = layout.textLayoutFragment(for: start) else { return }
+        let origin = textContainerOrigin, frame = fragment.layoutFragmentFrame
+        let within = content.offset(from: fragment.rangeInElement.location, to: start)
+        guard let row = fragment.textLineFragments.first(where: { NSLocationInRange(within, $0.characterRange) }) else { return }
+        let rowOrigin = NSPoint(x: origin.x + frame.minX + row.typographicBounds.minX, y: origin.y + frame.minY + row.typographicBounds.minY)
+        let x0 = rowOrigin.x + row.locationForCharacter(at: within).x
+        let x1 = rowOrigin.x + row.locationForCharacter(at: min(within + range.length, NSMaxRange(row.characterRange))).x
+        let line = NSRect(x: x0.rounded(.down), y: (rowOrigin.y + row.glyphOrigin.y + 2).rounded(), width: max(1, (x1 - x0).rounded()), height: 1)
+        guard line.intersects(rect) else { return }
+        color.setFill()
+        if stippled {
+            var x = line.minX
+            while x < line.maxX { NSRect(x: x, y: line.minY, width: 1, height: 1).fill(); x += 2 }
+        } else {
+            line.fill()
+        }
+        #if DEBUG
+        underlinesDrawn += 1
+        #endif
     }
 
     /// Spaces (and no-break spaces) as a dot at the middle of the space, a tab as an arrow
