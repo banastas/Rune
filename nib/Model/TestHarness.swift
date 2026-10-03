@@ -1540,7 +1540,9 @@ enum TestHarness {
     /// §4.8 E, §4.9 8: another app moves a file to the Trash while it's open, typing not saved
     /// yet (saving held off): the text stays, the banner and the strip say so, and saving makes
     /// nothing at the path; Restore writes it all back, held and synced. Then it's deleted outright,
-    /// and closed: its text on Reopen Closed File, no file made again, no journal left.
+    /// and closed: its text on Reopen Closed File, no file made again, no journal left. Reopened
+    /// (⇧⌘T) with a file there again, that one opens as it is and the text comes back beside it;
+    /// with the same text there, nothing beside it; with nothing there, it's written back.
     static func deletedScenario(_ log: HarnessLog, _ marker: String) async {
         let folder = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("deleted-\(marker)", isDirectory: true)
         let url = folder.appendingPathComponent("gone-\(marker).md")
@@ -1554,6 +1556,10 @@ enum TestHarness {
             for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
             for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
             RecentFiles.shared.remove(url)
+            for buffer in Untitled.all() where buffer.lastPathComponent.hasPrefix("gone-\(marker) (closed)") {
+                Untitled.letGo(buffer)
+                Documents.existing(for: buffer)?.editor.textView.window?.performClose(nil)
+            }
         }
         AppDelegate.openFile(url)
         _ = await waitFor(30) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.held == true }
@@ -1617,6 +1623,46 @@ enum TestHarness {
         log.check(closed && item?.untitled == true && kept?.contains("typed before it went again \(marker)") == true
                   && !FileManager.default.fileExists(atPath: url.path) && journal.read(path: url.path) == nil,
                   "closed: its text is on Reopen Closed File, nothing is made at the path, and no journal is left")
+        guard let item, let kept else { return }
+
+        // ⇧⌘T with a file there again (another app made it anew): it opens as it is, never
+        // written over, and the text closed with the deleted one comes back beside it.
+        func onDisk() -> String { (try? String(contentsOf: url, encoding: .utf8)) ?? "" }
+        func besides() -> [URL] { Untitled.all().filter { $0.lastPathComponent.hasPrefix("gone-\(marker) (closed)") } }
+        func close(_ file: URL) async {
+            if Untitled.contains(file) { Untitled.letGo(file) }
+            Documents.existing(for: file)?.editor.textView.window?.performClose(nil)
+            _ = await waitFor(15) { Documents.existing(for: file) == nil }
+        }
+        let anew = "# Made anew by another app \(marker)\n"
+        try? Data(anew.utf8).write(to: url)
+        ClosedItems.shared.reopen(item)
+        let beside = await waitFor(20) { besides().first.flatMap { Documents.existing(for: $0) }?.ready == true }
+        let besideText = besides().first.flatMap { Documents.existing(for: $0) }?.editor.textView.string
+        log.check(beside && onDisk() == anew && Documents.existing(for: url)?.editor.textView.string == anew && besideText == kept
+                  && besides().first?.lastPathComponent == "gone-\(marker) (closed).md" && !ClosedItems.shared.items.contains { $0.path == url.path },
+                  "⇧⌘T with a file there again: it opens as it is, not written over, and the text it was closed with comes back beside it (\(besides().first?.lastPathComponent ?? "none"))")
+        for buffer in besides() { await close(buffer) }
+
+        // With the same text there: that file, and nothing beside it.
+        await close(url)
+        try? history.record(Data(anew.utf8), parent: nil, source: "deleted elsewhere")
+        ClosedItems.shared.add(.init(path: url.path, name: url.lastPathComponent, untitled: true, sha256: Digest.sha256(Data(anew.utf8)), time: Date()))
+        ClosedItems.shared.reopen(ClosedItems.shared.items[0])
+        _ = await waitFor(15) { Documents.existing(for: url)?.ready == true }
+        try? await Task.sleep(for: .seconds(2))   // time enough for a buffer beside it to come
+        log.check(Documents.existing(for: url)?.editor.textView.string == anew && besides().isEmpty && onDisk() == anew,
+                  "with the same text there: that file, nothing beside it")
+
+        // With nothing there: written back where it was, and opened.
+        await close(url)
+        try? FileManager.default.removeItem(at: url)
+        ClosedItems.shared.add(.init(path: url.path, name: url.lastPathComponent, untitled: true, sha256: item.sha256, time: Date()))
+        ClosedItems.shared.reopen(ClosedItems.shared.items[0])
+        let back = await waitFor(15) { Documents.existing(for: url)?.ready == true }
+        let shown = Documents.existing(for: url)?.editor.textView.string
+        log.check(back && onDisk() == kept && shown == kept && besides().isEmpty,
+                  "with nothing there: written back where it was, and opened (opened \(back), on disk \(onDisk() == kept ? "the text" : "\(onDisk().count) characters, not the text"), shown \(shown == kept ? "the text" : "\(shown?.count ?? -1) characters"), \(besides().count) beside it)")
     }
 
     /// §4.9, 12 and 13: iCloud storage full, then this Mac's disk full. Storage full: saved here,

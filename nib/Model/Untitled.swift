@@ -222,14 +222,36 @@ final class ClosedItems {
         let url = URL(fileURLWithPath: item.path)
         // Back where it was, so its History goes on; under a new name if that one's taken, an
         // untitled buffer's History, caret and syntax carried there (left behind, nothing reached
-        // them again). A deleted file's stay with its path.
-        let taken = Set(Untitled.all().map(\.lastPathComponent))
-        if !taken.contains(item.name), (try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)) != nil,
-           (try? data.write(to: url)) != nil {
+        // them again). A deleted file's stay with its path, and its text never goes over a file
+        // there again (restored from the Trash, made anew by another app, back from another
+        // Mac): that one opens as it is, and the text beside it (it was written over, 2026-10-03).
+        let untitled = Untitled.contains(url)
+        let free = !untitled || !Set(Untitled.all().map(\.lastPathComponent)).contains(item.name)
+        if free, (try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)) != nil,
+           (try? data.write(to: url, options: .withoutOverwriting)) != nil {
             AppDelegate.openFile(url)
+        } else if !untitled, FileManager.default.fileExists(atPath: url.path) {
+            reopenBeside(url, kept: TextFile.decode(data).text, name: item.name)
         } else if let fresh = Untitled.create(text: TextFile.decode(data).text) {
-            if Untitled.contains(url) { FileCommands.carrySettings(from: url, to: fresh) }
+            if untitled { FileCommands.carrySettings(from: url, to: fresh) }
             AppDelegate.openFile(fresh)
+        }
+    }
+
+    /// A deleted file's path with a file there again: that one opens as it is, and once it has,
+    /// the text the deleted one was closed with comes back beside it as "notes (closed).md",
+    /// unless it's the same text.
+    private func reopenBeside(_ url: URL, kept: String, name: String) {
+        guard AppDelegate.openFile(url) else { return }
+        Task {
+            // An evicted file waits on iCloud (§4.9, 7): after 10 s the text comes back anyway.
+            for _ in 0..<100 where Documents.existing(for: url)?.ready != true { try? await Task.sleep(for: .milliseconds(100)) }
+            if let open = Documents.existing(for: url), open.ready, open.editor.textView.string == kept { return }
+            let base = (name as NSString).deletingPathExtension, ext = (name as NSString).pathExtension
+            guard let fresh = Untitled.create(text: kept, name: ext.isEmpty ? "\(base) (closed)" : "\(base) (closed).\(ext)") else { return }
+            AppDelegate.openFile(fresh)
+            for _ in 0..<50 where Documents.existing(for: fresh)?.ready != true { try? await Task.sleep(for: .milliseconds(100)) }
+            Documents.existing(for: fresh)?.show("“\(name.uppercased())” IS THERE AGAIN, OPENED AS IT IS · THIS IS THE TEXT IT WAS CLOSED WITH", for: 12)
         }
     }
 
