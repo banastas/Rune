@@ -260,7 +260,7 @@ What that means for the design: scratch files grow to about **2.4 MB and 50,000 
   - *First: JSX, TypeScript and TSX; diff and patch files; Git's commit messages, `.gitignore`, `.gitattributes` and `.gitconfig`; Makefiles; YAML; TOML; `.env` (read with the shell grammar) and INI, which Sublime doesn't color; Python; and the other names Sublime reads as JSON (`.sublime-settings`, `.ipynb`…). Done the same day (§8).*
   - *Then: Go, Rust, Ruby, Java, C, Lua, PHP (inside HTML), SQL, LaTeX and reStructuredText. Done the same day but LaTeX (§8), deferred (the user's call): its grammar's ready-made parser is the 2022 release's (28 MB of C, about 5 MB in the app), and a current one needs tree-sitter's command-line tool installed to generate it.*
   - *Swift, which Sublime doesn't ship: Nib's own colors, and a first thing Nib colors that Sublime doesn't. Done the same day (§8).*
-  - *CSV and log files, which Sublime colors neither: each CSV column in a color of its own (as Sublime's Rainbow CSV package does), and in logs the timestamps, levels, quoted strings, numbers and URLs.*
+  - *CSV and log files, which Sublime colors neither: each CSV column in a color of its own (as Sublime's Rainbow CSV package does), and in logs the timestamps, levels, quoted strings, numbers and URLs. Done the same day (§8).*
   - *C++, Objective-C, C#, Perl and AppleScript keep the old rule: together they'd be about half the size the grammars add, they're the hardest to match against Sublime, and they're the least likely to turn up in a scratch file.*
 - **HL9 · P2** Re-import automatically when the source scheme file changes.
 - **HL10 · P0** **An Old Hope · Nib** is the built-in default scheme: [`themes/an-old-hope-nib.tmTheme`](themes/an-old-hope-nib.tmTheme), a corrected copy of the user's `an-old-hope.tmTheme` in the same format, so it also installs in Sublime and the two editors can be compared (HL7). The MVP editor draws its globals (background, text, caret, selection, line highlight) before highlighting exists (M1); its rules take effect with highlighting (M2). Import from Sublime recognizes the original An Old Hope and keeps the Nib edition. The changes, each the smallest that fixes one problem, with every text color now at least 4.5:1 on #1C1D21:
@@ -1586,6 +1586,36 @@ Now a launch with `-NibScenario` (every script's) is the test harness's Nib (`Ni
 - **Time and memory, at 2.4 MB of Swift (`nib-fidelity --bench`, Release):** the first parse 426 ms, a keystroke's reparse 8-14 ms, a screenful's styles 16-18 ms, all off the main thread. Swift keeps a tree of the whole at any size, as XML does: 108 MB at 2.4 MB, 8.5 MB for the 2 KB sample. A Swift file that big is rare. Parsing a big one a stretch at a time, as Markdown, JavaScript and CSS are, would need a place a parse can safely start, and an unfinished `/* /* */` (Swift's comments nest) or `"""` to be closed for it.
 - **Checks:** detection of the names and shebangs, Swift's colors (`swiftsOwnColors`), and the incremental and windowed tests on all 33 files, Sublime's and Nib's own (every one of the 1,320 edits compared, none repaired differently; the bound is now 1,250).
 - **App size:** the Release binary is 25.2 MB, up from 21.7 (Nib.app 27 MB). Swift's grammar is 3.5 MB of it.
+- **In the app:** the `syntax` scenario draws a `.swift` file in these colors, and View › Syntax lists Swift. The suite after is CSV's and logs' (below).
+
+**CSV and logs, HL8 (2026-10-02, the user's call).** Nib's own colors again, since Sublime colors neither, and the first languages Nib reads without a tree-sitter grammar.
+- **Which files:** `.csv`; `.tsv` and `.tab`; `.log`, a rotated log (`app.log.1`) and `syslog`. View › Syntax lists CSV, TSV and Log. Neither has comments, so ⌘/ says so, as for JSON.
+- **No tree (NibSyntax's `LineSyntax`):** both are read a record or a line at a time, from the start of the record or line a stretch starts in, so a stretch's colors are the whole text's, cut, and a file costs no memory past its text. A grammar's tree would hold a node for every field and comma, and big CSV exports are common.
+- **CSV:** each field takes its column's color, round six: plain, red, yellow, green, cyan, orange. Those are the scopes An Old Hope · Nib colors that way (a keyword, a function's name, a variable, a string, a number), so an imported scheme colors the columns apart too. Rainbow CSV's own ten scopes would color An Old Hope's columns white, red, white, grey, cyan, red, cyan, white, orange and green. Separators are plain.
+  - A field that starts with a quote runs to its closing quote, commas, `""` and line breaks included (RFC 4180); a quote inside a field is text.
+  - The separator: a .tsv file's is a tab, and its quotes are text. A .csv file's is whichever of comma, semicolon, tab and bar its first line has most of outside quotes (a comma if none), or the one Excel's `sep=;` first line names.
+  - Where a record starts depends on every quote before it. So a document keeps a record's start every 16K as far as it has read, drops those past an edit, and reads a stretch on from the last one before it.
+- **Logs:** in each line:
+  - timestamps, dimmed as comments are: ISO 8601 with or without a time zone, syslog's `Oct  2 17:24:01`, Apache's `[02/Oct/2026:17:24:01 +0000]`, `10/02/2026`, or a time alone;
+  - levels by severity: errors red, warnings yellow, information green, debugging dimmed. A level counts as a word in capitals or with a capital (`ERROR`, `Warning`), or in lower case where a level goes (`[error]`, `level=warn`, `error:`);
+  - quoted strings, and URLs (a sentence's full stop left out);
+  - UUIDs, numbers with their units (`112ms`, `2.5s`, `512KB`) and constants (`true`, `null`, `0x1f3a`), all orange.
+
+  The first to match at a place takes it, so a number inside a string or a timestamp is theirs. A line over 64K is left plain.
+- **Found on the way:** one pattern for all of it took 45 ms a screenful and 9 s for 2.4 MB: ICU tried every alternative at every place. Three small patterns (timestamps, strings, numbers) and a scan for words and URLs take 1.5-1.7 ms and 0.3 s.
+- **Time, at 2.4 MB (`nib-fidelity --bench`, Release):** for a CSV export, a screenful's styles take 1-2 ms and a keystroke's update 1-2 ms; for a log, 1.5-1.7 ms and 1.3-1.5 ms.
+- **Checks:**
+  - `LineSyntaxTests`: CSV's columns in turn, quotes over line breaks, the four separators and `sep=`, a TSV's quotes; a log's colors; a long line left plain; a document's stretches of a 120K CSV through 60 random edits, the same as the whole text's, cut.
+  - Detection of the names.
+  - The incremental and windowed tests on the generated CSV and log samples in `fidelity/own/` (35 files; all 1,400 edits compared).
+  - The `syntax` scenario: a .csv and a .log file drawn in their colors, with a snapshot of each, and View › Syntax's 33 languages by name.
+- **App size:** the Release binary is 25.3 MB, 0.1 MB more.
+- **The suite after (17:49-18:04), Swift's too:** 59 scenario runs and 430 checks, all passing but three, none in highlighting:
+  - `cli`'s `nib -w` exited 1 once, which it does when it finds Nib gone before the file is closed; it passed twice alone (18:06, 18:07).
+  - `merge` with no note logged nothing until it was killed at 115 s. The test file, uploaded a moment before by the run ahead of it, wasn't held at launch (iCloud was still uploading it after 15 s), and it was held on the third try, 86 s after the first; only then did the scenario's typing reach a save. Its sample is gone, since the next merge run has the same name and deleted it. It passed alone (18:06).
+  - `files`' File › Close: the Mac's screen was locked (`loginwindow` kept the focus), as at 16:57.
+
+  208 NibKit tests; a Release build compiles.
 
 **Notifications, SY15 (2026-10-01).** What notifies: a conflict (both versions between markers), a save Nib couldn't make (the file, the journal, the Recovery folder; a full disk), and, the user's call past A8's first list, a file deleted or moved to the Trash by another app, iCloud Drive turned off, and iCloud storage full. Not saves, syncs or merges.
 - **When:** only while Nib isn't frontmost (there the strip and the banner say it), and once while it lasts, per file: a full disk retried every 15 s, or iCloud's storage every few minutes, is one notification. It's said again only once it has ended and come back, and one seen while Nib was frontmost isn't said later. A save that lands ends a failed save, and a deletion (restored); synced ends them all; the blocks gone (resolved, or merged away by a late note) end a conflict; closing the file ends everything, and its notification leaves Notification Center. The states a retry passes through (uploading, waiting) end nothing, or a full iCloud would be news at every retry.

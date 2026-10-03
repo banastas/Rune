@@ -50,6 +50,9 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
     case go, rust, ruby, java, c, lua, php, sql, rst
     // Swift, whose colors are Nib's own (Sublime has no Swift).
     case swift
+    // Nib's own too, which Sublime colors neither, read without a grammar (LineSyntax): CSV's
+    // and TSV's columns, and logs.
+    case csv, tsv, log
 
     /// For the strip (HL1).
     public var name: String {
@@ -84,6 +87,9 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .sql: "SQL"
         case .rst: "reStructuredText"
         case .swift: "Swift"
+        case .csv: "CSV"
+        case .tsv: "TSV"
+        case .log: "Log"
         }
     }
 
@@ -122,10 +128,17 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .sql: "source.sql"
         case .rst: "text.restructuredtext"
         case .swift: "source.swift"
+        case .csv: "text.csv"
+        case .tsv: "text.tsv"
+        case .log: "text.log"
         }
     }
 
-    var tsLanguage: Language {
+    /// Read a record or a line at a time, with no tree (LineSyntax).
+    var byLine: Bool { self == .csv || self == .tsv || self == .log }
+
+    /// The grammar; none for CSV and logs.
+    var tsLanguage: Language? {
         switch self {
         case .html: Language(tree_sitter_html())
         case .css: Language(tree_sitter_css())
@@ -157,6 +170,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .sql: Language(tree_sitter_sql())
         case .rst: Language(tree_sitter_rst())
         case .swift: Language(tree_sitter_swift())
+        case .csv, .tsv, .log: nil
         }
     }
 
@@ -175,7 +189,8 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
 
     /// Nib's query for the language, parsed once.
     var query: Query? {
-        Self.queries.withLock { cache in
+        guard let grammar = tsLanguage else { return nil }
+        return Self.queries.withLock { cache in
             if let known = cache[self] { return known }
             var data = Data()
             for file in queryFiles {
@@ -183,7 +198,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
                       let part = try? Data(contentsOf: url) else { return nil }
                 data += part + Data("\n".utf8)
             }
-            let query = try? Query(language: tsLanguage, data: data)
+            let query = try? Query(language: grammar, data: data)
             cache[self] = query
             return query
         }
@@ -194,13 +209,14 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
     /// Why the query doesn't compile (a node type or field the grammar doesn't have, a bad
     /// predicate), or nil when it does: for writing queries (`nib-fidelity --queries`).
     public var queryProblem: String? {
+        guard let grammar = tsLanguage else { return nil }
         var data = Data()
         for file in queryFiles {
             guard let url = Bundle.module.url(forResource: file, withExtension: "scm", subdirectory: "Queries"),
                   let part = try? Data(contentsOf: url) else { return "\(file).scm is missing" }
             data += part + Data("\n".utf8)
         }
-        do { _ = try Query(language: tsLanguage, data: data); return nil } catch { return "\(error)" }
+        do { _ = try Query(language: grammar, data: data); return nil } catch { return "\(error)" }
     }
 
     /// By name, then by the first line: a shebang (HL1), or what Sublime's syntaxes look for there
@@ -224,12 +240,14 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case "pipfile.lock", "sublime_session": return (.json, "source.json")
         case ".editorconfig": return (.ini, "source.ini")
         case ".env": return (.shell, "source.shell.bash")
+        case "syslog": return (.log, "text.log")
         case "appfile", "appraisals", "berksfile", "brewfile", "cheffile", "deliverfile", "fastfile", "gemfile", "guardfile",
              "podfile", "rakefile", "rantfile", "scanfile", "snapfile", "thorfile", "vagrantfile", "capfile", ".irbrc", ".pryrc", ".simplecov":
             return (.ruby, "source.ruby")
         default: break
         }
         if name.hasPrefix(".env.") { return (.shell, "source.shell.bash") }   // .env.local, .env.production
+        if name.range(of: #"\.log\.\d+$"#, options: .regularExpression) != nil { return (.log, "text.log") }   // rotated: app.log.1
         switch ext {
         case "html", "htm", "xhtml": return (.html, "text.html.basic")
         case "css": return (.css, "source.css")
@@ -272,6 +290,9 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case "sql", "ddl", "dml": return (.sql, "source.sql")
         case "rst", "rest": return (.rst, "text.restructuredtext")
         case "swift", "swiftinterface": return (.swift, "source.swift")
+        case "csv": return (.csv, "text.csv")
+        case "tsv", "tab": return (.tsv, "text.tsv")
+        case "log": return (.log, "text.log")
         default: break
         }
         guard let line = firstLine else { return nil }
@@ -326,7 +347,7 @@ public enum Highlighter {
     /// The syntax tree, for writing queries (`nib-fidelity --tree`).
     public static func tree(_ text: String, language: SyntaxLanguage) -> String {
         let parser = Parser()
-        guard (try? parser.setLanguage(language.tsLanguage)) != nil, let tree = parser.parse(text) else { return "" }
+        guard let grammar = language.tsLanguage, (try? parser.setLanguage(grammar)) != nil, let tree = parser.parse(text) else { return "" }
         return tree.rootNode?.sExpressionString ?? ""
     }
 
@@ -334,7 +355,8 @@ public enum Highlighter {
     /// with its text, for writing queries (`nib-fidelity --nodes`).
     public static func nodes(_ text: String, language: SyntaxLanguage) -> String {
         let parser = Parser()
-        guard (try? parser.setLanguage(language.tsLanguage)) != nil, let tree = parser.parse(text), let root = tree.rootNode else { return "" }
+        guard let grammar = language.tsLanguage, (try? parser.setLanguage(grammar)) != nil, let tree = parser.parse(text),
+              let root = tree.rootNode else { return "" }
         let source = text as NSString
         var lines: [String] = []
         func walk(_ node: Node, _ depth: Int) {
@@ -398,10 +420,19 @@ public enum Highlighter {
         guard intersects(range, window) || (range.length == 0 && window.length == 0) else { return }
         for (i, root) in roots.enumerated() { spans.append(Span(range: range, scope: root, order: (level, -roots.count + i, spans.count))) }
         let part = string ?? text.substring(with: range), source = part as NSString
+        if language.byLine {
+            // CSV and logs: no tree, a record or a line at a time.
+            var records = LineSyntax.Records()
+            SyntaxDocument.units(of: part).withUnsafeBufferPointer {
+                LineSyntax.collect($0, offset: range.location, language: language, root: roots.last ?? language.rootScope ?? "",
+                                   level: level, window: window, records: &records, into: &spans)
+            }
+            return
+        }
         var parsed = given
         if parsed == nil {
             let parser = Parser()
-            guard (try? parser.setLanguage(language.tsLanguage)) != nil else { return }
+            guard let grammar = language.tsLanguage, (try? parser.setLanguage(grammar)) != nil else { return }
             parsed = parser.parse(part)
         }
         guard let tree = parsed, let root = tree.rootNode else { return }

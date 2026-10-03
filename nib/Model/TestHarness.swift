@@ -3562,6 +3562,46 @@ enum TestHarness {
                   "a .swift file is Swift (\(swiftDocument.syntaxName)): keyword, class, function, parameter, type, builtin, string and comment in Nib's own colors (\(scolors.joined(separator: " ")))")
         sview.window?.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: swiftURL) == nil }
+
+        // CSV and logs (HL8), Nib's own colors with no tree: a .csv file's columns in turn (a
+        // quoted field over two lines in one), a .log file's timestamps, levels, strings and
+        // numbers. A snapshot of each.
+        func snapshot(_ view: NSTextView, _ name: String) {
+            guard let frame = view.window?.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) else { return }
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent(name))
+        }
+        let csvURL = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("syntax-\(marker).csv")
+        let csvText = "id,title,published,duration,downloads,rating,url\n1,\"Plain, Text\nForever\",2026-09-14,42:17,18250,4.8,https://example.com/1\n2,Hot Exit,2026-10-02,29:40,,4.7,https://example.com/2\n"
+        let logURL = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("syntax-\(marker).log")
+        let logText = "2026-10-02 17:24:01.123 INFO  [sync] opened \"scratch.md\" in 112ms\n2026-10-02 17:24:09.002 WARN  [upload] retrying in 15s\n2026-10-02 17:24:24.871 ERROR [upload] failed: storage full\n"
+        try? Data(csvText.utf8).write(to: csvURL)
+        try? Data(logText.utf8).write(to: logURL)
+        defer {
+            for url in [csvURL, logURL] {
+                try? FileManager.default.removeItem(at: url)
+                NibDefaults.store.removeObject(forKey: "selection:" + url.path)
+            }
+        }
+        for (url, text, name, words, expected) in [
+            (csvURL, csvText, "CSV", ["id", "Plain", "Forever", "2026", "42:17", "18250", "4.8", "https", ","],
+             ["none", "#EC475D", "#EC475D", "#E7CE57", "#78BC65", "#50B4D8", "#EF7C2B", "none", "none"]),   // plain: no color drawn
+            (logURL, logText, "LOG", ["2026", "INFO", "sync", "scratch", "112ms", "WARN", "ERROR", "failed"],
+             ["#848484", "#78BC65", "none", "#50B4D8", "#EF7C2B", "#E7CE57", "#EC475D", "#EC475D"]),
+        ] {
+            AppDelegate.openFile(url)
+            _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+            guard let document = Documents.existing(for: url) else { log.check(false, "the \(name) file opened"); return }
+            let view = document.editor.textView, ns = text as NSString
+            func drawn(_ word: String) -> String { drawnColor(view, at: ns.range(of: word).location) }
+            let colored = await waitFor(5) { drawn(words[1]) == expected[1] }
+            let colors = words.map(drawn)
+            log.check(document.syntaxName == name && colored && colors == expected,
+                      "a .\(url.pathExtension) file is \(name) (\(document.syntaxName)), in Nib's own colors: \(zip(words, colors).map { "\($0) \($1)" }.joined(separator: ", "))")
+            snapshot(view, "snapshot-syntax-\(url.pathExtension).png")
+            view.window?.performClose(nil)
+            _ = await waitFor(15) { Documents.existing(for: url) == nil }
+        }
     }
 
     /// Theme import (HL2-HL4): a scheme file, then Import from Sublime Text from a generated

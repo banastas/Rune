@@ -1,0 +1,6 @@
+id,title,published,duration,downloads,rating,url,notes
+1,Plain Text Forever,2026-09-14,42:17,18250,4.8,https://example.com/ep/1,
+2,"Sync, Merge, Repeat",2026-09-21,38:05,16110,4.6,https://example.com/ep/2,"Guest: ""the iCloud whisperer"""
+3,Two Macs One File,2026-09-28,45:51,17342,4.9,https://example.com/ep/3,"Show notes that run
+over two lines"
+4,Hot Exit,2026-10-02,29:40,,4.7,https://example.com/ep/4,Recorded live

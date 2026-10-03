@@ -121,7 +121,7 @@ import SwiftTreeSitter
     /// Whether a fenced block that touches `window` runs on past `end` in a parse of the whole.
     static func cutsAFence(_ text: String, at end: Int, near window: NSRange) -> Bool {
         let parser = Parser()
-        guard (try? parser.setLanguage(SyntaxLanguage.markdown.tsLanguage)) != nil, let root = parser.parse(text)?.rootNode else { return false }
+        guard let grammar = SyntaxLanguage.markdown.tsLanguage, (try? parser.setLanguage(grammar)) != nil, let root = parser.parse(text)?.rootNode else { return false }
         var found = false
         func walk(_ node: Node) {
             guard !found, NSMaxRange(node.range) > window.location, node.range.location < NSMaxRange(window) else { return }

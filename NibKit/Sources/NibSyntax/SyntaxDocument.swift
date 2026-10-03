@@ -38,6 +38,8 @@ public actor SyntaxDocument {
     private(set) var checkpoints: [Int] = [0]
     private(set) var unsure: [Int] = [0]
     private var styles: Highlighter.StyleCache?
+    /// CSV's records' starts, as far as they're known (LineSyntax).
+    private var records = LineSyntax.Records()
 
     struct Limits: Sendable {
         /// Texts up to this long (UTF-16 units) keep a tree of the whole.
@@ -80,7 +82,7 @@ public actor SyntaxDocument {
         self.language = language
         self.root = root
         self.limits = language.hasStarts ? limits : Limits(whole: .max)
-        try? parser.setLanguage(language.tsLanguage)
+        if let grammar = language.tsLanguage { try? parser.setLanguage(grammar) }
     }
 
     /// Brings the tree up to `newText`. A big text's first parse waits for the first stretch asked for.
@@ -91,7 +93,7 @@ public actor SyntaxDocument {
             started = true
             text = newText
             units = new
-            if new.count <= limits.whole { parseWhole() }
+            if !language.byLine, new.count <= limits.whole { parseWhole() }
             return .whole
         }
         if new == units { return .unchanged }
@@ -103,6 +105,13 @@ public actor SyntaxDocument {
         while tail < limit - start, units[units.count - 1 - tail] == new[new.count - 1 - tail] { tail += 1 }
         let oldEnd = units.count - tail, newEnd = new.count - tail
         let change = Parse.incremental(NSRange(location: start, length: newEnd - start))
+        if language.byLine {
+            // No tree (CSV, logs): the text, and the records' starts up to the change.
+            records.cut(at: start)
+            text = newText
+            units = new
+            return change
+        }
         // A place to start on the changed line may not be one now (deleting the space of "- item").
         let lineStart = max(Self.lineStart(before: start, in: units), start - 256)
         move(dropping: lineStart, start: start, oldEnd: oldEnd, delta: newEnd - oldEnd)
@@ -340,6 +349,13 @@ public actor SyntaxDocument {
     public func runs(in window: NSRange) -> [ScopeRun] {
         guard started else { return [] }
         let window = NSIntersectionRange(window, NSRange(location: 0, length: units.count))
+        if language.byLine {
+            var spans = [Highlighter.Span(range: NSRange(location: 0, length: units.count), scope: root, order: (0, -1, 0))]
+            units.withUnsafeBufferPointer {
+                LineSyntax.collect($0, offset: 0, language: language, root: root, level: 0, window: window, records: &records, into: &spans)
+            }
+            return Highlighter.sweep(spans, window: window)
+        }
         ensureSlice(covering: window)
         guard let slice else { return [] }
         // The root scope spans the whole text, as in a parse of the whole: the longest span, so
@@ -388,6 +404,9 @@ public actor SyntaxDocument {
 
     /// The stretch the tree covers, for tests.
     var sliceRange: NSRange? { slice?.range }
+
+    /// CSV's records' starts kept, for tests.
+    var recordMarks: [Int] { records.marks }
 }
 
 extension SyntaxLanguage {

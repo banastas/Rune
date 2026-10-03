@@ -60,6 +60,8 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
             (".irbrc", .ruby), ("FeedParser.java", .java), ("buffer.c", .c), ("buffer.h", .c), ("config.lua", .lua),
             ("index.php", .php), ("page.phtml", .php), ("report.sql", .sql), ("guide.rst", .rst),
             ("FeedStore.swift", .swift), ("Package.swift", .swift), ("Foundation.swiftinterface", .swift),
+            ("episodes.csv", .csv), ("Export.CSV", .csv), ("feeds.tsv", .tsv), ("table.tab", .tsv), ("sync.log", .log),
+            ("system.log.0", .log), ("app.log.12", .log), ("syslog", .log),
         ]
         for (name, language) in named {
             #expect(SyntaxLanguage.detect(fileName: name)?.language == language, "\(name)")
@@ -77,6 +79,8 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
         #expect(SyntaxLanguage.detect(fileName: "changes", firstLine: "--- a/src/feed.js")?.language == .diff)
         #expect(SyntaxLanguage.detect(fileName: "changes", firstLine: "Index: src/feed.js")?.language == .diff)
         #expect(SyntaxLanguage.detect(fileName: "notes.txt", firstLine: "# Notes") == nil)
+        #expect(SyntaxLanguage.detect(fileName: "catalog.logs") == nil)
+        #expect(SyntaxLanguage.detect(fileName: "blog.md")?.language == .markdown)
         #expect(SyntaxLanguage.detect(fileName: "deploy", firstLine: "#!/usr/bin/env ruby")?.language == .ruby)
         #expect(SyntaxLanguage.detect(fileName: "script", firstLine: "#!/usr/bin/env lua")?.language == .lua)
         #expect(SyntaxLanguage.detect(fileName: "page", firstLine: "<?php")?.language == .php)

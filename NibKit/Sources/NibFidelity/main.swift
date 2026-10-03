@@ -68,7 +68,8 @@ if arguments[1] == "--memory", arguments.count > 2 {
 if arguments[1] == "--bench" {
     // How long highlighting takes on generated text (§6.5): scratch-shaped Markdown at 2.4 MB,
     // 50,000 lines (S2's shape), 5 MB of JavaScript, a podcast feed of 2.4 MB (HL8: years of
-    // episodes, as a real feed grows), and 2.4 MB of Swift (HL8). Release build: swift run -c release.
+    // episodes, as a real feed grows), 2.4 MB of Swift, and a CSV export and a log of 2.4 MB each
+    // (HL8). Release build: swift run -c release.
     func clock(_ label: String, _ work: () -> Int) {
         let start = Date()
         let count = work()
@@ -112,9 +113,19 @@ if arguments[1] == "--bench" {
     let swiftChunk = (try? String(contentsOf: URL(fileURLWithPath: "fidelity/own/FeedStore.swift"), encoding: .utf8)) ?? "let x = 1\n"
     var swift = ""
     while swift.utf8.count < 2_400_000 { swift += swiftChunk }
+    var csv = "id,title,published,duration,downloads,rating,url,notes\n", row = 0
+    while csv.utf8.count < 2_400_000 {
+        row += 1
+        csv += row % 9 == 0 ? "\(row),\"Sync, Merge, Repeat\",2026-09-21,38:05,\(16_000 + row),4.6,https://example.com/ep/\(row),\"Guest: \"\"the iCloud whisperer\"\"\nover two lines\"\n"
+            : "\(row),Plain Text Forever,2026-09-14,42:17,\(18_000 + row),4.8,https://example.com/ep/\(row),\n"
+    }
+    let logChunk = (try? String(contentsOf: URL(fileURLWithPath: "fidelity/own/sync.log"), encoding: .utf8)) ?? "2026-10-02 17:24:01 INFO x\n"
+    var log = ""
+    while log.utf8.count < 2_400_000 { log += logChunk }
     let theme = Theme.anOldHopeNib
     for (name, text, language, root) in [("Markdown 2.4 MB", markdown, SyntaxLanguage.markdown, "text.html.markdown"), ("JavaScript 5 MB", javascript, .javascript, "source.js"),
-                                         ("XML feed 2.4 MB", feed, .xml, "text.xml"), ("Swift 2.4 MB", swift, .swift, "source.swift")] {
+                                         ("XML feed 2.4 MB", feed, .xml, "text.xml"), ("Swift 2.4 MB", swift, .swift, "source.swift"),
+                                         ("CSV 2.4 MB", csv, .csv, "text.csv"), ("Log 2.4 MB", log, .log, "text.log")] {
         print("\(name): \(text.utf8.count) bytes, \(text.components(separatedBy: "\n").count) lines")
         clock("parse (tree-sitter)") { Highlighter.tree(text, language: language).count }
         var runs: [ScopeRun] = []

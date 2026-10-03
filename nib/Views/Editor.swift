@@ -507,8 +507,8 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         storage.endEditing()
     }
 
-    /// Toggle Comment's marks for the file's syntax, as Sublime's are; nil for plain text, JSON
-    /// and diffs. INI's, which Sublime doesn't color, is its usual `;`.
+    /// Toggle Comment's marks for the file's syntax, as Sublime's are; nil for plain text, JSON,
+    /// diffs, CSV and logs. INI's, which Sublime doesn't color, is its usual `;`.
     var commentStyle: CommentStyle? {
         switch syntax?.language {
         case .javascript, .jsx, .typescript, .tsx, .go, .rust, .java, .c, .php, .swift: .line("//")
@@ -518,7 +518,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         case .rst: .line("..")
         case .css: .block("/*", "*/")
         case .html, .markdown, .markdownInline, .xml: .block("<!--", "-->")
-        case .json, .diff, nil: nil
+        case .json, .diff, .csv, .tsv, .log, nil: nil
         }
     }
 
