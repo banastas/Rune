@@ -18,6 +18,8 @@ SIGN=${SIGN:-team}
 echo "==> Building nib (Debug, $SIGN signing)"
 scripts/build-nib.sh "$SIGN"   # and checks the app is newer than every source file
 APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
+# Waits for iCloud to finish uploading the test file before each launch (`run`, below).
+swiftc -O -o build/wait-uploaded scripts/wait-uploaded.swift 2>/dev/null || true
 
 # A fresh test file (generated text): earlier runs leave conflict blocks in it, and the
 # banner and the scenarios would see them all.
@@ -34,6 +36,12 @@ run() {   # [AS=<log name>] run <name> [args…]: one scenario, killed after 120
   # the same scenario deleted a hung variant's sample (`merge`, 2026-10-02).
   local file=${AS:-$name}
   rm -f "$LOGS/$file.log"   # a launch that never gets going must say so, not show an earlier run's log
+  # Not while iCloud is still uploading the test file (a run before handed it back with an upload
+  # to make, or this script just wrote it), up to 2 minutes: Nib doesn't pause a file mid-upload
+  # (PRD §4.3), so a launch then opens it unheld and waits on iCloud (`merge` with no note at
+  # 18:04 on 2026-10-02: 100 s, then killed).
+  local waited=""
+  [[ -x build/wait-uploaded ]] && waited=$(build/wait-uploaded "$TESTFILE" 120 || true)
   "$APP" -NibScenario "$name" -NibScenarioLog "$PWD/$LOGS/$file.log" "$@" >/dev/null 2>&1 &
   local pid=$!
   # The guard's output goes nowhere, or its sleep would hold a pipe open for 120 s. A hung
@@ -44,6 +52,7 @@ run() {   # [AS=<log name>] run <name> [args…]: one scenario, killed after 120
   wait "$pid" 2>/dev/null || true
   pkill -P "$guard" sleep 2>/dev/null || true; kill "$guard" 2>/dev/null || true   # (a launch that dies at once leaves no sleep yet)
   echo "==> $file"
+  if [[ -n $waited ]]; then echo "$waited"; fi
   grep -E "PASS|FAIL|STALL|after the last" "$LOGS/$file.log" || echo "FAIL no output$([[ -f $LOGS/$file-sample.txt ]] && echo " (hung: sampled in $LOGS/$file-sample.txt)")"
 }
 

@@ -3930,11 +3930,16 @@ enum TestHarness {
         await type("- typed while unheld \(marker)\n", into: document)
         let saved = await waitFor(10) { ((try? String(contentsOf: url, encoding: .utf8)) ?? "").contains("typed while unheld \(marker)") }
         log.check(saved, "typing saves while it's unheld")
-        let held = await waitFor(20) { document.held }
+        // Up to a minute: a try that finds iCloud still uploading the file (the typing above, just
+        // saved) leaves it unpaused for a later one (§4.3; the suite at 16:38 on 2026-10-02 held it
+        // on try 4, 22 s on, where this allowed try 3 and 20 s).
+        let held = await waitFor(60) { document.held }
         log.check(held, "held on a later try, \(Int(Date().timeIntervalSince(opened))) s after opening")
         let lines = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().filter { $0.path == url.path && $0.event == "pause" }
         let expected = 1 + NibDefaults.store.integer(forKey: "NibFailPauses") + NibDefaults.store.integer(forKey: "NibUnsupportedPauses")
-        log.check(lines.first?.detail?.hasPrefix("not held yet") == true && lines.last?.detail == "held on try \(expected)",
+        let waitedOut = lines.dropFirst(expected - 1).dropLast()   // tries after the made-up failures, before the hold
+        log.check(lines.first?.detail?.hasPrefix("not held yet") == true && lines.last?.detail == "held on try \(expected + waitedOut.count)"
+                      && waitedOut.allSatisfy { $0.detail?.contains("still uploading") == true },
                   "the Sync Log says so: \(lines.map { $0.detail ?? "held" }.joined(separator: " / "))")
         let uploaded = await waitFor(20) { !document.dirty && document.debugSnapshot.uploadedSHA != nil && document.debugSnapshot.uploadedSHA == document.debugSnapshot.baseSHA }
         log.check(uploaded, "what was saved meanwhile is uploaded (\(document.state.line))")
