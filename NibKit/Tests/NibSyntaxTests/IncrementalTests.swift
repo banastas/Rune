@@ -8,9 +8,11 @@ import Testing
 @testable import NibText
 
 @Suite struct IncrementalTests {
+    /// Sublime's reference files, and those in Nib's own colors (Swift, INI, .env; HL8).
     static let references: [(name: String, text: String, language: SyntaxLanguage, root: String)] = {
-        let folder = repository.appendingPathComponent("fidelity/reference")
-        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        let files = ["fidelity/reference", "fidelity/own"].flatMap { folder in
+            (try? FileManager.default.contentsOfDirectory(at: repository.appendingPathComponent(folder), includingPropertiesForKeys: nil)) ?? []
+        }
         return files.sorted { $0.path < $1.path }.compactMap { url in
             guard let text = try? String(contentsOf: url, encoding: .utf8),
                   let (language, root) = SyntaxLanguage.detect(fileName: url.lastPathComponent, firstLine: text.components(separatedBy: "\n").first) else { return nil }
@@ -27,7 +29,7 @@ import Testing
     }
 
     @Test func aWindowIsTheWholeCutToIt() throws {
-        try #require(Self.references.count == 30)   // six from HL1, three XML, twelve and nine more (HL8)
+        try #require(Self.references.count == 33)   // six from HL1, three XML, twelve, nine and three more (HL8)
         var windows = 0
         for file in Self.references {
             let whole = Highlighter.runs(file.text, language: file.language, root: file.root)
@@ -77,8 +79,8 @@ import Testing
                         "\(file.name) step \(step): the runs differ")
             }
         }
-        // 30 files of 40 edits: all but a few compared (repairs that differ are rare).
-        #expect(compared >= 1_140, "compared \(compared), repaired differently \(repaired)")
+        // 33 files of 40 edits: all but a few compared (repairs that differ are rare; none on 2026-10-02).
+        #expect(compared >= 1_250, "compared \(compared), repaired differently \(repaired)")
     }
 
     @Test func theChangeIsFound() async {

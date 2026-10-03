@@ -11,7 +11,7 @@ import NibSyntax
 import NibText
 
 let arguments = CommandLine.arguments
-guard arguments.count > 1 else { print("usage: nib-fidelity <fidelity folder> [--all] | --tree <file> | --nodes <file> | --runs <file> | --report [scheme]"); exit(2) }
+guard arguments.count > 1 else { print("usage: nib-fidelity <fidelity folder> [--all] | --tree <file> | --nodes <file> | --runs <file> | --colors <file> | --report [scheme]"); exit(2) }
 if arguments[1] == "--tree", arguments.count > 2 {
     // The syntax tree of a file, for writing queries.
     let url = URL(fileURLWithPath: arguments[2])
@@ -166,6 +166,20 @@ if arguments[1] == "--report" {
         print(error)
         exit(1)
     }
+}
+if arguments[1] == "--colors", arguments.count > 2 {
+    // Each run's text and how An Old Hope · Nib draws it (color, italic, bold, underline), for
+    // the languages whose colors are Nib's own (no Sublime to compare with).
+    let url = URL(fileURLWithPath: arguments[2])
+    let text = try String(contentsOf: url, encoding: .utf8)
+    guard let (language, root) = SyntaxLanguage.detect(fileName: url.lastPathComponent, firstLine: text.components(separatedBy: "\n").first) else { exit(2) }
+    for (range, style) in Highlighter.styles(text, language: language, root: root, theme: .anOldHopeNib) {
+        let part = (text as NSString).substring(with: range).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !part.isEmpty else { continue }
+        let marks = (style.italic ? "i" : " ") + (style.bold ? "b" : " ") + (style.underline ? "u" : " ")
+        print("\(style.foreground.hex) \(marks) \(part.replacingOccurrences(of: "\n", with: "⏎").prefix(60))")
+    }
+    exit(0)
 }
 if arguments[1] == "--runs", arguments.count > 2 {
     // Each run's text and scopes, for writing queries.

@@ -42,7 +42,7 @@ let package = Package(
             "TreeSitterXML", "TreeSitterTypeScript", "TreeSitterTSX", "TreeSitterPython", "TreeSitterYAML", "TreeSitterTOML",
             "TreeSitterMake", "TreeSitterDiff", "TreeSitterGitCommit", "TreeSitterGitIgnore", "TreeSitterGitAttributes",
             "TreeSitterGitConfig", "TreeSitterINI", "TreeSitterGo", "TreeSitterRust", "TreeSitterRuby", "TreeSitterJava",
-            "TreeSitterC", "TreeSitterLua", "TreeSitterPHP", "TreeSitterSQL", "TreeSitterRST",
+            "TreeSitterC", "TreeSitterLua", "TreeSitterPHP", "TreeSitterSQL", "TreeSitterRST", "TreeSitterSwift",
         ], resources: [.copy("Queries"), .copy("Themes")]),
         // CSS and JavaScript, vendored (Vendor/README.md): their manifests drop the external scanner.
         .target(name: "TreeSitterCSS", path: "Vendor/tree-sitter-css", sources: ["src/parser.c", "src/scanner.c"],
@@ -100,6 +100,9 @@ let package = Package(
         .target(name: "TreeSitterSQL", path: "Vendor/tree-sitter-sql", sources: ["src/parser.c", "src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterRST", path: "Vendor/tree-sitter-rst", sources: ["src/parser.c", "src/scanner.c"],
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+        // Swift (Nib's own colors: Sublime has none), from the release's tag with generated files.
+        .target(name: "TreeSitterSwift", path: "Vendor/tree-sitter-swift", sources: ["src/parser.c", "src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         // The fidelity harness's comparison (fidelity/run.sh): Nib's colors against Sublime's dump.
         .executableTarget(name: "NibFidelity", dependencies: ["NibSyntax", "NibText"]),

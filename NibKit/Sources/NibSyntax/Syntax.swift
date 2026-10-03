@@ -39,6 +39,7 @@ import TreeSitterLua
 import TreeSitterPHP
 import TreeSitterSQL
 import TreeSitterRST
+import TreeSitterSwift
 
 public enum SyntaxLanguage: String, CaseIterable, Sendable {
     case html, css, javascript, json, markdown, markdownInline = "markdown-inline", shell, xml
@@ -47,6 +48,8 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
          gitConfig = "git-config", makefile, yaml, toml, python, ini
     // Its second tier.
     case go, rust, ruby, java, c, lua, php, sql, rst
+    // Swift, whose colors are Nib's own (Sublime has no Swift).
+    case swift
 
     /// For the strip (HL1).
     public var name: String {
@@ -80,6 +83,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .php: "PHP"
         case .sql: "SQL"
         case .rst: "reStructuredText"
+        case .swift: "Swift"
         }
     }
 
@@ -117,6 +121,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .php: "embedding.php"
         case .sql: "source.sql"
         case .rst: "text.restructuredtext"
+        case .swift: "source.swift"
         }
     }
 
@@ -151,6 +156,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case .php: Language(tree_sitter_php())
         case .sql: Language(tree_sitter_sql())
         case .rst: Language(tree_sitter_rst())
+        case .swift: Language(tree_sitter_swift())
         }
     }
 
@@ -265,6 +271,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case "php", "php3", "php4", "php5", "php7", "php8", "phps", "phpt", "phtml": return (.php, "embedding.php")
         case "sql", "ddl", "dml": return (.sql, "source.sql")
         case "rst", "rest": return (.rst, "text.restructuredtext")
+        case "swift", "swiftinterface": return (.swift, "source.swift")
         default: break
         }
         guard let line = firstLine else { return nil }
@@ -279,6 +286,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
             if line.range(of: #"\b(?:cargo|rust)\b"#, options: .regularExpression) != nil { return (.rust, "source.rust") }
             if line.range(of: #"\b(?:bsh|java)\b"#, options: .regularExpression) != nil { return (.java, "source.java") }
             if line.range(of: #"\blua\b"#, options: .regularExpression) != nil { return (.lua, "source.lua") }
+            if line.range(of: #"\bswift\b"#, options: .regularExpression) != nil { return (.swift, "source.swift") }
             if line.range(of: #"[^-]\bphp(?:\d+(?:\.\d+){0,2})?\b"#, options: .regularExpression) != nil { return (.php, "embedding.php") }
         }
         if line.range(of: #"^\s*<\?php\b"#, options: .regularExpression) != nil { return (.php, "embedding.php") }
@@ -718,7 +726,7 @@ public enum Highlighter {
         } else if scope.hasPrefix("variable.parameter.xml"), token.hasPrefix("%") {
             mark(0, 1, "punctuation.definition.parameter.xml")
             if token.hasSuffix(";") { mark(n - 1, 1, "punctuation.terminator.parameter.xml") }
-        } else if scope.hasPrefix("variable"), !scope.hasSuffix(".makefile"), token.hasPrefix("$") {
+        } else if scope.hasPrefix("variable"), !scope.hasSuffix(".makefile"), !scope.hasSuffix(".swift"), token.hasPrefix("$") {
             mark(0, token.hasPrefix("${") ? 2 : 1, "punctuation.definition.variable")
         } else if scope.hasPrefix("variable.other.readwrite"), scope.hasSuffix(".ruby"), token.hasPrefix("@") {
             mark(0, token.hasPrefix("@@") ? 2 : 1, "punctuation.definition.variable.ruby")   // @feeds, @@count
@@ -862,6 +870,8 @@ enum Injections {
             "ruby": (.ruby, "ruby", "source.ruby"), "rb": (.ruby, "ruby", "source.ruby"), "rbx": (.ruby, "ruby", "source.ruby"),
             "java": (.java, "java", "source.java"), "c": (.c, "c", "source.c"), "h": (.c, "c", "source.c"), "lua": (.lua, "lua", "source.lua"),
             "sql": (.sql, "sql", "source.sql"),
+            // Nib's own: Sublime's Markdown has no Swift.
+            "swift": (.swift, "swift", "source.swift"),
         ]
         guard let (language, id, root) = table[name] else { return nil }
         return (language, ["markup.raw.code-fence.\(id).markdown-gfm", root])

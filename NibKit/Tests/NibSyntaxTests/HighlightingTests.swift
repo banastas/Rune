@@ -59,6 +59,7 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
             ("main.go", .go), ("cache.rs", .rust), ("sync.rb", .ruby), ("Gemfile", .ruby), ("Rakefile", .ruby), ("app.gemspec", .ruby),
             (".irbrc", .ruby), ("FeedParser.java", .java), ("buffer.c", .c), ("buffer.h", .c), ("config.lua", .lua),
             ("index.php", .php), ("page.phtml", .php), ("report.sql", .sql), ("guide.rst", .rst),
+            ("FeedStore.swift", .swift), ("Package.swift", .swift), ("Foundation.swiftinterface", .swift),
         ]
         for (name, language) in named {
             #expect(SyntaxLanguage.detect(fileName: name)?.language == language, "\(name)")
@@ -80,6 +81,8 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
         #expect(SyntaxLanguage.detect(fileName: "script", firstLine: "#!/usr/bin/env lua")?.language == .lua)
         #expect(SyntaxLanguage.detect(fileName: "page", firstLine: "<?php")?.language == .php)
         #expect(SyntaxLanguage.detect(fileName: "run", firstLine: "#!/usr/bin/env php")?.language == .php)
+        #expect(SyntaxLanguage.detect(fileName: "release", firstLine: "#!/usr/bin/env swift")?.language == .swift)
+        #expect(SyntaxLanguage.detect(fileName: "release", firstLine: "#!/usr/bin/xcrun swift -O")?.language == .swift)
     }
 
     /// Nib's own colors where Sublime has none (HL8): INI as Git's config files, .env as shell.
@@ -97,6 +100,50 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
         #expect(color(of: "abc123", in: env, language, root: root) == "#50B4D8")
         #expect(color(of: "8080", in: env, language, root: root) == "#EF7C2B")
         #expect(color(of: "local", in: env, language, root: root) == "#848484")
+    }
+
+    /// Swift, whose colors are Nib's own (HL8): Sublime's scopes for the same things in its other
+    /// languages, so a scheme colors them alike (a class's name as Python's, a struct's plain as
+    /// Rust's, call labels as Python's keyword arguments, attributes as Java's annotations).
+    @Test func swiftsOwnColors() {
+        let swift = #"""
+        import SwiftUI
+
+        /// One feed's store.
+        @MainActor
+        final class FeedStore: ObservableObject {
+            struct Row { let id: UUID }
+            static let pageSize = 20
+
+            func load(_ url: URL, retries: Int = 3) async {
+                defer { done = true }
+                let fresh = try await source.episodes(for: url)
+                rows = fresh.filter { !$0.title.isEmpty }
+                print("try \(attempt): timed out")
+                let label = Text("Hi")
+            }
+        }
+        """#
+        #expect(color(of: "final", in: swift, .swift) == "#EC475D")
+        #expect(color(of: "FeedStore", in: swift, .swift) == "#E7CE57")
+        #expect(color(of: "Row", in: swift, .swift) == "#F8F8F2")
+        #expect(color(of: "ObservableObject", in: swift, .swift) == "#50B4D8")
+        #expect(color(of: "SwiftUI", in: swift, .swift) == "#78BC65")   // as Python's imported names
+        #expect(color(of: "load", in: swift, .swift) == "#E7CE57")
+        #expect(color(of: "retries", in: swift, .swift) == "#EF7C2B")
+        #expect(color(of: "for:", in: swift, .swift) == "#EF7C2B")
+        #expect(color(of: "filter", in: swift, .swift) == "#78BC65")
+        #expect(color(of: "$0", in: swift, .swift) == "#EF7C2B")
+        #expect(color(of: "print", in: swift, .swift) == "#50B4D8")
+        #expect(color(of: "defer", in: swift, .swift) == "#EC475D")
+        #expect(color(of: "@", in: swift, .swift) == "#F8F8F2")
+        #expect(color(of: "MainActor", in: swift, .swift) == "#78BC65")
+        #expect(color(of: "timed", in: swift, .swift) == "#50B4D8")
+        #expect(color(of: "\\(", in: swift, .swift) == "#F8F8F2")
+        #expect(color(of: "attempt", in: swift, .swift) == "#78BC65")
+        #expect(color(of: "Text", in: swift, .swift) == "#50B4D8")
+        #expect(color(of: "20", in: swift, .swift) == "#EF7C2B")
+        #expect(color(of: "feed's", in: swift, .swift) == "#848484")
     }
 
     @Test func sublimesScopes() {
