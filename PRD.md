@@ -1627,7 +1627,7 @@ Now a launch with `-NibScenario` (every script's) is the test harness's Nib (`Ni
   - `merge` waits for the hold first, up to 60 s, and says when it came late. Unheld, it had gone on and then had no version uploaded while holding to merge from. `-NibStillUploading n` (new) makes the next n waits for an upload find iCloud still uploading. With 2, the file was held 21 s into the scenario and every check passed; before this change the same run failed ("nothing uploaded to merge from").
 - **The Nib in daily use keeps App Nap:** it's napped only while no one can see it, and its timers matter less then (A11).
 - **The suite after (20:49-21:01, the screen locked):** 60 scenario runs and 436 checks, all passing but three. No STALL lines, and `nap` passed (the longest 50 ms wait 53 ms, the typing on time).
-  - `files`' File › Close: the screen was locked, as before.
+  - `files`' File › Close: the screen was locked, as before. With it unlocked, `files` passed alone, all 10 checks (21:26).
   - `refusal`'s two failed on conflict markers in the test file, but not their own. `mergeview`'s upload at its quit was refused (iCloud had a newer version: the hand-back race of §4.3, between runs a few seconds apart), so Nib took the server's version and kept its text in the journal; the next launch found both changed and wrote both between markers, as designed, and nothing was lost. Its check now counts only blocks it makes (it said "nothing between markers" of the whole file). Both passed alone after (21:03), saying "3 left by earlier scenarios".
 
   208 NibKit tests.
