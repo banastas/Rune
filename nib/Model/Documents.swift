@@ -64,7 +64,7 @@ enum Documents {
         CLIBridge.closed(document.url)   // `nib -w` (AP4): its text is in the file now
         guard !AppDelegate.terminating else { return }
         if document.untitled {
-            Untitled.discard(document)
+            await Untitled.discard(document)
         } else if document.locked == nil, !document.deleted {   // a deleted file's text is on the list already
             ClosedItems.shared.add(.init(path: document.url.path, name: document.url.lastPathComponent, untitled: false, sha256: nil, time: Date()))
         }

@@ -3,14 +3,18 @@
 // loses at most that. Local only, never synced. A snapshot counts only once it's
 // fsynced and renamed into place (L3: record state only after the bytes are down).
 //
-// A big text (over a million characters: scratch files have reached 2.4 MB) is journaled as
-// an edit log instead (§4.3, §4.9 row 24): a whole snapshot at most once a minute, and after
-// each pause in typing only what changed since the last write, appended to the log beside the
-// snapshot and fsynced, so typing writes bytes, not megabytes (a snapshot every pause was
-// 2.4 MB, about 10 MB/s while typing). A save that leaves nothing unsaved appends a line
-// saying so, where a small text's journal is deleted: deleting it would mean a new snapshot
-// at the next pause, a save every few seconds. A torn last line (a crash mid-append) is
-// ignored: the text as of the pause before.
+// Each text is journaled as an edit log (§4.3, §4.9 row 24): a whole snapshot when its journal
+// starts, and after each pause in typing only what changed since the last write, a line written
+// into the log beside the snapshot and fsynced, so typing writes bytes, not the text. A new
+// snapshot comes once the log reaches 1 MB. Big texts (over a million characters) had this from
+// 2026-09-30, with a snapshot every minute; smaller ones wrote a whole snapshot every pause, and
+// the scratch file at 223 KB meant about 260 KB a pause, a gigabyte or two an hour of typing as
+// the kernel counts writes; and at 2.4 MB the minute's snapshots were 150 MB an hour (the
+// disk-writes report of 2026-10-02, PRD §8). The log keeps room ahead of its lines (zeros, read
+// as its end): a line written into it counts about 2 KB, appended (growing the file) about 17.
+// A save that leaves nothing unsaved writes a line saying so: deleting the journal would mean a
+// new snapshot at the next pause. A torn last line (a crash mid-write) is ignored: the text as
+// of the pause before.
 
 import Darwin
 import Foundation
@@ -40,21 +44,23 @@ public struct JournalEntry: Codable, Sendable, Equatable {
 
 public final class Journal: Sendable {
     public let directory: URL
-    /// Texts longer than this (UTF-16 units) are journaled as edits after a snapshot.
-    public static let logAbove = 1_000_000
-    /// A snapshot serves its log this long, and the log grows to this many bytes at most.
-    static let snapshotLife: TimeInterval = 60
+    /// A log grows to this many bytes of lines at most; then a new snapshot.
     static let logLimit = 1_048_576
+    /// Room kept in the log ahead of its lines.
+    static let logRoom = 65_536
 
-    /// Each big text as last journaled, by path: what the next change is measured from.
+    /// Each text as last journaled, by path: what the next change is measured from.
     private let logs = Mutex<[String: Log]>([:])
 
     struct Log: Sendable {
         var text: String
         var base: String?
         var format: FileFormat
-        var since: Date
+        /// Bytes of lines after the first, against `logLimit`.
         var bytes: Int
+        /// Where the next line goes, and the file's size (room included).
+        var end: Int
+        var room: Int
         /// Everything journaled is in the file (a save left nothing unsaved).
         var clean = false
     }
@@ -86,44 +92,41 @@ public final class Journal: Sendable {
         url(for: path).deletingPathExtension().appendingPathExtension("log")
     }
 
-    /// The buffer's text and the version it's from, journaled: a whole snapshot, or for a big
-    /// text what changed since the last write, appended to the log. Blocking: call it on the
-    /// journal's queue.
+    /// The buffer's text and the version it's from, journaled: what changed since the last
+    /// write, a line in the log, or a whole snapshot when the journal starts (or its log is
+    /// full, or the text's format changed). Blocking: call it on the journal's queue.
     public func record(path: String, text: String, baseSHA256: String?, format: FileFormat, now: Date = Date()) throws {
-        let length = (text as NSString).length
-        if length > Self.logAbove, let log = logs.withLock({ $0[path] }), log.format == format,
-           now.timeIntervalSince(log.since) < Self.snapshotLife, log.bytes < Self.logLimit {
+        if let log = logs.withLock({ $0[path] }), log.format == format, log.bytes < Self.logLimit {
             var line = Line(written: now)
             if let change = TextDelta.change(from: log.text as NSString, to: text as NSString) {
                 line.at = change.range.location
                 line.cut = change.range.length
                 line.text = change.replacement
-                line.length = length
+                line.length = (text as NSString).length
                 line.base = baseSHA256
             } else if baseSHA256 != log.base {
                 line.base = baseSHA256
             } else {
                 return   // nothing new
             }
-            let bytes = try append(line, for: path)
+            try append(line, for: path, kind: line.text == nil ? "journal base" : "journal edit")
             logs.withLock {
                 $0[path]?.text = text
                 $0[path]?.base = baseSHA256
-                $0[path]?.bytes += bytes
                 if line.text != nil { $0[path]?.clean = false }
             }
             return
         }
         let entry = JournalEntry(path: path, text: text, baseSHA256: baseSHA256, format: format, written: now)
         try write(entry)
-        guard length > Self.logAbove else { return }
-        try start(after: entry)
-        logs.withLock { $0[path] = Log(text: text, base: baseSHA256, format: format, since: now, bytes: 0) }
+        let (end, room) = try start(after: entry)
+        logs.withLock { $0[path] = Log(text: text, base: baseSHA256, format: format, bytes: 0, end: end, room: room) }
     }
 
     /// Temp file, fsync, rename over the previous snapshot, fsync the folder. A log after the
     /// last snapshot no longer applies.
     public func write(_ entry: JournalEntry) throws {
+        let mark = WriteMeter.start()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let target = url(for: entry.path)
         let temp = target.appendingPathExtension("tmp")
@@ -142,30 +145,55 @@ public final class Journal: Sendable {
         syncFolder()
         try? FileManager.default.removeItem(at: logURL(for: entry.path))
         logs.withLock { $0[entry.path] = nil }
+        WriteMeter.add("journal snapshot", bytes: data.count, since: mark)
     }
 
     /// A new log, naming the snapshot it follows: a log left by a crash between the snapshot and
-    /// this names the snapshot before, and is ignored.
-    private func start(after entry: JournalEntry) throws {
+    /// this names the snapshot before, and is ignored. Its end, and the file's size with room.
+    private func start(after entry: JournalEntry) throws -> (end: Int, room: Int) {
+        let mark = WriteMeter.start()
         let data = try JSONEncoder().encode(Line(snapshot: entry.textSHA256)) + [0x0A]
         let url = logURL(for: entry.path)
         FileManager.default.createFile(atPath: url.path, contents: nil)
         let handle = try FileHandle(forWritingTo: url)
         defer { try? handle.close() }
         try handle.write(contentsOf: data)
+        let room = data.count + Self.logRoom
+        try handle.truncate(atOffset: UInt64(room))
         try handle.synchronize()
         syncFolder()
+        WriteMeter.add("journal log start", bytes: data.count, since: mark)
+        return (data.count, room)
     }
 
-    /// A line at the end of the log, fsynced. Its size in bytes.
-    private func append(_ line: Line, for path: String) throws -> Int {
+    /// A line at the log's end, written into its room (more made when it runs out) and fsynced.
+    private func append(_ line: Line, for path: String, kind: String) throws {
+        guard let log = logs.withLock({ $0[path] }) else { return }
+        let mark = WriteMeter.start()
         let data = try JSONEncoder().encode(line) + [0x0A]
         let handle = try FileHandle(forWritingTo: logURL(for: path))
         defer { try? handle.close() }
-        try handle.seekToEnd()
+        var room = log.room
+        if log.end + data.count > room {
+            room = log.end + data.count + Self.logRoom
+            try handle.truncate(atOffset: UInt64(room))
+        }
+        try handle.seek(toOffset: UInt64(log.end))
         try handle.write(contentsOf: data)
         try handle.synchronize()
-        return data.count
+        logs.withLock {
+            $0[path]?.end += data.count
+            $0[path]?.room = room
+            $0[path]?.bytes += data.count
+        }
+        WriteMeter.add(kind, bytes: data.count, since: mark)
+    }
+
+    /// The bytes of lines in the log for `path` as written, without its room (the `crash-big`
+    /// scenario watches it grow).
+    public func logBytes(for path: String) -> Int {
+        guard let log = try? Data(contentsOf: logURL(for: path)) else { return 0 }
+        return log.firstIndex(of: 0).map { $0 - log.startIndex } ?? log.count
     }
 
     private func syncFolder() {
@@ -186,7 +214,8 @@ public final class Journal: Sendable {
         let text = NSMutableString(string: entry.text)
         var clean = false, edited = false
         for raw in lines.dropFirst() {
-            guard let line = try? decoder.decode(Line.self, from: raw) else { break }   // torn: what came before stands
+            // Torn, or the room's zeros after the last line: what came before stands.
+            guard let line = try? decoder.decode(Line.self, from: raw) else { break }
             if let at = line.at, let cut = line.cut, let replacement = line.text, let length = line.length {
                 guard at >= 0, cut >= 0, at + cut <= text.length else { break }
                 text.replaceCharacters(in: NSRange(location: at, length: cut), with: replacement)
@@ -207,23 +236,20 @@ public final class Journal: Sendable {
     }
 
     /// The journal for `path` is gone: its document closed with nothing unsaved, or it had
-    /// nothing to recover (a big text's clean log would otherwise stay, a 2.4 MB snapshot).
+    /// nothing to recover (a clean log would otherwise stay, with its snapshot).
     public func remove(path: String) {
         logs.withLock { $0[path] = nil }
         try? FileManager.default.removeItem(at: url(for: path))
         try? FileManager.default.removeItem(at: logURL(for: path))
     }
 
-    /// After a save has landed, the journal has nothing the file lacks. A big text's log says so
-    /// (the next change is still measured from its snapshot); a small one's goes.
+    /// After a save has landed, the journal has nothing the file lacks. Its log says so (the next
+    /// change is still measured from its snapshot); one that can't be written to goes.
     public func clear(path: String) {
         if let log = logs.withLock({ $0[path] }) {
             guard !log.clean else { return }
-            if let bytes = try? append(Line(clean: true, written: Date()), for: path) {
-                logs.withLock {
-                    $0[path]?.clean = true
-                    $0[path]?.bytes += bytes
-                }
+            if (try? append(Line(clean: true, written: Date()), for: path, kind: "journal clean")) != nil {
+                logs.withLock { $0[path]?.clean = true }
                 return
             }
         }

@@ -82,10 +82,12 @@ final class NotePresenter: NSObject, NSFilePresenter, @unchecked Sendable {
         noteName = note.lastPathComponent
     }
 
+    /// What's on disk: a fresh read evicts the note, and that was a change to hear of in turn
+    /// (`Document.checkAnnouncement`).
     private func check(_ url: URL, _ reason: String) {
         guard url.lastPathComponent == noteName else { return }
         let document = self.document
-        Task { @MainActor in await document?.checkAnnouncement(reason: reason) }
+        Task { @MainActor in await document?.checkAnnouncement(reason: reason, fresh: false) }
     }
 
     func presentedSubitemDidAppear(at url: URL) { check(url, "note appeared") }

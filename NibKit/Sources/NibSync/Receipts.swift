@@ -79,11 +79,13 @@ public struct DeviceReceipts: Codable, Sendable, Equatable {
         }
         try FileManager.default.createDirectory(at: devices, withIntermediateDirectories: true)
         let data = try encoded()
+        let mark = WriteMeter.start()
         var coordinationError: NSError?
         var writeError: Error?
         NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { target in
             do { try data.write(to: target, options: .atomic) } catch { writeError = error }
         }
+        WriteMeter.add("receipt", bytes: data.count, since: mark)
         if let error = coordinationError ?? writeError { throw error }
     }
 

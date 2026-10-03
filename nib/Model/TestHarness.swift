@@ -124,6 +124,7 @@ enum TestHarness {
             case "icloudoff": await iCloudOffScenario(log, marker)
             case "evicted": await evictedScenario(log, marker)
             case "large": await largeScenario(log, marker)
+            case "writes": await writesScenario(log, marker)
             case "carets": await caretsScenario(log, marker)
             case "minimap": await minimapScenario(log, marker)
             case "mdlist": await markdownListScenario(log, marker)
@@ -137,8 +138,12 @@ enum TestHarness {
             case "bigopen": await bigOpen(log, marker)
             case "idlebig":   // §6.5's idle memory with a scratch-sized file open (2.4 MB of Markdown, untitled)
                 await waitReady(document)
+                // -NibIdleBigSize n: n bytes in place of 2.4 MB (the user's scratch file was 223 KB on
+                // 2026-10-02: under 256K, so its syntax tree is the whole file's).
+                let asked = NibDefaults.store.integer(forKey: "NibIdleBigSize"), wanted = asked > 0 ? asked : 2_400_000
+                let size = wanted >= 1_000_000 ? String(format: "%.1f MB", Double(wanted) / 1_000_000) : "\(wanted / 1_000) KB"
                 var md = "# Scratch-sized \(marker)\n", m = 0
-                while md.utf8.count < 2_400_000 {
+                while md.utf8.count < wanted {
                     m += 1
                     md += m % 50 == 0 ? "## Notes for \(m)\n" : m % 3 == 0 ? "- item \(m) with `code` and **bold** text\n" : "Line \(m): see https://example.com/\(m) and the config.json file.\n"
                 }
@@ -150,21 +155,26 @@ enum TestHarness {
                     // At the top, then at the end, where a scratch file is written: getting there
                     // reads the whole text a chunk at a time for places to start, each tree let go.
                     try? await Task.sleep(for: .seconds(5))
-                    log.line(String(format: "idle with 2.4 MB open, at the top: %.1f MB", footprint()))
+                    log.line(String(format: "idle with %@ open, at the top: %.1f MB", size, footprint()))
                     if let view = Documents.existing(for: url)?.editor.textView {
                         let length = (view.string as NSString).length
                         view.setSelectedRange(NSRange(location: length, length: 0))
                         view.scrollRangeToVisible(NSRange(location: length, length: 0))
                     }
                     // -NibIdleBigSlices n: idle for n 5-second slices (8), to watch for growth.
-                    let asked = NibDefaults.store.integer(forKey: "NibIdleBigSlices"), slices = asked > 0 ? asked : 8
+                    let sliceCount = NibDefaults.store.integer(forKey: "NibIdleBigSlices"), slices = sliceCount > 0 ? sliceCount : 8
                     for _ in 0..<slices {
+                        let a = usage(), start = Date()
                         try? await Task.sleep(for: .seconds(5))
-                        log.line(String(format: "idle with 2.4 MB open: %.1f MB", footprint()))
+                        let b = usage(), seconds = Date().timeIntervalSince(start)
+                        log.line(String(format: "idle with %@ open: %.1f MB, %.2f%% CPU, %.1f wakeups a second", size, footprint(),
+                                        (b.cpu - a.cpu) / seconds * 100, Double(b.wakeups - a.wakeups) / seconds))
                     }
                     Untitled.letGo(url)
                     Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
                     _ = await waitFor(10) { Documents.existing(for: url) == nil }
+                    // Its History too (the version opened, and closed with): nothing opens that path again.
+                    try? FileManager.default.removeItem(at: History(root: NibPaths.support.appendingPathComponent("History"), path: url.path).directory)
                 }
             case "idle":   // §6.5's idle CPU: synced, then nothing for a minute, for `sample` to watch
                 await waitReady(document)
@@ -1324,14 +1334,18 @@ enum TestHarness {
         // An untitled buffer renamed; the scratch file never.
         if let copy {
             let name = "notes-\(marker).md"
+            let root = NibPaths.support.appendingPathComponent("History")
             let why = await FileCommands.rename(copy, to: name)
             _ = await waitFor(10) { Documents.all.contains { $0.untitled && $0.url.lastPathComponent == name && $0.ready } }
             let again = Documents.all.first { $0.untitled && $0.url.lastPathComponent == name }
             _ = await waitFor(10) { Documents.existing(for: copy.url) == nil }
             if let again { extra.append(again.url) }
+            // Its History went with it (guarantee 2): left at the old path, nothing reached it again (§8, 2026-10-03).
+            let carried = again?.history.entries().contains { $0.sha256 == Digest.sha256(Data("file \(names[0])\nsecond line\n".utf8)) } == true
             log.check(why == nil && again?.editor.textView.string == "file \(names[0])\nsecond line\n" && !fm.fileExists(atPath: copy.url.path)
-                      && !ClosedItems.shared.items.contains { $0.path == copy.url.path },
-                      "an untitled buffer renamed: “\(again?.url.lastPathComponent ?? "none")”, the old one gone, nothing left to reopen")
+                      && !ClosedItems.shared.items.contains { $0.path == copy.url.path }
+                      && carried && !fm.fileExists(atPath: History(root: root, path: copy.url.path).directory.path),
+                      "an untitled buffer renamed: “\(again?.url.lastPathComponent ?? "none")”, its History with it, the old one gone, nothing left to reopen")
         }
         let scratch = await FileCommands.rename(document, to: "elsewhere-\(marker).md")
         log.check(!FileCommands.canMove(document) && scratch?.hasPrefix("THE SCRATCH FILE STAYS") == true && Documents.scratch.url == document.url,
@@ -1746,6 +1760,9 @@ enum TestHarness {
             Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
             // Its file gone too: a 42 MB buffer still closing at the quit came back at every launch after (2026-10-02).
             _ = await waitFor(30) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+            // And its History (the versions opened and closed with): nothing opens that path again,
+            // and each run had left 92 MB in the scenarios' History, 1.4 GB in a day (2026-10-02).
+            try? FileManager.default.removeItem(at: History(root: NibPaths.support.appendingPathComponent("History"), path: url.path).directory)
         }
         func ms(_ t: TimeInterval) -> String { "\(Int((t * 1000).rounded())) ms" }
         func open(_ url: URL) async -> (Document, TimeInterval)? {
@@ -2913,24 +2930,26 @@ enum TestHarness {
         guard let document = Documents.existing(for: url) else { log.check(false, "a 2.4 MB untitled buffer opened"); return }
         let view = document.editor.textView
         let journal = Journal(directory: NibPaths.support.appendingPathComponent("Journal"))
-        let snapshot = journal.url(for: url.path), logFile = journal.logURL(for: url.path)
+        let snapshot = journal.url(for: url.path)
         func size(_ file: URL) -> Int { (try? FileManager.default.attributesOfItem(atPath: file.path)[.size] as? Int) ?? 0 }
+        // The log's lines, not its file's size: it keeps room ahead of them (2026-10-02).
+        func logged() -> Int { journal.logBytes(for: url.path) }
         func changed(_ file: URL) -> Date? { try? FileManager.default.attributesOfItem(atPath: file.path)[.modificationDate] as? Date }
         await type("\n- big one \(marker)\n", into: document)
-        let begun = await waitFor(5) { size(logFile) > 0 }
-        let snapshotAt = changed(snapshot), logBefore = size(logFile)
+        let begun = await waitFor(5) { logged() > 0 }
+        let snapshotAt = changed(snapshot), logBefore = logged()
         log.check(begun && size(snapshot) > 2_400_000, "the first pause: a snapshot of the whole text (\(size(snapshot) / 1000) KB), and its log begun")
         for n in 2...6 {
             await type("- big \(n) \(marker)\n", into: document)
             try? await Task.sleep(for: .milliseconds(400))
         }
         // A keystroke to the journal, timed: the log grows.
-        let before = size(logFile)
+        let before = logged()
         view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
         view.insertText("!", replacementRange: view.selectedRange())
-        let journaled = await timed(5) { size(logFile) > before }
+        let journaled = await timed(5) { logged() > before }
         log.line("MEASURED a keystroke to the journal at 2.4 MB: \(journaled.map { "\(Int($0 * 1000)) ms" } ?? "not within 5 s") · target ≤ 300 ms · \((journaled ?? 1) <= 0.3 ? "met" : "NOT MET")")
-        let appended = size(logFile) - logBefore
+        let appended = logged() - logBefore
         let entry = journal.read(path: url.path)
         log.check(entry?.text.hasSuffix("- big 6 \(marker)\n!") == true && changed(snapshot) == snapshotAt && appended < 4_000,
                   "six more pauses: the journal has the typing, the snapshot as it was, \(appended) bytes added to its log")
@@ -3796,6 +3815,13 @@ enum TestHarness {
             _ = await waitFor(10) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
         }
         func onDisk(_ url: URL) -> String { (try? String(contentsOf: url, encoding: .utf8)) ?? "" }
+        func openBuffer(_ text: String, _ name: String) async -> Document? {
+            guard let url = Untitled.create(text: text, name: name) else { return nil }
+            AppDelegate.openFile(url)
+            _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+            return Documents.existing(for: url)
+        }
+        func historyFolder(_ url: URL) -> URL { History(root: NibPaths.support.appendingPathComponent("History"), path: url.path).directory }
         guard let one = await newBuffer() else { log.check(false, "⌘N opened an untitled buffer"); return }
         let name = one.url.lastPathComponent
         log.check(one.untitled && name.hasPrefix("Untitled") && one.editor.textView.window?.title == name,
@@ -3833,8 +3859,31 @@ enum TestHarness {
         guard let three = await newBuffer() else { log.check(false, "a third untitled buffer"); return }
         let threeURL = three.url
         await close(three)
-        log.check(!FileManager.default.fileExists(atPath: threeURL.path) && !ClosedItems.shared.items.contains { $0.path == threeURL.path },
-                  "an empty one just goes: nothing kept")
+        // Its History too: each ⌘N closed untouched had left a folder with its empty version (§8, 2026-10-03).
+        log.check(!FileManager.default.fileExists(atPath: threeURL.path) && !ClosedItems.shared.items.contains { $0.path == threeURL.path }
+                  && !FileManager.default.fileExists(atPath: historyFolder(threeURL).path) && NibDefaults.store.object(forKey: "syntax:" + threeURL.path) == nil,
+                  "an empty one just goes: nothing kept, History and all")
+        // Typed in, then emptied: kept, as a closed buffer is, so that text stays in History (guarantee 2).
+        if let emptied = await openBuffer("emptied \(marker)\n", "emptied-\(marker).md") {
+            let url = emptied.url
+            emptied.editor.textView.selectAll(nil)
+            emptied.editor.textView.doCommand(by: #selector(NSResponder.deleteBackward(_:)))
+            await emptied.flush(reason: "test")
+            await close(emptied)
+            let history = History(root: NibPaths.support.appendingPathComponent("History"), path: url.path)
+            let earlier = history.entries().contains { history.data($0.sha256) == Data("emptied \(marker)\n".utf8) }
+            log.check(ClosedItems.shared.items.first?.path == url.path && earlier && history.entries().last?.size == 0,
+                      "one typed in, then emptied: on Reopen Closed File, the text it had in its History (\(history.entries().map(\.source)))")
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        }
+        // The scenarios' buffers, let go: nothing left, History and all (`large` had left 92 MB a run, §8).
+        if let goner = await openBuffer("let go \(marker)\n", "letgo-\(marker).md") {
+            let url = goner.url
+            Untitled.letGo(url)
+            await close(goner)
+            log.check(!FileManager.default.fileExists(atPath: historyFolder(url).path) && !ClosedItems.shared.items.contains { $0.path == url.path },
+                      "a buffer let go (the scenarios'): nothing kept, History and all")
+        }
 
         guard let four = await newBuffer() else { log.check(false, "a fourth untitled buffer"); return }
         let fourURL = four.url
@@ -3844,16 +3893,39 @@ enum TestHarness {
         log.check(!refused && !FileManager.default.fileExists(atPath: outside.path) && four.notice?.contains("NIB OPENS ONLY TEST FILES") == true,
                   "Save… outside the test folders: refused, nothing written (\(four.notice ?? "no notice"))")
         let target = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("untitled-saved-\(marker).txt")
+        let caret = four.editor.textView.selectedRange().location
         let saved = await Untitled.save(four, to: target)
         let opened = await waitFor(10) { Documents.existing(for: target)?.ready == true && Documents.existing(for: fourURL) == nil }
         log.check(saved && opened && onDisk(target) == "saved as a file \(marker)\n" && !FileManager.default.fileExists(atPath: fourURL.path)
                   && !ClosedItems.shared.items.contains { $0.path == fourURL.path },
                   "Save…: the text in the file, the file open in its place, the untitled buffer gone")
+        // Its History and caret went with it (guarantee 2): left at its path, nothing opened or thinned them again (§8, 2026-10-03).
+        let targetHistory = Documents.existing(for: target)?.history.entries() ?? []
+        log.check(targetHistory.contains { $0.size == 0 } && targetHistory.contains { $0.sha256 == Digest.sha256(Data("saved as a file \(marker)\n".utf8)) }
+                  && !FileManager.default.fileExists(atPath: historyFolder(fourURL).path)
+                  && Documents.existing(for: target)?.editor.textView.selectedRange().location == caret,
+                  "and its History (\(targetHistory.map(\.source))) and caret went with it, nothing left at the untitled buffer's path")
         Documents.existing(for: target)?.editor.textView.window?.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: target) == nil }
         if let item = ClosedItems.shared.items.first(where: { $0.path == target.path }) { ClosedItems.shared.forget(item) }
-        // Gone now, not in a defer: this scenario ends in SIGKILL, and one was left each run.
+        // Gone now, not in a defer: this scenario ends in SIGKILL, and one was left each run. Its
+        // History too: nothing opens that path again.
         try? FileManager.default.removeItem(at: target)
+        try? FileManager.default.removeItem(at: historyFolder(target))
+        for prefix in ["selection:", "syntax:"] { NibDefaults.store.removeObject(forKey: prefix + target.path) }
+
+        // Reopen Closed File keeps 20: an untitled buffer pushed off goes, History and all (it had
+        // stayed for good, §8, 2026-10-03).
+        if let pushed = await openBuffer("pushed off \(marker)\n", "pushed-\(marker).md") {
+            let url = pushed.url
+            await close(pushed)
+            let listed = ClosedItems.shared.items.first?.path == url.path && FileManager.default.fileExists(atPath: historyFolder(url).path)
+            let fillers = (1...20).map { ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("closed-\(marker)-\($0).txt") }   // paths only
+            for file in fillers { ClosedItems.shared.add(.init(path: file.path, name: file.lastPathComponent, untitled: false, sha256: nil, time: Date())) }
+            log.check(listed && !ClosedItems.shared.items.contains { $0.path == url.path } && !FileManager.default.fileExists(atPath: historyFolder(url).path),
+                      "Reopen Closed File keeps 20: an untitled buffer pushed off goes, History and all")
+            for item in ClosedItems.shared.items where fillers.contains(where: { $0.path == item.path }) { ClosedItems.shared.forget(item) }
+        }
 
         // Typing only the journal has, then a crash.
         await type("after the save \(marker)\n", into: one)
@@ -4105,6 +4177,178 @@ enum TestHarness {
         // Closed and handed back to iCloud, and only then removed (the defer): a document leaves
         // the list as its closing begins, and the file removed then was left paused (2026-10-01).
         _ = await waitFor(20) { Documents.existing(for: url) == nil && !document.held }
+    }
+
+    /// What Nib writes, and which of its code writes it (PRD §8, the disk-writes report of
+    /// 2026-10-02): a generated Markdown file in the test folder (2.4 MB, or -NibWritesSize bytes),
+    /// opened, typed in at its end and then near its top as a person types (a gap after each word,
+    /// a longer one after every fourth, a pause after each sentence), left alone a minute, its
+    /// note checked as when Nib comes forward, a version from another Mac taken in (its note, then
+    /// the file, as a fetch puts it there) and typed after, and closed, as a quit closes each file. For each: this process's writes as
+    /// the kernel counts them (logical, what the disk-writes limit counts, and bytes to disk),
+    /// Nib's writers' share (NibSync's `WriteMeter`), and the footprint. The test's own writes
+    /// (the file, the other Mac's version and note) are counted apart. Six to eleven minutes, so
+    /// not in the suite: `scripts/run-writes.sh`.
+    static func writesScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        await waitSynced(Documents.scratch, 30)
+        let wanted = NibDefaults.store.integer(forKey: "NibWritesSize") > 0 ? NibDefaults.store.integer(forKey: "NibWritesSize") : 2_400_000
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("writes-\(marker).md")
+        var text = "# Writes \(marker)\n", n = 0
+        while text.utf8.count < wanted {
+            n += 1
+            switch n % 200 {
+            case 0: text += "```bash\nrsync -av --progress ./dist/ me@seedbox:~/www/ && echo \"done \(n)\"\n```\n"
+            case 50: text += "## Notes for \(n)\n"
+            default:
+                if n % 25 == 0 { text += String(repeating: "A long email paragraph that wraps, pasted from the thread about item \(n), ", count: 5) + "\n" }
+                else if n % 3 == 0 { text += "- item \(n) with `code` and **bold** text\n" }
+                else { text += "Line \(n): see https://example.com/\(n) and the config.json file.\n" }
+            }
+        }
+        defer {
+            WriteMeter.counting = false
+            try? FileManager.default.removeItem(at: url)
+            try? FileManager.default.removeItem(at: Announcement.url(for: url))
+            try? FileManager.default.removeItem(at: History(root: NibPaths.support.appendingPathComponent("History"), path: url.path).directory)
+            for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
+            if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(url)
+        }
+        func size(_ bytes: UInt64) -> String {
+            bytes >= 1_000_000 ? String(format: "%.1f MB", Double(bytes) / 1_000_000) : "\(Int((Double(bytes) / 1_000).rounded())) KB"
+        }
+        // The test's own writes, kept out of Nib's: its file, the other Mac's version, the note.
+        var own: (logical: UInt64, disk: UInt64) = (0, 0)
+        func test(_ write: () -> Void) {
+            WriteMeter.counting = false
+            let before = WriteMeter.usage()
+            write()
+            let after = WriteMeter.usage()
+            own.logical += after.logical &- before.logical
+            own.disk += after.disk &- before.disk
+            WriteMeter.counting = true
+        }
+        func inPlace(_ data: Data, at target: URL) {   // fsynced, so its bytes to disk land inside `test`
+            guard let handle = try? FileHandle(forWritingTo: target) else { try? data.write(to: target); return }
+            try? handle.write(contentsOf: data)
+            try? handle.truncate(atOffset: UInt64(data.count))
+            try? handle.synchronize()
+            try? handle.close()
+        }
+        var last = WriteMeter.usage(), started = Date()
+        var phases: [(name: String, tallies: [String: WriteMeter.Tally], logical: UInt64)] = []
+        func measured(_ phase: String) {
+            let now = WriteMeter.usage(), tallies = WriteMeter.take()
+            let logical = now.logical &- last.logical &- own.logical, disk = now.disk &- last.disk &- min(own.disk, now.disk &- last.disk)
+            let nib = tallies.values.reduce(UInt64(0)) { $0 + $1.logical }
+            let each = tallies.sorted { $0.value.logical > $1.value.logical }
+                .map { "\($0.key) \($0.value.writes)× \(size(UInt64($0.value.bytes))) (\(size($0.value.logical)))" }
+            log.line("MEASURED writes · \(phase), \(Int(Date().timeIntervalSince(started).rounded())) s: \(size(logical)) logical (as the disk-writes report counts), \(size(disk)) to disk · Nib's writers \(size(nib)): \(each.isEmpty ? "none" : each.joined(separator: ", "))"
+                     + (own.logical > 0 ? " · the test's own \(size(own.logical)), not counted" : "") + " · footprint \(size(now.footprint)), highest \(size(now.peak))")
+            phases.append((phase, tallies, logical))
+            last = now
+            own = (0, 0)
+            started = Date()
+        }
+        /// Saved, uploaded, and this Mac's receipt written (at most every 5 s), then a moment more.
+        /// A save after one that wrote 2.4 MB waits 30 s (`SaveSchedule.rate`).
+        func settled(_ document: Document) async {
+            _ = await waitFor(45) { !document.dirty && isSynced(document) }
+            try? await Task.sleep(for: .seconds(7))
+        }
+        /// As a person types: 40 ms a key, 120 ms after a word, 400 ms after every fourth (the
+        /// journal writes 250 ms into a pause), 1.5 s after a sentence (a save comes 1 s into one).
+        func typeLikeAPerson(_ document: Document, sentences: Int, at start: Int) async {
+            let view = document.editor.textView
+            var at = start
+            for sentence in 1...sentences {
+                let words = "Sentence \(sentence) of the writes test, typed a word at a time with pauses.".split(separator: " ")
+                for (index, word) in words.enumerated() {
+                    for character in word + (index == words.count - 1 ? "\n" : " ") {
+                        view.setSelectedRange(NSRange(location: at, length: 0))
+                        view.insertText(String(character), replacementRange: view.selectedRange())
+                        at += (String(character) as NSString).length
+                        try? await Task.sleep(for: .milliseconds(40))
+                    }
+                    try? await Task.sleep(for: .milliseconds(index % 4 == 3 ? 400 : 120))
+                }
+                try? await Task.sleep(for: .milliseconds(1_500))
+            }
+        }
+        func holdsTheBuffer(_ document: Document) -> Bool {
+            (try? Data(contentsOf: url)) == TextFile.encode(document.editor.textView.string, as: document.format)
+        }
+
+        test { try? Data(text.utf8).write(to: url, options: .atomic) }
+        WriteMeter.counting = true
+        _ = WriteMeter.take()
+        last = WriteMeter.usage()
+        own = (0, 0)
+        started = Date()
+        AppDelegate.openFile(url)
+        _ = await waitFor(20) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened"); return }
+        _ = await waitFor(30) { document.held && isSynced(document) }
+        try? await Task.sleep(for: .seconds(7))
+        log.line("a \(size(UInt64(text.utf8.count))) Markdown file, \(n) lines, open: held \(document.held), \(document.state.line)")
+        measured("opened, held and synced")
+
+        let view = document.editor.textView
+        await typeLikeAPerson(document, sentences: 12, at: (view.string as NSString).length)
+        await settled(document)
+        log.check(holdsTheBuffer(document), "typed at the end: the file holds exactly the buffer")
+        measured("typing at the end, 12 sentences")
+
+        let top = (view.string as NSString).range(of: "\n").location + 1
+        await typeLikeAPerson(document, sentences: 12, at: top)
+        await settled(document)
+        log.check(holdsTheBuffer(document), "typed near the top: the file holds exactly the buffer")
+        measured("typing near the top, 12 sentences")
+
+        var reads = document.noteReads
+        try? await Task.sleep(for: .seconds(60))
+        log.line("idle: \(document.noteReads.fresh - reads.fresh) fresh note reads, \(document.noteReads.local - reads.local) local")
+        measured("idle a minute after typing (in the background, as Nib mostly is)")
+
+        // As Nib comes forward: the note read fresh from the server (evicted, downloaded again),
+        // with its upload long done. That eviction set off another, and so on for good (2026-10-02).
+        reads = document.noteReads
+        await document.checkAnnouncement(reason: "activated")
+        try? await Task.sleep(for: .seconds(30))
+        let fresh = document.noteReads.fresh - reads.fresh, local = document.noteReads.local - reads.local
+        log.check(fresh == 1 && local <= 3, "a note check as at activation: \(fresh) fresh read\(fresh == 1 ? "" : "s") and \(local) of the note as it was here in 30 s after it, then none")
+        measured("a note check as at activation, and 30 s after")
+
+        // Another Mac's version, as `merge`'s: its note first, then the file in place.
+        if let base = document.debugSnapshot.uploadedSHA {
+            let theirs = TextFile.encode(view.string + "A paragraph typed on the other Mac \(marker).\n", as: document.format)
+            let note = Announcement(sha256: Digest.sha256(theirs), parent: base, device: "Test Mac", size: theirs.count)
+            test { try? note.write(for: url) }
+            try? await Task.sleep(for: .seconds(3))
+            test { inPlace(theirs, at: url) }
+            let taken = await waitFor(15) { view.textStorage?.mutableString.hasSuffix("on the other Mac \(marker).\n") == true }
+            log.check(taken, "the other Mac's version taken in (\(document.state.line))")
+            await typeLikeAPerson(document, sentences: 2, at: (view.string as NSString).length)
+            await settled(document)
+            measured("another Mac's version taken in, two sentences typed after it")
+        } else {
+            log.check(false, "nothing uploaded to take another Mac's version onto (\(document.state.line))")
+        }
+
+        view.window?.performClose(nil)
+        let closed = await waitFor(30) { Documents.existing(for: url) == nil && !document.held }
+        try? await Task.sleep(for: .seconds(2))
+        log.check(closed, "closed and handed back to iCloud")
+        measured("closed (what a quit does for each file)")
+
+        // Per save, typing at the end: the file's own share (only what changed) and the rest.
+        if let end = phases.first(where: { $0.name.hasPrefix("typing at the end") }) {
+            let saves = end.tallies["file"]?.writes ?? 0, file = end.tallies["file"]?.bytes ?? 0
+            log.check(saves > 0 && file / max(saves, 1) < 65_536, "typing at the end: \(saves) saves wrote \(size(UInt64(file))) of the file, only what changed")
+            let snapshots = phases.filter { $0.name.hasPrefix("typing") }.reduce(0) { $0 + ($1.tallies["journal snapshot"]?.writes ?? 0) }
+            log.check(snapshots <= 1, "the journal: \(snapshots) snapshot\(snapshots == 1 ? "" : "s") over both typing phases (as it started), not one a pause or a minute")
+        }
     }
 
     /// The Sync Log window (SY13, A13): Window › Sync Log (⌥⌘L), newest first, following the
@@ -4625,9 +4869,10 @@ enum TestHarness {
             measured("idle memory, \(label)", String(format: "%.1f MB", memory), target: "≤ \(Int(footprintTarget)) MB", met: memory <= footprintTarget)
             measured("idle CPU and wakeups, \(label)", String(format: "%.2f%% CPU, %.1f wakeups a second", cpu, wakeups), target: "0.0%, no timer wakeups", met: cpu < 0.05 && wakeups < 1)
         }
-        await idle("the scratch window open", footprintTarget: 40)
+        // §6.5: ≤ 45 MB with a small scratch file, its window open or not (revised 2026-09-30).
+        await idle("the scratch window open", footprintTarget: 45)
         AppDelegate.scratchWindow?.orderOut(nil)
-        await idle("no windows", footprintTarget: 25)
+        await idle("no windows", footprintTarget: 45)
 
         // Show Scratch: the window side, Nib in front (a few seconds with the focus).
         ScenarioFocus.take()

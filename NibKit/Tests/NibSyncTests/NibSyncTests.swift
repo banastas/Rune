@@ -62,8 +62,8 @@ func scratchFolder() -> URL {
         }
         #expect(journal.read(path: "/tmp/big.md")?.text == text)
         #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) == snapshot, "the snapshot isn't written again")
-        let log = try Data(contentsOf: journal.logURL(for: "/tmp/big.md"))
-        #expect(log.count < 8_000, "30 edits in \(log.count) bytes")
+        let log = journal.logBytes(for: "/tmp/big.md")
+        #expect(log < 8_000, "30 edits in \(log) bytes")
         // Read anew, as the next launch does.
         #expect(Journal(directory: journal.directory).read(path: "/tmp/big.md")?.text == text)
     }
@@ -77,7 +77,8 @@ func scratchFolder() -> URL {
         try journal.record(path: "/tmp/big.md", text: two, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(2))
         let url = journal.logURL(for: "/tmp/big.md")
         var log = try Data(contentsOf: url)
-        log.removeLast(9)   // a crash partway through the last line
+        let end = journal.logBytes(for: "/tmp/big.md")
+        log.replaceSubrange(end - 9 ..< end, with: Data(count: 9))   // a crash partway through the last line: its end never written
         try log.write(to: url)
         #expect(journal.read(path: "/tmp/big.md")?.text == one)
     }
@@ -96,16 +97,27 @@ func scratchFolder() -> URL {
         #expect(entry?.text == Self.big + "typed\nmore\n" && entry?.baseSHA256 == "v2")
     }
 
-    @Test func aSnapshotAtMostOnceAMinute() throws {
+    /// Not after a minute any more (150 MB an hour of typing at 2.4 MB, 2026-10-02): once the log
+    /// has a megabyte of lines.
+    @Test func aSnapshotOnceTheLogIsFull() throws {
         let journal = Journal(directory: scratchFolder())
         let start = Date(timeIntervalSince1970: 2_000_000_000)
         try journal.record(path: "/tmp/big.md", text: Self.big, baseSHA256: nil, format: .standard, now: start)
         let first = try Data(contentsOf: journal.url(for: "/tmp/big.md"))
-        try journal.record(path: "/tmp/big.md", text: Self.big + "a\n", baseSHA256: nil, format: .standard, now: start.addingTimeInterval(30))
-        #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) == first)
-        try journal.record(path: "/tmp/big.md", text: Self.big + "a\nb\n", baseSHA256: nil, format: .standard, now: start.addingTimeInterval(61))
-        #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) != first, "a new snapshot after a minute")
-        #expect(journal.read(path: "/tmp/big.md")?.text == Self.big + "a\nb\n")
+        try journal.record(path: "/tmp/big.md", text: Self.big + "a\n", baseSHA256: nil, format: .standard, now: start.addingTimeInterval(3_600))
+        #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) == first, "an hour later, still a line")
+        let pasted = String(repeating: "pasted text, a long paragraph of it\n", count: 15_000)   // 540 KB a line
+        var text = Self.big + "a\n"
+        for n in 1...2 {
+            text += pasted
+            try journal.record(path: "/tmp/big.md", text: text, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(3_600 + Double(n)))
+            #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) == first, "the log takes the paste")
+        }
+        text += "b\n"
+        try journal.record(path: "/tmp/big.md", text: text, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(3_610))
+        #expect(try Data(contentsOf: journal.url(for: "/tmp/big.md")) != first, "a new snapshot once the log is over a megabyte")
+        #expect(journal.logBytes(for: "/tmp/big.md") < 200, "and a new log")
+        #expect(journal.read(path: "/tmp/big.md")?.text == text)
     }
 
     @Test func theBaseMovesWithASave() throws {
@@ -116,17 +128,28 @@ func scratchFolder() -> URL {
         #expect(journal.read(path: "/tmp/big.md")?.baseSHA256 == "v2")
     }
 
-    @Test func aTextCrossingTheSize() throws {
+    /// A small text logs its edits too (a whole snapshot each pause of a 223 KB scratch file was
+    /// a gigabyte or two an hour, 2026-10-02), and the lines go into room the log already has.
+    @Test func smallTextsLogTheirEditsToo() throws {
         let journal = Journal(directory: scratchFolder())
         let start = Date(timeIntervalSince1970: 2_000_000_000)
-        let small = "small\n"
-        try journal.record(path: "/tmp/a.md", text: small, baseSHA256: nil, format: .standard, now: start)
-        try journal.record(path: "/tmp/a.md", text: Self.big, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(1))
-        try journal.record(path: "/tmp/a.md", text: Self.big + "z\n", baseSHA256: nil, format: .standard, now: start.addingTimeInterval(2))
-        #expect(journal.read(path: "/tmp/a.md")?.text == Self.big + "z\n")
-        try journal.record(path: "/tmp/a.md", text: small, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(3))
-        #expect(journal.read(path: "/tmp/a.md")?.text == small)
-        #expect(!FileManager.default.fileExists(atPath: journal.logURL(for: "/tmp/a.md").path), "a small text's journal is a snapshot alone")
+        var text = "small\n"
+        try journal.record(path: "/tmp/a.md", text: text, baseSHA256: nil, format: .standard, now: start)
+        let snapshot = try Data(contentsOf: journal.url(for: "/tmp/a.md"))
+        let size = { (try? FileManager.default.attributesOfItem(atPath: journal.logURL(for: "/tmp/a.md").path)[.size] as? Int) ?? 0 }
+        let room = size()
+        for n in 1...20 {
+            text += "line \(n)\n"
+            try journal.record(path: "/tmp/a.md", text: text, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(Double(n)))
+        }
+        #expect(try Data(contentsOf: journal.url(for: "/tmp/a.md")) == snapshot, "one snapshot")
+        #expect(size() == room && journal.logBytes(for: "/tmp/a.md") > 20 * 40, "twenty lines in the room it had")
+        #expect(Journal(directory: journal.directory).read(path: "/tmp/a.md")?.text == text)
+        // A text grown past the room: more is made, and it all reads back.
+        let big = text + String(repeating: "more typing\n", count: 8_000)
+        try journal.record(path: "/tmp/a.md", text: big, baseSHA256: nil, format: .standard, now: start.addingTimeInterval(30))
+        try journal.record(path: "/tmp/a.md", text: big + "end\n", baseSHA256: nil, format: .standard, now: start.addingTimeInterval(31))
+        #expect(size() > room && Journal(directory: journal.directory).read(path: "/tmp/a.md")?.text == big + "end\n")
         journal.clear(path: "/tmp/a.md")
         #expect(journal.read(path: "/tmp/a.md") == nil)
     }
@@ -145,7 +168,7 @@ func scratchFolder() -> URL {
     @Test func createsANewFile() throws {
         let url = scratchFolder().appendingPathComponent("new.md")
         let outcome = try FileAccess.write(Data("hello\n".utf8), to: url, base: nil)
-        guard case .written(let fingerprint) = outcome else { Issue.record("not written"); return }
+        guard case .written(let fingerprint, _) = outcome else { Issue.record("not written"); return }
         #expect(try Data(contentsOf: url) == Data("hello\n".utf8))
         #expect(fingerprint.sha256 == Digest.sha256(Data("hello\n".utf8)))
     }
@@ -156,12 +179,38 @@ func scratchFolder() -> URL {
         chmod(url.path, 0o755)
         let (_, base) = try FileAccess.read(url)
         let outcome = try FileAccess.write(Data("#!/bin/sh\necho two, longer\n".utf8), to: url, base: base)
-        guard case .written(let after) = outcome else { Issue.record("not written"); return }
+        guard case .written(let after, _) = outcome else { Issue.record("not written"); return }
         #expect(after.fileID == base.fileID)
         var info = stat()
         lstat(url.path, &info)
         #expect(info.st_mode & 0o777 == 0o755)
         #expect(try String(contentsOf: url, encoding: .utf8) == "#!/bin/sh\necho two, longer\n")
+    }
+
+    /// Only what changed is written (2026-10-02, PRD §8): typing at the end of a big file wrote
+    /// all of it at every save.
+    @Test func aSaveWritesOnlyWhatChanged() throws {
+        let url = scratchFolder().appendingPathComponent("big.md")
+        var text = Data(JournalTests.big.utf8)   // 1.2 MB: the comparison crosses its megabyte chunks
+        try text.write(to: url)
+        let inode = try FileAccess.stat(url).fileID
+        func save(_ data: Data) throws -> Int {
+            let written = try FileAccess.overwriteInPlace(url, with: data)
+            #expect(try Data(contentsOf: url) == data)
+            return written
+        }
+        text += Data("typed at the end\n".utf8)
+        #expect(try save(text) == 17, "the end: what was typed")
+        text.replaceSubrange(1_100_000 ..< 1_100_004, with: Data("WXYZ".utf8))
+        #expect(try save(text) <= 4, "the same length: the bytes that differ")
+        text.replaceSubrange(1_000 ..< 1_000, with: Data("inserted near the top\n".utf8))
+        #expect(try save(text) == text.count - 1_000, "near the top: from there to the end")
+        text.removeLast(9)
+        #expect(try save(text) == 0, "cut at the end: nothing written, only shortened")
+        let modified = try FileAccess.stat(url).modified
+        Thread.sleep(forTimeInterval: 0.01)
+        #expect(try save(text) == 0 && FileAccess.stat(url).modified == modified, "the same bytes: the file isn't touched")
+        #expect(try FileAccess.stat(url).fileID == inode, "the same file throughout")
     }
 
     @Test func shorterContentsAreTruncated() throws {
@@ -226,6 +275,25 @@ func scratchFolder() -> URL {
         #expect(schedule.due == t0.addingTimeInterval(5))
         schedule.saved()
         #expect(schedule.due == nil)
+    }
+
+    /// A save that wrote much holds the next back (2026-10-02, the user's call): 2.4 MB at 80 KB/s
+    /// is 30 s; a kilobyte at the end of a file isn't noticed.
+    @Test func aBigSaveHoldsTheNextBack() {
+        var schedule = SaveSchedule(idle: 1, maxWait: 5)
+        let t0 = Date(timeIntervalSince1970: 1000)
+        schedule.wrote(2_400_000, at: t0)
+        schedule.saved()
+        schedule.edited(at: t0.addingTimeInterval(1))
+        #expect(schedule.due == t0.addingTimeInterval(30), "near the top of 2.4 MB: 30 s after the last save")
+        schedule.wrote(1_000, at: t0.addingTimeInterval(30))
+        schedule.saved()
+        schedule.edited(at: t0.addingTimeInterval(31))
+        #expect(schedule.due == t0.addingTimeInterval(32), "a kilobyte: a second after the pause, as ever")
+        var off = SaveSchedule(idle: 1, maxWait: 5, rate: 0)
+        off.wrote(2_400_000, at: t0)
+        off.edited(at: t0)
+        #expect(off.due == t0.addingTimeInterval(1), "no rate, no hold")
     }
 
     @Test func pausedFilesList() {
@@ -348,6 +416,124 @@ func scratchFolder() -> URL {
         #expect(history.entries().count == 1)
         history.thin(now: now.addingTimeInterval(31 * 86_400))
         #expect(!history.has(skipped))
+    }
+
+    @Test func anOpenFileThinnedOnceADay() throws {
+        // The scratch file stays open for days (SC1), so its History is thinned once a day while
+        // it is (PRD §8, 2026-10-02): all of the last day, then the newest of each hour to a week,
+        // the newest of each day to 30 days. Most of those thins have nothing due, and write nothing.
+        let history = History(root: scratchFolder(), path: "/tmp/scratch.md")
+        let midnight = Date(timeIntervalSince1970: 1_999_987_200)   // UTC, as the buckets are
+        func at(_ days: Double, _ hours: Double) -> Date { midnight.addingTimeInterval(days * 86_400 + hours * 3_600) }
+        // Day 0, 09:00-10:55: a save kept every 5 minutes, each noted as seen, as the document does.
+        let saves = (0..<24).map { Data("save \($0)".utf8) }
+        for (k, data) in saves.enumerated() {
+            history.noteSeen(Digest.sha256(data), time: at(0, 9 + Double(k) / 12))
+            try history.record(data, parent: nil, source: "saved", time: at(0, 9 + Double(k) / 12))
+        }
+        let files = ["index.jsonl", "thinned.txt"].map { history.directory.appendingPathComponent($0) }
+        func written() throws -> [Int] {   // each file's inode: a rewrite replaces the file
+            try files.map { try #require(FileManager.default.attributesOfItem(atPath: $0.path)[.systemFileNumber] as? Int) }
+        }
+        func kept() -> [Data] { history.entries().compactMap { history.data($0.sha256) } }
+
+        let before = try written()
+        #expect(!history.thin(now: at(0, 12)))   // all within a day
+        #expect(try written() == before && kept() == saves)
+
+        #expect(history.thin(now: at(1, 12)))   // a day old: each hour's newest
+        #expect(kept() == [saves[11], saves[23]])
+        #expect(saves.allSatisfy { history.has(Digest.sha256($0)) })   // the rest still had here (receipts)
+        #expect(!history.contains(Digest.sha256(saves[0])))   // their bytes gone
+
+        let thinned = try written()
+        #expect(!history.thin(now: at(2, 12)))   // nothing due
+        #expect(try written() == thinned)
+
+        #expect(history.thin(now: at(8, 12)))   // past a week: the day's newest
+        #expect(kept() == [saves[23]])
+
+        let daily = try written()
+        #expect(!history.thin(now: at(29, 12)))   // nothing due, the oldest line 29 days old
+        #expect(try written() == daily)
+
+        #expect(!history.thin(now: at(30, 9)))   // the first save is 30 days old: no longer had
+        #expect(!history.has(Digest.sha256(saves[0])) && history.has(Digest.sha256(saves[1])))
+        #expect(kept() == [saves[23]])
+
+        #expect(history.thin(now: at(30, 11)))   // the last one too
+        #expect(history.entries().isEmpty && !saves.contains { history.has(Digest.sha256($0)) })
+    }
+
+    @Test func aMonthOfSavesThinnedQuickly() throws {
+        // Every save is a line of `thinned` for 30 days: 30,000 here, a light month. Thinning parsed
+        // each line's time, seconds with History locked and the journal's queue waiting (PRD §8,
+        // 2026-10-02). Now a thin with nothing due reads a line, and one with something due the file.
+        let history = History(root: scratchFolder(), path: "/tmp/scratch.md")
+        let now = Date(timeIntervalSince1970: 2_000_000_000), formatter = ISO8601DateFormatter()
+        func sha(_ n: Int) -> String { let hex = String(n, radix: 16); return String(repeating: "0", count: 64 - hex.count) + hex }
+        var lines = ""
+        for day in (0..<30).reversed() {   // a thousand saves a day, the oldest 29 days and an hour old
+            let time = formatter.string(from: now.addingTimeInterval(-Double(day) * 86_400 - 3_600))
+            for k in 0..<1_000 { lines += sha(day * 1_000 + k) + " " + time + "\n" }
+        }
+        try FileManager.default.createDirectory(at: history.directory, withIntermediateDirectories: true)
+        try lines.write(to: history.directory.appendingPathComponent("thinned.txt"), atomically: true, encoding: .utf8)
+        // Two versions kept in one clock hour (`now` is 33 minutes into one), two hours ago.
+        try history.record(Data("older".utf8), parent: nil, source: "saved", time: now.addingTimeInterval(-2 * 3_600 - 600))
+        try history.record(Data("newer".utf8), parent: nil, source: "saved", time: now.addingTimeInterval(-2 * 3_600))
+
+        var start = Date()
+        #expect(!history.thin(now: now))   // nothing due
+        let idle = Date().timeIntervalSince(start)
+        start = Date()
+        #expect(history.thin(now: now.addingTimeInterval(86_400)))   // a day on: "older" let go, a day of lines 30 days old
+        let due = Date().timeIntervalSince(start)
+        print("thinned 30,000 lines: \(Int(idle * 1000)) ms with nothing due, \(Int(due * 1000)) ms a day on")
+        #expect(idle < 0.25 && due < 1, "\(idle) s, \(due) s (Debug)")
+        #expect(history.has(Digest.sha256(Data("older".utf8))) && history.has(sha(28_999)) && !history.has(sha(29_000)))
+    }
+
+    @Test func movesToAPathWithNone() throws {
+        // An untitled buffer saved or renamed (§8, 2026-10-03): its History goes on at the new
+        // path. Left at the old one, nothing ever opened or thinned it again.
+        let root = scratchFolder()
+        let old = History(root: root, path: "/tmp/Untitled/1/Untitled"), new = History(root: root, path: "/tmp/notes.md")
+        try old.record(Data("one\n".utf8), parent: nil, source: "opened")
+        try old.record(Data("two\n".utf8), parent: nil, source: "closed")
+        old.noteSeen(Digest.sha256(Data("between\n".utf8)))
+        try old.move(to: new)
+        #expect(new.entries().map(\.source) == ["opened", "closed"])
+        #expect(new.data(Digest.sha256(Data("two\n".utf8))) == Data("two\n".utf8))
+        #expect(new.has(Digest.sha256(Data("between\n".utf8))))
+        #expect(!FileManager.default.fileExists(atPath: old.directory.path) && old.entries().isEmpty)
+        try old.move(to: new)   // nothing there now: nothing changes
+        #expect(new.entries().count == 2)
+    }
+
+    @Test func mergesIntoAPathWithHistory() throws {
+        // Saved over a file this Mac has History for: both kept, in time order, nothing left behind.
+        let root = scratchFolder()
+        let old = History(root: root, path: "/tmp/Untitled/2/Untitled 2"), new = History(root: root, path: "/tmp/saved.md")
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+        try new.record(Data("file, day 1\n".utf8), parent: nil, source: "opened", time: now.addingTimeInterval(-86_400))
+        try old.record(Data("buffer\n".utf8), parent: nil, source: "opened", time: now.addingTimeInterval(-3_600))
+        try new.record(Data("both\n".utf8), parent: nil, source: "closed", time: now.addingTimeInterval(-1_800))
+        try old.record(Data("both\n".utf8), parent: nil, source: "saved", time: now.addingTimeInterval(-60))
+        old.noteSeen(Digest.sha256(Data("old's\n".utf8)), time: now.addingTimeInterval(-120))
+        new.noteSeen(Digest.sha256(Data("new's\n".utf8)), time: now.addingTimeInterval(-240))
+        try old.move(to: new)
+        #expect(new.entries().map(\.source) == ["opened", "opened", "closed", "saved"])
+        #expect(new.entries().map(\.time) == new.entries().map(\.time).sorted())
+        for text in ["file, day 1\n", "buffer\n", "both\n"] {
+            #expect(new.data(Digest.sha256(Data(text.utf8))) == Data(text.utf8))
+        }
+        #expect(new.has(Digest.sha256(Data("old's\n".utf8))) && new.has(Digest.sha256(Data("new's\n".utf8))))
+        let seen = try String(contentsOf: new.directory.appendingPathComponent("thinned.txt"), encoding: .utf8).split(separator: "\n")
+        #expect(seen.map { String($0.prefix(64)) } == [Digest.sha256(Data("new's\n".utf8)), Digest.sha256(Data("old's\n".utf8))])   // oldest first
+        #expect(!FileManager.default.fileExists(atPath: old.directory.path))
+        new.thin(now: now)   // thinned as its own from now on: a day's versions all stay
+        #expect(new.entries().count == 4)
     }
 }
 

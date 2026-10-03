@@ -51,11 +51,13 @@ public struct Announcement: Codable, Sendable, Equatable {
         guard FileManager.default.fileExists(atPath: document.deletingLastPathComponent().path) else { throw CocoaError(.fileNoSuchFile) }
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let data = try Self.encoder.encode(self)
+        let mark = WriteMeter.start()
         var coordinationError: NSError?
         var writeError: Error?
         NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { target in
             do { try data.write(to: target, options: .atomic) } catch { writeError = error }
         }
+        WriteMeter.add("note", bytes: data.count, since: mark)
         if let error = coordinationError ?? writeError { throw error }
     }
 

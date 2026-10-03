@@ -24,7 +24,10 @@ public final class PausedFiles: Sendable {
 
     private func store(_ paths: [String]) {
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? JSONEncoder().encode(paths).write(to: url, options: .atomic)
+        let mark = WriteMeter.start()
+        let data = (try? JSONEncoder().encode(paths)) ?? Data()
+        try? data.write(to: url, options: .atomic)
+        WriteMeter.add("paused list", bytes: data.count, since: mark)
     }
 }
 
@@ -76,6 +79,7 @@ public final class SyncLog: Sendable {
         lock.lock()
         defer { lock.unlock() }
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let mark = WriteMeter.start()
         if let handle = try? FileHandle(forWritingTo: url) {
             _ = try? handle.seekToEnd()
             try? handle.write(contentsOf: line)
@@ -83,6 +87,7 @@ public final class SyncLog: Sendable {
         } else {
             try? line.write(to: url)
         }
+        WriteMeter.add("Sync Log", bytes: line.count, since: mark)
         NotificationCenter.default.post(name: Self.didAppend, object: nil)
     }
 
@@ -99,12 +104,25 @@ public final class SyncLog: Sendable {
 public struct SaveSchedule: Sendable, Equatable {
     public var idle: TimeInterval
     public var maxWait: TimeInterval
+    /// Bytes a second a file's saves write at most while typing goes on: after a save that wrote
+    /// n bytes, the next waits n ÷ this. A save writes from the first byte that changed, so typing
+    /// at the end of a file, or in a small one, isn't held back; typing near the top of 2.4 MB
+    /// rewrote all of it every 4.5 s, about 2.6 GB an hour, and iCloud's daemons wrote several MB
+    /// for each upload (2026-10-02, the user's call, PRD §8). Saves on a trigger don't wait.
+    public var rate: Double
     public private(set) var firstUnsaved: Date?
     public private(set) var lastEdit: Date?
+    /// The last save's bytes ÷ `rate` after it.
+    public private(set) var notBefore: Date?
 
-    public init(idle: TimeInterval = 1, maxWait: TimeInterval = 5) {
+    public init(idle: TimeInterval = 1, maxWait: TimeInterval = 5, rate: Double = 80_000) {
         self.idle = idle
         self.maxWait = maxWait
+        self.rate = rate
+    }
+
+    public mutating func wrote(_ bytes: Int, at time: Date = Date()) {
+        notBefore = rate > 0 ? time.addingTimeInterval(Double(bytes) / rate) : nil
     }
 
     public mutating func edited(at time: Date = Date()) {
@@ -115,7 +133,8 @@ public struct SaveSchedule: Sendable, Equatable {
     /// The moment the pending edits are due on disk, or nil with nothing pending.
     public var due: Date? {
         guard let firstUnsaved, let lastEdit else { return nil }
-        return min(lastEdit.addingTimeInterval(idle), firstUnsaved.addingTimeInterval(maxWait))
+        let due = min(lastEdit.addingTimeInterval(idle), firstUnsaved.addingTimeInterval(maxWait))
+        return notBefore.map { max(due, $0) } ?? due
     }
 
     public mutating func saved() {

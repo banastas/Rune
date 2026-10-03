@@ -3,8 +3,9 @@
 // so the journal, saving, History and crash recovery work as for any file, and they come
 // back after a quit or a crash (Sublime's hot exit). Nothing about them syncs, and they
 // stay out of the Sync Log. Closing a non-empty one keeps its text in History for 30 days,
-// and File › Reopen Closed File (⇧⌘T) brings it back; an empty one just goes (V8: no "Save?").
-// File › Save… makes one a file.
+// and File › Reopen Closed File (⇧⌘T) brings it back; an empty one just goes (V8: no "Save?"),
+// its History with it unless that keeps text it once had. File › Save… makes one a file, and
+// Rename… another buffer; its History goes on there (guarantee 2).
 
 import AppKit
 import NibSync
@@ -49,35 +50,80 @@ enum Untitled {
         for url in all() {
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
             let journaled = Journal(directory: NibPaths.support.appendingPathComponent("Journal")).read(path: url.path) != nil
-            if size == 0, !journaled { remove(url); continue }
+            if size == 0, !journaled {
+                letGoEmpty(url, data: Data(), history: History(root: NibPaths.support.appendingPathComponent("History"), path: url.path))
+                remove(url)
+                continue
+            }
             AppDelegate.openFile(url)
         }
     }
 
     /// Its window closed (not a quit): its text stays in History and on the Reopen Closed
-    /// list for 30 days; an empty buffer just goes.
-    static func discard(_ document: Document) {
+    /// list for 30 days; an empty buffer just goes (`letGoEmpty`). One whose text went on
+    /// elsewhere (Save…, Rename…) takes its History and caret there; one let go keeps nothing.
+    static func discard(_ document: Document) async {
         let url = document.url
         defer { remove(url) }
-        guard !savedAway.contains(url.path) else { savedAway.remove(url.path); return }
+        await document.historyWritten()   // its last versions in, under this path, before they go anywhere
+        if let new = handedOver.removeValue(forKey: url.path) {
+            FileCommands.carrySettings(from: url, to: new, syntax: false)
+            return
+        }
+        if lettingGo.remove(url.path) != nil {
+            ClosedItems.removeKept(for: url.path)
+            return
+        }
         let text = document.editor.textView.string
-        guard !text.isEmpty else { return }
         let data = TextFile.encode(text, as: document.format)
+        guard !text.isEmpty else { letGoEmpty(url, data: data, history: document.history); return }
         try? document.history.record(data, parent: nil, source: "closed")
         ClosedItems.shared.add(.init(path: url.path, name: url.lastPathComponent, untitled: true, sha256: Digest.sha256(data), time: Date()))
+    }
+
+    /// An empty buffer going, closed or empty at a launch: nothing kept, History and all (every
+    /// ⌘N or ⌘T closed untouched had left a folder there for good, §8). Unless its History keeps
+    /// text it once had (typed in, then emptied): then it's on Reopen Closed File as a closed
+    /// buffer is, back empty with that text in its History (guarantee 2; the user's call).
+    private static func letGoEmpty(_ url: URL, data: Data, history: History) {
+        let sha = Digest.sha256(data)
+        guard history.entries().contains(where: { $0.sha256 != sha }) else {
+            ClosedItems.removeKept(for: url.path)
+            return
+        }
+        try? history.record(data, parent: nil, source: "closed")
+        ClosedItems.shared.add(.init(path: url.path, name: url.lastPathComponent, untitled: true, sha256: sha, time: Date()))
     }
 
     private static func remove(_ url: URL) {
         try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
     }
 
-    /// Buffers just saved as files (or renamed, as a new buffer): their text is elsewhere, so
-    /// closing them keeps nothing.
-    private static var savedAway: Set<String> = []
+    /// Buffers whose text went on elsewhere (Save…, Rename…), and where.
+    private static var handedOver: [String: URL] = [:]
 
-    /// Its text lives on in another buffer (Rename…, ED4): closing it keeps nothing.
+    /// Buffers closed with nothing kept (`letGo`).
+    private static var lettingGo: Set<String> = []
+
+    /// Closing it keeps nothing, History and all: a buffer whose text nobody needs back (the
+    /// scenarios'; each `large` run had left 92 MB in their History, §8).
     static func letGo(_ url: URL) {
-        savedAway.insert(url.path)
+        lettingGo.insert(url.path)
+    }
+
+    /// Its text goes on at `new` (Save…, Rename…): the buffer closes keeping nothing here, its
+    /// History and caret go to `new` as a file's do with Rename… and Move To… (guarantee 2; left
+    /// here, nothing opened or thinned them again, §8), and `new` opens in its place.
+    static func handOver(_ document: Document, to new: URL) async {
+        // Its window closing already: it goes on Reopen Closed File as any closed buffer does.
+        guard Documents.existing(for: document.url) === document else { AppDelegate.openFile(new); return }
+        let window = document.editor.textView.window
+        document.editor.textView.isEditable = false   // nothing typed now that `new` wouldn't have
+        handedOver[document.url.path] = new
+        await Documents.close(document)   // its last version into its History, which `discard` carries
+        guard !AppDelegate.terminating else { return }   // quitting: it comes back at the next launch, as it was
+        AppDelegate.openFile(new)
+        window?.close()
     }
 
     // MARK: Save… (W3: the first save of an untitled document asks where)
@@ -95,7 +141,8 @@ enum Untitled {
         Task { await save(document, to: target) }
     }
 
-    /// Writes the buffer to `target` and opens that file in its place.
+    /// Writes the buffer to `target` and opens that file in its place, the buffer's History and
+    /// caret with it.
     @discardableResult
     static func save(_ document: Document, to target: URL) async -> Bool {
         if let reason = ScratchLocation.refusal(for: target) {
@@ -115,10 +162,7 @@ enum Untitled {
             document.show("COULDN'T SAVE “\(target.lastPathComponent.uppercased())” · \(error.localizedDescription.uppercased())", for: 12)
             return false
         }
-        savedAway.insert(document.url.path)
-        let window = document.editor.textView.window
-        AppDelegate.openFile(target)
-        window?.performClose(nil)
+        await handOver(document, to: target)
         return true
     }
 }
@@ -149,8 +193,13 @@ final class ClosedItems {
     func add(_ item: Item) {
         items.removeAll { $0.path == item.path }
         items.insert(item, at: 0)
-        if items.count > 20 { items.removeLast(items.count - 20) }
+        // The last 20. An untitled buffer pushed off goes as `forget` lets it go, History and all:
+        // nothing else reached it, and it stayed for good (§8, 2026-10-03). A deleted file's
+        // History stays with its path, which may have the file again.
+        let pushed = Array(items.dropFirst(20))
+        items.removeLast(pushed.count)
         persist()
+        for item in pushed where item.untitled && Untitled.contains(URL(fileURLWithPath: item.path)) { Self.removeKept(for: item.path) }
     }
 
     func reopenLast() {
@@ -171,12 +220,15 @@ final class ClosedItems {
         let history = History(root: NibPaths.support.appendingPathComponent("History"), path: item.path)
         guard let sha = item.sha256, let data = history.data(sha) else { NSSound.beep(); return }
         let url = URL(fileURLWithPath: item.path)
-        // Back where it was, so its History goes on; under a new name if that one's taken.
+        // Back where it was, so its History goes on; under a new name if that one's taken, an
+        // untitled buffer's History, caret and syntax carried there (left behind, nothing reached
+        // them again). A deleted file's stay with its path.
         let taken = Set(Untitled.all().map(\.lastPathComponent))
         if !taken.contains(item.name), (try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)) != nil,
            (try? data.write(to: url)) != nil {
             AppDelegate.openFile(url)
         } else if let fresh = Untitled.create(text: TextFile.decode(data).text) {
+            if Untitled.contains(url) { FileCommands.carrySettings(from: url, to: fresh) }
             AppDelegate.openFile(fresh)
         }
     }
@@ -192,11 +244,17 @@ final class ClosedItems {
     func forget(_ item: Item) {
         items.removeAll { $0 == item }
         persist()
-        guard item.untitled else { return }
-        let history = History(root: NibPaths.support.appendingPathComponent("History"), path: item.path)
+        if item.untitled { Self.removeKept(for: item.path) }
+    }
+
+    /// What Nib keeps for an untitled buffer's path, gone: its History, caret and syntax. Not
+    /// while the path is open (a deleted file's, back since and opened: its History goes on).
+    static func removeKept(for path: String) {
+        guard Documents.existing(for: URL(fileURLWithPath: path)) == nil else { return }
+        let history = History(root: NibPaths.support.appendingPathComponent("History"), path: path)
         try? FileManager.default.removeItem(at: history.directory)
-        NibDefaults.store.removeObject(forKey: "selection:" + item.path)
-        NibDefaults.store.removeObject(forKey: "syntax:" + item.path)
+        NibDefaults.store.removeObject(forKey: "selection:" + path)
+        NibDefaults.store.removeObject(forKey: "syntax:" + path)
     }
 
     private func persist() {

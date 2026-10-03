@@ -223,6 +223,9 @@ final class Document {
     @ObservationIgnored private var pausing = false
     @ObservationIgnored private var closing = false
     @ObservationIgnored private var noteWatch: DispatchSourceFileSystemObject?
+    /// A check for another Mac's note under way, and one asked for meanwhile (`checkAnnouncement`).
+    @ObservationIgnored private var checkingNote = false
+    @ObservationIgnored private var noteAgain: (reason: String, fresh: Bool)?
 
     var dirty: Bool { editCount != savedEditCount }
     /// Saves and refreshes begun, for a disk check to tell whether one ran while it read the file.
@@ -321,7 +324,7 @@ final class Document {
         }
         if !FileManager.default.fileExists(atPath: url.path) {
             do {
-                if case .written(let fingerprint) = try await io.run({ try FileAccess.write(Data(), to: url, base: nil, presenter: presenter) }) {
+                if case .written(let fingerprint, _) = try await io.run({ try FileAccess.write(Data(), to: url, base: nil, presenter: presenter) }) {
                     baseFingerprint = fingerprint
                     record("open", size: 0, sha: fingerprint.sha256, detail: "created")
                 }
@@ -443,8 +446,7 @@ final class Document {
         updateOtherMacs()
         if untitled {
             // Nothing to hold, fetch or announce: it's on this Mac only.
-            let history = self.history
-            Task { await journalQueue.run { history.thin() } }
+            thinHistory()
             if dirty { scheduleSave() }
             return
         }
@@ -469,8 +471,7 @@ final class Document {
         await fetchLatest(reason: "open")
         await checkAnnouncement(reason: "open")
         await checkOthers(reason: "open")
-        let history = self.history
-        Task { await journalQueue.run { history.thin() } }
+        thinHistory()
         if dirty { scheduleSave() }
     }
 
@@ -1049,7 +1050,8 @@ final class Document {
                 return (try FileAccess.write(data, to: url, base: base, presenter: presenter), began, data)
             }
             switch outcome {
-            case .written(let fingerprint):
+            case .written(let fingerprint, let changed):
+                schedule.wrote(changed)
                 if let sha = fingerprint.sha256 { madeHere[sha] = Date() }
                 if madeHere.count > 50, let oldest = madeHere.min(by: { $0.value < $1.value })?.key { madeHere[oldest] = nil }
                 baseFingerprint = fingerprint
@@ -1515,6 +1517,39 @@ final class Document {
         }
     }
 
+    /// How often History is thinned while the file stays open: once a day.
+    static var thinEvery: TimeInterval {
+        #if DEBUG
+        let every = NibDefaults.store.double(forKey: "NibThinEvery")   // -NibThinEvery <seconds>, for a scenario
+        if every > 0 { return every }
+        #endif
+        return 86_400
+    }
+
+    @ObservationIgnored private var thinTask: Task<Void, Never>?
+
+    /// History thinned (SY13) as the file opens, then once a day until it closes. It was thinned
+    /// only at open, and Nib runs for days or weeks with the scratch file open (SC1): every version
+    /// History kept for it stayed at full density until the next launch, up to 29 MB an hour of
+    /// typing at 2.4 MB (2026-10-02, PRD §8). On the journal's queue: off the main thread, and in
+    /// order with History's writes.
+    private func thinHistory() {
+        thinTask?.cancel()
+        let history = self.history, queue = journalQueue, every = Self.thinEvery
+        thinTask = Task { [weak self] in
+            repeat {
+                if await queue.run({ history.thin() }) { self?.historyChanged += 1 }   // the History window follows
+                try? await Task.sleep(for: .seconds(every))
+            } while !Task.isCancelled && self?.closing == false
+        }
+    }
+
+    /// Once the History writes queued so far are done (they go in order on the journal's queue):
+    /// a closed untitled buffer's History is carried or let go only after its last version (ED3).
+    func historyWritten() async {
+        await journalQueue.run {}
+    }
+
     /// The note for a version waiting to be merged, for 10 s: as the note folder's watch reads
     /// it, and fresh from the server every 2 s (a fresh read evicts and downloads it: a second
     /// or more). Then the merge, from the version both had if the note proves it, else both
@@ -1758,11 +1793,32 @@ final class Document {
     /// can't be trusted for a held file (S1b: stale for 26 minutes while "current"), so
     /// the note decides. No edits here: refresh. Edits: nothing to do, since the next
     /// upload is refused and the merge runs.
-    func checkAnnouncement(reason: String) async {
+    /// `fresh` asks the server (evicting the note and reading it back); a check set off by the
+    /// note or its folder changing on disk reads what's there. Each fresh read's eviction and
+    /// download changed the folder, and the check that set off evicted the note again: from the
+    /// first eviction that took, the note went back and forth to iCloud every second or two for
+    /// as long as the file was open, frontmost or not, and the notes queue, never idle, kept what
+    /// each read let go of (the Nib in daily use grew about 180 MB an hour while idle; 2026-10-02,
+    /// PRD §8). One check at a time: one asked for meanwhile runs once after it.
+    func checkAnnouncement(reason: String, fresh: Bool = true) async {
         // Not offline: a fresh read evicts the note and waits for it to download again.
         guard ready, locked == nil, !refreshing, !closing, !offlineNow else { return }
+        guard !checkingNote else {
+            noteAgain = (reason, fresh || noteAgain?.fresh == true)
+            return
+        }
+        checkingNote = true
         let url = self.url, queue = notesQueue
-        guard let note = try? await CloudControl.within(10, { await queue.run { Announcement.read(for: url, fresh: true) } }) else { return }
+        #if DEBUG
+        if fresh { noteReads.fresh += 1 } else { noteReads.local += 1 }
+        #endif
+        let read = try? await CloudControl.within(10, { await queue.run { Announcement.read(for: url, fresh: fresh) } })
+        checkingNote = false
+        if let again = noteAgain {
+            noteAgain = nil
+            Task { await checkAnnouncement(reason: again.reason, fresh: again.fresh) }
+        }
+        guard let note = read else { return }
         lastNote = note
         upgradeIfProven()
         guard note.device != device, !handledAnnouncements.contains(note.sha256),
@@ -1929,7 +1985,7 @@ final class Document {
         guard descriptor >= 0 else { return }
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor, eventMask: [.write, .attrib], queue: .main)
         source.setEventHandler { [weak self] in
-            Task { @MainActor in await self?.checkAnnouncement(reason: "note folder changed") }
+            Task { @MainActor in await self?.checkAnnouncement(reason: "note folder changed", fresh: false) }
         }
         source.setCancelHandler { Darwin.close(descriptor) }
         source.resume()
@@ -2030,7 +2086,7 @@ final class Document {
             let outcome = try await io.run { try FileAccess.write(data, to: url, base: nil, presenter: presenter) }
             deleted = false
             switch outcome {
-            case .written(let fingerprint):
+            case .written(let fingerprint, _):
                 baseFingerprint = fingerprint
                 savedEditCount = snapshot
                 lastSaved = Date()
@@ -2156,7 +2212,7 @@ final class Document {
         let old = url
         closing = true   // nothing more against the old path: holds, fetches, refreshes
         editor.textView.isEditable = false
-        for task in [saveTask, uploadTask, journalTask] { task?.cancel() }
+        for task in [saveTask, uploadTask, journalTask, thinTask] { task?.cancel() }
         holdRetry?.cancel()
         fetchTimer?.invalidate()
         editor.saveSelection(for: old)
@@ -2233,6 +2289,7 @@ final class Document {
     func close() async {
         closing = true
         downloadTask?.cancel()
+        thinTask?.cancel()
         Notifier.shared.closed(url)
         // History first: a quit has 10 s (its watchdog), and iCloud's steps after the save can
         // take them all (the suite, 00:19: the version closed with was lost that way). A save
@@ -2528,6 +2585,8 @@ final class Document {
     var debugSnapshot: (dirty: Bool, uploadedSHA: String?, baseSHA: String?, held: Bool) {
         (dirty, uploadedSHA, baseFingerprint?.sha256, held)
     }
+    /// The note read for another Mac's version, fresh from the server and as it is here (`writes`).
+    @ObservationIgnored var noteReads = (fresh: 0, local: 0)
     #endif
 }
 
@@ -2678,7 +2737,9 @@ final class IOQueue: Sendable {
     private let queue: DispatchQueue
 
     init(label: String) {
-        queue = DispatchQueue(label: label, qos: .userInitiated)
+        // A pool drained after each job: a queue that's never idle (the notes queue in the loop
+        // `checkAnnouncement` describes) otherwise keeps every autoreleased object it made.
+        queue = DispatchQueue(label: label, qos: .userInitiated, autoreleaseFrequency: .workItem)
     }
 
     func run<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
@@ -2715,8 +2776,14 @@ enum ScratchLocation {
     /// The scratch file: the one Settings or the first run chose (SC1, AP5), or the standard one.
     static var url: URL {
         #if DEBUG
-        // The scenarios use the test file the runner starts afresh, never the one this Mac uses.
-        if NibDefaults.store.string(forKey: "NibScenario") != nil { return testURL }
+        // The scenarios use the test file the runner starts afresh, never the one this Mac uses;
+        // -NibScenarioScratch <name>, another in the test folder: run-perf.sh's own, as
+        // scratch-test.md is whatever a suite or a repro left (420 KB on 2026-10-02, and "idle
+        // memory, a small scratch file" measured 132 MB).
+        if NibDefaults.store.string(forKey: "NibScenario") != nil {
+            guard let name = NibDefaults.store.string(forKey: "NibScenarioScratch") else { return testURL }
+            return testURL.deletingLastPathComponent().appendingPathComponent(name)
+        }
         #endif
         if let path = NibDefaults.store.string(forKey: "scratchPath") { return URL(fileURLWithPath: path) }
         return standardURL

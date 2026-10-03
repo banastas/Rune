@@ -3,9 +3,10 @@
 // put somewhere. Rename and Move To close the file first, as its window closing would (saved,
 // uploaded, handed back to iCloud, §4.3), so a held file is never moved; then a coordinated
 // move, the file's History, caret, syntax and known duplicates carried to the new path, and
-// the file opened again there. An untitled buffer is renamed as a new buffer of the same text;
-// Move To… on one is Save…. The scratch file isn't renamed or moved (Settings › General picks
-// another). Under the safety rule (§8), nothing goes outside the test folders.
+// the file opened again there. An untitled buffer is renamed as a new buffer of the same text,
+// its caret and History carried as a file's are; Move To… on one is Save…. The scratch file
+// isn't renamed or moved (Settings › General picks another). Under the safety rule (§8),
+// nothing goes outside the test folders.
 
 import AppKit
 import NibSync
@@ -94,7 +95,7 @@ enum FileCommands {
         guard target.standardizedFileURL.path != old.standardizedFileURL.path else { return nil }
         // "Notes.md" to "notes.md" is the same file on a Mac's disk: a new name, not a clash.
         let caseOnly = target.path.lowercased() == old.path.lowercased()
-        if document.untitled { return renameUntitled(document, to: target.lastPathComponent) }
+        if document.untitled { return await renameUntitled(document, to: target.lastPathComponent) }
         if ScratchLocation.refusal(for: target) != nil {
             return refuse(document, "NOT MOVED · NIB OPENS ONLY TEST FILES (ICLOUD DRIVE › NIB › TEST) UNTIL M1 HAS PASSED (PRD §8)")
         }
@@ -135,20 +136,15 @@ enum FileCommands {
         return why
     }
 
-    /// An untitled buffer by another name: a new one with the same text (and caret), this one let go.
-    private static func renameUntitled(_ document: Document, to name: String) -> String? {
+    /// An untitled buffer by another name: a new one with the same text, caret and History, this one let go.
+    private static func renameUntitled(_ document: Document, to name: String) async -> String? {
         guard !Untitled.all().contains(where: { $0.lastPathComponent == name }) else {
             return refuse(document, "AN UNTITLED BUFFER IS ALREADY CALLED “\(name.uppercased())” · NOTHING RENAMED")
         }
         guard let url = Untitled.create(text: document.editor.textView.string, name: name) else {
             return refuse(document, "COULDN'T RENAME IT · NIB'S UNTITLED FOLDER ISN'T WRITABLE")
         }
-        let selection = document.editor.textView.selectedRange()
-        NibDefaults.store.set([selection.location, selection.length], forKey: "selection:" + url.path)
-        Untitled.letGo(document.url)
-        let window = document.editor.textView.window
-        AppDelegate.openFile(url)
-        window?.performClose(nil)
+        await Untitled.handOver(document, to: url)
         return nil
     }
 
@@ -176,19 +172,22 @@ enum FileCommands {
     }
 
     /// What Nib keeps for a file by its path: its History (§4.9), caret (SC3), syntax (HL1) and
-    /// the duplicates it has seen (§4.6 C).
-    static func carrySettings(from old: URL, to new: URL) {
+    /// the duplicates it has seen (§4.6 C). History is merged into the new path's when that has
+    /// some (it was left behind, never thinned again, until 2026-10-03). Without `syntax`, the old
+    /// path's pick is dropped, not carried: an untitled buffer saved or renamed takes its syntax
+    /// from its new name, as before, not from ⌘N's Markdown.
+    static func carrySettings(from old: URL, to new: URL, syntax: Bool = true) {
         let defaults = NibDefaults.store
         for prefix in ["selection:", "syntax:", "siblings:"] {
             if let value = defaults.object(forKey: prefix + old.path) {
-                defaults.set(value, forKey: prefix + new.path)
+                if syntax || prefix != "syntax:" { defaults.set(value, forKey: prefix + new.path) }
                 defaults.removeObject(forKey: prefix + old.path)
             }
         }
+        // Never into the History of a file open in Nib: its document writes there under a lock of
+        // its own, which ours wouldn't share.
+        guard Documents.existing(for: new) == nil else { return }
         let root = NibPaths.support.appendingPathComponent("History")
-        let from = History(root: root, path: old.path).directory, to = History(root: root, path: new.path).directory
-        if FileManager.default.fileExists(atPath: from.path), !FileManager.default.fileExists(atPath: to.path) {
-            try? FileManager.default.moveItem(at: from, to: to)
-        }
+        try? History(root: root, path: old.path).move(to: History(root: root, path: new.path))
     }
 }

@@ -12,8 +12,8 @@ import Foundation
 import NibText
 
 public enum WriteOutcome: Sendable, Equatable {
-    /// Saved; the file is now this version.
-    case written(Fingerprint)
+    /// Saved; the file is now this version, `changed` bytes of it written (only what differed).
+    case written(Fingerprint, changed: Int)
     /// The file changed since the base version: nothing was written. Here is what's there.
     case diskChanged(data: Data, fingerprint: Fingerprint)
 }
@@ -54,6 +54,7 @@ public enum FileAccess {
         NSFileCoordinator(filePresenter: presenter).coordinate(readingItemAt: url, options: [], writingItemAt: url, options: [],
                                                                error: &coordinationError) { readURL, writeURL in
             result = Result {
+                var changed = 0
                 let exists = FileManager.default.fileExists(atPath: writeURL.path)
                 if exists {
                     let current = try stat(writeURL)
@@ -67,42 +68,99 @@ public enum FileAccess {
                             return .diskChanged(data: onDisk, fingerprint: fingerprint)
                         }
                     }
-                    try overwriteInPlace(writeURL, with: data)
+                    changed = try overwriteInPlace(writeURL, with: data)
                 } else {
                     guard base == nil else {
                         // The file was there and is gone: deleted or moved elsewhere (§4.8 E).
                         throw CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: writeURL.path])
                     }
-                    try createFile(writeURL, with: data)
+                    changed = try createFile(writeURL, with: data)
                 }
                 var fingerprint = try stat(writeURL)
                 fingerprint.sha256 = Digest.sha256(data)
-                return .written(fingerprint)
+                return .written(fingerprint, changed: changed)
             }
         }
         if let coordinationError { throw coordinationError }
         return try result.get()
     }
 
-    /// Same file, new contents: write from the start, cut to length, fsync. Writing
-    /// before truncating means the file is never briefly empty.
-    static func overwriteInPlace(_ url: URL, with data: Data) throws {
-        let handle = try FileHandle(forWritingTo: url)
+    /// Same file, new contents, written from the first byte that differs from what's there (and,
+    /// the same length, only to the last that differs), then cut to length and fsynced. Writing
+    /// before truncating means the file is never briefly empty. A save had written the whole
+    /// file: typing at the end of 2.4 MB, 2.4 MB a save, a save a second after each pause, about
+    /// 1.7 GB an hour of steady typing; the end alone is about 20 KB as the kernel counts it
+    /// (2026-10-02, PRD §8). Returns the bytes written.
+    @discardableResult
+    static func overwriteInPlace(_ url: URL, with data: Data) throws -> Int {
+        let mark = WriteMeter.start()
+        let handle = try FileHandle(forUpdating: url)
         do {
-            try handle.seek(toOffset: 0)
-            try handle.write(contentsOf: data)
-            try handle.truncate(atOffset: UInt64(data.count))
-            try handle.synchronize()
+            let size = Int(try handle.seekToEnd())
+            let changed = try stretch(of: data, differingFrom: handle, size: size)
+            if !changed.isEmpty {
+                try handle.seek(toOffset: UInt64(changed.lowerBound))
+                try handle.write(contentsOf: data[data.startIndex + changed.lowerBound ..< data.startIndex + changed.upperBound])
+            }
+            if size != data.count { try handle.truncate(atOffset: UInt64(data.count)) }
+            if !changed.isEmpty || size != data.count { try handle.synchronize() }
             try handle.close()
+            WriteMeter.add("file", bytes: changed.count, since: mark)
+            return changed.count
         } catch {
             try? handle.close()
             throw error
         }
     }
 
-    static func createFile(_ url: URL, with data: Data) throws {
+    /// The bytes of `data` that differ from the file's `size` bytes: from the first that differs
+    /// to the end, or, the same length, to the last that differs. Read a megabyte at a time.
+    static func stretch(of data: Data, differingFrom handle: FileHandle, size: Int) throws -> Range<Int> {
+        let chunk = 1 << 20
+        var from = 0
+        try handle.seek(toOffset: 0)
+        while from < min(size, data.count) {
+            let count = min(chunk, min(size, data.count) - from)
+            guard let disk = try handle.read(upToCount: count), disk.count == count else { break }   // shorter than it was: written from here
+            if let at = difference(disk, data, at: from, backward: false) { from += at; break }
+            from += count
+        }
+        guard size == data.count, from < size else { return from ..< data.count }
+        var to = size
+        while to > from {
+            let count = min(chunk, to - from)
+            try handle.seek(toOffset: UInt64(to - count))
+            guard let disk = try handle.read(upToCount: count), disk.count == count else { break }
+            if let at = difference(disk, data, at: to - count, backward: true) { to = to - count + at + 1; break }
+            to -= count
+        }
+        return from ..< to
+    }
+
+    /// Where `disk` and the same stretch of `data` from `offset` first differ (or, backward, last),
+    /// by 4 KB blocks with `memcmp`, then bytes; nil where they're the same.
+    private static func difference(_ disk: Data, _ data: Data, at offset: Int, backward: Bool) -> Int? {
+        disk.withUnsafeBytes { a in
+            data.withUnsafeBytes { whole in
+                let b = UnsafeRawBufferPointer(rebasing: whole[offset ..< offset + a.count])
+                guard let pa = a.baseAddress, let pb = b.baseAddress else { return nil }
+                let block = 4096
+                var blocks = Array(stride(from: 0, to: a.count, by: block))
+                if backward { blocks.reverse() }
+                for start in blocks {
+                    let count = min(block, a.count - start)
+                    guard memcmp(pa + start, pb + start, count) != 0 else { continue }
+                    let bytes = backward ? Array((start ..< start + count).reversed()) : Array(start ..< start + count)
+                    return bytes.first { a[$0] != b[$0] }
+                }
+                return nil
+            }
+        }
+    }
+
+    static func createFile(_ url: URL, with data: Data) throws -> Int {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         guard FileManager.default.createFile(atPath: url.path, contents: nil) else { throw CocoaError(.fileWriteUnknown) }
-        try overwriteInPlace(url, with: data)
+        return try overwriteInPlace(url, with: data)
     }
 }

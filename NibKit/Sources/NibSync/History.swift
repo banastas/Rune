@@ -36,8 +36,8 @@ public final class History: Sendable {
     }
 
     private var index: URL { directory.appendingPathComponent("index.jsonl") }
-    /// Versions this Mac had and keeps no copy of, a line each ("<sha256> <time>"): let go by
-    /// thinning, or never kept (`noteSeen`).
+    /// Versions this Mac had and keeps no copy of, a line each ("<sha256> <time>"), oldest first:
+    /// let go by thinning, or never kept (`noteSeen`).
     private var thinned: URL { directory.appendingPathComponent("thinned.txt") }
 
     /// Whether this Mac had this version in the 30 days History covers: kept, let go by thinning
@@ -57,6 +57,7 @@ public final class History: Sendable {
     /// `thin` folds it in with the rest.
     public func noteSeen(_ sha: String, time: Date = Date()) {
         lock.withLock {
+            let mark = WriteMeter.start()
             let line = Data("\(sha) \(ISO8601DateFormatter().string(from: time))\n".utf8)
             if let handle = try? FileHandle(forWritingTo: thinned) {
                 defer { try? handle.close() }
@@ -66,6 +67,7 @@ public final class History: Sendable {
                 try? FileManager.default.createDirectory(at: thinned.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try? line.write(to: thinned, options: .atomic)
             }
+            WriteMeter.add("History seen", bytes: line.count, since: mark)
         }
     }
 
@@ -92,11 +94,14 @@ public final class History: Sendable {
             if let last = readEntries().last, last.sha256 == sha { return }
             try FileManager.default.createDirectory(at: versionURL(sha).deletingLastPathComponent(), withIntermediateDirectories: true)
             if !FileManager.default.fileExists(atPath: versionURL(sha).path) {
+                let mark = WriteMeter.start()
                 try data.write(to: versionURL(sha), options: .atomic)
+                WriteMeter.add("History version", bytes: data.count, since: mark)
             }
             let entry = HistoryEntry(sha256: sha, parent: parent, time: time, source: source, size: data.count)
             var line = try Self.encoder.encode(entry)
             line.append(0x0A)
+            let mark = WriteMeter.start()
             if let handle = try? FileHandle(forWritingTo: index) {
                 defer { try? handle.close() }
                 try handle.seekToEnd()
@@ -104,6 +109,7 @@ public final class History: Sendable {
             } else {
                 try line.write(to: index, options: .atomic)
             }
+            WriteMeter.add("History index", bytes: line.count, since: mark)
         }
     }
 
@@ -128,8 +134,11 @@ public final class History: Sendable {
     }
 
     /// All of the last day, then the newest of each hour to a week, the newest of each day to
-    /// 30 days, nothing older; versions no entry keeps any more are removed.
-    public func thin(now: Date = Date()) {
+    /// 30 days, nothing older; versions no entry keeps any more are removed. True when it let any
+    /// go. Run when a file opens and once a day while it stays open (its document's); with nothing
+    /// due it reads the index and a line of `thinned`, and writes nothing.
+    @discardableResult
+    public func thin(now: Date = Date()) -> Bool {
         lock.withLock {
             let all = readEntries()
             var kept: [HistoryEntry] = [], buckets = Set<String>()
@@ -144,30 +153,124 @@ public final class History: Sendable {
             kept.reverse()
             let keep = Set(kept.map(\.sha256))
             remember(all.filter { !keep.contains($0.sha256) && now.timeIntervalSince($0.time) < 30 * 86_400 }, now: now)
-            guard kept.count != all.count else { return }
+            guard kept.count != all.count else { return false }
             let lines = kept.compactMap { try? Self.encoder.encode($0) }.map { String(decoding: $0, as: UTF8.self) }
-            try? (lines.joined(separator: "\n") + (lines.isEmpty ? "" : "\n")).write(to: index, atomically: true, encoding: .utf8)
+            let mark = WriteMeter.start()
+            let rewritten = lines.joined(separator: "\n") + (lines.isEmpty ? "" : "\n")
+            try? rewritten.write(to: index, atomically: true, encoding: .utf8)
+            WriteMeter.add("History thinning", bytes: rewritten.utf8.count, since: mark)
             let folder = versionURL("x").deletingLastPathComponent()
             for name in (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? [] where !keep.contains(name) {
                 try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
             }
+            return true
         }
     }
 
+    /// Everything kept here goes to `destination`, the History of the path the text goes on at
+    /// (Rename…, Move To…, an untitled buffer saved or renamed; guarantee 2): the folder moved when
+    /// that path has none, merged into its when it has (the versions it lacks, the entries in time
+    /// order, both lists of versions let go). Nothing stays here, where no path would open it
+    /// again or thin it. The versions are linked, not copied, and this folder goes only once the
+    /// merged index is written, so a crash on the way loses none. Not while either path is open.
+    public func move(to destination: History) throws {
+        let fm = FileManager.default
+        guard destination.directory.standardizedFileURL.path != directory.standardizedFileURL.path else { return }
+        try lock.withLock {
+            try destination.lock.withLock {
+                guard fm.fileExists(atPath: directory.path) else { return }
+                guard fm.fileExists(atPath: destination.directory.path) else {
+                    try fm.createDirectory(at: destination.directory.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try fm.moveItem(at: directory, to: destination.directory)
+                    return
+                }
+                let versions = versionURL("x").deletingLastPathComponent(), into = destination.versionURL("x").deletingLastPathComponent()
+                try fm.createDirectory(at: into, withIntermediateDirectories: true)
+                for name in (try? fm.contentsOfDirectory(atPath: versions.path)) ?? [] where !fm.fileExists(atPath: into.appendingPathComponent(name).path) {
+                    try fm.linkItem(at: versions.appendingPathComponent(name), to: into.appendingPathComponent(name))
+                }
+                // Oldest first, as `record` keeps them; at the same moment, the destination's first.
+                let entries = (destination.readEntries() + readEntries()).enumerated()
+                    .sorted { ($0.element.time, $0.offset) < ($1.element.time, $1.offset) }.map(\.element)
+                let lines = entries.compactMap { try? Self.encoder.encode($0) }.map { String(decoding: $0, as: UTF8.self) }
+                try (lines.joined(separator: "\n") + (lines.isEmpty ? "" : "\n")).write(to: destination.index, atomically: true, encoding: .utf8)
+                var times = Self.times(in: destination.thinned)
+                times.merge(Self.times(in: thinned)) { max($0, $1) }
+                if !times.isEmpty {
+                    var seen = ""   // oldest first, as `noteSeen` and `remember` keep it
+                    seen.reserveCapacity(times.count * 86)
+                    for (sha, time) in times.sorted(by: { $0.value < $1.value }) { seen += sha; seen += " "; seen += time; seen += "\n" }
+                    try seen.write(to: destination.thinned, atomically: true, encoding: .utf8)
+                }
+                try fm.removeItem(at: directory)
+            }
+        }
+    }
+
+    /// A list of versions let go (`thinned`): each one's latest time, as written
+    /// ("2026-10-02T12:34:56Z", always that long, so in time order as text). Not parsed: a month
+    /// of saves is 100,000-200,000 lines, and parsing each one's time took seconds (2026-10-02).
+    private static func times(in url: URL) -> [Substring: Substring] {
+        let text = (try? Data(contentsOf: url)).map { String(decoding: $0, as: UTF8.self) } ?? ""
+        var times: [Substring: Substring] = [:]
+        for bytes in text.utf8.split(separator: 0x0A) {
+            // "<sha256> <time>": 64, a space, 20; a line of any other shape is a torn append.
+            guard bytes.count == 85, bytes[bytes.index(bytes.startIndex, offsetBy: 64)] == 0x20 else { continue }
+            let sha = Substring(bytes.prefix(64)), time = Substring(bytes.suffix(20))
+            if let known = times[sha], known >= time { continue }
+            times[sha] = time
+        }
+        return times
+    }
+
     /// Adds the versions let go to `thinned` (the latest time each), and drops what's 30 days old.
+    /// The file is in time order, oldest first (written so here; `noteSeen` adds the time it's
+    /// called), so with nothing let go its first line says whether anything is 30 days old, and
+    /// nothing more is read unless something is. Times are compared as written,
+    /// "2026-10-02T12:34:56Z": always that long, so in time order as text. Parsing each line's took
+    /// 6-15 s with a month of saves in the file (100,000-200,000 lines), History locked and the
+    /// journal's queue waiting (2026-10-02, PRD §8); now 1-5 ms with nothing due, 70-230 ms with
+    /// something (Release).
     private func remember(_ gone: [HistoryEntry], now: Date) {
         let formatter = ISO8601DateFormatter()
-        let old = (try? String(contentsOf: thinned, encoding: .utf8)) ?? ""
-        var times: [String: Date] = [:]
-        for line in old.split(separator: "\n") {
-            let parts = line.split(separator: " ", maxSplits: 1)
-            guard parts.count == 2, let time = formatter.date(from: String(parts[1])) else { continue }
-            times[String(parts[0])] = max(time, times[String(parts[0])] ?? time)
+        let cutoff = formatter.string(from: Date(timeIntervalSince1970: (now.timeIntervalSince1970 - 30 * 86_400).rounded(.down)))
+        if gone.isEmpty {
+            guard let first = Self.firstLine(of: thinned) else { return }   // no file: nothing to drop
+            if let time = Self.time(of: first), time > cutoff { return }
         }
-        for entry in gone { times[entry.sha256] = max(entry.time, times[entry.sha256] ?? entry.time) }
-        times = times.filter { now.timeIntervalSince($0.value) < 30 * 86_400 }
-        let lines = times.sorted { $0.value < $1.value }.map { "\($0.key) \(formatter.string(from: $0.value))\n" }.joined()
-        guard lines != old else { return }
-        if lines.isEmpty { try? FileManager.default.removeItem(at: thinned) } else { try? lines.write(to: thinned, atomically: true, encoding: .utf8) }
+        let old = (try? Data(contentsOf: thinned)).map { String(decoding: $0, as: UTF8.self) } ?? ""   // a bad byte costs its line only
+        var lines: [(sha: Substring, time: Substring)] = []
+        for bytes in old.utf8.split(separator: 0x0A) {
+            let line = Substring(bytes)
+            if let time = Self.time(of: line), time > cutoff { lines.append((Substring(line.utf8.prefix(64)), time)) }
+        }
+        for entry in gone {
+            let time = formatter.string(from: entry.time)
+            if time > cutoff { lines.append((Substring(entry.sha256), Substring(time))) }
+        }
+        lines.sort { $0.time < $1.time }   // in order already, but for the versions let go now
+        var seen = Set<Substring>(), latest: [(sha: Substring, time: Substring)] = []
+        for line in lines.reversed() where seen.insert(line.sha).inserted { latest.append(line) }   // each version's latest line
+        var text = ""
+        text.reserveCapacity(latest.count * 86)
+        for line in latest.reversed() { text += line.sha; text += " "; text += line.time; text += "\n" }
+        guard text != old else { return }
+        let mark = WriteMeter.start()
+        if text.isEmpty { try? FileManager.default.removeItem(at: thinned) } else { try? text.write(to: thinned, atomically: true, encoding: .utf8) }
+        WriteMeter.add("History thinning", bytes: text.utf8.count, since: mark)
+    }
+
+    /// The time on a line of `thinned`, as written; nil for a line of any other shape (a torn append).
+    private static func time(of line: Substring) -> Substring? {
+        let bytes = line.utf8   // "<sha256> <time>": 64, a space, 20
+        guard bytes.count == 85, bytes[bytes.index(bytes.startIndex, offsetBy: 64)] == 0x20 else { return nil }
+        return Substring(bytes.suffix(20))
+    }
+
+    private static func firstLine(of url: URL) -> Substring? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        guard let head = try? handle.read(upToCount: 128), !head.isEmpty else { return nil }
+        return String(decoding: head, as: UTF8.self).split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).first
     }
 }
