@@ -1613,7 +1613,7 @@ Now a launch with `-NibScenario` (every script's) is the test harness's Nib (`Ni
 - **The suite after (17:49-18:04), Swift's too:** 59 scenario runs and 430 checks, all passing but three, none in highlighting:
   - `cli`'s `nib -w` exited 1 once, which it does when it finds Nib gone before the file is closed; it passed twice alone (18:06, 18:07).
   - `merge` with no note logged nothing until it was killed at 115 s. The test file, uploaded a moment before by the run ahead of it, wasn't held at launch (iCloud was still uploading it after 15 s), and it was held on the third try, 86 s after the first; only then did the scenario's typing reach a save. Its sample is gone, since the next merge run has the same name and deleted it. It passed alone (18:06).
-  - `files`' File › Close: the Mac's screen was locked (`loginwindow` kept the focus), as at 16:57.
+  - `files`' File › Close: the Mac's screen was locked (`loginwindow` kept the focus), as at 16:57. With it unlocked, `files` passed alone, all 10 checks (20:24).
 
   208 NibKit tests; a Release build compiles.
 
