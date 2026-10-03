@@ -42,6 +42,18 @@ retries: 3
 sources: [main, archive]
 ```
 
+```go
+fmt.Printf("%d feeds\n", len(feeds))
+```
+
+```rust
+let total: usize = feeds.iter().map(|f| f.len()).sum();
+```
+
+```sql
+SELECT COUNT(*) FROM episodes WHERE explicit = FALSE;
+```
+
 ---
 
 Some ~~old~~ notes, a line with `inline code`, and a footnote.[^1]

@@ -448,6 +448,15 @@ public enum Highlighter {
             }
             collect(text, inner, injection.language, roots: injection.scopes, level: level + 1, window: window,
                     string: piece + closer, into: &spans)
+            // The holes are the host's, under the scopes it gives them (PHP's code in a page's HTML:
+            // embedded, the HTML's strings round it cleared).
+            for hole in injection.holes where !injection.holeScopes.isEmpty {
+                let absolute = NSRange(location: hole.location + range.location, length: hole.length)
+                for (i, scope) in injection.holeScopes.enumerated() {
+                    let name = scope.hasPrefix("clear.") ? "\u{1}" + scope.dropFirst(6) : scope
+                    spans.append(Span(range: absolute, scope: name, order: (level + 1, Int.max - 1, spans.count + i)))
+                }
+            }
         }
     }
 
@@ -574,6 +583,29 @@ public enum Highlighter {
         } else if scope == "meta.preprocessor.macro.value.c" {
             // A #define's value: its numbers, as Sublime reads them there.
             each(#"(?<![\w.])\d+(?:\.\d+)?[uUlLfF]*(?![\w.])"#) { mark($0.range.location, $0.range.length, "constant.numeric.value.c") }
+        } else if scope == "meta.string.like.sql" {
+            each("%") { mark($0.range.location, 1, "constant.other.wildcard.percent.sql") }   // LIKE '%draft%'
+        } else if scope == "meta.interval.sql" {
+            // INTERVAL '30 days': the string in it, a token of its own to the grammar.
+            each(#"'[^']*'"#) { m in
+                mark(m.range.location, m.range.length, "string.quoted.single.sql")
+                mark(m.range.location, 1, "punctuation.definition.string.begin.sql")
+                mark(NSMaxRange(m.range) - 1, 1, "punctuation.definition.string.end.sql")
+            }
+        } else if scope == "meta.link.restructuredtext" {
+            // `the website <https://…>`_ and settings_: the title and the address, the marks plain.
+            if let m = (try? NSRegularExpression(pattern: #"^`([^<`]*?)\s*(?:<([^>]*)>)?`_{1,2}$"#))?.firstMatch(in: token, range: NSRange(location: 0, length: n)) {
+                if m.range(at: 1).length > 0 { mark(m.range(at: 1).location, m.range(at: 1).length, "string.other.link.title.restructuredtext") }
+                if m.range(at: 2).location != NSNotFound { mark(m.range(at: 2).location, m.range(at: 2).length, "markup.underline.link.restructuredtext") }
+            } else if token.hasSuffix("_") {
+                mark(0, n - (token.hasSuffix("__") ? 2 : 1), "string.other.link.title.restructuredtext")
+            }
+        } else if scope == "meta.link.reference.def.restructuredtext" {
+            // .. _settings: — the name between its marks.
+            let start = token.hasPrefix("_") ? 1 : 0, end = token.hasSuffix(":") ? n - 1 : n
+            if end > start { mark(start, end - start, "string.other.link.title.restructuredtext") }
+        } else if scope == "meta.footnote.link.restructuredtext" {
+            if token.hasSuffix("_") { mark(0, n - 1, "constant.other.footnote.link.restructuredtext") }   // [#]_
         } else if scope == "meta.diff.range.unified" {
             // @@ -12,9 +12,11 @@ export function parseFeed(xml) {: the section after the second @@.
             each(#"^@@ [^@]*@@ ?(.+)$"#) { mark($0.range(at: 1).location, $0.range(at: 1).length, "entity.name.section.diff") }
@@ -649,8 +681,9 @@ public enum Highlighter {
             }
         } else if scope.hasPrefix("comment.") {
             if scope.hasPrefix("comment.block.documentation"), !scope.hasSuffix(".python") {
-                // JSDoc's @param an attribute name; Javadoc's @author a tag, as each has it.
-                let tag = scope.hasSuffix(".java") ? "entity.name.tag.documentation.javadoc" : "entity.other.attribute-name.documentation"
+                // JSDoc's @param an attribute name; Javadoc's @author and phpdoc's @return tags, as each has it.
+                let tag = scope.hasSuffix(".java") ? "entity.name.tag.documentation.javadoc"
+                    : scope.hasSuffix(".php") ? "entity.name.tag.documentation.phpdoc.php" : "entity.other.attribute-name.documentation"
                 each(#"@[A-Za-z]+"#) { mark($0.range.location, $0.range.length, tag) }
             }
             if token.hasPrefix("/*") {
@@ -669,6 +702,7 @@ public enum Highlighter {
                 if n >= length + 2, token.hasSuffix("]") { mark(n - (length - 2), length - 2, "punctuation.definition.comment.end") }
             }
             else if token.hasPrefix("--"), scope.hasSuffix(".lua") || scope.hasSuffix(".sql") { mark(0, 2, "punctuation.definition.comment") }
+            else if token.hasPrefix(".."), scope.hasSuffix(".restructuredtext") { mark(0, 2, "punctuation.definition.comment") }
             else if token.hasPrefix("///") || token.hasPrefix("//!") { mark(0, 3, "punctuation.definition.comment") }   // a doc comment's
             else if token.hasPrefix("//") { mark(0, 2, "punctuation.definition.comment") }
             else if token.hasPrefix("<!--") { mark(0, 4, "punctuation.definition.comment.begin"); if n > 6, token.hasSuffix("-->") { mark(n - 3, 3, "punctuation.definition.comment.end") } }
@@ -735,10 +769,13 @@ enum Injections {
         /// Stretches of it that are the host's (make's references in a recipe's shell): blanked
         /// for the embedded language's parser, which reads a word there, and colored by the host.
         var holes: [NSRange] = []
+        /// Scopes each hole takes, over the embedded language's (`clear.` as in a query).
+        var holeScopes: [String] = []
     }
 
     /// The embedded languages that touch `window` (a whole text when it's all of it).
     static func find(in root: Node, text: NSString, language: SyntaxLanguage, window: NSRange? = nil) -> [Injection] {
+        if language == .php { return phpPage(root) }
         var found: [Injection] = []
         func walk(_ node: Node) {
             if let window, !Highlighter.intersects(node.range, window) { return }   // nothing of it on screen
@@ -773,6 +810,27 @@ enum Injections {
         }
         walk(root)
         return found
+    }
+
+    /// A PHP file's HTML: one stretch of HTML over the whole file, its `text` nodes as they are
+    /// and the PHP between them holes, as Sublime embeds PHP in HTML. None for PHP alone.
+    static func phpPage(_ root: Node) -> [Injection] {
+        var texts: [NSRange] = []
+        func walk(_ node: Node) {
+            if node.nodeType == "text" { texts.append(node.range); return }
+            node.enumerateChildren { walk($0) }
+        }
+        walk(root)
+        guard !texts.isEmpty else { return [] }
+        let whole = root.range
+        var holes: [NSRange] = [], at = whole.location
+        for stretch in texts.sorted(by: { $0.location < $1.location }) {
+            if stretch.location > at { holes.append(NSRange(location: at, length: stretch.location - at)) }
+            at = max(at, NSMaxRange(stretch))
+        }
+        if at < NSMaxRange(whole) { holes.append(NSRange(location: at, length: NSMaxRange(whole) - at)) }
+        return [Injection(range: whole, language: .html, scopes: ["text.html.php"], holes: holes,
+                          holeScopes: ["clear.meta.embedded.php", "source.php.embedded.html"])]
     }
 
     static func child(of node: Node, type: String) -> Node? {

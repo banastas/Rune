@@ -10,6 +10,7 @@
 import AppKit
 import Carbon.HIToolbox
 import NibSync
+import NibSyntax
 import NibText
 import ServiceManagement
 import SwiftUI
@@ -3459,8 +3460,8 @@ enum TestHarness {
         let view = NSApp.mainMenu?.items.first { $0.title == "View" }?.submenu
         let items = view?.items.first { $0.title == "Syntax" }?.submenu?.items.map(\.title).filter { !$0.isEmpty } ?? []
         let missing = SyntaxPick.all.map(\.name).filter { !items.contains($0) }
-        log.check(items.contains("Automatic (Plain Text)") && missing.isEmpty && SyntaxPick.all.count == 21,
-                  "View › Syntax has Automatic and the 20 languages, by name (\(items.joined(separator: ", ")))")
+        log.check(items.contains("Automatic (Plain Text)") && missing.isEmpty && SyntaxPick.all.count == SyntaxLanguage.allCases.count,
+                  "View › Syntax has Automatic and the \(SyntaxPick.all.count - 1) languages, by name (\(items.joined(separator: ", ")))")
         if let window = document.editor.textView.window, let frame = window.contentView?.superview,
            let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
             frame.cacheDisplay(in: frame.bounds, to: rep)

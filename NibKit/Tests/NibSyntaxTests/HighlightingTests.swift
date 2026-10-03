@@ -56,6 +56,9 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
             ("rules.mk", .makefile), ("compose.yaml", .yaml), ("ci.yml", .yaml), ("pyproject.toml", .toml), ("Cargo.lock", .toml),
             ("Pipfile", .toml), ("tool.py", .python), ("stubs.pyi", .python), ("SConstruct", .python), ("setup.cfg", .ini),
             ("settings.ini", .ini), (".editorconfig", .ini), ("Preferences.sublime-settings", .json), ("Untitled.ipynb", .json),
+            ("main.go", .go), ("cache.rs", .rust), ("sync.rb", .ruby), ("Gemfile", .ruby), ("Rakefile", .ruby), ("app.gemspec", .ruby),
+            (".irbrc", .ruby), ("FeedParser.java", .java), ("buffer.c", .c), ("buffer.h", .c), ("config.lua", .lua),
+            ("index.php", .php), ("page.phtml", .php), ("report.sql", .sql), ("guide.rst", .rst),
         ]
         for (name, language) in named {
             #expect(SyntaxLanguage.detect(fileName: name)?.language == language, "\(name)")
@@ -73,6 +76,10 @@ let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().del
         #expect(SyntaxLanguage.detect(fileName: "changes", firstLine: "--- a/src/feed.js")?.language == .diff)
         #expect(SyntaxLanguage.detect(fileName: "changes", firstLine: "Index: src/feed.js")?.language == .diff)
         #expect(SyntaxLanguage.detect(fileName: "notes.txt", firstLine: "# Notes") == nil)
+        #expect(SyntaxLanguage.detect(fileName: "deploy", firstLine: "#!/usr/bin/env ruby")?.language == .ruby)
+        #expect(SyntaxLanguage.detect(fileName: "script", firstLine: "#!/usr/bin/env lua")?.language == .lua)
+        #expect(SyntaxLanguage.detect(fileName: "page", firstLine: "<?php")?.language == .php)
+        #expect(SyntaxLanguage.detect(fileName: "run", firstLine: "#!/usr/bin/env php")?.language == .php)
     }
 
     /// Nib's own colors where Sublime has none (HL8): INI as Git's config files, .env as shell.

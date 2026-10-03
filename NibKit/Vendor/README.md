@@ -34,6 +34,20 @@ licence beside it:
 The three without a Swift binding (gitignore, gitattributes, git-config) have a header written
 here, declaring their one function.
 
+HL8's second tier (2026-10-02), all MIT:
+
+| Folder | Repository | Version | Notes |
+|---|---|---|---|
+| `tree-sitter-go` | tree-sitter/tree-sitter-go | v0.25.0 | |
+| `tree-sitter-rust` | tree-sitter/tree-sitter-rust | v0.24.2 | |
+| `tree-sitter-ruby` | tree-sitter/tree-sitter-ruby | v0.23.1 | |
+| `tree-sitter-java` | tree-sitter/tree-sitter-java | v0.23.5 | |
+| `tree-sitter-c` | tree-sitter/tree-sitter-c | v0.24.2 | |
+| `tree-sitter-lua` | tree-sitter-grammars/tree-sitter-lua | v0.5.0 | |
+| `tree-sitter-php` | tree-sitter/tree-sitter-php | v0.25.0 | `php/src` only (the grammar that reads the HTML round `<?php ?>`), and `common/scanner.h`; its binding header written here, for `tree_sitter_php` alone |
+| `tree-sitter-sql` | DerekStride/tree-sitter-sql | v0.3.11 | from the release's `tree-sitter-sql-v0.3.11.tar.gz`: the repository holds no generated parser |
+| `tree-sitter-rst` | stsewd/tree-sitter-rst | v0.2.0 | its scanner includes `src/tree_sitter_rst/`, copied whole (not compiled on its own) |
+
 To update: copy `src/parser.c`, `src/scanner.c`, `src/tree_sitter/*.h` and
 `bindings/swift/<Module>/*.h` from the grammar's release tag (for XML, `xml/src/…`,
 `common/scanner.h` and `bindings/swift/xml/TreeSitterXML/xml.h`), and change the version here.

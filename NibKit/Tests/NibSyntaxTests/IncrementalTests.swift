@@ -27,7 +27,7 @@ import Testing
     }
 
     @Test func aWindowIsTheWholeCutToIt() throws {
-        try #require(Self.references.count == 21)   // six from HL1, three XML and twelve more (HL8)
+        try #require(Self.references.count == 30)   // six from HL1, three XML, twelve and nine more (HL8)
         var windows = 0
         for file in Self.references {
             let whole = Highlighter.runs(file.text, language: file.language, root: file.root)
@@ -77,8 +77,8 @@ import Testing
                         "\(file.name) step \(step): the runs differ")
             }
         }
-        // 21 files of 40 edits: all but a few compared (repairs that differ are rare).
-        #expect(compared >= 800, "compared \(compared), repaired differently \(repaired)")
+        // 30 files of 40 edits: all but a few compared (repairs that differ are rare).
+        #expect(compared >= 1_140, "compared \(compared), repaired differently \(repaired)")
     }
 
     @Test func theChangeIsFound() async {
