@@ -67,8 +67,8 @@ if arguments[1] == "--memory", arguments.count > 2 {
 }
 if arguments[1] == "--bench" {
     // How long highlighting takes on generated text (§6.5): scratch-shaped Markdown at 2.4 MB,
-    // 50,000 lines (S2's shape), 5 MB of JavaScript, and a podcast feed of 2.4 MB (HL8: years
-    // of episodes, as a real feed grows). Release build: swift run -c release.
+    // 50,000 lines (S2's shape), 5 MB of JavaScript, a podcast feed of 2.4 MB (HL8: years of
+    // episodes, as a real feed grows), and 2.4 MB of Swift (HL8). Release build: swift run -c release.
     func clock(_ label: String, _ work: () -> Int) {
         let start = Date()
         let count = work()
@@ -109,9 +109,12 @@ if arguments[1] == "--bench" {
         """
     }
     feed += "</channel>\n</rss>\n"
+    let swiftChunk = (try? String(contentsOf: URL(fileURLWithPath: "fidelity/own/FeedStore.swift"), encoding: .utf8)) ?? "let x = 1\n"
+    var swift = ""
+    while swift.utf8.count < 2_400_000 { swift += swiftChunk }
     let theme = Theme.anOldHopeNib
     for (name, text, language, root) in [("Markdown 2.4 MB", markdown, SyntaxLanguage.markdown, "text.html.markdown"), ("JavaScript 5 MB", javascript, .javascript, "source.js"),
-                                         ("XML feed 2.4 MB", feed, .xml, "text.xml")] {
+                                         ("XML feed 2.4 MB", feed, .xml, "text.xml"), ("Swift 2.4 MB", swift, .swift, "source.swift")] {
         print("\(name): \(text.utf8.count) bytes, \(text.components(separatedBy: "\n").count) lines")
         clock("parse (tree-sitter)") { Highlighter.tree(text, language: language).count }
         var runs: [ScopeRun] = []

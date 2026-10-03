@@ -48,6 +48,11 @@ HL8's second tier (2026-10-02), all MIT:
 | `tree-sitter-sql` | DerekStride/tree-sitter-sql | v0.3.11 | from the release's `tree-sitter-sql-v0.3.11.tar.gz`: the repository holds no generated parser |
 | `tree-sitter-rst` | stsewd/tree-sitter-rst | v0.2.0 | its scanner includes `src/tree_sitter_rst/`, copied whole (not compiled on its own) |
 
+HL8's Swift (2026-10-02), in Nib's own colors: alex-pinkus/tree-sitter-swift (MIT) at
+`0.7.3-with-generated-files` (31d17fe, 2026-06-01), `src/` and its binding's header. Its
+branches hold no generated parser (only those tags do), so it's copied like the others rather
+than fetched.
+
 To update: copy `src/parser.c`, `src/scanner.c`, `src/tree_sitter/*.h` and
 `bindings/swift/<Module>/*.h` from the grammar's release tag (for XML, `xml/src/…`,
 `common/scanner.h` and `bindings/swift/xml/TreeSitterXML/xml.h`), and change the version here.
