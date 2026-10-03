@@ -3932,7 +3932,7 @@ enum TestHarness {
         log.check(saved, "typing saves while it's unheld")
         // Up to a minute: a try that finds iCloud still uploading the file (the typing above, just
         // saved) leaves it unpaused for a later one (§4.3; the suite at 16:38 on 2026-10-02 held it
-        // on try 4, 22 s on, where this allowed try 3 and 20 s).
+        // on try 4, 38 s after opening, where this allowed try 3 and 20 s).
         let held = await waitFor(60) { document.held }
         log.check(held, "held on a later try, \(Int(Date().timeIntervalSince(opened))) s after opening")
         let lines = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).read().filter { $0.path == url.path && $0.event == "pause" }
