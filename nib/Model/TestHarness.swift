@@ -55,6 +55,9 @@ enum TestHarness {
     /// -NibFailResumes n: the next hand-backs fail as when iCloud's helper doesn't answer;
     /// -NibUnsupportedPauses n (with -NibFailPausesFor): the next holds answer "not supported".
     static var failResumes = NibDefaults.store.integer(forKey: "NibFailResumes")
+    /// -NibStillUploading n: the next n waits for iCloud's upload find it still uploading when
+    /// their 15 s are up, as the suite's `merge` did at 17:55 on 2026-10-02.
+    static var stillUploading = NibDefaults.store.integer(forKey: "NibStillUploading")
     static var unsupportedPauses = NibDefaults.store.integer(forKey: "NibUnsupportedPauses")
 
     static func runIfRequested(_ document: Document) {
@@ -62,6 +65,7 @@ enum TestHarness {
         guard let scenario = defaults.string(forKey: "NibScenario") else { return }
         let log = HarnessLog(path: defaults.string(forKey: "NibScenarioLog") ?? "/tmp/nib-scenario.log")
         let marker = defaults.string(forKey: "NibMarker") ?? "marker-\(Int(Date().timeIntervalSince1970))"
+        MainThreadWatch.start(log)
         Task {
             // §6.5's cold launch: from the process starting to the scratch window up with its text.
             _ = await waitFor(3) { AppDelegate.scratchWindow?.isVisible == true }
@@ -127,6 +131,7 @@ enum TestHarness {
             case "headings": await headingsScenario(log, marker)
             case "pairs": await pairsScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
+            case "nap": await napScenario(document, log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
             case "bigopen": await bigOpen(log, marker)
@@ -3073,6 +3078,14 @@ enum TestHarness {
     /// clean three-way merge, no sheet, one undo step (§4.7, §4.8 A).
     static func mergeFromNote(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
+        // Held first: a launch that finds iCloud still uploading the file holds it by a retry,
+        // up to a minute on, and the merge needs a version this Mac uploaded while holding it
+        // (the suite, 2026-10-02: unheld, it waited and typed, then had no such version).
+        let since = Date()
+        guard await waitFor(60, { document.held }) else {
+            log.line("FAIL not held 60 s after the scenario began (state \(document.state.line))"); return
+        }
+        if Date().timeIntervalSince(since) > 1 { log.line("held \(Int(Date().timeIntervalSince(since))) s after the scenario began (iCloud still uploading at launch)") }
         await waitSynced(document, 20)
         let view = document.editor.textView
         // The base: a version this Mac uploaded.
@@ -3604,6 +3617,32 @@ enum TestHarness {
         }
     }
 
+    /// App Nap (2026-10-02): a scenario's Nib out of sight keeps its timers on time. Napped,
+    /// its 50 ms waits took 250 ms from about 30 s out of sight on (with the screen locked, the
+    /// suite's `merge` waited 35 s for a hold, then typed its line, 30 ms a keystroke). Hidden
+    /// for 40 s, a 50 ms wait is timed throughout, then a line is typed, still out of sight.
+    static func napScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        NSApp.hide(nil)
+        let started = Date()
+        var longest = 0.0, firstLong: Double?
+        while Date().timeIntervalSince(started) < 40 {
+            let before = Date()
+            try? await Task.sleep(for: .milliseconds(50))
+            let took = Date().timeIntervalSince(before)
+            longest = max(longest, took)
+            if took > 0.2, firstLong == nil { firstLong = Date().timeIntervalSince(started) }
+        }
+        let line = "\n- typed out of sight \(marker)\n"
+        let typing = Date()
+        await type(line, into: document)
+        let typed = Date().timeIntervalSince(typing)
+        NSApp.unhideWithoutActivation()
+        log.check(longest < 0.2, "hidden for 40 s, not napped: a 50 ms wait took at most \(Int(longest * 1000)) ms"
+                  + (firstLong.map { "; they ran long from \(Int($0)) s on" } ?? ""))
+        log.check(typed < Double(line.count) * 0.03 + 2, "and \(line.count) keystrokes, 30 ms apart, took \(String(format: "%.1f", typed)) s")
+    }
+
     /// Theme import (HL2-HL4): a scheme file, then Import from Sublime Text from a generated
     /// Sublime folder (a .tmTheme with a Packages/User override, a font), then the original An
     /// Old Hope, which keeps the Nib edition. The editor redraws each time without an edit.
@@ -3912,6 +3951,10 @@ enum TestHarness {
         await waitSynced(document, 20)
         let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
         let before = events.read().count
+        // Blocks an earlier scenario left aren't this one's (the suite, 2026-10-02: a hand-back
+        // refused at a quit came back as a journal's conflict at the next launch).
+        func blocks() -> Int { fileText(document).components(separatedBy: "<<<<<<< ").count - 1 }
+        let blocksBefore = blocks()
         refuseUploads = 1
         staleFetches = 1
         await type("\n- typed before a refused upload \(marker)\n", into: document)
@@ -3925,8 +3968,9 @@ enum TestHarness {
         }
         log.check(kept, "the typing survives the refresh: in the buffer and the file, uploaded (\(document.state.line))")
         let after = events.read().dropFirst(before)
-        log.check(!after.contains { $0.event == "conflict" } && !fileText(document).contains("<<<<<<< ") ,
-                  "and the refresh brought back only what this Mac had uploaded: nothing between markers (\(after.map { $0.word }.joined(separator: ", ")))")
+        log.check(!after.contains { $0.event == "conflict" } && blocks() == blocksBefore,
+                  "and the refresh brought back only what this Mac had uploaded: nothing new between markers (\(after.map { $0.word }.joined(separator: ", "))"
+                  + (blocksBefore > 0 ? "; \(blocksBefore) left by earlier scenarios" : "") + ")")
         log.check(refuseUploads == 0 && staleFetches == 0, "and the pretend refusal and stale answer were both used")
     }
 
@@ -4910,6 +4954,37 @@ final class StallWatch {
     }
 }
 
+/// A scenario's Nib watching its own main thread from another: when it hasn't answered for
+/// 10 s, `sample` records where it waits, beside the scenario's log, and a STALL line says so
+/// once it answers. `merge` sat silent for 100 s in the suite of 2026-10-02 and was killed, and
+/// the runner's sample of it went with the next run.
+enum MainThreadWatch {
+    static func start(_ log: HarnessLog) {
+        let log = log, pid = ProcessInfo.processInfo.processIdentifier
+        let base = URL(fileURLWithPath: log.path).deletingPathExtension()
+        Thread.detachNewThread {
+            var stalls = 0
+            while true {
+                Thread.sleep(forTimeInterval: 1)
+                let answered = DispatchSemaphore(value: 0), asked = Date()
+                DispatchQueue.main.async { answered.signal() }
+                guard answered.wait(timeout: .now() + 10) == .timedOut else { continue }
+                stalls += 1
+                let file = base.path + "-stall-\(stalls).txt"
+                let sample = Process()
+                sample.executableURL = URL(fileURLWithPath: "/usr/bin/sample")
+                sample.arguments = ["\(pid)", "3", "-file", file]
+                sample.standardOutput = FileHandle.nullDevice
+                sample.standardError = FileHandle.nullDevice
+                try? sample.run()
+                sample.waitUntilExit()
+                answered.wait()
+                log.line("STALL the main thread didn't answer for \(Int(Date().timeIntervalSince(asked))) s: sampled in \((file as NSString).lastPathComponent)")
+            }
+        }
+    }
+}
+
 /// A scenario's Nib saves no window's place in the Mac's defaults, which are the bundle's, the
 /// Nib in daily use's too. SwiftUI names a window's frame (its autosave name) as it makes the
 /// window, before Nib sees it, and a cascaded file window saved its place under that name (the
@@ -4933,12 +5008,20 @@ extension NSWindow {
 /// scenario takes it: find, palette and snapshot need a key window, for a few seconds.
 @MainActor
 enum ScenarioFocus {
+    private static var noNap: NSObjectProtocol?
     private static var wanted = false
     private static var other: NSRunningApplication?
 
     /// Before Nib has come forward, while the app in front is still the one to give it back to.
     static func start() {
         guard NibDefaults.store.string(forKey: "NibScenario") != nil else { return }
+        // Never napped. Out of sight (the screen locked, or windows over it), macOS slows an
+        // app's timers after half a minute: a scenario's 30 ms keystrokes and 50 ms waits took
+        // five times as long (`nap`, 2026-10-02), and the suite runs out of sight.
+        if !NibDefaults.store.bool(forKey: "NibAllowNap") {   // -NibAllowNap YES: as before, for `nap` to show the difference
+            noNap = ProcessInfo.processInfo.beginActivity(options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
+                                                          reason: "Nib's scenario tests keep their own time")
+        }
         let front = NSWorkspace.shared.frontmostApplication
         other = front == .current ? nil : front
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { note in

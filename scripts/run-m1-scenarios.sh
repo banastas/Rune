@@ -28,20 +28,23 @@ printf 'Nib test file: generated text for the scenarios, started afresh by run-m
 LOGS=build/scenarios
 mkdir -p "$LOGS"
 
-run() {   # run <name> [args…]: one scenario, killed after 120 s if it hangs
+run() {   # [AS=<log name>] run <name> [args…]: one scenario, killed after 120 s if it hangs
   local name=$1; shift
-  rm -f "$LOGS/$name.log"   # a launch that never gets going must say so, not show an earlier run's log
-  "$APP" -NibScenario "$name" -NibScenarioLog "$PWD/$LOGS/$name.log" "$@" >/dev/null 2>&1 &
+  # A variant (AS=merge-no-note run merge …) has a log and a sample of its own: the next run of
+  # the same scenario deleted a hung variant's sample (`merge`, 2026-10-02).
+  local file=${AS:-$name}
+  rm -f "$LOGS/$file.log"   # a launch that never gets going must say so, not show an earlier run's log
+  "$APP" -NibScenario "$name" -NibScenarioLog "$PWD/$LOGS/$file.log" "$@" >/dev/null 2>&1 &
   local pid=$!
   # The guard's output goes nowhere, or its sleep would hold a pipe open for 120 s. A hung
-  # scenario is sampled first (build/scenarios/<name>-sample.txt), to show where it waits.
-  rm -f "$LOGS/$name-sample.txt"
-  ( sleep 115; kill -0 "$pid" 2>/dev/null && sample "$pid" 3 -file "$PWD/$LOGS/$name-sample.txt"; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 & local guard=$!
+  # scenario is sampled first (build/scenarios/<log name>-sample.txt), to show where it waits.
+  rm -f "$LOGS/$file-sample.txt"
+  ( sleep 115; kill -0 "$pid" 2>/dev/null && sample "$pid" 3 -file "$PWD/$LOGS/$file-sample.txt"; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 & local guard=$!
   disown "$guard"
   wait "$pid" 2>/dev/null || true
   pkill -P "$guard" sleep 2>/dev/null || true; kill "$guard" 2>/dev/null || true   # (a launch that dies at once leaves no sleep yet)
-  echo "==> $name"
-  grep -E "PASS|FAIL|after the last" "$LOGS/$name.log" || echo "FAIL no output$([[ -f $LOGS/$name-sample.txt ]] && echo " (hung: sampled in $LOGS/$name-sample.txt)")"
+  echo "==> $file"
+  grep -E "PASS|FAIL|STALL|after the last" "$LOGS/$file.log" || echo "FAIL no output$([[ -f $LOGS/$file-sample.txt ]] && echo " (hung: sampled in $LOGS/$file-sample.txt)")"
 }
 
 # A clean start for the scenarios' own journal (a failed earlier run can leave a snapshot that
@@ -58,6 +61,7 @@ run lines
 run find
 run carets
 run minimap
+run nap   # 40 s out of sight, not napped
 run mdlist       # a numbered list typed in a 2.4 MB Markdown file: its colors, and the lines drawn again
 run widescroll -NibWideScrollBig YES   # a scroll to a stretch taller than the view, then typing, in 2.4 MB (TextKit 2 crashed)
 run palette
@@ -85,12 +89,9 @@ run crash-big -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600   # a 2.4 MB
 run recover-big -NibMarker "$marker"
 run external -NibSaveIdle 600 -NibSaveMax 600
 run unsent -NibHoldUploads YES
-run merge
-cp "$LOGS/merge.log" "$LOGS/merge-note-first.log"
-run merge -NibNoteTiming never
-cp "$LOGS/merge.log" "$LOGS/merge-no-note.log"
-run merge -NibNoteTiming late
-cp "$LOGS/merge.log" "$LOGS/merge-late-note.log"
+AS=merge-note-first run merge
+AS=merge-no-note run merge -NibNoteTiming never
+AS=merge-late-note run merge -NibNoteTiming late
 run merge -NibNoteTiming after
 run mergeview
 run duplicates
@@ -102,13 +103,11 @@ run files
 run syntax
 run themes
 run synclog
-run holdretry -NibFailPauses 2 -NibFailPausesFor hold-
-cp "$LOGS/holdretry.log" "$LOGS/holdretry-4099.log"
+AS=holdretry-4099 run holdretry -NibFailPauses 2 -NibFailPausesFor hold-
 run holdretry -NibUnsupportedPauses 1 -NibFailPausesFor hold-
 run handback
 run handback-return -NibFailResumes 1
-run refusal -NibLoseHold YES
-cp "$LOGS/refusal.log" "$LOGS/refusal-lost-hold.log"
+AS=refusal-lost-hold run refusal -NibLoseHold YES
 run refusal
 umarker="untitled-$(date +%s)"
 run untitled -NibMarker "$umarker" -NibSaveIdle 600 -NibSaveMax 600
@@ -129,7 +128,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib-scenarios/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard cleantext lines find carets minimap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh large bigfile; do   # this run's logs only
+for name in type clipboard cleantext lines find carets minimap nap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh large bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done

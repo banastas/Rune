@@ -717,6 +717,13 @@ final class Document {
         }
         guard !closing else { throw CancellationError() }
         let waited = Date().timeIntervalSince(started)
+        #if DEBUG
+        if TestHarness.stillUploading > 0 {
+            TestHarness.stillUploading -= 1
+            if waited < limit { try? await Task.sleep(for: .seconds(limit - waited)) }
+            throw StillUploading(seconds: Date().timeIntervalSince(started))
+        }
+        #endif
         if uploading { throw StillUploading(seconds: waited) }
         return waited
     }
