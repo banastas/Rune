@@ -64,10 +64,12 @@ rm -f "$HOME/Library/Application Support/nib-scenarios/Journal/"*.json
 
 marker="crash-$(date +%s)"
 run type
+run uploads   # 30 s of typing: uploads every 20 s, then 3 s after it stops (§4.3 step 7)
 run clipboard
 run cleantext
 run lines
 run find
+run findjump   # Find's jumps through 223 KB, by the keyboard too: AppKit's crash at a scroll (2026-10-04)
 run carets
 run minimap
 run nap   # 40 s out of sight, not napped
@@ -137,7 +139,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib-scenarios/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type clipboard cleantext lines find carets minimap nap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh large bigfile; do   # this run's logs only
+for name in type uploads clipboard cleantext lines find findjump carets minimap nap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh large bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done

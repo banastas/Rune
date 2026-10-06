@@ -143,6 +143,36 @@ public struct SaveSchedule: Sendable, Equatable {
     }
 }
 
+/// When a held file's saves go up to iCloud (§4.3 step 7): on a trigger at once; otherwise once
+/// typing has paused `pause` seconds, or `interval` after the last upload began while it goes on,
+/// whichever comes first, and never within `spacing` of the last. Every upload sets iCloud's
+/// daemons writing several MB of their own, besides Nib's note: 122 MB in 70 s while typing
+/// went on, an upload every 4-5 s (2026-10-02, PRD §8). The user's call (2026-10-06): the other
+/// Mac up to `interval` behind during a long stretch of typing, for a fifth of the uploads.
+public struct UploadSchedule: Sendable, Equatable {
+    public var pause: TimeInterval
+    public var interval: TimeInterval
+    public var spacing: TimeInterval
+    public private(set) var lastEdit: Date?
+    public private(set) var lastStart: Date?
+
+    public init(pause: TimeInterval = 3, interval: TimeInterval = 20, spacing: TimeInterval = 3) {
+        self.pause = pause
+        self.interval = interval
+        self.spacing = spacing
+    }
+
+    public mutating func edited(at time: Date = Date()) { lastEdit = time }
+    public mutating func started(at time: Date = Date()) { lastStart = time }
+
+    /// When an upload not asked for on a trigger should begin. The first goes at once.
+    public var due: Date {
+        guard let lastStart else { return .distantPast }
+        let paused = (lastEdit ?? .distantPast).addingTimeInterval(pause)
+        return max(lastStart.addingTimeInterval(spacing), min(paused, lastStart.addingTimeInterval(interval)))
+    }
+}
+
 /// Where nib keeps its local records.
 public enum NibPaths {
     /// The test harness's Nib (the suite, the two-Mac test and `run-perf.sh` launch it with

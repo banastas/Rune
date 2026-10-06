@@ -163,10 +163,7 @@ struct SidePane: NSViewRepresentable {
         view.textStorage?.setAttributedString(text)
         scroll.documentView = view
         // Open at the first difference, a few lines above it.
-        DispatchQueue.main.async {
-            view.scrollRangeToVisible(NSRange(location: text.length, length: 0))
-            view.scrollRangeToVisible(NSRange(location: firstChange, length: 0))
-        }
+        DispatchQueue.main.async { view.reveal(firstChange, linesAbove: 3) }
         return scroll
     }
 

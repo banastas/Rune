@@ -296,6 +296,29 @@ func scratchFolder() -> URL {
         #expect(off.due == t0.addingTimeInterval(1), "no rate, no hold")
     }
 
+    /// Uploads while typing goes on (2026-10-06, the user's call): 3 s after it pauses, or every
+    /// 20 s while it doesn't, never within 3 s of the last.
+    @Test func uploadsWaitForAPauseOrTwentySeconds() {
+        var uploads = UploadSchedule()
+        let t0 = Date(timeIntervalSince1970: 1000)
+        #expect(uploads.due == .distantPast, "the first at once")
+        uploads.started(at: t0)
+        // Typing that pauses: 3 s after the last keystroke.
+        uploads.edited(at: t0.addingTimeInterval(4))
+        #expect(uploads.due == t0.addingTimeInterval(7))
+        // Typing that goes on: each keystroke moves the pause, but not past 20 s from the last upload.
+        for n in 1...60 { uploads.edited(at: t0.addingTimeInterval(4 + Double(n) * 0.3)) }
+        #expect(uploads.due == t0.addingTimeInterval(20))
+        // Not within 3 s of the last, a pause or not.
+        uploads.started(at: t0.addingTimeInterval(20))
+        uploads.edited(at: t0.addingTimeInterval(19))
+        #expect(uploads.due == t0.addingTimeInterval(23))
+        // A save that isn't typing's (a merge): nothing to wait for but the spacing.
+        var quiet = UploadSchedule()
+        quiet.started(at: t0)
+        #expect(quiet.due == t0.addingTimeInterval(3))
+    }
+
     @Test func pausedFilesList() {
         let list = PausedFiles(url: scratchFolder().appendingPathComponent("paused.json"))
         list.add("/a")

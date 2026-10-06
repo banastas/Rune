@@ -80,7 +80,14 @@ final class FindSession {
         matches = []
         current = nil
         editor?.findMatches = []
-        if let view = editor?.textView { view.window?.makeFirstResponder(view) }
+        guard let view = editor?.textView else { return }
+        view.window?.makeFirstResponder(view)
+        // The text gets the bar's height back, laid out again, and the caret on the match can
+        // drift out of view (`findjump`): into view again once it has.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak view] in
+            guard let view, view.window != nil else { return }
+            view.reveal(view.selectedRange().location)
+        }
     }
 
     // MARK: Moving between matches
@@ -108,8 +115,7 @@ final class FindSession {
         guard let view = editor?.textView, matches.indices.contains(index) else { return }
         current = index
         view.setSelectedRange(matches[index])
-        view.reveal(matches[index].location)
-        if view.window?.firstResponder === view { view.showFindIndicator(for: matches[index]) }
+        view.reveal(matches[index].location)   // not the find indicator, which scrolls as AppKit does (Reveal.swift)
     }
 
     /// The caret moved: which match, if any, is the selected one.

@@ -133,6 +133,8 @@ enum TestHarness {
             case "pairs": await pairsScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
             case "nap": await napScenario(document, log, marker)
+            case "findjump": await findJumpScenario(log, marker)
+            case "uploads": await uploadsScenario(document, log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
             case "bigopen": await bigOpen(log, marker)
@@ -3680,6 +3682,146 @@ enum TestHarness {
             view.window?.performClose(nil)
             _ = await waitFor(15) { Documents.existing(for: url) == nil }
         }
+    }
+
+    /// Uploads while typing goes on (§4.3 step 7; 2026-10-06, the user's call): 30 s of typing at
+    /// a person's pace, a keystroke every quarter second, saved every 5 s or so; uploaded once at
+    /// its start and every 20 s after, not after every save; then 3 s after the last keystroke,
+    /// the last of it, synced.
+    static func uploadsScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 30)
+        let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
+        let before = events.read().count
+        let view = document.editor.textView
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        view.insertText("\n- uploads \(marker) ", replacementRange: view.selectedRange())
+        let started = Date()
+        var n = 0
+        while Date().timeIntervalSince(started) < 30 {
+            n += 1
+            view.insertText(n % 40 == 0 ? "\n" : "x", replacementRange: view.selectedRange())
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        let lastKey = Date()
+        let synced = await waitFor(20) {
+            isSynced(document) && fileText(document) == document.editor.textView.string
+                && document.debugSnapshot.uploadedSHA == document.debugSnapshot.baseSHA
+        }
+        let mine = events.read().dropFirst(before).filter { $0.path == document.url.path }
+        let saves = mine.filter { $0.event == "save" }
+        let uploads = mine.filter { $0.event == "upload" && $0.detail == nil }
+        let during = uploads.filter { $0.time <= lastKey }, after = uploads.filter { $0.time > lastKey }
+        let lastUpload = uploads.last.map { $0.time.timeIntervalSince(lastKey) }
+        log.check(saves.count >= 5 && during.count <= 3 && after.count == 1 && synced,
+                  "30 s of typing: \(saves.count) saves, \(during.count) uploads while it went on, \(after.count) after it stopped"
+                  + (lastUpload.map { String(format: " (%.1f s after the last keystroke)", $0) } ?? "") + ", synced \(synced)")
+    }
+
+    /// ⌘F in a scratch-sized file (2026-10-04: Find crashed the Nib in daily use twice, in
+    /// AppKit's `__NSTextViewScrollContainerViewToTextRange`, laying out the view after a jump):
+    /// matches far apart in 223 KB, gone to by typing in the bar, by Return there and by ⌘G from
+    /// the text, a keystroke at once after each; Nib still running, every keystroke in the text.
+    static func findJumpScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        var text = "# Find jump \(marker)\n\n", n = 0
+        while text.utf8.count < 225_000 {
+            n += 1
+            if n % 700 == 0 { text += "- needle \(marker) at line \(n)\n" }
+            else if n % 9 == 0 { text += "- item \(n) with `code` and **bold** text\n" }
+            else { text += "Line \(n): ordinary prose of a scratch file's length, wrapping in a window of ordinary width.\n" }
+        }
+        guard let url = Untitled.create(text: text, name: "findjump-\(marker).md") else { log.check(false, "a 223 KB buffer"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "it opened"); return }
+        defer { Untitled.letGo(url); document.editor.textView.window?.performClose(nil) }
+        let view = document.editor.textView, find = document.editor.find
+        ScenarioFocus.take()
+        view.window?.makeKeyAndOrderFront(nil)
+        view.window?.makeFirstResponder(view)
+        _ = await waitFor(5) { view.window?.isKeyWindow == true }
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        var typed = 0, unseen: [Int] = []
+        /// After a jump: is the selection's place in view?
+        func inView() {
+            let at = view.selectedRange().location
+            if let rect = view.placeRect(at: at), view.visibleRect.contains(NSPoint(x: rect.minX, y: rect.midY)) { return }
+            unseen.append(at)
+        }
+        /// A keystroke at the caret right after a jump, as a person might, then the colors' pass.
+        func keystroke() async {
+            view.insertText("x", replacementRange: NSRange(location: view.selectedRange().location, length: 0))
+            typed += 1
+            try? await Task.sleep(for: .milliseconds(400))
+        }
+        find.open(replace: false)
+        find.query = "needle \(marker)"
+        let first = await waitFor(5) { find.current != nil }
+        log.line("typing in the bar: on a match \(first), at \(view.selectedRange().location) of \((view.string as NSString).length)")
+        inView()
+        await keystroke()
+        for round in 0..<8 {
+            // Return in the bar, then ⌘G from the text (where AppKit's find indicator shows), round the end.
+            if round % 2 == 1 { view.window?.makeFirstResponder(view) } else { view.window?.makeFirstResponder(nil) }
+            find.next(backwards: round >= 6)
+            log.line("round \(round + 1): at \(view.selectedRange().location)")
+            inView()
+            await keystroke()
+        }
+        find.close()
+        try? await Task.sleep(for: .seconds(1))
+        log.check((view.string as NSString).length == (text as NSString).length + typed && unseen.isEmpty,
+                  "Find's jumps in 223 KB and a keystroke after each: still running, each match brought into view, all \(typed) keystrokes in the text"
+                  + (unseen.isEmpty ? "" : " (not in view: \(unseen))"))
+
+        // The same by the keyboard, as a person does it: real key events, ⌘F, the query typed a
+        // letter at a time into the bar's field, Return there, Escape, ⌘G from the text, typing.
+        func key(_ characters: String, _ code: UInt16, _ flags: NSEvent.ModifierFlags = []) async {
+            guard let window = view.window else { return }
+            for type in [NSEvent.EventType.keyDown, .keyUp] {
+                if let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: flags, timestamp: ProcessInfo.processInfo.systemUptime,
+                                                windowNumber: window.windowNumber, context: nil, characters: characters,
+                                                charactersIgnoringModifiers: characters, isARepeat: false, keyCode: code) {
+                    NSApp.postEvent(event, atStart: false)
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(110))
+        }
+        ScenarioFocus.take()
+        view.window?.makeKeyAndOrderFront(nil)
+        view.window?.makeFirstResponder(view)
+        _ = await waitFor(5) { NSApp.isActive && view.window?.isKeyWindow == true }
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        let before = (view.string as NSString).length
+        await key("f", 3, .command)
+        let opened = await waitFor(3) { find.shown }
+        for (letter, code) in [("n", UInt16(45)), ("e", 14), ("e", 14), ("d", 2), ("l", 37), ("e", 14)] { await key(letter, code) }
+        let onMatch = await waitFor(3) { find.current != nil }
+        log.line("by the keyboard: the bar \(opened), the query “\(find.query)”, on a match \(onMatch) at \(view.selectedRange().location)")
+        unseen = []
+        for _ in 0..<4 { await key("\r", 36); try? await Task.sleep(for: .milliseconds(250)); inView() }
+        log.line("Return ×4: at \(view.selectedRange().location), not in view after \(unseen)")
+        await key("\u{1b}", 53)
+        let closed = await waitFor(2) { !find.shown && view.window?.firstResponder === view }
+        try? await Task.sleep(for: .milliseconds(300))   // the bar gone, the text its height again
+        inView()
+        log.line("Escape: the bar closed and the text first responder \(closed); not in view after \(unseen)")
+        var places: [Int] = []
+        for _ in 0..<3 {
+            await key("g", 5, .command)
+            _ = await waitFor(1) { view.selectedRange().location != places.last ?? -1 }
+            try? await Task.sleep(for: .milliseconds(150))
+            places.append(view.selectedRange().location)
+            inView()
+        }
+        log.line("⌘G ×3 from the text: at \(places), not in view after \(unseen)")
+        view.setSelectedRange(NSRange(location: NSMaxRange(view.selectedRange()), length: 0))
+        for _ in 0..<3 { await key("x", 7) }
+        try? await Task.sleep(for: .seconds(1))
+        log.check(opened && onMatch && Set(places).count == 3 && unseen.isEmpty && (view.string as NSString).length == before + 3,
+                  "by the keyboard (⌘F, the query, Return, Escape, ⌘G ×3 moving each time, typing): still running, each match in view, the 3 keystrokes in the text (\((view.string as NSString).length - before))"
+                  + (unseen.isEmpty ? "" : " (not in view: \(unseen))"))
     }
 
     /// App Nap (2026-10-02): a scenario's Nib out of sight keeps its timers on time. Napped,

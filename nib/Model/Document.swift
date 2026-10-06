@@ -155,7 +155,8 @@ final class Document {
     @ObservationIgnored private var saving = false
     @ObservationIgnored private var uploading = false
     @ObservationIgnored private var uploadAgain = false
-    @ObservationIgnored private var lastUploadStart = Date.distantPast
+    /// When typing's saves go up to iCloud (§4.3 step 7).
+    @ObservationIgnored private var uploads: UploadSchedule
     @ObservationIgnored private var uploadedSHA: String?
     @ObservationIgnored private var uploadBackoff: TimeInterval = 10
     @ObservationIgnored private var lastSaved = Date()
@@ -255,6 +256,8 @@ final class Document {
         let defaults = NibDefaults.store
         schedule = SaveSchedule(idle: defaults.object(forKey: "NibSaveIdle") as? TimeInterval ?? 1,
                                 maxWait: defaults.object(forKey: "NibSaveMax") as? TimeInterval ?? 5)
+        uploads = UploadSchedule(pause: defaults.object(forKey: "NibUploadPause") as? TimeInterval ?? 3,
+                                 interval: defaults.object(forKey: "NibUploadEvery") as? TimeInterval ?? 20)
         presenter = Presenter(url: url)
         notePresenter = NotePresenter(note: Announcement.url(for: url))
         history = History(root: NibPaths.support.appendingPathComponent("History"), path: url.path)
@@ -812,6 +815,7 @@ final class Document {
         editedHere = true
         editCount += 1
         schedule.edited()
+        uploads.edited()
         let over = (editor.textView.textStorage?.length ?? 0) > Editor.highlightLimit
         if over != highlightingOff { highlightingOff = over }
         if !awaitingDownload { state = .editing }   // the copy's line stays: nothing's saved till the file's here
@@ -1113,7 +1117,8 @@ final class Document {
 
     // MARK: - Uploading (held files, §4.3 step 7)
 
-    /// At most every 3 s while typing continues, one at a time; `now` skips the spacing.
+    /// One at a time; while typing goes on, as `UploadSchedule` says (3 s after it pauses, or every
+    /// 20 s); `now`, on a trigger, at once.
     private func upload(now: Bool) async {
         #if DEBUG
         if NibDefaults.store.bool(forKey: "NibHoldUploads") { return }   // the "unsent" scenario
@@ -1132,18 +1137,18 @@ final class Document {
             }
             return
         }
-        let spacing = now ? 0 : max(0, 3 - Date().timeIntervalSince(lastUploadStart))
-        if spacing > 0 {
+        let wait = now ? 0 : max(0, uploads.due.timeIntervalSinceNow)
+        if wait > 0 {
             uploadTask?.cancel()
             uploadTask = Task { [weak self] in
-                try? await Task.sleep(for: .seconds(spacing))
+                try? await Task.sleep(for: .seconds(wait))
                 guard !Task.isCancelled else { return }
                 await self?.upload(now: true)
             }
             return
         }
         uploading = true
-        lastUploadStart = Date()
+        uploads.started()
         let sha = baseFingerprint?.sha256
         if !dirty { state = .uploading(lastSaved) }
         let started = Date()
@@ -2659,7 +2664,7 @@ extension Document {
         let column = parts.count > 1 ? max(1, parts[1]) : 1
         let location = min(start + column - 1, contentEnd)
         view.setSelectedRange(NSRange(location: location, length: 0))
-        view.scrollRangeToVisible(NSRange(location: location, length: 0))
+        view.reveal(location)
         return true
     }
 }

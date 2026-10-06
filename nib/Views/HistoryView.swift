@@ -90,7 +90,7 @@ struct VersionText: NSViewRepresentable {
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         guard let view = scroll.documentView as? NSTextView, view.string != text else { return }
         view.string = text
-        view.scrollRangeToVisible(NSRange(location: 0, length: 0))
+        view.scroll(.zero)
     }
 }
 

@@ -339,13 +339,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// The row with `location` at the top of the view (the minimap's click and drag): laid out
     /// there first, which TextKit 2 does without laying out the text before it.
     func scroll(toTop location: Int) {
-        guard let layout = textView.textLayoutManager, let content = layout.textContentManager,
-              let at = content.location(content.documentRange.location, offsetBy: location) else { return }
-        layout.ensureLayout(for: content.location(at, offsetBy: 1).flatMap { NSTextRange(location: at, end: $0) } ?? NSTextRange(location: at))
-        guard let fragment = layout.textLayoutFragment(for: at) else { return }
-        let within = content.offset(from: fragment.rangeInElement.location, to: at)
-        let row = fragment.textLineFragments.first { NSMaxRange($0.characterRange) > within } ?? fragment.textLineFragments.last
-        textView.scroll(NSPoint(x: 0, y: max(0, fragment.layoutFragmentFrame.minY + (row?.typographicBounds.minY ?? 0))))
+        textView.reveal(location, linesAbove: 0)
     }
 
     /// The text in view, and a margin: syntax colors and backgrounds as rendering attributes
@@ -566,7 +560,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         let label = choice == .first ? block.firstLabel : choice == .second ? block.secondLabel : "both"
         textView.undoManager?.setActionName(choice == .both ? "Keep Both" : "Use \(label)")
         textView.setSelectedRange(NSRange(location: block.range.location + (kept as NSString).length, length: 0))
-        textView.scrollRangeToVisible(textView.selectedRange())
+        textView.reveal(textView.selectedRange().location)
         return label
     }
 
@@ -694,7 +688,16 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         let length = (textView.string as NSString).length
         let location = min(saved[0], length)
         textView.setSelectedRange(NSRange(location: location, length: min(saved[1], length - location)))
-        reveal(textView.selectedRange())
+        revealWhenShown(location)
+    }
+
+    /// At open the view may not have its size yet, and a scroll then has nothing to scroll: the
+    /// caret's place comes into view once it has (Reveal.swift: AppKit used to finish the scroll
+    /// after the first layout, keeping a range that was later rebuilt).
+    private func revealWhenShown(_ location: Int, tries: Int = 40) {
+        if textView.visibleRect.height > 0 { textView.reveal(location); return }
+        guard tries > 0 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in self?.revealWhenShown(location, tries: tries - 1) }
     }
 }
 
@@ -722,14 +725,6 @@ final class NibTextView: NSTextView {
     /// While Undo Selection puts carets back, or the mouse is held: no step of their own.
     var restoringCarets = 0
     var trackingMouse = false
-
-    /// A place in the text into view. Nib scrolls to a place, never to a stretch: TextKit 2 keeps
-    /// a stretch it can't show whole (taller than the view, in a big file) to scroll to again after
-    /// later layouts, and an edit meanwhile crashed it there (`widescroll`, 2026-10-02:
-    /// `__NSTextViewScrollContainerViewToTextRange`, after a scroll to 300 lines of a 2.4 MB file).
-    func reveal(_ location: Int) {
-        scrollRangeToVisible(NSRange(location: min(max(0, location), textStorage?.length ?? 0), length: 0))
-    }
 
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
