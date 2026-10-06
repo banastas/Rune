@@ -366,20 +366,23 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             if style.foreground != plain { layout.addRenderingAttribute(.foregroundColor, value: NSColor(style.foreground), for: text) }
             if let background = style.background { layout.addRenderingAttribute(.backgroundColor, value: NSColor(background), for: text) }
         }
-        // Find's matches in view (ED7) in the scheme's find colors; the selected one shows as
-        // the selection, so it stands out from the rest.
+        // Find's matches in view (ED7), every one in the scheme's find colors, the current one
+        // too, outlined (`NibTextView.currentMatch`). It showed as the selection, which AppKit
+        // draws in its inactive grey while the bar has the focus, under the scheme's light text:
+        // the color changed at every jump, and the current one was the hardest to read (the
+        // user, 2026-10-06).
         if !shownMatches.isEmpty {
             let highlight = Scheme.findHighlight, foreground = Scheme.findHighlightForeground
-            let selected = textView.selectedRange()
             var i = Self.firstEnding(after: wanted.location, in: shownMatches)
             while i < shownMatches.count, shownMatches[i].location < NSMaxRange(wanted) {
                 let match = shownMatches[i]
                 i += 1
-                guard match != selected, let text = textView.textRange(NSIntersectionRange(match, wanted)) else { continue }
+                guard let text = textView.textRange(NSIntersectionRange(match, wanted)) else { continue }
                 layout.addRenderingAttribute(.backgroundColor, value: highlight, for: text)
                 if let foreground { layout.addRenderingAttribute(.foregroundColor, value: foreground, for: text) }
             }
         }
+        textView.placeCurrentMatch()
         for block in textView.conflictBlocks {
             for marker in block.markers {
                 let part = NSIntersectionRange(marker, wanted)
@@ -805,6 +808,45 @@ final class NibTextView: NSTextView {
     var autoPairs = true
     var matchBrackets = true { didSet { needsDisplay = true } }
     var showsIndentGuides = true { didSet { needsDisplay = true } }
+    /// Find's current match (ED7): in the find color as every match is, and outlined above the
+    /// text, so it stands out from the rest without its color changing as it moves.
+    var currentMatch: NSRange? { didSet { if oldValue != currentMatch { placeCurrentMatch() } } }
+    private var currentMatchView: MatchOutline?
+
+    /// The outline round the current match, where it's laid out now (after a scroll or an edit).
+    func placeCurrentMatch() {
+        guard let range = currentMatch, let rect = matchRect(range) else { currentMatchView?.isHidden = true; return }
+        let outline = currentMatchView ?? {
+            let made = MatchOutline()
+            addSubview(made)   // after TextKit 2's own views: above the text
+            currentMatchView = made
+            return made
+        }()
+        outline.color = Scheme.findHighlightForeground ?? Scheme.foreground
+        outline.frame = rect.insetBy(dx: -1.5, dy: -1)
+        outline.isHidden = false
+    }
+
+    /// Whether the outline is shown round `range`, for the `find` scenario.
+    func outlined(_ range: NSRange) -> Bool {
+        guard let view = currentMatchView, !view.isHidden, currentMatch == range, let rect = matchRect(range) else { return false }
+        return view.frame.contains(NSPoint(x: rect.midX, y: rect.midY))
+    }
+
+    /// A match's box on its first row, as laid out now; nil if it isn't.
+    func matchRect(_ range: NSRange) -> NSRect? {
+        guard let layout = textLayoutManager, let content = layout.textContentManager, NSMaxRange(range) <= (textStorage?.length ?? 0),
+              let start = content.location(content.documentRange.location, offsetBy: range.location),
+              let fragment = layout.textLayoutFragment(for: start) else { return nil }
+        let origin = textContainerOrigin, frame = fragment.layoutFragmentFrame
+        let within = content.offset(from: fragment.rangeInElement.location, to: start)
+        guard let row = fragment.textLineFragments.first(where: { NSLocationInRange(within, $0.characterRange) }) else { return nil }
+        let left = origin.x + frame.minX + row.typographicBounds.minX, top = origin.y + frame.minY + row.typographicBounds.minY
+        let x0 = left + row.locationForCharacter(at: within).x
+        let x1 = left + row.locationForCharacter(at: min(within + range.length, NSMaxRange(row.characterRange))).x
+        return NSRect(x: x0, y: top, width: max(2, x1 - x0), height: row.typographicBounds.height)
+    }
+
     /// What's underlined: the brackets at the caret, and the HTML element's tag names round it.
     var matchedBrackets: Brackets.Match? { didSet { if oldValue != matchedBrackets { needsDisplay = true } } }
     var matchedTags: [NSRange] = [] { didSet { if oldValue != matchedTags { needsDisplay = true } } }
@@ -1364,4 +1406,20 @@ extension NSColor {
     convenience init(_ color: RGBA) {
         self.init(srgbRed: color.r, green: color.g, blue: color.b, alpha: color.a)
     }
+}
+
+/// Find's current match outlined (ED7): a view above the text, drawing its own rounded box, so
+/// it shows over the find color, and in a picture of the window (which a layer's border isn't).
+/// Clicks go through it to the text.
+final class MatchOutline: NSView {
+    var color = NSColor.black { didSet { needsDisplay = true } }
+
+    override func draw(_ dirtyRect: NSRect) {
+        color.setStroke()
+        let box = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.75, dy: 0.75), xRadius: 2, yRadius: 2)
+        box.lineWidth = 1.5
+        box.stroke()
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }

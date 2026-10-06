@@ -80,13 +80,18 @@ final class FindSession {
         matches = []
         current = nil
         editor?.findMatches = []
+        editor?.textView.currentMatch = nil
         guard let view = editor?.textView else { return }
         view.window?.makeFirstResponder(view)
         // The text gets the bar's height back, laid out again, and the caret on the match can
-        // drift out of view (`findjump`): into view again once it has.
+        // drift out of view (`findjump`): into view again once it has. Not if anything moved
+        // meanwhile: typing, Find All's carets, a scroll elsewhere (`carets`, 2026-10-06: it took
+        // the view back from the end of the file to the first of 2,000 carets).
+        let selection = view.selectedRange(), origin = view.visibleRect.origin
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak view] in
-            guard let view, view.window != nil else { return }
-            view.reveal(view.selectedRange().location)
+            guard let view, view.window != nil, view.selectedRange() == selection, view.carets == nil,
+                  abs(view.visibleRect.minY - origin.y) < 100 else { return }
+            view.reveal(selection.location)
         }
     }
 
@@ -115,13 +120,15 @@ final class FindSession {
         guard let view = editor?.textView, matches.indices.contains(index) else { return }
         current = index
         view.setSelectedRange(matches[index])
+        view.currentMatch = matches[index]
         view.reveal(matches[index].location)   // not the find indicator, which scrolls as AppKit does (Reveal.swift)
     }
 
     /// The caret moved: which match, if any, is the selected one.
     func selectionChanged() {
-        guard let selection = editor?.textView.selectedRange() else { return }
-        current = matches.firstIndex(of: selection)
+        guard let view = editor?.textView else { return }
+        current = matches.firstIndex(of: view.selectedRange())
+        view.currentMatch = shown ? current.map { matches[$0] } : nil
     }
 
     /// ⌘E: the selection as the query, here and in the system's find clipboard.

@@ -161,7 +161,7 @@ enum TestHarness {
                     if let view = Documents.existing(for: url)?.editor.textView {
                         let length = (view.string as NSString).length
                         view.setSelectedRange(NSRange(location: length, length: 0))
-                        view.scrollRangeToVisible(NSRange(location: length, length: 0))
+                        view.reveal(length)
                     }
                     // -NibIdleBigSlices n: idle for n 5-second slices (8), to watch for growth.
                     let sliceCount = NibDefaults.store.integer(forKey: "NibIdleBigSlices"), slices = sliceCount > 0 ? sliceCount : 8
@@ -403,9 +403,33 @@ enum TestHarness {
         log.check(opened && find.shown && find.query == "deploy" && fieldFocused,
                   "⌘F \(front ? "from the menu" : "(the text view's action: macOS didn't let Nib come forward)"): the bar, the selection in its field, the caret there, \(find.countLabel) (shown \(find.shown), query \(find.query.debugDescription), caret in the field \(fieldFocused), first responder \(view.window?.firstResponder.map { String(describing: Swift.type(of: $0)) } ?? "none"))")
         let first = range("Deploy").location, redeploy = range("redeploy").location + 2
+        // Every match in the find color, the current one too, and it outlined (the user, 2026-10-06:
+        // shown as the selection, it went grey as the bar took the focus, at every jump). On the
+        // screen: the current match's middle drawn yellow, not the selection's grey.
+        let current = range("deploy"), outline = view.currentMatch.flatMap { view.matchRect($0) }
+        try? await Task.sleep(for: .milliseconds(400))
+        var pixel = "none"
+        if let window = view.window, let frame = window.contentView?.superview, let box = view.matchRect(current),
+           let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("find-current.png"))
+            let spot = frame.convert(view.convert(NSPoint(x: box.midX, y: box.midY), to: nil), from: nil)
+            let scale = CGFloat(rep.pixelsWide) / frame.bounds.width
+            let y = frame.isFlipped ? spot.y : frame.bounds.height - spot.y
+            if let c = rep.colorAt(x: Int(spot.x * scale), y: Int(y * scale))?.usingColorSpace(.sRGB) {
+                pixel = String(format: "#%02X%02X%02X", Int((c.redComponent * 255).rounded()), Int((c.greenComponent * 255).rounded()), Int((c.blueComponent * 255).rounded()))
+            }
+        }
+        // Yellowish: red and green high, blue lower (the glyphs' black can fall on the middle: two tries).
+        func yellowish(_ hex: String) -> Bool {
+            guard hex.count == 7, let v = Int(hex.dropFirst(), radix: 16) else { return false }
+            let r = (v >> 16) & 0xFF, g = (v >> 8) & 0xFF, b = v & 0xFF
+            return r > 180 && g > 160 && b < r - 40
+        }
         log.check(drawnColor(view, at: first, .backgroundColor) == "#FFE792" && drawnColor(view, at: first) == "#000000"
-                  && drawnColor(view, at: range("deploy").location, .backgroundColor) != "#FFE792",
-                  "the other matches in the scheme's find color, black on #FFE792; the selected one as the selection")
+                  && drawnColor(view, at: current.location, .backgroundColor) == "#FFE792" && drawnColor(view, at: current.location) == "#000000"
+                  && view.currentMatch == current && outline != nil && view.outlined(current) && yellowish(pixel),
+                  "every match in the scheme's find color, black on #FFE792, the current one too, outlined (\(outline.map { "\(Int($0.width))×\(Int($0.height))" } ?? "none")); on the screen its middle \(pixel)\(yellowish(pixel) ? ", yellow" : "")")
 
         // ⌘G, ⇧⌘G, round the end.
         find.next()
@@ -2309,7 +2333,7 @@ enum TestHarness {
         func ms(_ t: TimeInterval) -> String { "\(Int((t * 1000).rounded())) ms" }
         // And the tree has it all: scrolled to the end, the last line's comment is colored.
         let end = (manyView.string as NSString).length
-        manyView.scrollRangeToVisible(NSRange(location: end, length: 0))
+        manyView.reveal(end)
         let last = await waitFor(5) { drawnColor(manyView, at: (manyView.string as NSString).range(of: "note 2000").location) == commentColor }
         log.check(colored && count == 2_000 && typed && manyView.string.hasPrefix("let 1 = ") && keyTime < 0.25 && deleteTime < 0.25,
                   "2,000 carets from Find All (\(ms(allTime))) in highlighted JavaScript: a keystroke at all of them \(ms(keyTime)), a delete \(ms(deleteTime)) (Debug; one pass a caret over the colors was 2.9 s)")
@@ -3734,8 +3758,11 @@ enum TestHarness {
         guard let url = Untitled.create(text: text, name: "findjump-\(marker).md") else { log.check(false, "a 223 KB buffer"); return }
         AppDelegate.openFile(url)
         _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
-        guard let document = Documents.existing(for: url) else { log.check(false, "it opened"); return }
-        defer { Untitled.letGo(url); document.editor.textView.window?.performClose(nil) }
+        guard let document = Documents.existing(for: url) else {
+            log.check(false, "it opened")
+            try? FileManager.default.removeItem(at: url.deletingLastPathComponent())   // or it comes back at the next launch
+            return
+        }
         let view = document.editor.textView, find = document.editor.find
         ScenarioFocus.take()
         view.window?.makeKeyAndOrderFront(nil)
@@ -3807,6 +3834,9 @@ enum TestHarness {
         try? await Task.sleep(for: .milliseconds(300))   // the bar gone, the text its height again
         inView()
         log.line("Escape: the bar closed and the text first responder \(closed); not in view after \(unseen)")
+        // Posted keys reach the menu only while Nib is the active app: the focus taken again.
+        ScenarioFocus.take()
+        _ = await waitFor(5) { NSApp.isActive && view.window?.isKeyWindow == true && view.window?.firstResponder === view }
         var places: [Int] = []
         for _ in 0..<3 {
             await key("g", 5, .command)
@@ -3819,6 +3849,13 @@ enum TestHarness {
         view.setSelectedRange(NSRange(location: NSMaxRange(view.selectedRange()), length: 0))
         for _ in 0..<3 { await key("x", 7) }
         try? await Task.sleep(for: .seconds(1))
+        // The buffer let go, and gone before the scenario ends: a quit before its close is done
+        // left it, to come back as a tab at every launch after (the suite, 2026-10-06: `fileops`
+        // found 16 tabs, not 5).
+        Untitled.letGo(url)
+        view.window?.performClose(nil)
+        let gone = await waitFor(15) { !FileManager.default.fileExists(atPath: url.path) }
+        if !gone { log.line("the buffer was still there after 15 s") }
         log.check(opened && onMatch && Set(places).count == 3 && unseen.isEmpty && (view.string as NSString).length == before + 3,
                   "by the keyboard (⌘F, the query, Return, Escape, ⌘G ×3 moving each time, typing): still running, each match in view, the 3 keystrokes in the text (\((view.string as NSString).length - before))"
                   + (unseen.isEmpty ? "" : " (not in view: \(unseen))"))
@@ -3832,21 +3869,25 @@ enum TestHarness {
         await waitReady(document)
         NSApp.hide(nil)
         let started = Date()
-        var longest = 0.0, firstLong: Double?
+        // Napped, nearly every wait runs long from about 30 s on; one slow wait as the app hides,
+        // or under a moment's load, isn't that (the suite at 15:37 on 2026-10-06: 345 ms at 0 s).
+        var longest = 0.0, firstLong: Double?, long = 0, waits = 0
         while Date().timeIntervalSince(started) < 40 {
             let before = Date()
             try? await Task.sleep(for: .milliseconds(50))
             let took = Date().timeIntervalSince(before)
+            guard Date().timeIntervalSince(started) > 2 else { continue }
+            waits += 1
             longest = max(longest, took)
-            if took > 0.2, firstLong == nil { firstLong = Date().timeIntervalSince(started) }
+            if took > 0.2 { long += 1; if firstLong == nil { firstLong = Date().timeIntervalSince(started) } }
         }
         let line = "\n- typed out of sight \(marker)\n"
         let typing = Date()
         await type(line, into: document)
         let typed = Date().timeIntervalSince(typing)
         NSApp.unhideWithoutActivation()
-        log.check(longest < 0.2, "hidden for 40 s, not napped: a 50 ms wait took at most \(Int(longest * 1000)) ms"
-                  + (firstLong.map { "; they ran long from \(Int($0)) s on" } ?? ""))
+        log.check(long <= 2, "hidden for 40 s, not napped: \(long) of \(waits) 50 ms waits over 200 ms, the longest \(Int(longest * 1000)) ms"
+                  + (firstLong.map { "; the first at \(Int($0)) s" } ?? ""))
         log.check(typed < Double(line.count) * 0.03 + 2, "and \(line.count) keystrokes, 30 ms apart, took \(String(format: "%.1f", typed)) s")
     }
 
@@ -4312,13 +4353,13 @@ enum TestHarness {
         let view = document.editor.textView
         let yellow = "#E7CE57"
         view.setSelectedRange(NSRange(location: 0, length: 0))
-        view.scrollRangeToVisible(NSRange(location: 0, length: 0))
+        view.scroll(.zero)
         let top = await waitFor(10) { drawnColor(view, at: 2) == yellow }
         log.check(top, "\(text.utf8.count / 1000) KB, \(n) lines: the heading at the top colored \(Int(Date().timeIntervalSince(opened) * 1000)) ms after asking to open it")
         let length = (view.string as NSString).length
         let last = (view.string as NSString).range(of: "## The last heading").location
         let scrolled = Date()
-        view.scrollRangeToVisible(NSRange(location: length, length: 0))
+        view.reveal(length)
         let bottom = await waitFor(5) { drawnColor(view, at: last + 3) == yellow }
         log.check(bottom, "scrolled to the end: the last heading colored \(Int(Date().timeIntervalSince(scrolled) * 1000)) ms later")
         // §6.5: a reload at this size, another app's version (coordinated, in place) on disk to
@@ -4944,7 +4985,7 @@ enum TestHarness {
             window.setFrame(NSRect(x: 80, y: 120, width: 820, height: 640), display: true)
             let end = NibDefaults.store.bool(forKey: "NibSnapshotEnd") ? (file.editor.textView.string as NSString).length : 0
             file.editor.textView.setSelectedRange(NSRange(location: end, length: 0))
-            file.editor.textView.scrollRangeToVisible(NSRange(location: end, length: 0))
+            file.editor.textView.reveal(end)
             log.line("window \(window.windowNumber)")   // for `screencapture -l`: this window alone, even under others
             try? await Task.sleep(for: .milliseconds(1200))
             for (suffix, wait) in [("", 300), ("-later", 2000)] {
@@ -4984,13 +5025,13 @@ enum TestHarness {
         view.insertText(sample, replacementRange: view.selectedRange())
         let end = (view.string as NSString).length
         view.setSelectedRange(NSRange(location: document.blocks.last.map { $0.first.location + 4 } ?? end - 20, length: 0))
-        view.scrollRangeToVisible(view.selectedRange())
+        view.reveal(view.selectedRange().location)
         await waitSynced(document, 20)
         guard let window = view.window else { log.line("FAIL no window"); return }
         window.setFrame(NSRect(x: 80, y: 120, width: 760, height: 420), display: true)
         window.makeKeyAndOrderFront(nil)
         ScenarioFocus.take()
-        view.scrollRangeToVisible(document.blocks.last.map { NSRange(location: $0.range.location, length: $0.range.length + 30) } ?? view.selectedRange())
+        view.reveal(document.blocks.last.map { NSMaxRange($0.range) + 30 } ?? view.selectedRange().location)
         view.needsDisplay = true
         try? await Task.sleep(for: .milliseconds(600))
         log.line("window \(window.windowNumber)")
@@ -5162,7 +5203,7 @@ enum TestHarness {
             }), let open = Documents.existing(for: url) else { return nil }
             let view = open.editor.textView
             view.setSelectedRange(NSRange(location: 0, length: 0))
-            view.scrollRangeToVisible(NSRange(location: 0, length: 0))
+            view.scroll(.zero)
             let at = (view.string as NSString).range(of: keyword).location, plainAt = (view.string as NSString).range(of: plainWord).location
             let colored = await timed(15) { drawnColor(view, at: at) != "none" && drawnColor(view, at: at) != drawnColor(view, at: plainAt) }
             return (shown, colored.map { _ in Date().timeIntervalSince(started) }, open)

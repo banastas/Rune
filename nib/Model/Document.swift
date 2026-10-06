@@ -1142,8 +1142,11 @@ final class Document {
             uploadTask?.cancel()
             uploadTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(wait))
-                guard !Task.isCancelled else { return }
-                await self?.upload(now: true)
+                guard !Task.isCancelled, let self else { return }
+                // Typing since may have moved the moment on (its pause is later now): looked at
+                // again, and waited for again if so (the `uploads` scenario, 2026-10-06: without
+                // this, each save's upload went 3 s after it, every 5-6 s, as before).
+                await self.upload(now: self.uploads.due.timeIntervalSinceNow <= 0.05)
             }
             return
         }
