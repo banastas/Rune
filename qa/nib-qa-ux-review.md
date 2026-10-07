@@ -25,7 +25,9 @@ the suite tests holds. What the review found is around it:
 Reduce Motion, colour never the only signal, and the HUD's tokens all held up (§4).
 
 **Fixed so far:** the first round (2026-10-07), F1-F9, F16, F18, F23, F24, F29, F30 and F36, each
-with a check in its scenario or NibKit's tests (PRD §8, "The QA review's first round").
+with a check in its scenario or NibKit's tests (PRD §8, "The QA and UX review, and its first round of
+fixes"); the second (2026-10-07), F22, F25, F28, F31, F37-F39 and F48, with parts of F74, F82 and F84
+(PRD §8, "The QA review's second round").
 
 ---
 
@@ -165,7 +167,7 @@ Said for the Service, the Shortcut and `nib -a` too.
 
 ### 1.3 Settings and the first run
 
-**F22. The General tab and the welcome window are taller than the Air's screen, and can't scroll** — `nib/Views/SettingsView.swift:30-31, 75`, `nib/Views/FirstRun.swift:194, 216` · V12, §5.8 · **checked** · pictures `settings-general.png`, `firstrun-3-taken.png`
+**F22. The General tab and the welcome window are taller than the Air's screen, and can't scroll** — `nib/Views/SettingsView.swift:30-31, 75`, `nib/Views/FirstRun.swift:194, 216` · V12, §5.8 · **checked** · pictures `settings-general.png`, `firstrun-3-taken.png` · **fixed 2026-10-07**
 General is about 967 points tall with its title bar (the picture is 1934 pixels at 2×), and taller
 with a shortcut warning; the Air shows about 900 under its menu bar, so the scratch file's buttons
 end up off screen. The welcome window's fixed 560×580 hides its own Notifications note under the
@@ -185,7 +187,7 @@ stays), saying why: "⌘C is Copy in every app; Nib would take it from all of th
 directly, so it never saw this.)
 *Fix:* `stop()` before `set`, or keep refusals apart from what `register` clears.
 
-**F25. Import from Sublime Text sets nine Editor settings its captions don't mention** — `nib/Theme/Scheme.swift:243-257`, `nib/Views/SettingsView.swift:213`, `nib/Views/FirstRun.swift:325-329` · W7, W2, HL4 · **checked**
+**F25. Import from Sublime Text sets nine Editor settings its captions don't mention** — `nib/Theme/Scheme.swift:243-257`, `nib/Views/SettingsView.swift:213`, `nib/Views/FirstRun.swift:325-329` · W7, W2, HL4 · **checked** · **fixed 2026-10-07**
 Tab size, spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs,
 trimming and the final newline, from Sublime's defaults if not its user file, so nearly always. The
 Themes note says it reads the scheme and font; the first run lists five of them; the report never
@@ -205,7 +207,7 @@ A link in a terminal or another app to a page on this Mac opens it as text in Ni
 web links still open in your browser"); and see the user's open question on an Open in Nib Quick
 Action and File › Open in Browser.
 
-**F28. Captions that say something the code doesn't do** — `nib/Views/SettingsView.swift:54, 71, 183, 206`, `nib/Views/FirstRun.swift:296` · W1, W7 · **checked** (206, 54)
+**F28. Captions that say something the code doesn't do** — `nib/Views/SettingsView.swift:54, 71, 183, 206`, `nib/Views/FirstRun.swift:296` · W1, W7 · **checked** (206, 54) · **fixed 2026-10-07**
 - Themes: "Colors the text only." The scheme colours the page: background, caret, selection, line
   highlight, gutter, minimap (`snapshot-themes.png`).
 - The menu bar note: "the scratch file's sync" (it follows every open file, F11).
@@ -226,7 +228,7 @@ on AZERTY.
 The paragraph moves aren't among the caret moves, so they collapse to one caret.
 *Fix:* add them, with and without extending.
 
-**F31. In the merge view, Find, Replace, Go to Line and Show Sync Details likely act on the window behind the sheet** — `nib/NibApp.swift:384-386, 473-490, 505` · §5.5, ED7 · **to check** (two reviewers, from the code)
+**F31. In the merge view, Find, Replace, Go to Line and Show Sync Details likely act on the window behind the sheet** — `nib/NibApp.swift:384-386, 473-490, 505` · §5.5, ED7 · **to check** (two reviewers, from the code) · **fixed 2026-10-07**
 The Conflicts menu works there because the window's document is still the focused one while the
 sheet is up; if so, ⌘F opens the parent's find bar under the sheet, ⌘G and Replace All act on the
 buffer behind, and ⌃G opens the strip's line field behind it.
@@ -260,19 +262,19 @@ Every file tab and untitled buffer is "Scratch, edit text"; the merge panes and 
 have no label.
 *Fix:* the file's name (set again after Rename and Move To); the panes' titles; "Version from …".
 
-**F37. Problems aren't spoken while Nib is in front, and a tab not in front is neither spoken nor notified** — `nib/Model/Document.swift:2079-2087, 964-967, 1243-1244, 2580`, `nib/Model/Notifier.swift:43` · V9, A8, AX2
+**F37. Problems aren't spoken while Nib is in front, and a tab not in front is neither spoken nor notified** — `nib/Model/Document.swift:2079-2087, 964-967, 1243-1244, 2580`, `nib/Model/Notifier.swift:43` · V9, A8, AX2 · **fixed 2026-10-07**
 The strip shows them, but VoiceOver hears nothing; a conflict in a background tab is announced
 nowhere.
 *Fix:* announce a new problem at high priority; notify (naming the file) when its window isn't
 visible, even with Nib in front.
 
-**F38. The find bar and the command palette are silent** — `nib/Views/FindBar.swift:26-33`, `nib/Model/Find.swift:119-125`, `nib/Vendor/FromBlit/CommandPalette.swift:71-104` · AX2, KB2, KB3
+**F38. The find bar and the command palette are silent** — `nib/Views/FindBar.swift:26-33`, `nib/Model/Find.swift:119-125`, `nib/Vendor/FromBlit/CommandPalette.swift:71-104` · AX2, KB2, KB3 · **fixed 2026-10-07**
 Moving to a match, "No matches", the palette's highlighted row and its count are only drawn; a
 palette row opens only by a double click.
 *Fix:* announce "2 of 4: …" and "No matches"; announce the highlighted row; give rows a button
 trait and an action.
 
-**F39. Pixel glyphs are spoken with Blit's transfer words** — `nib/Vendor/FromBlit/PixelGlyphs.swift:28-39` · V4, AX1
+**F39. Pixel glyphs are spoken with Blit's transfer words** — `nib/Vendor/FromBlit/PixelGlyphs.swift:28-39` · V4, AX1 · **fixed 2026-10-07**
 ✓ "done", ▲ "transferring", ▼ "down", ‖ "paused": the HUD reads "STATE, done SYNCED", the Sync Log
 reads an upload as "transferring".
 *Fix:* label HUD rows and log lines with `Spoken.sentence`, or give the glyphs Nib's words.
@@ -325,7 +327,7 @@ nothing; the same in a read-only document.
 So the palette can't list it.
 *Fix:* Window › Show Scratch with its global key shown.
 
-**F48. Settings is missing §5.8's notifications item and Scratch & Sync tab** — `nib/Views/SettingsView.swift:15-75` · §5.8, §5.13, W7
+**F48. Settings is missing §5.8's notifications item and Scratch & Sync tab** — `nib/Views/SettingsView.swift:15-75` · §5.8, §5.13, W7 · **fixed 2026-10-07**
 No notifications line ("saves never notify"), no this Mac's name (which receipts show), History
 retention, Clear History…, the ADP note or the sync note; no word that text always wraps.
 *Fix:* a Scratch & Sync tab with the scratch file (also F22), the sync note, notifications with Open
@@ -413,7 +415,7 @@ conflicts resolved".
   -x", `-w` ignored silently with `-a`.
 - **F74.** The scratch-change alert's wording ("Nib reopens to use it, in iCloud Drive › Nib") and its
   app-modal sheet; step 3 says "Done" when the button reads "Reopen Nib"; "Continue skips it" after the
-  import is done.
+  import is done. *(2026-10-07: all but the app-modal sheet fixed.)*
 - **F75.** Shortcuts' descriptions are fragments; Get Scratch fails without saying why.
 - **F76.** "One Caret (⎋)" puts its key in the title; Go to Heading… missing from the palette; Revert
   To's versions and syntax picks named bare in the palette; Nib-folder files with a folder icon.
@@ -429,11 +431,12 @@ conflicts resolved".
 - **F82.** Syntax names spoken "Html", "Javascript"; the gutter not hidden or labelled for VoiceOver;
   the Toast always interrupts VoiceOver; Recent rows with the same name sound the same; the panel
   isn't keyboard-navigable; the Dock ✕ has no words; About's "NIB" and "V0.1 · BUILD 3" read raw;
-  the palette's group labels at 2.3:1.
+  the palette's group labels at 2.3:1. *(2026-10-07: the palette's labels fixed.)*
 - **F83.** Acknowledgements cuts long names and versions in its 230-point list (**checked**,
   `acknowledgements.png`).
 - **F84.** Settings opens on its third tab (Editor) the first time; the Dock switch goes grey with no
-  reason given; the Editor tab's one seven-sentence note for six switches.
+  reason given; the Editor tab's one seven-sentence note for six switches. *(2026-10-07: Settings opens on
+  General; the Editor note is three sentences.)*
 - **F85.** "Login Items" is "Login Items & Extensions" since macOS 15 (**to check** on macOS 27).
 
 ---

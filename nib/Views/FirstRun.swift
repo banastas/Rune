@@ -62,10 +62,15 @@ final class FirstRun: NSObject, NSWindowDelegate {
         message = nil
         imported = false
         sublime = Schemes.shared.sublimePreview()
+        wanted = 0
         let host = NSHostingController(rootView: FirstRunView(model: self))
-        host.sizingOptions = [.preferredContentSize]   // the window follows each step's height
+        // The window follows each step's height, fitted by Nib after each change (`fit`). Left to
+        // SwiftUI (`.preferredContentSize`), a warning appearing in step 3 resized the window inside
+        // AppKit's layout pass, which looped until AppKit threw (a crash, 2026-10-07).
+        host.sizingOptions = []
         let window = NSWindow(contentViewController: host)
         window.styleMask = [.titled, .closable]
+        window.setContentSize(NSSize(width: FirstRunView.width, height: FirstRunView.minHeight))
         window.title = "Welcome to Nib"
         window.isReleasedWhenClosed = false
         window.delegate = self
@@ -73,6 +78,28 @@ final class FirstRun: NSObject, NSWindowDelegate {
         window.makeKeyAndOrderFront(nil)
         self.window = window
         Task { await look() }
+    }
+
+    /// The height the step needs, as last measured, with the footer.
+    @ObservationIgnored private(set) var wanted: CGFloat = 0
+
+    /// Fits the window to the step's height (no shorter than 580 points, no taller than the screen),
+    /// on the next turn of the run loop, never inside a layout pass; its top edge stays put.
+    func fit(_ height: CGFloat) {
+        guard abs(height - wanted) >= 1 else { return }
+        wanted = height
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window else { return }
+            var content = max(FirstRunView.minHeight, self.wanted.rounded(.up))
+            if let screen = window.screen ?? NSScreen.main {
+                content = min(content, window.contentRect(forFrameRect: screen.visibleFrame).height)
+            }
+            let old = window.frame
+            var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: NSSize(width: FirstRunView.width, height: content)))
+            guard abs(frame.height - old.height) >= 1 else { return }
+            frame.origin = NSPoint(x: old.minX, y: old.maxY - frame.height)
+            window.setFrame(frame, display: true, animate: false)
+        }
     }
 
     /// Is the scratch file there? Nib's folder is asked for first, which sets it up on a new Mac.
@@ -145,7 +172,7 @@ final class FirstRun: NSObject, NSWindowDelegate {
     }
 }
 
-/// Another scratch file (SC1), from the first run or Settings › General: Nib reopens with it,
+/// Another scratch file (SC1), from the first run or Settings › Scratch & Sync: Nib reopens with it,
 /// having handed the old one back to iCloud. The old file stays where it is.
 @MainActor
 enum ScratchChoice {
@@ -182,20 +209,41 @@ enum ScratchChoice {
 struct FirstRunView: View {
     let model: FirstRun
 
+    static let width: CGFloat = 560
+    static let minHeight: CGFloat = 580
+    @State private var stepHeight: CGFloat = 0
+    @State private var footerHeight: CGFloat = 0
+
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Form {
-                switch model.step {
-                case .scratch: ScratchStep(model: model)
-                case .look: LookStep(model: model)
-                case .keys: KeysStep()
+            VStack(spacing: 0) {
+                header
+                Form {
+                    switch model.step {
+                    case .scratch: ScratchStep(model: model)
+                    case .look: LookStep(model: model)
+                    case .keys: KeysStep(model: model)
+                    }
                 }
+                .formStyle(.grouped)
+                .scrollDisabled(true)
             }
-            .formStyle(.grouped)
-            .scrollDisabled(true)
-            .fixedSize(horizontal: false, vertical: true)   // as tall as its step: a fixed 580 cut off its own notes (F22)
+            // As tall as its step, whatever the window's height (a fixed 580 cut off its own notes,
+            // the QA review's F22), measured for `FirstRun.fit`.
+            .fixedSize(horizontal: false, vertical: true)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { stepHeight = $0; model.fit(stepHeight + footerHeight) }
             Spacer(minLength: 0)
+            footer
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { footerHeight = $0; model.fit(stepHeight + footerHeight) }
+        }
+        .frame(width: Self.width)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var footer: some View {
+        VStack(spacing: 0) {
             Divider()
             HStack {
                 Text("Step \(model.step.rawValue + 1) of \(FirstRun.Step.allCases.count)")
@@ -216,9 +264,6 @@ struct FirstRunView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
         }
-        .frame(width: 560)
-        .frame(minHeight: 580, alignment: .top)
-        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     private var header: some View {
@@ -297,7 +342,13 @@ private struct ScratchStep: View {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
                 }
             }
-            firstRunNote("The scratch file is where everything you jot down goes. It's in Nib's own folder in iCloud Drive, so every Mac signed in to your Apple Account opens the same file, and Nib keeps them the same. If one Mac already has it, this finds it; make it only on the first Mac.")
+            // What it says of the file that will be used: one chosen outside iCloud Drive stays on this
+            // Mac (the QA review's F28: it said every Mac whatever was chosen).
+            if let chosen = model.chosen, !ScratchLocation.place(of: chosen).hasPrefix("iCloud Drive") {
+                firstRunNote("The scratch file is where everything you jot down goes. \(chosen.lastPathComponent) is on this Mac only, so your other Macs won't see it: choose one in iCloud Drive to have it on every Mac.")
+            } else {
+                firstRunNote("The scratch file is where everything you jot down goes. It's in Nib's own folder in iCloud Drive, so every Mac signed in to your Apple Account opens the same file, and Nib keeps them the same. If one Mac already has it, this finds it; make it only on the first Mac.")
+            }
             // §4.9 row 7: macOS has no way for an app to keep one file on the Mac (M0 checked).
             firstRunNote("So that macOS never takes it off this Mac to free up space, Control-click iCloud Drive › Nib in Finder and choose Keep Downloaded. If it's off this Mac anyway, Nib brings it back when it opens, or shows the last copy it saw while you're offline.")
             if ScratchLocation.safetyRule {
@@ -360,6 +411,8 @@ private struct LookStep: View {
 /// Step 3: the two global shortcuts, Open Nib when you log in, and what macOS will ask about
 /// notifications when this is done (AP5, SY15).
 private struct KeysStep: View {
+    let model: FirstRun
+
     var body: some View {
         Section("Global shortcuts") {
             ShortcutRow(action: .showScratch)
@@ -370,7 +423,7 @@ private struct KeysStep: View {
             LoginToggle()
         }
         Section("Notifications") {
-            firstRunNote("When Nib is in the background, it tells you about a conflict, or a file it can't save or sync, with a notification and a sound. Nothing else: not saves, not syncs. macOS asks whether Nib may when you click Done; System Settings › Notifications changes it later.")
+            firstRunNote("When Nib is in the background, it tells you about a conflict, a file it can't save or sync, or one deleted or moved to the Trash, with a notification and a sound. Nothing else: not saves, not syncs. macOS asks whether Nib may when you click \(model.chosen == nil ? "Done" : "Reopen Nib"); System Settings › Notifications changes it later.")
         }
     }
 }

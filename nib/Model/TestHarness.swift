@@ -1077,9 +1077,12 @@ enum TestHarness {
             await picture("firstrun-3-taken")
             // All of the step in the window, and the window on the Air's screen (the QA review's
             // F22: a fixed 580 points hid step 3's notifications note under its footer).
-            if let window = model.window, let view = window.contentView {
-                let needs = view.fittingSize.height, has = view.frame.height
-                log.check(needs <= has + 1 && window.frame.height <= 860,
+            // (Fitted by `FirstRun.fit` after a change, never in a layout pass: left to SwiftUI, the
+            // warning's arrival looped AppKit's layout until it threw.)
+            if let window = model.window {
+                _ = await waitFor(2) { model.wanted <= window.contentLayoutRect.height + 1 }
+                let needs = model.wanted, has = window.contentLayoutRect.height
+                log.check(needs > 0 && needs <= has + 1 && window.frame.height <= 860,
                           "the welcome window holds all of step 3, a warning showing (\(Int(needs)) points in \(Int(has))), \(Int(window.frame.height)) points tall")
             }
             log.check(held.hasPrefix("held") && shortcuts.warnings[.appendClipboard]?.hasPrefix("Another app holds ⌃⌥⇧J") == true && !HotKey.registered.contains(3),

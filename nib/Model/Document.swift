@@ -2253,8 +2253,8 @@ final class Document {
         // for a move to another folder (the QA review's F16).
         let name = (ScratchLocation.place(of: newURL) + " › " + newURL.lastPathComponent).uppercased()
         if self === Documents.scratch || untitled {
-            record("problem", detail: "the file moved to \(newURL.path): not followed (the scratch file stays as Settings › General has it)")
-            state = .problem("\(url.lastPathComponent.uppercased()) MOVED TO \(name) · SETTINGS › GENERAL › SCRATCH FILE TO FOLLOW IT")
+            record("problem", detail: "the file moved to \(newURL.path): not followed (the scratch file stays as Settings › Scratch & Sync has it)")
+            state = .problem("\(url.lastPathComponent.uppercased()) MOVED TO \(name) · SETTINGS › SCRATCH & SYNC TO FOLLOW IT")
             return
         }
         if ScratchLocation.refusal(for: newURL) != nil {

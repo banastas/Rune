@@ -1,9 +1,10 @@
 // Settings (PRD §5.8, V12, W7): tabs, grouped forms that size to fit, 480 pt wide, and a
 // plain note under each control saying what it does and doesn't do. General (open at login,
-// the global shortcuts, the menu bar extra, the scratch file), Files (the kinds of file a
-// double-click opens in Nib), Editor (the font and size, indentation, line numbers,
-// invisibles, ⌘S tidying, Paste Clean) and Themes (the scheme, Import from Sublime Text,
-// Import File…, and the last import's report, HL2-HL4).
+// the global shortcuts and Paste Clean, the menu bar extra and the Dock), Scratch & Sync (the
+// scratch file, saving, this Mac's name, notifications, History), Files (the kinds of file a
+// double-click opens in Nib), Editor (the font and size, indentation, what's drawn beside the
+// text, ⌘S tidying) and Themes (the scheme, Import from Sublime Text, Import File…, and the last
+// import's report, HL2-HL4). Each tab fits the Air's screen, as Settings can't scroll (F22).
 
 import AppKit
 import SwiftUI
@@ -35,12 +36,14 @@ struct SettingsView: View {
     }
 }
 
-/// Settings › General: open at login (AP2), the global shortcuts (SC2, PT4, SC6), the menu bar
-/// extra (AP3) and the Dock icon (AP6). Short enough for the Air's screen: it was 967 points tall
-/// with the scratch file in it, and can't scroll (the QA review's F22).
+/// Settings › General: open at login (AP2), the global shortcuts (SC2, PT4, SC6) and what Paste
+/// Clean and they do to text (PT3), the menu bar extra (AP3) and the Dock icon (AP6). Short enough
+/// for the Air's screen: it was 967 points tall with the scratch file in it, and can't scroll (the
+/// QA review's F22); Paste Clean came here from Editor, which was 989.
 private struct GeneralSettings: View {
     @AppStorage("showMenuBarExtra", store: NibDefaults.store) private var showMenuBarExtra = true
     @AppStorage("hideDockIcon", store: NibDefaults.store) private var hideDockIcon = false
+    @AppStorage("pasteStraightensQuotes", store: NibDefaults.store) private var straightenQuotes = false
 
     var body: some View {
         Form {
@@ -50,6 +53,10 @@ private struct GeneralSettings: View {
             Section("Global shortcuts") {
                 ForEach(GlobalShortcuts.Action.allCases) { ShortcutRow(action: $0) }
                 note("They work from any app, and need no Accessibility access. Click one and press the new keys: with ⌃, or ⌘ and ⌥, or a function key, as keys other apps use for themselves can't be taken. Delete clears it; Escape keeps it.")
+            }
+            Section {
+                Toggle("Paste Clean straightens quotes and dashes", isOn: $straightenQuotes)
+                note("Paste Clean (⌥⇧⌘V), Clean Clipboard, Append Clipboard to Scratch, the Services and nib -a always remove invisible characters, make odd spaces plain and trim trailing spaces. With this on they also straighten “curly” quotes, dashes and …. ⌘V pastes text as it is.")
             }
             Section {
                 Toggle("Show Nib in the menu bar", isOn: $showMenuBarExtra)
@@ -160,7 +167,6 @@ private func note(_ text: String) -> some View {
 }
 
 struct EditorSettings: View {
-    @AppStorage("pasteStraightensQuotes", store: NibDefaults.store) private var straightenQuotes = false
     @AppStorage("editorTabSize", store: NibDefaults.store) private var tabSize = 4
     @AppStorage("editorSpaces", store: NibDefaults.store) private var spaces = false
     @AppStorage("editorLineNumbers", store: NibDefaults.store) private var lineNumbers = true
@@ -192,7 +198,7 @@ struct EditorSettings: View {
                 Stepper(value: Binding(get: { schemes.fontSize }, set: { schemes.setFont(face: schemes.fontFace, size: $0) }), in: 8...36, step: 1) {
                     LabeledContent("Size", value: "\(schemes.fontSize.formatted(.number.precision(.fractionLength(0...1)))) pt")
                 }
-                note("The text's font in every window; bold and italic use its own faces. Text always wraps at the window's edge.")
+                note("The text's font in every window; bold and italic use its own faces. Text always wraps at the window's edge. Import from Sublime Text, in Themes, sets everything on this tab to what Sublime has.")
             }
             Section {
                 Stepper(value: $tabSize, in: 1...16) { LabeledContent("Tab width", value: "\(tabSize)") }
@@ -206,19 +212,12 @@ struct EditorSettings: View {
                 Toggle("Show indent guides", isOn: $indentGuides)
                 Toggle("Underline matching brackets and tags", isOn: $matchBrackets)
                 Toggle("Close brackets and quotes as you type", isOn: $autoPairs)
-                note("Invisibles show spaces as dots and tabs as arrows; the minimap is the text at a seventh of its size, to click or drag in. These three are in the View menu too. Closing pairs types the ) after a (, and types over it when you type one.")
+                note("Invisibles are spaces as dots and tabs as arrows; the minimap, the text at a seventh of its size to click or drag in. These three are in the View menu too. Closing pairs types the ) after a (, and over it when you type one.")
             }
             Section {
                 Toggle("⌘S trims trailing whitespace", isOn: $trimOnSave)
                 Toggle("⌘S ends the file with a newline", isOn: $newlineOnSave)
                 note("Only on ⌘S, and only in files you've edited: Nib's own saves never change the text. ⌘Z undoes it.")
-            }
-            Section {
-                Toggle("Paste Clean straightens quotes and dashes", isOn: $straightenQuotes)
-                note("Paste Clean (⌥⇧⌘V), Clean Clipboard, Append Clipboard to Scratch, the Services and nib -a always remove invisible characters, make odd spaces plain and trim trailing spaces. With this on they also straighten “curly” quotes, dashes and …. ⌘V pastes text as it is.")
-            }
-            Section {
-                note("Import from Sublime Text, in Themes, sets everything here but Paste Clean to what Sublime has.")
             }
         }
         .formStyle(.grouped)
