@@ -10,13 +10,16 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct SettingsView: View {
-    @AppStorage("settingsTab", store: NibDefaults.store) private var tab = "editor"
+    @AppStorage("settingsTab", store: NibDefaults.store) private var tab = "general"   // was "editor": Settings opened on its third tab (F84)
 
     var body: some View {
         TabView(selection: $tab) {
             GeneralSettings()
                 .tabItem { Label("General", systemImage: "gearshape") }
                 .tag("general")
+            SyncSettings()
+                .tabItem { Label("Scratch & Sync", systemImage: "icloud") }
+                .tag("sync")
             FileSettings()
                 .tabItem { Label("Files", systemImage: "doc.on.doc") }
                 .tag("files")
@@ -32,12 +35,12 @@ struct SettingsView: View {
     }
 }
 
-/// Settings › General: open at login (AP2), the global shortcuts (SC2, PT4, SC6), the menu
-/// bar extra (AP3) and the scratch file (SC1).
+/// Settings › General: open at login (AP2), the global shortcuts (SC2, PT4, SC6), the menu bar
+/// extra (AP3) and the Dock icon (AP6). Short enough for the Air's screen: it was 967 points tall
+/// with the scratch file in it, and can't scroll (the QA review's F22).
 private struct GeneralSettings: View {
     @AppStorage("showMenuBarExtra", store: NibDefaults.store) private var showMenuBarExtra = true
     @AppStorage("hideDockIcon", store: NibDefaults.store) private var hideDockIcon = false
-    @State private var refusal: String?
 
     var body: some View {
         Form {
@@ -46,16 +49,29 @@ private struct GeneralSettings: View {
             }
             Section("Global shortcuts") {
                 ForEach(GlobalShortcuts.Action.allCases) { ShortcutRow(action: $0) }
-                note("They work from any app, with no Accessibility access, so macOS doesn't ask for any. Click one and press the new keys: with ⌘, ⌃ or ⌥, or a function key. Delete clears it; Escape keeps it. Append Clipboard to Scratch adds what you copied to the end of the scratch file without bringing Nib forward.")
+                note("They work from any app, and need no Accessibility access. Click one and press the new keys: with ⌃, or ⌘ and ⌥, or a function key, as keys other apps use for themselves can't be taken. Delete clears it; Escape keeps it.")
             }
             Section {
                 Toggle("Show Nib in the menu bar", isOn: $showMenuBarExtra)
                     .disabled(hideDockIcon && showMenuBarExtra)   // with no Dock icon, the way to Nib
-                note("The nib in the menu bar shows the scratch file's sync at a glance: still when all's well, its line marching while an upload takes more than a few seconds, a red ✕ beside it when something needs a look. Click it for the scratch file's state, Clean Clipboard, Append Clipboard to Scratch and recent files. The global shortcuts work either way.")
+                note("It shows how your open files sync: still when all's well, its line marching while an upload waits, a red ✕ when one needs a look. Click it for the scratch file, the clipboard commands and recent files.")
                 Toggle("Show Nib in the Dock", isOn: Binding(get: { !hideDockIcon }, set: { hideDockIcon = !$0 }))
                     .disabled(!showMenuBarExtra && !hideDockIcon)
-                note("Without its Dock icon, Nib isn't in the Dock or in ⌘Tab, and has no menu bar of its own: the nib in the menu bar, Show Scratch and its windows bring it forward. So the nib in the menu bar stays on meanwhile.")
+                note("Off, Nib is only in the menu bar: not in the Dock or ⌘Tab, and with no menu bar of its own. It can be off only while the nib in the menu bar is shown.")
             }
+        }
+        .formStyle(.grouped)
+        .scrollDisabled(true)
+    }
+}
+
+/// Settings › Scratch & Sync (§5.8): the scratch file (SC1), how Nib saves, this Mac's name as
+/// the other Macs see it, notifications (SY15) and History (the QA review's F48).
+private struct SyncSettings: View {
+    @State private var refusal: String?
+
+    var body: some View {
+        Form {
             Section("Scratch file") {
                 let url = Documents.scratch.url
                 LabeledContent(url.lastPathComponent, value: ScratchLocation.place(of: url))
@@ -68,7 +84,26 @@ private struct GeneralSettings: View {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
                     }
                 }
-                note("Changing it reopens Nib with the new file. The old one stays where it is, with its History.")
+                note((ScratchLocation.place(of: url).hasPrefix("iCloud Drive")
+                      ? "It's in iCloud Drive, so every Mac signed in to your Apple Account opens the same file. "
+                      : "It's on this Mac only, so your other Macs won't see it: choose one in iCloud Drive to have it on every Mac. ")
+                     + "Changing it reopens Nib with the new file; the old one stays where it is, with its History.")
+            }
+            Section("Saving") {
+                note("Nib saves a second after you stop typing, and whenever you switch away. There is no unsaved state to lose: everything you type is in its journal first.")
+            }
+            Section("This Mac") {
+                LabeledContent("Name", value: ReceiptBook.shared.device)
+                note("Your other Macs show this Mac by this name (“✓ SYNCED · ON \(ReceiptBook.shared.device.uppercased())”). Change it in System Settings › General › Sharing.")
+            }
+            Section("Notifications") {
+                Button("Open Notification Settings") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=com.banastas.nib") { NSWorkspace.shared.open(url) }
+                }
+                note("Only for a conflict, a file Nib can't save or sync, or one deleted or moved to the Trash, and only while Nib isn't in front. Saves and syncs never notify.")
+            }
+            Section("History") {
+                note("Nib keeps each file's versions for 30 days, on this Mac only, as it does its journal. The files themselves are in iCloud Drive, which is end-to-end encrypted only with Advanced Data Protection.")
             }
         }
         .formStyle(.grouped)
@@ -81,7 +116,7 @@ private struct GeneralSettings: View {
         if let why = ScratchChoice.refusal(url) { refusal = why; return }
         let alert = NSAlert()
         alert.messageText = "Use “\(url.lastPathComponent)” as the scratch file?"
-        alert.informativeText = "Nib reopens to use it, in \(ScratchLocation.place(of: url)). \(Documents.scratch.url.lastPathComponent) stays where it is."
+        alert.informativeText = "It's in \(ScratchLocation.place(of: url)). Nib quits and opens again with it; “\(Documents.scratch.url.lastPathComponent)” stays where it is, with its History."
         alert.addButton(withTitle: "Reopen Nib")
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn { ScratchChoice.use(url) }
@@ -157,12 +192,12 @@ struct EditorSettings: View {
                 Stepper(value: Binding(get: { schemes.fontSize }, set: { schemes.setFont(face: schemes.fontFace, size: $0) }), in: 8...36, step: 1) {
                     LabeledContent("Size", value: "\(schemes.fontSize.formatted(.number.precision(.fractionLength(0...1)))) pt")
                 }
-                note("The font of the text in every window. Bold and italic use the font's own faces. Import from Sublime Text, in Themes, sets these to Sublime's.")
+                note("The text's font in every window; bold and italic use its own faces. Text always wraps at the window's edge.")
             }
             Section {
                 Stepper(value: $tabSize, in: 1...16) { LabeledContent("Tab width", value: "\(tabSize)") }
                 Toggle("Indent with spaces", isOn: $spaces)
-                note("For files that don't show their own. A file indented with tabs, or with spaces, keeps its own; the strip says which. Import from Sublime Text sets these to Sublime's.")
+                note("For files that don't show their own: a file indented with tabs or spaces keeps them, and the strip says which.")
             }
             Section {
                 Toggle("Show line numbers", isOn: $lineNumbers)
@@ -171,16 +206,19 @@ struct EditorSettings: View {
                 Toggle("Show indent guides", isOn: $indentGuides)
                 Toggle("Underline matching brackets and tags", isOn: $matchBrackets)
                 Toggle("Close brackets and quotes as you type", isOn: $autoPairs)
-                note("Line numbers in a gutter down the left, the caret's line brighter. Invisibles are spaces as dots and tabs as arrows, in the color scheme's own faint color. Import from Sublime Text sets these two to Sublime's. The minimap is the text at a seventh of its size beside the scroller, the lines in view under a box: click or drag in it to scroll. All three are in the View menu too. Indent guides, matching brackets and tags, and closing pairs are as in Sublime, in the color scheme's own colors; Import from Sublime Text sets them to Sublime's.")
+                note("Invisibles show spaces as dots and tabs as arrows; the minimap is the text at a seventh of its size, to click or drag in. These three are in the View menu too. Closing pairs types the ) after a (, and types over it when you type one.")
             }
             Section {
                 Toggle("⌘S trims trailing whitespace", isOn: $trimOnSave)
                 Toggle("⌘S ends the file with a newline", isOn: $newlineOnSave)
-                note("Only when you press ⌘S, and only in files you've edited: Nib's own saves, a second after you stop typing, never change the text. It's one change, and ⌘Z undoes it. Import from Sublime Text sets these to Sublime's.")
+                note("Only on ⌘S, and only in files you've edited: Nib's own saves never change the text. ⌘Z undoes it.")
             }
             Section {
                 Toggle("Paste Clean straightens quotes and dashes", isOn: $straightenQuotes)
-                note("Paste Clean (⌥⇧⌘V) and Clean Clipboard (⌃⌥⌘V) always remove invisible characters, make odd spaces plain and trim trailing spaces. With this on they also turn “curly” quotes, en and em dashes and … into plain ones. ⌘V pastes text as it is.")
+                note("Paste Clean (⌥⇧⌘V), Clean Clipboard, Append Clipboard to Scratch, the Services and nib -a always remove invisible characters, make odd spaces plain and trim trailing spaces. With this on they also straighten “curly” quotes, dashes and …. ⌘V pastes text as it is.")
+            }
+            Section {
+                note("Import from Sublime Text, in Themes, sets everything here but Paste Clean to what Sublime has.")
             }
         }
         .formStyle(.grouped)
@@ -203,14 +241,14 @@ struct ThemeSettings: View {
                 if schemes.currentID != Schemes.builtIn {
                     Button("Remove “\(schemes.current.name)”") { schemes.remove(schemes.currentID) }
                 }
-                note("Colors the text only. Nib is always dark: windows, menus and the status strip stay dark whatever the scheme.")
+                note("Colors the page: the text, its background, the caret, the selection and the line numbers. Nib's windows, menus and status strip stay dark whatever the scheme.")
             }
             Section {
                 HStack {
                     Button("Import from Sublime Text") { schemes.importFromSublime() }
                     Button("Import File…") { chooseFile() }
                 }
-                note("Import from Sublime Text reads the color scheme Sublime uses, its override in Packages/User, and Sublime's font; Sublime's files are only read, never changed. You can also drop a .tmTheme or .sublime-color-scheme file here.")
+                note("Import from Sublime Text takes Sublime's color scheme (with its override in Packages/User), its font and size, and its editor settings: tab width and spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs and ⌘S tidying, and sets Nib's to match. Sublime's files are only read, never changed. You can also drop a .tmTheme or .sublime-color-scheme file here.")
             }
             if let report = schemes.report {
                 Section("Last import") {

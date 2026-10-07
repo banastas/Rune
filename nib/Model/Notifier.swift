@@ -39,8 +39,15 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// A problem with the file at `url` began, or went on: said once, if Nib isn't frontmost.
+    /// Where the file's strip can be seen: Nib in front, and the file's window too, its tab the one
+    /// chosen. A file in a tab behind another was neither said nor notified (the QA review's F37).
+    static func inFront(_ url: URL) -> Bool {
+        guard NSApp.isActive, let window = Documents.existing(for: url)?.editor.textView.window, window.isVisible else { return false }
+        return (window.tabGroup?.selectedWindow ?? window) === window
+    }
+
     func began(_ alert: Alerts.Alert, for url: URL) {
-        guard ledger.began(alert.kind, file: url.path, frontmost: NSApp.isActive) else { return }
+        guard ledger.began(alert.kind, file: url.path, frontmost: Self.inFront(url)) else { return }
         #if DEBUG
         if NibPaths.isScenario { posted.append(alert); return }
         #endif

@@ -62,7 +62,9 @@ final class FirstRun: NSObject, NSWindowDelegate {
         message = nil
         imported = false
         sublime = Schemes.shared.sublimePreview()
-        let window = NSWindow(contentViewController: NSHostingController(rootView: FirstRunView(model: self)))
+        let host = NSHostingController(rootView: FirstRunView(model: self))
+        host.sizingOptions = [.preferredContentSize]   // the window follows each step's height
+        let window = NSWindow(contentViewController: host)
         window.styleMask = [.titled, .closable]
         window.title = "Welcome to Nib"
         window.isReleasedWhenClosed = false
@@ -192,6 +194,7 @@ struct FirstRunView: View {
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
+            .fixedSize(horizontal: false, vertical: true)   // as tall as its step: a fixed 580 cut off its own notes (F22)
             Spacer(minLength: 0)
             Divider()
             HStack {
@@ -213,7 +216,8 @@ struct FirstRunView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
         }
-        .frame(width: 560, height: 580)
+        .frame(width: 560)
+        .frame(minHeight: 580, alignment: .top)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
@@ -322,11 +326,12 @@ private struct LookStep: View {
                     Text("Imported:")
                     hudBlock(report)
                 } else {
-                    Text("Use Sublime's font and tab settings? Sublime Text has:")
+                    Text("Use Sublime's color scheme, font and editor settings? Sublime Text has:")
                     hudBlock(found)
                     Button("Import from Sublime Text") { model.importSublime() }
                 }
-                firstRunNote("Import reads Sublime's color scheme, font, tab width, line numbers and invisibles, and its ⌘S tidying. Sublime's files are only read, never changed. Continue skips it; Settings › Themes can import later.")
+                // Everything it sets, as Settings › Themes says too (the QA review's F25: it listed five).
+                firstRunNote("Import takes Sublime's color scheme, font and size, tab width and spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs and ⌘S tidying, and sets Nib's to match. Sublime's files are only read, never changed. \(model.imported ? "" : "Continue skips it; ")Settings › Themes can import later.")
             } else {
                 Text(model.sublime.failure == SublimeImport.Failure.noSublime.description
                      ? "Sublime Text isn't on this Mac, so there's nothing to import."

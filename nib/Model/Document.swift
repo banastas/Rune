@@ -36,6 +36,9 @@ final class Document {
     private(set) var state: SyncState = .opening {
         didSet {
             endAlerts(for: state)
+            // A problem is said as it begins, where its strip can be seen; where it can't, it's
+            // notified (VoiceOver heard nothing of either while Nib was in front: the QA review's F37).
+            if case .problem(let why) = state, oldValue != state, Notifier.inFront(url) { Announce.hud("✕ " + why, urgent: true) }
             // The disk has room again once a save lands (typing sets .editing, full disk or not).
             switch state {
             case .saved, .savedHere, .local, .synced: if fullVolume != nil { fullVolume = nil; trashOffer = nil }

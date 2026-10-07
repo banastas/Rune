@@ -93,6 +93,7 @@ struct SyncLogView: View {
                     hudText(row.event.glyph, glyphSize: 10)
                         .foregroundStyle(row.event.failed || row.event.event == "conflict" ? HUDColor.failureText : row.event.glyph == "·" ? .secondary : .primary)
                         .help(row.event.word)
+                        .accessibilityHidden(true)   // the Event column says it in words (F39)
                 }
                 .width(16)
                 TableColumn("Time", value: \.time) { row in

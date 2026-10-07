@@ -46,6 +46,7 @@ final class FindSession {
     @ObservationIgnored private var version = 0
     /// Where the caret was when the query last changed: typing finds from here.
     @ObservationIgnored private var anchor = 0
+    @ObservationIgnored private var saidEmpty = false
 
     /// "3 OF 12", "12 MATCHES", "NO MATCHES", or what's wrong with the pattern.
     var countLabel: String {
@@ -122,6 +123,12 @@ final class FindSession {
         view.setSelectedRange(matches[index])
         view.currentMatch = matches[index]
         view.reveal(matches[index].location)   // not the find indicator, which scrolls as AppKit does (Reveal.swift)
+        // Said, as the focus stays in the field: VoiceOver heard nothing of a jump (the QA review's F38).
+        if shown {
+            let text = view.string as NSString
+            let line = text.substring(with: text.lineRange(for: matches[index])).trimmingCharacters(in: .whitespacesAndNewlines)
+            Announce.sentence("\(index + 1) of \(matches.count): \(line.count > 80 ? String(line.prefix(80)) + "…" : line)")
+        }
     }
 
     /// The caret moved: which match, if any, is the selected one.
@@ -263,6 +270,12 @@ final class FindSession {
         switch result {
         case .success(let found): failure = nil; matches = found
         case .failure(let why): failure = why.description; matches = []
+        }
+        // "No matches", or what's wrong with the pattern, said once as it comes (F38).
+        if shown, !query.isEmpty, matches.isEmpty {
+            if !saidEmpty { Announce.hud(countLabel); saidEmpty = true }
+        } else {
+            saidEmpty = false
         }
         selectionChanged()
         editor?.findMatches = shown ? matches : []

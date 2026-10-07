@@ -88,7 +88,7 @@ struct CommandPalette: View {
                             Text(shortcut).font(.callout.monospaced()).foregroundStyle(.secondary)
                         }
                         if !entry.group.isEmpty {
-                            Text(entry.group).font(.caption).foregroundStyle(.tertiary)
+                            Text(entry.group).font(.caption).foregroundStyle(.secondary)   // .tertiary was 2.3:1 (F82)
                         }
                     }
                     .tag(entry.id)
@@ -96,7 +96,9 @@ struct CommandPalette: View {
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { select(entry) }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel([entry.name, entry.detail, entry.shortcut, entry.group.isEmpty ? nil : entry.group].compactMap { $0 }.joined(separator: ", "))
+                    .accessibilityLabel(Self.spokenRow(entry))
+                    .accessibilityAddTraits(.isButton)   // VO-Space opens it, as a double click does (F38)
+                    .accessibilityAction { select(entry) }
                 }
                 .listStyle(.plain)
                 .onChange(of: highlighted) { _, id in
@@ -105,7 +107,7 @@ struct CommandPalette: View {
             }
             .frame(height: 300)
             .overlay {
-                if results.isEmpty { Text(entries.isEmpty ? empty : "No matches").foregroundStyle(.tertiary) }
+                if results.isEmpty { Text(entries.isEmpty ? empty : "No matches").foregroundStyle(.secondary) }
             }
         }
         .frame(width: 520)
@@ -113,7 +115,10 @@ struct CommandPalette: View {
             fieldFocused = true
             highlighted = initial ?? results.first?.id
         }
-        .onChange(of: query) { highlighted = results.first?.id }
+        .onChange(of: query) {
+            highlighted = results.first?.id
+            Announce.sentence(Self.spokenResults(results))   // the focus stays in the field (F38)
+        }
         .onChange(of: entries) {
             if highlighted == nil || !results.contains(where: { $0.id == highlighted }) {
                 highlighted = query.isEmpty && results.contains(where: { $0.id == initial }) ? initial : results.first?.id
@@ -125,7 +130,21 @@ struct CommandPalette: View {
         let list = results
         guard !list.isEmpty else { return }
         let index = list.firstIndex { $0.id == highlighted } ?? -1
-        highlighted = list[max(0, min(list.count - 1, index + delta))].id
+        let entry = list[max(0, min(list.count - 1, index + delta))]
+        highlighted = entry.id
+        Announce.sentence(Self.spokenRow(entry))   // ↑ ↓ move the highlight with the focus in the field (F38)
+    }
+
+    /// A row as VoiceOver says it: its name, where it is, its keys and its group.
+    static func spokenRow(_ entry: PaletteEntry) -> String {
+        [entry.name, entry.detail, entry.shortcut, entry.group.isEmpty ? nil : entry.group].compactMap { $0 }.joined(separator: ", ")
+    }
+
+    /// What VoiceOver says as the query changes: how many, and the first (the QA review's F38: the
+    /// palette was silent as it was typed in and moved through).
+    static func spokenResults(_ results: [PaletteEntry]) -> String {
+        guard let first = results.first else { return "No matches" }
+        return "\(results.count) result\(results.count == 1 ? "" : "s"). \(spokenRow(first))"
     }
 
     private func openHighlighted() {

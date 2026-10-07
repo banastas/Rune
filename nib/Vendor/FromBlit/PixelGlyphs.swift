@@ -24,17 +24,19 @@ enum PixelGlyph: Character, CaseIterable {
         }
     }
 
-    /// What VoiceOver says for the glyph inside HUD text.
+    /// What VoiceOver says for the glyph standing alone, in Nib's meanings, not Blit's transfer
+    /// words ("done", "transferring", "down": the QA review's F39). Inside HUD text it says nothing:
+    /// a word always follows it there ("✓ SYNCED", "▲ UPLOADED"), and "done SYNCED" was what it heard.
     var spoken: String {
         switch self {
-        case .check: "done"
-        case .cross: "failed"
-        case .up: "transferring"
-        case .down: "down"
+        case .check: "synced"
+        case .cross: "problem"
+        case .up: "uploading"
+        case .down: "came in"
         case .arrow: "to"
-        case .pause: "paused"
+        case .pause: "waiting"
         case .play: "resume"
-        case .partial: "partial"
+        case .partial: "not here"
         }
     }
 
@@ -71,7 +73,7 @@ func hudText(_ string: String, glyphSize: CGFloat = 11) -> Text {
     for ch in string {
         if let glyph = PixelGlyph(rawValue: ch) {
             if !run.isEmpty { result = Text("\(result)\(Text(verbatim: run))"); run = "" }
-            result = Text("\(result)\(Text(Image(nsImage: glyph.image(size: glyphSize))).baselineOffset(-1).accessibilityLabel(glyph.spoken))")
+            result = Text("\(result)\(Text(Image(nsImage: glyph.image(size: glyphSize))).baselineOffset(-1).accessibilityLabel(""))")   // the word after it says it (F39)
         } else {
             run.append(ch)
         }

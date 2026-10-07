@@ -115,7 +115,7 @@ struct SyncHUD: View {
                 if slot < rows.count {
                     HUDRow(rows[slot].name, rows[slot].value)
                 } else {
-                    Text("—").font(HUDFont.terminal(18)).foregroundStyle(HUDColor.dim)
+                    Text("—").font(HUDFont.terminal(18)).foregroundStyle(HUDColor.dim).accessibilityHidden(true)
                 }
             }
         }
@@ -156,7 +156,7 @@ struct SyncHUD: View {
                             .truncationMode(.tail)
                             .help(event.detail ?? "")
                     } else {
-                        Text("—").foregroundStyle(HUDColor.dim)
+                        Text("—").foregroundStyle(HUDColor.dim).accessibilityHidden(true)   // an empty slot (F39)
                     }
                 }
                 .frame(maxWidth: .infinity, minHeight: Self.lineHeight, maxHeight: Self.lineHeight, alignment: .leading)

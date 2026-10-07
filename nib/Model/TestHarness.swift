@@ -407,6 +407,11 @@ enum TestHarness {
         let fieldFocused = (view.window?.firstResponder as? NSTextView)?.delegate is NSTextField
         log.check(opened && find.shown && find.query == "deploy" && fieldFocused,
                   "⌘F \(front ? "from the menu" : "(the text view's action: macOS didn't let Nib come forward)"): the bar, the selection in its field, the caret there, \(find.countLabel) (shown \(find.shown), query \(find.query.debugDescription), caret in the field \(fieldFocused), first responder \(view.window?.firstResponder.map { String(describing: Swift.type(of: $0)) } ?? "none"))")
+        // Each jump said, the focus staying in the field (the QA review's F38: VoiceOver heard nothing).
+        find.next()
+        let jumpSaid = Announce.said.last ?? ""
+        log.check(jumpSaid.hasPrefix("3 of 4: ") || jumpSaid.hasPrefix("1 of 4: "), "a jump is said: “\(jumpSaid)”")
+        find.next(backwards: true)
         let first = range("Deploy").location, redeploy = range("redeploy").location + 2
         // Every match in the find color, the current one too, and it outlined (the user, 2026-10-06:
         // shown as the selection, it went grey as the bar took the focus, at every jump). On the
@@ -596,6 +601,10 @@ enum TestHarness {
                   "Go to File: \(groups.joined(separator: ", ")), each file once (\(ids.count)), this file under Open")
         let ranked = CommandPalette.results(for: "palette-", in: session.entries)
         let letters = CommandPalette.results(for: "pltt", in: session.entries).first?.name
+        // What VoiceOver hears as the query changes and the highlight moves (the QA review's F38).
+        let spoken = CommandPalette.spokenResults(ranked), none = CommandPalette.spokenResults([])
+        log.check(spoken.hasPrefix("\(ranked.count) result") && spoken.contains(url.lastPathComponent) && none == "No matches",
+                  "the palette says how many and the first as it's typed in: “\(spoken)”, or “\(none)”")
         log.check(ranked.first?.name == url.lastPathComponent && CommandPalette.score("scr", "scratch-test.md") == 3
                   && CommandPalette.score("test", "scratch-test.md") == 2 && CommandPalette.score("sct", "scratch-test.md") == 1
                   && letters == url.lastPathComponent, "Blit's scoring: a prefix, then a substring, then letters in order (\(letters ?? "none"))")
@@ -1066,6 +1075,13 @@ enum TestHarness {
             let held = await Task.detached { String(data: output.fileHandleForReading.availableData, encoding: .utf8) ?? "" }.value
             shortcuts.set(keys, for: .appendClipboard)
             await picture("firstrun-3-taken")
+            // All of the step in the window, and the window on the Air's screen (the QA review's
+            // F22: a fixed 580 points hid step 3's notifications note under its footer).
+            if let window = model.window, let view = window.contentView {
+                let needs = view.fittingSize.height, has = view.frame.height
+                log.check(needs <= has + 1 && window.frame.height <= 860,
+                          "the welcome window holds all of step 3, a warning showing (\(Int(needs)) points in \(Int(has))), \(Int(window.frame.height)) points tall")
+            }
             log.check(held.hasPrefix("held") && shortcuts.warnings[.appendClipboard]?.hasPrefix("Another app holds ⌃⌥⇧J") == true && !HotKey.registered.contains(3),
                       "keys another app holds: \(shortcuts.warnings[.appendClipboard] ?? "no warning") (the other app: \(held.trimmingCharacters(in: .whitespacesAndNewlines)))")
             process.terminate()
@@ -1343,6 +1359,9 @@ enum TestHarness {
             let second = group.selectedWindow === group.windows[1]
             let nine = AppDelegate.selectTab(9, in: windows[0])
             log.check(two && second && nine && group.selectedWindow === group.windows[1], "⌘2 picks the second tab; ⌘9 with five only beeps")
+            // A file in a tab behind another isn't "in front": its problems are notified (F37).
+            let behind = Documents.all.first { doc in doc.editor.textView.window.map { ($0.tabGroup?.selectedWindow ?? $0) !== $0 } ?? false }
+            log.check(behind.map { !Notifier.inFront($0.url) } ?? false, "a file in a tab behind another counts as out of sight, for notifications (\(behind?.url.lastPathComponent ?? "none"))")
             // Each tab's text named for VoiceOver by its file: every editor was "Scratch" (F36).
             let labels = Documents.all.map { ($0.url.lastPathComponent, $0.editor.textView.accessibilityLabel() ?? "") }
             log.check(labels.allSatisfy { $0.0 == $0.1 }, "each file's text is named for VoiceOver by its file (\(labels.map(\.1).joined(separator: ", ")))")
@@ -1745,6 +1764,9 @@ enum TestHarness {
         await document.fetchLatest(reason: "test")
         await document.fetchLatest(reason: "test")
         log.check(syncedBefore != nil && syncedAt() == syncedBefore, "checking again for a newer version leaves “\(document.statusLine)” as it was")
+        // The pixel glyphs in Nib's words, not Blit's transfer words (the QA review's F39).
+        let words = PixelGlyph.allCases.map(\.spoken)
+        log.check(!words.contains("done") && !words.contains("transferring") && !words.contains("down"), "the glyphs' words, said alone: \(words.joined(separator: ", "))")
 
         func menuItem(_ title: String) -> (menu: NSMenu, index: Int)? {
             for top in NSApp.mainMenu?.items ?? [] {
@@ -1898,6 +1920,26 @@ enum TestHarness {
             window.close()
         }
         log.check(shown, "Settings › Files shows them")
+
+        // Every tab on the Air's screen (about 900 points under its menu bar): Settings can't scroll,
+        // and General was 967 points tall (the QA review's F22). A picture of each.
+        var heights: [String] = []
+        var tooTall = false
+        for (tag, title) in [("general", "General"), ("sync", "Scratch & Sync"), ("files", "Files"), ("editor", "Editor"), ("themes", "Themes")] {
+            NibDefaults.store.set(tag, forKey: "settingsTab")
+            AppDelegate.openSettings()
+            _ = await waitFor(5) { NSApp.windows.contains { $0.isVisible && $0.title == title } }
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let window = NSApp.windows.first(where: { $0.isVisible && $0.title == title }) else { heights.append("\(title) not shown"); tooTall = true; continue }
+            heights.append("\(title) \(Int(window.frame.height))")
+            if window.frame.height > 860 { tooTall = true }
+            if let view = window.contentView?.superview, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("settings-\(tag).png"))
+            }
+        }
+        NSApp.windows.first { $0.isVisible && $0.title == "Themes" }?.close()
+        log.check(!tooTall, "every Settings tab fits the Air's screen: \(heights.joined(separator: ", ")) points")
 
         let after = macs()
         log.check(after == before, "the Mac's own default apps are as they were (\(Set(after.map { DefaultApps.name(URL(fileURLWithPath: $0)) }).sorted().joined(separator: ", ")))")
@@ -3743,6 +3785,21 @@ enum TestHarness {
                   && session.second.text.contains("theirs 1 \(marker)") && !session.second.text.contains("mine 4 \(marker)"),
                   "each pane holds one version's whole text (\(session.first.label) · \(session.second.label))")
         log.check(session.marks.first.contains(.changed) && session.marks.second.contains(.changed), "and marks what differs (~)")
+        // The window's own commands, chosen with the sheet up, don't reach the text behind it (the QA
+        // review's F31: Find opened the window's find bar under the sheet, Go to Line its strip field).
+        func choose(_ path: [String]) -> String {
+            var menu = NSApp.mainMenu
+            for title in path.dropLast() { menu = menu?.items.first { $0.title == title }?.submenu }
+            guard let menu, let index = menu.items.firstIndex(where: { $0.title == path.last }) else { return "missing" }
+            menu.update()
+            guard menu.items[index].isEnabled else { return "off" }
+            menu.performActionForItem(at: index)
+            return "chosen"
+        }
+        let tried = [choose(["Edit", "Find", "Find…"]), choose(["Text", "Go to Line…"]), choose(["View", "Show Sync Details"])]
+        try? await Task.sleep(for: .milliseconds(400))
+        log.check(!tried.contains("missing") && !document.editor.find.shown && !document.goingToLine && !document.syncDetailsShown,
+                  "with the merge view up, Find, Go to Line and Show Sync Details (\(tried.joined(separator: ", "))) leave the window behind it alone")
         // From this run's first block (a block another scenario left in the test file would come
         // first, and be the one resolved).
         let own = session.blocks.first { (session.result as NSString).substring(with: $0.range).contains(marker) }

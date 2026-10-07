@@ -407,8 +407,13 @@ struct NibCommands: Commands {
 
     private func send(_ action: Selector) { NSApp.sendAction(action, to: nil, from: nil) }
     private func find(_ command: (FindSession) -> Void, else action: Selector) {
+        guard !merging, NSApp.keyWindow?.isSheet != true else { NSSound.beep(); return }
         if let document { command(document.editor.find) } else { send(action) }
     }
+
+    /// The merge view is up: Find, Replace, Go to Line and the sync HUD would act on the window
+    /// behind it, under the sheet (the QA review's F31, 2026-10-07).
+    private var merging: Bool { document?.merge != nil }
 
     var body: some Commands {
         // Blit's About, not the standard panel (§5.10).
@@ -471,7 +476,7 @@ struct NibCommands: Commands {
             // The sync HUD (§5.3) over the text of the window in front.
             Button(document?.syncDetailsShown == true ? "Hide Sync Details" : "Show Sync Details") { document?.toggleSyncDetails() }
                 .keyboardShortcut("y", modifiers: [.command, .shift])
-                .disabled(document == nil)
+                .disabled(document == nil || merging)
         }
         // Nib doesn't print; ⌘P and ⇧⌘P are Sublime's palette keys.
         CommandGroup(replacing: .printItem) {}
@@ -496,25 +501,25 @@ struct NibCommands: Commands {
             Divider()
             Menu("Find") {
                 Button("Find…") { find({ $0.open(replace: false) }, else: #selector(NibTextView.showFind(_:))) }
-                    .keyboardShortcut("f")
+                    .keyboardShortcut("f").disabled(merging)
                 Button("Find and Replace…") { find({ $0.open(replace: true) }, else: #selector(NibTextView.showFindAndReplace(_:))) }
-                    .keyboardShortcut("f", modifiers: [.command, .option])
+                    .keyboardShortcut("f", modifiers: [.command, .option]).disabled(merging)
                 Button("Find Next") { find({ $0.next() }, else: #selector(NibTextView.findNextMatch(_:))) }
-                    .keyboardShortcut("g")
+                    .keyboardShortcut("g").disabled(merging)
                 Button("Find Previous") { find({ $0.next(backwards: true) }, else: #selector(NibTextView.findPreviousMatch(_:))) }
-                    .keyboardShortcut("g", modifiers: [.command, .shift])
+                    .keyboardShortcut("g", modifiers: [.command, .shift]).disabled(merging)
                 Button("Use Selection for Find") { find({ $0.useSelection() }, else: #selector(NibTextView.useSelectionForFind(_:))) }
-                    .keyboardShortcut("e")
+                    .keyboardShortcut("e").disabled(merging)
                 // Only with the bar open: elsewhere ⌥Return is the text's own.
                 Button("Find All") { document?.editor.find.findAll() }.keyboardShortcut(.return, modifiers: .option)
-                    .disabled(document?.editor.find.shown != true)
+                    .disabled(document?.editor.find.shown != true || merging)
                 Divider()
                 // Only with the Replace row shown (⌥⌘F): from ⌘F's bar they'd replace with what
                 // nobody can see (the QA review's F1).
                 Button("Replace") { document?.editor.find.replaceCurrent() }.keyboardShortcut("e", modifiers: [.command, .option])
-                    .disabled(document?.editor.find.shown != true || document?.editor.find.replacing != true)
+                    .disabled(document?.editor.find.shown != true || document?.editor.find.replacing != true || merging)
                 Button("Replace All") { document?.editor.find.replaceAll() }.keyboardShortcut(.return, modifiers: [.control, .option])
-                    .disabled(document?.editor.find.shown != true || document?.editor.find.replacing != true)
+                    .disabled(document?.editor.find.shown != true || document?.editor.find.replacing != true || merging)
             }
         }
         // Sublime's line commands on Sublime's keys (ED6, KB4, §5.12).
@@ -529,9 +534,9 @@ struct NibCommands: Commands {
             Button("Select Line") { send(#selector(NibTextView.selectWholeLine(_:))) }.keyboardShortcut("l")
             Button("Join Lines") { send(#selector(NibTextView.joinLines(_:))) }.keyboardShortcut("j")
             Divider()
-            Button("Go to Line…") { document?.goingToLine = true }.keyboardShortcut("g", modifiers: .control).disabled(document == nil)
+            Button("Go to Line…") { if !merging { document?.goingToLine = true } }.keyboardShortcut("g", modifiers: .control).disabled(document == nil || merging)
             // Sublime's Goto Symbol (SC7): a Markdown file's headings.
-            Button("Go to Heading…") { AppDelegate.showPalette(.headings, in: document) }.keyboardShortcut("r").disabled(document == nil)
+            Button("Go to Heading…") { AppDelegate.showPalette(.headings, in: document) }.keyboardShortcut("r").disabled(document == nil || merging)
         }
         // Multiple carets (ED8), on Sublime's keys; Escape is one caret again.
         CommandMenu("Selection") {

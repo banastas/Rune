@@ -261,6 +261,11 @@ final class Schemes {
             if found.lineNumbers != nil || found.invisibles != nil {
                 facts.append([found.lineNumbers.map { "LINE NUMBERS \($0 ? "ON" : "OFF")" }, found.invisibles.map { "INVISIBLES \($0 ? "ON" : "OFF")" }].compactMap { $0 }.joined(separator: " · "))
             }
+            // These three are set too, and the report said nothing of them (the QA review's F25).
+            if found.indentGuides != nil || found.matchBrackets != nil || found.autoPairs != nil {
+                facts.append([found.indentGuides.map { "INDENT GUIDES \($0 ? "ON" : "OFF")" }, found.matchBrackets.map { "MATCHING BRACKETS \($0 ? "ON" : "OFF")" },
+                              found.autoPairs.map { "CLOSING PAIRS \($0 ? "ON" : "OFF")" }].compactMap { $0 }.joined(separator: " · "))
+            }
             var unused: [String] = []
             if let wrap = found.wordWrap { unused.append("WORD WRAP \(wrap.uppercased())"); defaults.set(wrap, forKey: "editorWordWrap") }
             let padding = [found.linePaddingTop ?? 0, found.linePaddingBottom ?? 0]
