@@ -116,14 +116,17 @@ final class ShortcutRecorder: NSButton {
         if flags.isEmpty {
             switch Int(event.keyCode) {
             case 53: stop(); return   // Escape: keep the keys
-            case 51, 117: GlobalShortcuts.shared.set(nil, for: shortcutAction); stop(); return   // Delete: none
+            case 51, 117: stop(); GlobalShortcuts.shared.set(nil, for: shortcutAction); refresh(); return   // Delete: none
             case 48: stop(); super.keyDown(with: event); return   // Tab: on to the next control
             default: break
             }
         }
         guard let shortcut = Shortcut(event: event) else { NSSound.beep(); return }   // needs ⌘, ⌃ or ⌥
-        GlobalShortcuts.shared.set(shortcut, for: shortcutAction)
+        // Stopped first: stopping registers every shortcut again, which clears the warnings, and a
+        // refusal set before it was wiped as it was made (the QA review's F24).
         stop()
+        GlobalShortcuts.shared.set(shortcut, for: shortcutAction)
+        refresh()   // stopping drew the keys as they were
     }
 
     func refresh() {

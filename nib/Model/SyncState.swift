@@ -14,6 +14,9 @@ enum SyncState: Equatable {
     case editing
     /// In the file on this Mac; iCloud doesn't have this version yet.
     case saved(Date)
+    /// Saved, in a file outside iCloud Drive: there's nothing more to wait for (§4.5's local file;
+    /// the QA review's F6: it read "= SAVED LOCALLY" for good, and the menu bar marched).
+    case savedHere(Date)
     case uploading(Date)
     /// An untitled buffer (ED3): in Nib's own folder on this Mac, never synced.
     case local(Date)
@@ -44,12 +47,21 @@ enum SyncState: Equatable {
         case .offline(let time): "◐ OFFLINE · SHOWING THE COPY FROM \(Self.moment(time)) · EDITS MERGE WHEN ICLOUD RETURNS"
         case .editing: "· EDITING"
         case .saved(let time): "= SAVED LOCALLY · \(Self.clock.string(from: time))"
+        case .savedHere(let time): "✓ SAVED · \(Self.clock.string(from: time))"
         case .uploading(let time): "▲ UPLOADING · SAVED \(Self.clock.string(from: time))"
         case .local(let time): "= ON THIS MAC ONLY · \(Self.clock.string(from: time))"
         case .synced(let time): "✓ SYNCED · \(Self.clock.string(from: time))"
         case .waiting(let why): "‖ \(why)"
         case .problem(let why): why
         }
+    }
+
+    var isProblem: Bool {
+        if case .problem = self { true } else { false }
+    }
+
+    var isSynced: Bool {
+        if case .synced = self { true } else { false }
     }
 
     /// The muted-red tag in front of the words, when there is one.
@@ -75,6 +87,7 @@ enum SyncState: Equatable {
         case .offline(let time): "Offline, showing the copy from \(Self.moment(time).lowercased()); edits merge when iCloud returns"
         case .editing: "Editing"
         case .saved(let time): "Saved on this Mac at \(Self.clock.string(from: time)), not in iCloud yet"
+        case .savedHere(let time): "Saved at \(Self.clock.string(from: time))"
         case .uploading: "Uploading to iCloud"
         case .local(let time): "Kept on this Mac only, at \(Self.clock.string(from: time))"
         case .synced(let time): "Synced at \(Self.clock.string(from: time))"

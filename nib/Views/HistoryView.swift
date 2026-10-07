@@ -115,15 +115,28 @@ struct RevertToMenu: View {
 /// A History window, for the file it was opened for, while that file is open.
 struct HistoryWindow: View {
     let url: URL?
+    /// The document as the window opened: kept, so its closing is seen (F2).
+    @State private var document: Document?
+    @Environment(\.dismiss) private var dismiss
+
+    init(url: URL?) {
+        self.url = url
+        _document = State(initialValue: url.flatMap(Documents.existing(for:)) ?? (url == nil ? Documents.scratch : nil))
+    }
 
     var body: some View {
-        if let document = url.flatMap(Documents.existing(for:)) ?? (url == nil ? Documents.scratch : nil) {
-            HistoryView(document: document)
-                .background(WindowConfigurator { $0.tabbingMode = .disallowed })
-        } else {
-            Text("Open the file to see its History.")
-                .foregroundStyle(.secondary)
-                .frame(minWidth: 400, minHeight: 200)
+        Group {
+            if let document, !document.closed {
+                HistoryView(document: document)
+                    .background(WindowConfigurator { $0.tabbingMode = .disallowed })
+            } else {
+                Text("Open the file to see its History.")
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 400, minHeight: 200)
+            }
         }
+        // Its file closed: the window goes too, as the document it shows is let go (the QA
+        // review's F2: Restore here saved into the closed file).
+        .onChange(of: document?.closed ?? false) { _, closed in if closed { dismiss() } }
     }
 }

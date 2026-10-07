@@ -12,7 +12,11 @@ import NibText
 final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     let scrollView: EditorScrollView
     let textView: NibTextView
-    weak var document: Document?
+    /// The document's file names the text for VoiceOver: every editor was "Scratch", file tabs and
+    /// untitled buffers too (the QA review's F36, 2026-10-07).
+    weak var document: Document? {
+        didSet { if let document { textView.setAccessibilityLabel(document.url.lastPathComponent) } }
+    }
     /// The editor's own undo history (ED1): it lives as long as the buffer, so closing and
     /// reopening the window keeps it. (Inside SwiftUI's window the text view had none.)
     let undo = UndoManager()
@@ -73,7 +77,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             self?.ruler?.needsDisplay = true   // every caret's line number bright
         }
         textView.commentStyle = { [weak self] in self?.commentStyle }
-        textView.setAccessibilityLabel("Scratch")
+        textView.setAccessibilityLabel("Text")   // until it has a document (the merge view's says its own)
         textView.usesRuler = false   // the gutter is Nib's own ruler; the text view's ruler support stays out of it
         scrollView.documentView = textView
         applyDisplaySettings()

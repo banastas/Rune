@@ -38,7 +38,7 @@ final class Document {
             endAlerts(for: state)
             // The disk has room again once a save lands (typing sets .editing, full disk or not).
             switch state {
-            case .saved, .local, .synced: if fullVolume != nil { fullVolume = nil; trashOffer = nil }
+            case .saved, .savedHere, .local, .synced: if fullVolume != nil { fullVolume = nil; trashOffer = nil }
             default: break
             }
         }
@@ -157,6 +157,8 @@ final class Document {
     @ObservationIgnored private var saving = false
     @ObservationIgnored private var uploading = false
     @ObservationIgnored private var uploadAgain = false
+    /// When the last upload began: one made after it, with no save between, would send it again.
+    @ObservationIgnored private var uploadBegan: Date?
     /// When typing's saves go up to iCloud (§4.3 step 7).
     @ObservationIgnored private var uploads: UploadSchedule
     @ObservationIgnored private var uploadedSHA: String?
@@ -202,6 +204,17 @@ final class Document {
     var versionSHA: String? { baseFingerprint?.sha256 }
 
     func toggleSyncDetails() { syncDetailsShown.toggle() }
+
+    /// A source as a marker's label: capitalised, but "iCloud" as Apple writes it (F9).
+    static func label(_ source: String) -> String {
+        source.hasPrefix("iCloud") ? source : source.prefix(1).uppercased() + source.dropFirst()
+    }
+
+    /// In iCloud Drive, where receipts and notes go: a file outside it has nothing to sync.
+    var inICloud: Bool { ReceiptBook.applies(to: url) }
+
+    /// Saved: waiting for iCloud in iCloud Drive, done outside it (F6).
+    private func savedState(_ time: Date) -> SyncState { inICloud ? .saved(time) : .savedHere(time) }
     /// Texts of the last few versions this Mac has had, by SHA-256: merge bases (§4.6).
     @ObservationIgnored private var versions: [String: String] = [:]
     @ObservationIgnored private var versionOrder: [String] = []
@@ -229,6 +242,12 @@ final class Document {
     @ObservationIgnored private var waitingForNote: (sha: String, data: Data, fingerprint: Fingerprint?, source: String, fromServer: Bool)?
     @ObservationIgnored private var pausing = false
     @ObservationIgnored private var closing = false
+    /// Closed: nothing reads or writes its file any more. A History window left open after its
+    /// file's tab closed kept the document, and Restore then saved into the file with no window
+    /// and no hold (the QA review's F2, 2026-10-07).
+    private(set) var closed = false
+    /// The SHA-256 of the empty file opening made, for a path with no file (`nib new.md`).
+    @ObservationIgnored private var madeEmpty: String?
     @ObservationIgnored private var noteWatch: DispatchSourceFileSystemObject?
     /// A check for another Mac's note under way, and one asked for meanwhile (`checkAnnouncement`).
     @ObservationIgnored private var checkingNote = false
@@ -335,6 +354,7 @@ final class Document {
             do {
                 if case .written(let fingerprint, _) = try await io.run({ try FileAccess.write(Data(), to: url, base: nil, presenter: presenter) }) {
                     baseFingerprint = fingerprint
+                    if self !== Documents.scratch { madeEmpty = fingerprint.sha256 }
                     record("open", size: 0, sha: fingerprint.sha256, detail: "created")
                 }
             } catch {
@@ -445,7 +465,7 @@ final class Document {
             awaitingDownload = true
             editor.textView.alphaValue = 0.75   // slightly dimmed (§4.8 F)
         } else {
-            state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : .saved(Date())
+            state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : savedState(Date())
         }
         ready = true
         #if DEBUG
@@ -551,7 +571,7 @@ final class Document {
         if let note { lastNote = note }
         let who = note.flatMap { $0.sha256 == fingerprint.sha256 && $0.device != device ? $0.device : nil } ?? "another Mac"
         record("reload", sha: fingerprint.sha256, detail: "the file is on this Mac again: taken in over the copy shown while it wasn't")
-        state = dirty ? .editing : status?.uploaded == true ? .synced(Date()) : .saved(Date())
+        state = dirty ? .editing : status?.uploaded == true ? .synced(Date()) : savedState(Date())
         // Still awaiting it until it's taken in: cleared before the waits above, a disk check
         // took it in first, with no note, and put both whole versions between markers (the suite).
         incoming(data, fingerprint: fingerprint, from: who, fromServer: true)
@@ -824,7 +844,10 @@ final class Document {
         uploads.edited()
         let over = (editor.textView.textStorage?.length ?? 0) > Editor.highlightLimit
         if over != highlightingOff { highlightingOff = over }
-        if !awaitingDownload { state = .editing }   // the copy's line stays: nothing's saved till the file's here
+        // The copy's line stays (nothing's saved till the file's here), and so does a problem: the
+        // first keystroke took a deleted file's, iCloud Drive off's or a full disk's red line away
+        // for good (the QA review's F5). A save that lands, or the problem's end, sets it again.
+        if !awaitingDownload, !state.isProblem { state = .editing }
         scheduleJournal()
         scheduleSave()
     }
@@ -1017,7 +1040,7 @@ final class Document {
     }
 
     func flush(reason: String) async {
-        guard ready, locked == nil else { return }
+        guard ready, locked == nil, !closed else { return }
         saveTask?.cancel()
         // A save already running (the app switch's, say) would make this one step aside and
         // return before the file has the text: wait for it, then save what's still unsaved.
@@ -1028,7 +1051,7 @@ final class Document {
 
     func save(reason: String) async {
         // While the copy is shown (§4.8 F), typing goes to the journal only: the file isn't here.
-        guard ready, locked == nil, dirty, !deleted || iCloudOff, !awaitingDownload else { return }
+        guard ready, locked == nil, dirty, !deleted || iCloudOff, !awaitingDownload, !closed else { return }   // F2
         if iCloudOff { await saveToRecovery(); return }
         if editor.textView.hasMarkedText() {   // mid-composition (IME): wait for the commit
             scheduleSave(after: 0.3)
@@ -1090,7 +1113,7 @@ final class Document {
                     // now (a crash before the next pause recovered it as a conflict with the file).
                     Task { await writeJournal() }
                 }
-                state = dirty ? .editing : untitled ? .local(lastSaved) : .saved(lastSaved)
+                state = dirty ? .editing : untitled ? .local(lastSaved) : savedState(lastSaved)
                 let waited = began.timeIntervalSince(started)
                 record("save", size: data.count, sha: fingerprint.sha256, ms: ms(since: started),
                        detail: waited > 0.5 ? "\(reason) · \(ms(since: started) - Int(waited * 1000)) ms writing, after \(Int(waited * 1000)) ms waiting behind other file work" : reason)
@@ -1137,6 +1160,15 @@ final class Document {
             return
         }
         guard !uploading else { uploadAgain = true; return }
+        // Nothing saved since the last upload began, and it took this version: nothing to send. The
+        // upload waiting for typing's pause went anyway after one made at once (⌘S, another app in
+        // front), the same version twice (the suite, 2026-10-07: 2.8 s, then 0.8 s more). A save
+        // since, even of the same text (an undo back to it), goes: only the upload can say whether
+        // another Mac's is newer.
+        if uploadedSHA != nil, uploadedSHA == baseFingerprint?.sha256, let began = uploadBegan, lastSaved < began {
+            uploadTask?.cancel()
+            return
+        }
         guard !refreshing else {
             uploadTask?.cancel()
             uploadTask = Task { [weak self] in
@@ -1161,6 +1193,7 @@ final class Document {
         }
         uploading = true
         uploads.started()
+        uploadBegan = Date()
         let sha = baseFingerprint?.sha256
         if !dirty { state = .uploading(lastSaved) }
         let started = Date()
@@ -1295,9 +1328,11 @@ final class Document {
                 record("fetch", sha: sha, detail: "iCloud offered a version this Mac had moved past, just after uploading: left as is (\(reason))")
                 fallthrough
             case .current:
-                // Nothing newer anywhere, and iCloud has what's here: synced.
-                if !dirty, !uploading, uploadedSHA != nil, uploadedSHA == baseFingerprint?.sha256 {
-                    state = .synced(Date())
+                // Nothing newer anywhere, and iCloud has what's here: synced, as it was. Its time is
+                // when iCloud took this version, not when Nib last asked: "✓ SYNCED · 10:42:07" moved
+                // on every 30 s and at every focus (the QA review's F7).
+                if !dirty, !uploading, uploadedSHA != nil, uploadedSHA == baseFingerprint?.sha256, !state.isSynced {
+                    state = .synced(uploadedAt ?? Date())
                 }
             case .newer(let data, let savedBy, _):
                 newerFetched += 1
@@ -1436,9 +1471,13 @@ final class Document {
             return
         }
         let clock = SyncState.clock.string(from: Date())
-        let who = proven?.device ?? source.prefix(1).uppercased() + source.dropFirst()
+        // The other side's name: a Mac's, or the source's: "iCloud" as Apple writes it (it came out
+        // "ICloud" in the markers, the banner, the menu and the notification: the QA review's F9),
+        // "Another Mac" heading a marker, "another Mac" in a sentence.
+        let who = proven?.device ?? source
+        let label = proven?.device ?? Self.label(source)
         let mySide = ConflictText.Side(text: mine, label: "\(device) · \(clock)")
-        let theirSide = ConflictText.Side(text: theirs, label: "\(who) · \(clock)")
+        let theirSide = ConflictText.Side(text: theirs, label: "\(label) · \(clock)")
         let sha = fingerprint?.sha256
         let conflictBy = "changed by \(proven?.device ?? source) while this Mac had \(dirty ? "unsaved edits" : "a saved version iCloud didn't have"): "
         if let proven {
@@ -1599,7 +1638,7 @@ final class Document {
     /// Revert To (SY13): a version from History back in the buffer as one edit (⌘Z undoes it).
     /// The version it replaces is in History too, so nothing is lost.
     func restore(_ entry: HistoryEntry) {
-        guard let data = history.data(entry.sha256) else { NSSound.beep(); return }
+        guard !closing, let data = history.data(entry.sha256) else { NSSound.beep(); return }   // F2
         let text = TextFile.decode(data).text
         guard !holds(text) else { return }
         let time = SyncState.clock.string(from: entry.time)
@@ -2110,7 +2149,7 @@ final class Document {
                 remember(text, sha: fingerprint.sha256)
                 recordHistory { history in try? history.record(data, parent: nil, source: "restored") }
                 record("save", size: data.count, sha: fingerprint.sha256, detail: "restored where it was deleted")
-                state = .saved(lastSaved)
+                state = savedState(lastSaved)
                 if !dirty {
                     let journal = self.journal, path = url.path
                     Task { await journalQueue.run { journal.clear(path: path) } }
@@ -2146,7 +2185,7 @@ final class Document {
         let back = iCloudOff
         deleted = false
         iCloudOff = false
-        state = dirty ? .editing : .saved(lastSaved)
+        state = dirty ? .editing : savedState(lastSaved)
         record("reload", size: data.count, sha: fingerprint.sha256, detail: back ? "the file is back with iCloud Drive" : "the file is there again")
         incoming(data, fingerprint: fingerprint, from: back ? "iCloud" : "another app")
         if dirty { scheduleSave(after: 0) }
@@ -2207,7 +2246,9 @@ final class Document {
         guard newURL.standardizedFileURL.path != url.standardizedFileURL.path, !following else { return }
         // Finder's Move to Trash is a move, into the Trash (iCloud Drive's own, for its files).
         if newURL.pathComponents.contains(".Trash") { markDeleted(trash: true); return }
-        let name = newURL.lastPathComponent.uppercased()
+        // Where it went, as Finder names it: the new name alone said "SCRATCH.MD MOVED TO SCRATCH.MD"
+        // for a move to another folder (the QA review's F16).
+        let name = (ScratchLocation.place(of: newURL) + " › " + newURL.lastPathComponent).uppercased()
         if self === Documents.scratch || untitled {
             record("problem", detail: "the file moved to \(newURL.path): not followed (the scratch file stays as Settings › General has it)")
             state = .problem("\(url.lastPathComponent.uppercased()) MOVED TO \(name) · SETTINGS › GENERAL › SCRATCH FILE TO FOLLOW IT")
@@ -2313,6 +2354,26 @@ final class Document {
         // the closing itself makes goes in at once (`historySaved`).
         await recordClosingVersion()
         await letGo()
+        closed = true
+    }
+
+    /// Made empty by opening it, and closed still empty: removed again, so a typo in
+    /// `nib REAMDE.md` leaves nothing behind (the QA review's F3, 2026-10-07). Only while the file
+    /// on disk is still empty: anything another app or Mac wrote meanwhile stays.
+    func removeIfLeftEmpty() async -> Bool {
+        guard let made = madeEmpty, baseFingerprint?.sha256 == made, !dirty, !deleted else { return false }
+        let url = self.url
+        let removed = await io.run { () -> Bool in
+            guard let size = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int, size == 0 else { return false }
+            var error: NSError?
+            var done = false
+            NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forDeleting, error: &error) { target in
+                done = (try? FileManager.default.removeItem(at: target)) != nil
+            }
+            return done
+        }
+        if removed { record("quit", detail: "made empty as it opened, and closed still empty: removed again") }
+        return removed
     }
 
     /// Saves, uploads and hands the file back; a deleted file's text goes into History.
@@ -2567,7 +2628,7 @@ final class Document {
     private func endAlerts(for state: SyncState) {
         let over: [Alerts.Kind]
         switch state {
-        case .saved, .local: over = [.saveFailed, .deleted]
+        case .saved, .savedHere, .local: over = [.saveFailed, .deleted]
         case .synced: over = [.saveFailed, .deleted, .iCloudOff, .storageFull]
         default: return
         }
@@ -2783,6 +2844,9 @@ enum ScratchLocation {
     static let folder = URL(fileURLWithPath: NSHomeDirectory() + "/Library/Mobile Documents/iCloud~com~banastas~nib/Documents")
     static let testFolder = folder.appendingPathComponent("Test")
     static let unsignedTestFolder = NibPaths.iCloudDrive.appendingPathComponent("nib-spike")
+    /// A test run's folder outside iCloud Drive, in the Mac's temporary folder: for files with nothing
+    /// to sync (the QA review's F6), still none of the user's.
+    static let localTestFolder = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("nib-local-test", isDirectory: true)
 
     /// Signed with the iCloud container (a team-signed build), or not (ad-hoc).
     static let hasContainer: Bool = {
@@ -2838,7 +2902,8 @@ enum ScratchLocation {
         guard safetyRule else { return nil }
         if Untitled.contains(url) { return nil }   // Nib's own, on this Mac only (ED3)
         let path = url.standardizedFileURL.path
-        guard path.hasPrefix(testFolder.path + "/") || path.hasPrefix(unsignedTestFolder.path + "/") else {
+        guard path.hasPrefix(testFolder.path + "/") || path.hasPrefix(unsignedTestFolder.path + "/")
+                || path.hasPrefix(localTestFolder.standardizedFileURL.path + "/") else {
             return "NIB OPENS ONLY TEST FILES IN A TEST RUN (ICLOUD DRIVE › NIB › TEST)"
         }
         return nil

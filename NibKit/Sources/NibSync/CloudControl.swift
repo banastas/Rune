@@ -34,12 +34,21 @@ public enum CloudControl {
         case skipped(sha256: String)
     }
 
-    public enum ControlError: Error, Equatable {
+    public enum ControlError: Error, Equatable, LocalizedError {
         case unsupported
         /// iCloud didn't answer in time (two-Mac test, 10:40: an upload racing another Mac's
         /// was still unanswered 35 s later). nib stops waiting and retries; iCloud may still
         /// finish the old call, and its late answer is ignored.
         case noAnswer(seconds: Double)
+
+        /// In words, not Swift's "(NibSync.CloudControl.ControlError error 1.)", which a Move that
+        /// timed out showed on the strip (the QA review's F4, 2026-10-07).
+        public var errorDescription: String? {
+            switch self {
+            case .unsupported: "iCloud doesn't offer that for this file"
+            case .noAnswer(let seconds): "iCloud didn't answer in \(Int(seconds.rounded())) s"
+            }
+        }
     }
 
     /// Runs `work`, giving up after `seconds`. Not a task group: a group waits for every

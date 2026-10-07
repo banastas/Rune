@@ -35,8 +35,9 @@ public enum Alerts {
     /// "✕ CONFLICT WITH AIR · 1 PLACE · BOTH VERSIONS ARE IN THE TEXT".
     public static func conflict(_ name: String, with who: String, places: Int) -> Alert {
         Alert(kind: .conflict, title: "Conflict with \(who) in \(name)",
-              body: places == 1 ? "In 1 place: both versions are in the text, between markers. ⌘1, ⌘2 or ⌘3 keeps one."
-                                : "In \(places) places: both versions of each are in the text, between markers. ⌘1, ⌘2 or ⌘3 keeps one.")
+              // ⌘3 keeps both (it said "⌘1, ⌘2 or ⌘3 keeps one": the QA review's F8, 2026-10-07).
+              body: places == 1 ? "In 1 place: both versions are in the text, between markers. In Nib, ⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both."
+                                : "In \(places) places: both versions of each are in the text, between markers. In Nib, ⌘1 or ⌘2 in a block keeps one version, ⌘3 keeps both.")
     }
 
     /// This Mac's disk is full: the journal and the save both fail (§4.9, 13).

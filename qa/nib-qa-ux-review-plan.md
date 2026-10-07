@@ -1,7 +1,7 @@
 # Nib — QA and UX review: the plan
 
-*Started 2026-10-06 at 22:40 and paused before any reviewer reported (the user's call). Restart it
-from here.*
+*Started 2026-10-06 at 22:40, paused, and run on 2026-10-07: the report is `qa/nib-qa-ux-review.md`.
+Run it again from here after a round of fixes.*
 
 **What it is.** M3's "QA and UX review" (PRD §8): every window, strip message, alert, menu and
 setting checked against the PRD's own rules (§0 Family DNA: V1-V14, W1-W8, A1-A17; the UX spec

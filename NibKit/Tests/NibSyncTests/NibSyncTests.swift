@@ -390,6 +390,13 @@ func scratchFolder() -> URL {
         #expect(try await CloudControl.within(2) { 7 } == 7)
     }
 
+    /// Said in words: a Move that timed out showed "(NibSync.CloudControl.ControlError error 1.)"
+    /// (the QA review's F4).
+    @Test func saysWhatHappened() {
+        #expect(CloudControl.ControlError.noAnswer(seconds: 20).localizedDescription == "iCloud didn't answer in 20 s")
+        #expect(CloudControl.ControlError.unsupported.localizedDescription == "iCloud doesn't offer that for this file")
+    }
+
     @Test func passesThroughAnError() async {
         await #expect(throws: CocoaError.self) {
             try await CloudControl.within(2) { () -> Int in throw CocoaError(.fileReadUnknown) }

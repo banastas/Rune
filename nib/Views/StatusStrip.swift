@@ -160,6 +160,7 @@ struct StatusStrip: View {
         switch document.state {
         case .synced: return "iCloud has this exact version. Other Macs get it when they check, which Nib does whenever it comes forward. " + receipts + hold
         case .saved: return "Saved on this Mac. iCloud doesn't have this version yet. " + hold
+        case .savedHere: return "Saved to this Mac's disk. This file isn't in iCloud Drive, so there's nothing to sync: it's on this Mac only."
         case .local: return "An untitled buffer: Nib keeps it on this Mac, in its own folder, and never syncs it. Closing it keeps the text in History for 30 days, and File › Reopen Closed File brings it back; File › Save… makes it a file."
         case .uploading: return "Uploading this version to iCloud. " + hold
         default: return document.state.spoken + ". " + hold

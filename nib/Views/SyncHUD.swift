@@ -99,10 +99,10 @@ struct SyncHUD: View {
     }
 
     private var iCloudPanel: some View {
-        HUDPanel(document.untitled ? "This Mac" : "iCloud") {
+        HUDPanel(document.untitled || !document.inICloud ? "This Mac" : "iCloud") {
             HUDRow("STATE", Self.stateWord(document.state))
             HUDRow("SAVED", SyncState.clock.string(from: document.savedAt))
-            HUDRow("UPLOADED", document.untitled ? "NEVER" : document.uploadedAt.map { SyncState.clock.string(from: $0) } ?? "—")
+            HUDRow("UPLOADED", document.untitled ? "NEVER" : !document.inICloud ? "NOT IN ICLOUD" : document.uploadedAt.map { SyncState.clock.string(from: $0) } ?? "—")
             HUDRow("ON DISK", document.dirty ? "SAVING" : "CURRENT")
         }
         .accessibilityElement(children: .combine)
@@ -218,6 +218,7 @@ struct SyncHUD: View {
         case .offline: "◐ OFFLINE"
         case .editing: "· EDITING"
         case .saved: "= SAVED LOCALLY"
+        case .savedHere: "✓ SAVED"
         case .uploading: "▲ UPLOADING"
         case .local: "= THIS MAC ONLY"
         case .synced: "✓ SYNCED"

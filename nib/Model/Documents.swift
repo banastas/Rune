@@ -57,7 +57,8 @@ enum Documents {
     /// Its window has closed: save, upload, hand the file back to iCloud, and forget it. An
     /// untitled buffer goes to History (ED3); either goes on File › Reopen Closed File. Not
     /// when quitting: then untitled buffers stay, to come back at the next launch.
-    static func close(_ document: Document) async {
+    /// `keepEmpty`: Rename and Move To close a file to move it, a new one `nib` made included.
+    static func close(_ document: Document, keepEmpty: Bool = false) async {
         guard document !== scratch, files[key(document.url)] === document else { return }
         files[key(document.url)] = nil
         MenuBarController.shared.refresh()
@@ -65,6 +66,12 @@ enum Documents {
         await document.close()
         CLIBridge.closed(document.url)   // `nib -w` (AP4): its text is in the file now
         guard !AppDelegate.terminating else { return }
+        // Made empty as it opened, and closed empty: gone again, with what Nib kept for it (F3).
+        if !keepEmpty, await document.removeIfLeftEmpty() {
+            ClosedItems.removeKept(for: document.url.path)
+            RecentFiles.shared.remove(document.url)
+            return
+        }
         if document.untitled {
             await Untitled.discard(document)
         } else if document.locked == nil, !document.deleted {   // a deleted file's text is on the list already

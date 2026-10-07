@@ -53,6 +53,8 @@ import Testing
         let conflict = Alerts.conflict("scratch.md", with: "Air", places: 1)
         #expect(conflict.title == "Conflict with Air in scratch.md" && conflict.body.hasPrefix("In 1 place: both versions are in the text"))
         #expect(Alerts.conflict("scratch.md", with: "Air", places: 3).body.hasPrefix("In 3 places: both versions of each"))
+        // ⌘3 keeps both, not one (the QA review's F8).
+        #expect(conflict.body.hasSuffix("⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both.") && !conflict.body.contains("⌘3 keeps one"))
         let failed = Alerts.saveFailed("notes.md", why: "NO PERMISSION")
         #expect(failed.kind == .saveFailed && failed.body == "No permission. Your text is in Nib's recovery journal, and Nib keeps trying.")
         #expect(Alerts.saveFailed("notes.md", why: "The volume is read-only.").body.hasPrefix("The volume is read-only. Your text"))

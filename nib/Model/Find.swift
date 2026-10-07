@@ -163,7 +163,9 @@ final class FindSession {
     /// Replace (⌥⌘E, Return in the Replace field): the selected match, then on to the next.
     /// With no match selected, it goes to the next one first.
     func replaceCurrent() {
-        guard let view = editor?.textView, failure == nil, !query.isEmpty else { NSSound.beep(); return }
+        // Only with the Replace row shown: from a find-only bar, its key replaced with what nobody
+        // could see, "" most often (the QA review's F1, 2026-10-07).
+        guard replacing, let view = editor?.textView, failure == nil, !query.isEmpty else { NSSound.beep(); return }
         if searchTask != nil { searchNow() }
         let selection = view.selectedRange()
         guard matches.contains(selection) else { next(); return }
@@ -182,7 +184,7 @@ final class FindSession {
     /// Replace All (⌃⌥Return): every match (in the selection, if that's on), one undo step,
     /// and the strip says how many.
     func replaceAll() {
-        guard let view = editor?.textView, failure == nil, !query.isEmpty else { NSSound.beep(); return }
+        guard replacing, let view = editor?.textView, failure == nil, !query.isEmpty else { NSSound.beep(); return }   // as Replace (F1)
         let text = view.string
         guard let found = try? TextSearch.matches(of: query, in: text, options: options, within: scope),
               let first = found.first, let last = found.last,

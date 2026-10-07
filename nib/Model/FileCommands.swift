@@ -114,15 +114,19 @@ enum FileCommands {
 
         let window = document.editor.textView.window
         document.editor.textView.isEditable = false
-        await Documents.close(document)   // saved, uploaded, handed back: nothing holds it now
+        await Documents.close(document, keepEmpty: true)   // saved, uploaded, handed back: nothing holds it now
         if let closed = ClosedItems.shared.items.first(where: { $0.path == old.path }) { ClosedItems.shared.forget(closed) }
         window?.close()
         do {
             try await CloudControl.within(20) { try coordinatedMove(old, to: target, caseOnly: caseOnly) }
         } catch {
-            AppDelegate.openFile(old)   // as it was
-            let why = "COULDN'T MOVE “\(old.lastPathComponent.uppercased())” · \(error.localizedDescription.uppercased())"
-            Toast.show(why)
+            // As it was, where the file is now: a move iCloud didn't answer in time may still have
+            // happened, or happen yet (then the open file follows it, as any move).
+            let moved = FileManager.default.fileExists(atPath: target.path) && !FileManager.default.fileExists(atPath: old.path)
+            AppDelegate.openFile(moved ? target : old)
+            let late = CloudControl.isNoAnswer(error) ? " · IT MAY STILL MOVE" : ""
+            let why = "COULDN'T MOVE “\(old.lastPathComponent.uppercased())” · \(error.localizedDescription.uppercased())\(late)"
+            Toast.show(why, for: 6)
             return why
         }
         carrySettings(from: old, to: target)

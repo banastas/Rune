@@ -103,6 +103,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openFile(url)
     }
 
+    enum TabKey: Equatable { case goToFile, tab(Int) }
+
+    /// ⌘K and ⌘1…⌘9 from a key press: ⌘ and nothing else, Caps Lock on or off, and a digit by its
+    /// place on the keyboard, whatever the layout prints there. Caps Lock turned both off, and on
+    /// AZERTY ⌘1 is "&" (the QA review's F29, 2026-10-07).
+    nonisolated static func tabKey(_ event: NSEvent) -> TabKey? {
+        guard event.type == .keyDown, event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command else { return nil }
+        let digits: [UInt16: Int] = [18: 1, 19: 2, 20: 3, 21: 4, 23: 5, 22: 6, 26: 7, 28: 8, 25: 9]   // kVK_ANSI_1…9
+        if let number = digits[event.keyCode] { return .tab(number) }
+        if event.charactersIgnoringModifiers?.lowercased() == "k" { return .goToFile }
+        return nil
+    }
+
+    /// A file from a list (Open Recent, Go to File): opened if it's still there; if not, said so and
+    /// taken off Open Recent, not made again, empty (the QA review's F3).
+    static func openListed(_ url: URL) {
+        guard FileManager.default.fileExists(atPath: url.path) || Documents.existing(for: url) != nil else {
+            RecentFiles.shared.remove(url)
+            Toast.show("“\(url.lastPathComponent.uppercased())” ISN'T THERE ANY MORE · TAKEN OFF OPEN RECENT", for: 4)
+            return
+        }
+        openFile(url)
+    }
+
     /// ⌘O, Open Recent, Finder's Open With, the Dock (ED2): the file's window, a tab beside the
     /// others. False when it wasn't opened: over 100 MB, and the question answered Cancel (ED9).
     @discardableResult
@@ -138,7 +162,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         let alert = NSAlert()
         alert.messageText = "“\(url.lastPathComponent)” is \(shown). Open it?"
-        alert.informativeText = "Nib opens files this big without highlighting. They're slower to open and to save, and every save writes the whole file again."
+        // Saves write only what differs from the file since 2026-10-02 (the QA review's F18).
+        alert.informativeText = "Nib opens files this big without highlighting, and History keeps only the versions it opened and closed with. They're slower to open and to save, and in iCloud Drive each save is uploaded whole."
         alert.addButton(withTitle: "Open")
         alert.addButton(withTitle: "Cancel").keyEquivalent = "\u{1b}"
         NSApp.activate()
@@ -214,14 +239,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ⌘K opens Go to File too (A6), as ⌘K "Go to…" does in Blit; a menu item takes only one key.
         // ⌘1…⌘9 pick a tab, as in Sublime (§5.12), but for ⌘1-⌘3 with the caret in a conflict block.
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-                  let key = event.charactersIgnoringModifiers, NSApp.keyWindow?.isSheet != true,
+            guard let key = Self.tabKey(event), NSApp.keyWindow?.isSheet != true,
                   NSApp.keyWindow?.attachedSheet == nil,
                   !(NSApp.keyWindow?.firstResponder is ShortcutRecorder) else { return event }   // new keys being typed
             let handled = MainActor.assumeIsolated {
-                if key == "k" { Self.showPalette(.files, in: nil); return true }
-                if let number = Int(key), (1...9).contains(number) { return Self.selectTab(number, in: NSApp.keyWindow) }
-                return false
+                switch key {
+                case .goToFile: Self.showPalette(.files, in: nil); return true
+                case .tab(let number): return Self.selectTab(number, in: NSApp.keyWindow)
+                }
             }
             return handled ? nil : event
         }
@@ -484,10 +509,12 @@ struct NibCommands: Commands {
                 Button("Find All") { document?.editor.find.findAll() }.keyboardShortcut(.return, modifiers: .option)
                     .disabled(document?.editor.find.shown != true)
                 Divider()
+                // Only with the Replace row shown (⌥⌘F): from ⌘F's bar they'd replace with what
+                // nobody can see (the QA review's F1).
                 Button("Replace") { document?.editor.find.replaceCurrent() }.keyboardShortcut("e", modifiers: [.command, .option])
-                    .disabled(document?.editor.find.shown != true)
+                    .disabled(document?.editor.find.shown != true || document?.editor.find.replacing != true)
                 Button("Replace All") { document?.editor.find.replaceAll() }.keyboardShortcut(.return, modifiers: [.control, .option])
-                    .disabled(document?.editor.find.shown != true)
+                    .disabled(document?.editor.find.shown != true || document?.editor.find.replacing != true)
             }
         }
         // Sublime's line commands on Sublime's keys (ED6, KB4, §5.12).
@@ -549,7 +576,7 @@ struct OpenRecentMenu: View {
     var body: some View {
         Menu("Open Recent") {
             ForEach(RecentFiles.shared.urls, id: \.self) { url in
-                Button(url.lastPathComponent) { AppDelegate.openFile(url) }
+                Button(url.lastPathComponent) { AppDelegate.openListed(url) }
             }
             if !RecentFiles.shared.urls.isEmpty { Divider() }
             Button("Clear Menu") { RecentFiles.shared.clear() }

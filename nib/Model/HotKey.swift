@@ -104,6 +104,18 @@ struct Shortcut: Hashable, Sendable {
 
     var stored: String { "\(keyCode):\(modifiers)" }
 
+    /// Why these keys can't be global: every app uses them. A global shortcut takes its keys from
+    /// every app, so it needs ⌃, or ⌘ with ⌥, or a function key; ⌥Space, Nib's own, apart. (The QA
+    /// review's F23, 2026-10-07: ⌘C was taken, and ⌥E, the accent key.)
+    var takenFromEveryApp: String? {
+        let command = modifiers & UInt32(cmdKey) != 0, option = modifiers & UInt32(optionKey) != 0
+        if modifiers & UInt32(controlKey) != 0 || (command && option) || Self.functionKeys[Int(keyCode)] != nil { return nil }
+        if option, !command, keyCode == UInt32(kVK_Space), modifiers & UInt32(shiftKey) == 0 { return nil }
+        if command { return "\(description) is a key apps use for their own commands, so Nib would take it from every one of them. Add ⌃ or ⌥." }
+        if option { return "\(description) types or moves something in every app, so Nib would take it from all of them. Add ⌃ or ⌘." }
+        return nil
+    }
+
     /// "⌃⌥⌘V", as menus write it.
     var description: String {
         var text = ""
@@ -248,8 +260,14 @@ final class GlobalShortcuts {
 
     /// New keys for an action, or none. Keys another of Nib's actions has are refused.
     func set(_ shortcut: Shortcut?, for action: Action) {
+        let kept = "These keys stay \(self.shortcut(action)?.description ?? "unset")."
         if let shortcut, let other = Action.allCases.first(where: { $0 != action && self.shortcut($0) == shortcut }) {
-            warnings[action] = "\(other.title) already uses \(shortcut.description). These keys stay \(self.shortcut(action)?.description ?? "unset")."
+            warnings[action] = "\(other.title) already uses \(shortcut.description). \(kept)"
+            return
+        }
+        // Keys macOS keeps get their own line once registered; these, every app's (F23).
+        if let shortcut, !HotKey.usedByMacOS(shortcut), let why = shortcut.takenFromEveryApp {
+            warnings[action] = "\(why) \(kept)"
             return
         }
         NibDefaults.store.set(shortcut?.stored ?? "", forKey: action.key)

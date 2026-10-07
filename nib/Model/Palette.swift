@@ -83,7 +83,7 @@ final class PaletteSession: Identifiable {
         guard seen.insert(key).inserted else { return }
         entries.append(PaletteEntry(id: key, name: url.lastPathComponent, detail: detail ?? ScratchLocation.place(of: url),
                                     symbol: symbol, group: group))
-        actions[key] = { AppDelegate.openFile(url) }
+        actions[key] = { AppDelegate.openListed(url) }
     }
 
     private func listFiles() {

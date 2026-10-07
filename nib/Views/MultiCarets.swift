@@ -312,7 +312,9 @@ extension NibTextView {
         perform(edits, then: after, action: action)
     }
 
-    enum Move { case left, right, up, down, wordLeft, wordRight, lineStart, lineEnd, documentStart, documentEnd }
+    /// The paragraph moves are a logical line's (⌃A, ⌃E; ⌥↑ and ⌥↓ step back or on a character
+    /// first), the line moves a wrapped line's.
+    enum Move { case left, right, up, down, wordLeft, wordRight, lineStart, lineEnd, paragraphStart, paragraphEnd, paragraphBackward, paragraphForward, documentStart, documentEnd }
 
     /// The keys' moves, and whether each extends the selection.
     static let moves: [Selector: (Move, Bool)] = [
@@ -331,6 +333,13 @@ extension NibTextView {
         #selector(moveWordRightAndModifySelection(_:)): (.wordRight, true), #selector(moveWordForwardAndModifySelection(_:)): (.wordRight, true),
         #selector(moveToBeginningOfLineAndModifySelection(_:)): (.lineStart, true), #selector(moveToLeftEndOfLineAndModifySelection(_:)): (.lineStart, true),
         #selector(moveToEndOfLineAndModifySelection(_:)): (.lineEnd, true), #selector(moveToRightEndOfLineAndModifySelection(_:)): (.lineEnd, true),
+        // ⌃A, ⌃E, ⌥↑, ⌥↓ and ⇧⌥↑, ⇧⌥↓ (macOS's paragraph moves): they collapsed the carets to one (the QA
+        // review's F30, 2026-10-07).
+        #selector(moveToBeginningOfParagraph(_:)): (.paragraphStart, false), #selector(moveToEndOfParagraph(_:)): (.paragraphEnd, false),
+        #selector(moveToBeginningOfParagraphAndModifySelection(_:)): (.paragraphStart, true),
+        #selector(moveToEndOfParagraphAndModifySelection(_:)): (.paragraphEnd, true),
+        #selector(moveParagraphBackwardAndModifySelection(_:)): (.paragraphBackward, true),
+        #selector(moveParagraphForwardAndModifySelection(_:)): (.paragraphForward, true),
         #selector(moveToBeginningOfDocumentAndModifySelection(_:)): (.documentStart, true), #selector(moveToEndOfDocumentAndModifySelection(_:)): (.documentEnd, true),
     ]
 
@@ -343,7 +352,8 @@ extension NibTextView {
                 return Caret(to)
             }
             if move == .up || move == .down { return vertical(caret, up: move == .up, extending: extending) }
-            let from = extending ? caret.head : (move == .left || move == .wordLeft || move == .lineStart ? caret.range.location : NSMaxRange(caret.range))
+            let backward: Set<Move> = [.left, .wordLeft, .lineStart, .paragraphStart, .paragraphBackward]
+            let from = extending ? caret.head : (backward.contains(move) ? caret.range.location : NSMaxRange(caret.range))
             let to: Int
             switch move {
             case .left: to = from == 0 ? 0 : (string as NSString).rangeOfComposedCharacterSequence(at: from - 1).location
@@ -352,12 +362,33 @@ extension NibTextView {
             case .wordRight: to = word(from: from, forward: true)
             case .lineStart: to = visualLine(at: from).location
             case .lineEnd: to = lineEnd(at: from)
+            case .paragraphStart: to = paragraph(at: from).location
+            case .paragraphEnd: to = paragraphEnd(at: from)
+            case .paragraphBackward:
+                let start = paragraph(at: from).location
+                to = from == start && from > 0 ? paragraph(at: from - 1).location : start
+            case .paragraphForward:
+                let end = paragraphEnd(at: from)
+                to = from == end && from < length ? paragraphEnd(at: from + 1) : end
             case .documentStart: to = 0
             case .documentEnd: to = length
             case .up, .down: to = from
             }
             return extending ? Caret(anchor: caret.anchor, head: to) : Caret(to)
         })
+    }
+
+    /// The logical line (paragraph) a place is in, with its line break.
+    private func paragraph(at location: Int) -> NSRange {
+        (string as NSString).paragraphRange(for: NSRange(location: min(location, (string as NSString).length), length: 0))
+    }
+
+    /// Where a paragraph's text ends, before its line break.
+    private func paragraphEnd(at location: Int) -> Int {
+        let text = string as NSString, range = paragraph(at: location)
+        var end = NSMaxRange(range)
+        while end > range.location, let scalar = UnicodeScalar(text.character(at: end - 1)), CharacterSet.newlines.contains(scalar) { end -= 1 }
+        return end
     }
 
     /// ↑ or ↓ from a caret, keeping to its goal x past shorter lines; off the first line, the

@@ -464,9 +464,19 @@ enum TestHarness {
         log.check(bad && find.countLabel.hasPrefix("NOT A REGULAR EXPRESSION") && document.editor.findMatches.isEmpty,
                   "a bad pattern said plainly: \(find.countLabel)")
 
-        // Replace, then Replace All, $1 kept; one undo step each.
+        // From a find-only bar (⌘F) Replace and Replace All do nothing: with the field hidden they
+        // replaced every match with what nobody could see, "" most often (the QA review's F1).
         find.query = "v1\\.(\\d+)"
         _ = await settle("1 OF 2")
+        find.replacing = false
+        find.replacement = ""
+        let untouched = view.string
+        find.replaceAll()
+        find.replaceCurrent()
+        await endOfEvent(view)
+        log.check(view.string == untouched, "from a find-only bar, Replace and Replace All change nothing")
+
+        // Replace, then Replace All, $1 kept; one undo step each.
         find.replacing = true
         find.replacement = "v2.$1"
         find.replaceCurrent()
@@ -1020,6 +1030,22 @@ enum TestHarness {
             field.keyDown(with: key(kVK_Delete, [], "\u{7F}"))
             log.check(shortcuts.shortcut(.showScratch) == nil && field.title == "None" && registered([2]), "Delete clears them: none, and not registered")
             shortcuts.reset(.showScratch)
+            // Keys another action has, typed into the field: refused, and the reason stays (the QA
+            // review's F24: stopping wiped it as it was set).
+            field.performClick(nil)
+            field.keyDown(with: key(kVK_ANSI_V, [.control, .option, .command], "v"))
+            log.check(!field.recording && shortcuts.shortcut(.showScratch)?.description == "⌥Space" && shortcuts.warnings[.showScratch]?.contains("Clean Clipboard already uses") == true,
+                      "keys another action has, typed into the field: refused, saying why (\(shortcuts.warnings[.showScratch] ?? "no warning"))")
+            // Keys every app uses: refused, saying why (F23: ⌘C was taken, and ⌥E, the accent key).
+            field.performClick(nil)
+            field.keyDown(with: key(kVK_ANSI_C, .command, "c"))
+            let copy = shortcuts.warnings[.showScratch] ?? ""
+            field.performClick(nil)
+            field.keyDown(with: key(kVK_ANSI_E, .option, "´"))
+            let accent = shortcuts.warnings[.showScratch] ?? ""
+            log.check(shortcuts.shortcut(.showScratch)?.description == "⌥Space" && copy.hasPrefix("⌘C is a key apps use") && accent.hasPrefix("⌥E types or moves"),
+                      "keys every app uses are refused, saying why: “\(copy)” and “\(accent)”")
+            shortcuts.reset(.showScratch)
         } else {
             log.check(false, "Show Scratch's field is in the window")
         }
@@ -1237,6 +1263,25 @@ enum TestHarness {
                   "a file outside the test folder isn't opened: \(refused?.error ?? "no answer") (exit \(refused.map { "\($0.status)" } ?? "none"))")
         let directory = await run([folder.path])
         log.check(directory?.status == 1 && directory?.error.contains("is a folder") == true, "nor a folder: \(directory?.error ?? "no answer")")
+
+        // A path with no file (the QA review's F3): in a folder that isn't there, refused (it exited
+        // 0 before); in one that is, made empty to open, and gone again when closed still empty, with
+        // nothing kept for it; and a gone file chosen from a list isn't made again.
+        let nowhere = await run([folder.appendingPathComponent("no-such-folder-\(marker)/x.md").path])
+        log.check(nowhere?.status == 1 && nowhere?.error.contains("its folder doesn't exist") == true, "a file in a folder that isn't there: \(nowhere?.error ?? "no answer")")
+        let typo = folder.appendingPathComponent("typo-\(marker).md")
+        let typed = await run([typo.path])
+        let typoOpened = await waitFor(10) { Documents.existing(for: typo)?.ready == true && FileManager.default.fileExists(atPath: typo.path) }
+        Documents.existing(for: typo)?.editor.textView.window?.performClose(nil)
+        let left = await waitFor(15) { Documents.existing(for: typo) == nil && !FileManager.default.fileExists(atPath: typo.path) }
+        let kept = FileManager.default.fileExists(atPath: History(root: NibPaths.support.appendingPathComponent("History"), path: typo.path).directory.path)
+            || ClosedItems.shared.items.contains { $0.path == typo.path } || RecentFiles.shared.urls.contains(typo)
+        AppDelegate.openListed(typo)
+        try? await Task.sleep(for: .milliseconds(500))
+        let notAgain = Documents.existing(for: typo) == nil && !FileManager.default.fileExists(atPath: typo.path)
+        log.check(typed?.status == 0 && typoOpened && left && !kept && notAgain,
+                  "nib on a path with no file: made empty to open (\(typoOpened)), gone when closed still empty (\(left)), nothing kept for it (\(!kept)), and not made again from a list (\(notAgain))")
+        try? FileManager.default.removeItem(at: typo)
         let wrong = await run(["-x"])
         log.check(wrong?.status == 2 && wrong?.error.hasPrefix("nib: no option -x") == true, "an unknown option: exit 2 and the usage")
 
@@ -1298,6 +1343,18 @@ enum TestHarness {
             let second = group.selectedWindow === group.windows[1]
             let nine = AppDelegate.selectTab(9, in: windows[0])
             log.check(two && second && nine && group.selectedWindow === group.windows[1], "⌘2 picks the second tab; ⌘9 with five only beeps")
+            // Each tab's text named for VoiceOver by its file: every editor was "Scratch" (F36).
+            let labels = Documents.all.map { ($0.url.lastPathComponent, $0.editor.textView.accessibilityLabel() ?? "") }
+            log.check(labels.allSatisfy { $0.0 == $0.1 }, "each file's text is named for VoiceOver by its file (\(labels.map(\.1).joined(separator: ", ")))")
+            // The keys read as the keyboard has them: Caps Lock on, or AZERTY's "é" on the 2 key (the
+            // QA review's F29: both turned ⌘K and ⌘1…⌘9 off).
+            func press(_ code: UInt16, _ characters: String, _ flags: NSEvent.ModifierFlags) -> AppDelegate.TabKey? {
+                NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: 0, context: nil,
+                                 characters: characters, charactersIgnoringModifiers: characters, isARepeat: false, keyCode: code).flatMap(AppDelegate.tabKey)
+            }
+            log.check(press(19, "2", [.command, .capsLock]) == .tab(2) && press(19, "é", .command) == .tab(2) && press(40, "K", [.command, .capsLock]) == .goToFile
+                      && press(19, "2", [.command, .shift]) == nil && press(19, "2", [.command, .option]) == nil,
+                      "⌘2 and ⌘K with Caps Lock on, and ⌘2 on AZERTY, still pick the tab and Go to File; ⇧⌘2 and ⌥⌘2 don't")
             let d = docs[3]
             if let block = d.blocks.first { d.editor.textView.setSelectedRange(NSRange(location: block.range.location + 2, length: 0)) }
             let inBlock = d.activeCaretBlock != nil
@@ -1680,6 +1737,15 @@ enum TestHarness {
                   && lines.contains { $0.hasPrefix("= SAVED · ") } && lines.contains { $0.hasPrefix("▲ UPLOADED · ") },
                   "its log: the file's last \(recent.count) Sync Log lines, newest last, in its words (\(lines.suffix(3).joined(separator: " | ")))")
 
+        // A check for anything newer that finds nothing leaves the time alone (the QA review's F7:
+        // "✓ SYNCED · 10:42:07" moved on every 30 s and at every focus).
+        func syncedAt() -> Date? { if case .synced(let time) = document.state { time } else { nil } }
+        let syncedBefore = syncedAt()
+        try? await Task.sleep(for: .milliseconds(1_200))
+        await document.fetchLatest(reason: "test")
+        await document.fetchLatest(reason: "test")
+        log.check(syncedBefore != nil && syncedAt() == syncedBefore, "checking again for a newer version leaves “\(document.statusLine)” as it was")
+
         func menuItem(_ title: String) -> (menu: NSMenu, index: Int)? {
             for top in NSApp.mainMenu?.items ?? [] {
                 if let menu = top.submenu, let index = menu.items.firstIndex(where: { $0.title == title }) { return (menu, index) }
@@ -1967,6 +2033,11 @@ enum TestHarness {
         log.check(!FileManager.default.fileExists(atPath: url.path) && document.editor.textView.string.contains("typed before it went \(marker)"),
                   "saving makes nothing at the path, and the text is all here")
         await type("- typed after it went \(marker)\n", into: document)
+        // Typing doesn't take the red line away (the QA review's F5: the first keystroke made it
+        // "· EDITING", for good), nor the menu bar's ✕.
+        try? await Task.sleep(for: .milliseconds(1_500))
+        log.check(document.state.line.contains("MOVED TO THE TRASH") && MenuBarState.needsLook(document),
+                  "typing after it went keeps the strip's red line (\(document.state.line)) and the menu bar's ✕")
         await document.restoreDeleted()
         let restored = fileText(document)
         log.check(!document.deleted && restored.contains("typed before it went \(marker)") && restored.contains("typed after it went \(marker)"),
@@ -2444,6 +2515,19 @@ enum TestHarness {
         undo?.redo()
         log.check(view.string.hasPrefix("- alpha\n- beta\n- gamma\n") && heads() == [2, 10, 17], "and redo makes it again")
         undo?.undo()
+
+        // ⌃E, ⌃A and ⌥↓ (macOS's paragraph moves): every caret to its own line's end or start; they
+        // collapsed the carets to one (the QA review's F30).
+        view.setCarets(Carets([Caret(2), Caret(8), Caret(13)]))   // inside alpha, beta and gamma
+        command(#selector(NSResponder.moveToEndOfParagraph(_:)))
+        let ends = heads()
+        command(#selector(NSResponder.moveToBeginningOfParagraph(_:)))
+        let starts = heads()
+        command(#selector(NSResponder.moveForward(_:)))   // ⌥↓ as macOS sends it: on a character, then to the end
+        command(#selector(NSResponder.moveToEndOfParagraph(_:)))
+        let down = heads()
+        log.check(ends == [5, 10, 16] && starts == [0, 6, 11] && down == [5, 10, 16] && view.currentCarets.count == 3,
+                  "⌃E, ⌃A and ⌥↓ move each of three carets on its own line (ends \(ends), starts \(starts), ⌥↓ \(down))")
 
         // ⌘D: from a caret, its word; then each next one, whole words only (not rename).
         let line = (start as NSString).range(of: "let name").location
@@ -3867,9 +3951,42 @@ enum TestHarness {
             window(a)?.performClose(nil)
             let closed = await waitFor(15) { Documents.existing(for: a) == nil && !PausedFiles(url: NibPaths.support.appendingPathComponent("paused.json")).all().contains(a.path) }
             log.check(closed, "closing its tab closes its buffer and hands the file back to iCloud")
+            // Its History window, left open, can't write into it any more (the QA review's F2:
+            // Restore there replaced the closed buffer and saved it into the file).
+            _ = await waitFor(10) { document.closed }
+            let onDisk = try? Data(contentsOf: a)
+            let oldest = document.history.entries().first
+            if let oldest { document.restore(oldest) }
+            await document.flush(reason: "test")
+            try? await Task.sleep(for: .milliseconds(500))
+            log.check(document.closed && oldest != nil && (try? Data(contentsOf: a)) == onDisk && !document.dirty,
+                      "once closed, Restore (of its oldest version) and saving leave its file alone")
         }
         window(b)?.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: b) == nil }
+
+        // A file outside iCloud Drive (the QA review's F6): saved is all there is, "✓ SAVED", not
+        // "= SAVED LOCALLY" for good with the menu bar marching.
+        let local = ScratchLocation.localTestFolder.appendingPathComponent("local-\(marker).md")
+        try? FileManager.default.createDirectory(at: ScratchLocation.localTestFolder, withIntermediateDirectories: true)
+        try? Data("# Local \(marker)\n".utf8).write(to: local)
+        AppDelegate.openFile(local)
+        _ = await waitFor(10) { Documents.existing(for: local)?.ready == true }
+        if let file = Documents.existing(for: local) {
+            await type("- typed in a file on this Mac only \(marker)\n", into: file)
+            await file.flush(reason: "test")
+            let saved = await waitFor(10) { if case .savedHere = file.state { true } else { false } }
+            log.check(saved && file.statusLine.hasPrefix("✓ SAVED · ") && !MenuBarState.pending(file) && !file.inICloud,
+                      "a file outside iCloud Drive: “\(file.statusLine)”, not waiting on iCloud, the menu bar still")
+            file.editor.textView.window?.performClose(nil)
+            _ = await waitFor(15) { Documents.existing(for: local) == nil }
+        } else {
+            log.check(false, "a file outside iCloud Drive opened")
+        }
+        try? FileManager.default.removeItem(at: local)
+        ClosedItems.removeKept(for: local.path)
+        if let item = ClosedItems.shared.items.first(where: { $0.path == local.path }) { ClosedItems.shared.forget(item) }
+        RecentFiles.shared.remove(local)
         // Outside the test folders: refused, and nothing read.
         let outside = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("nib-refusal-\(marker).md")
         try? Data("Generated text outside the test folders.\n".utf8).write(to: outside)
@@ -4612,6 +4729,10 @@ enum TestHarness {
     static func refusal(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
         await waitSynced(document, 20)
+        // The other side's name in a marker: "iCloud" as Apple writes it (the QA review's F9: it
+        // came out "ICloud" in the markers, the banner, the menu and the notification).
+        log.check(Document.label("iCloud") == "iCloud" && Document.label("another Mac") == "Another Mac" && Document.label("the file") == "The file",
+                  "a conflict's other side named in its marker: \(["iCloud", "another Mac", "the file"].map(Document.label).joined(separator: ", "))")
         let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
         let before = events.read().count
         // Blocks an earlier scenario left aren't this one's (the suite, 2026-10-02: a hand-back
