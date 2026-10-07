@@ -22,10 +22,10 @@ final class ServiceProvider: NSObject {
             return
         }
         if Documents.scratch.ready {
-            let appended = Clipboard.append(text, action: "Append to Nib Scratch")
+            let appended = Clipboard.append(text, action: "Append to Nib Scratch", from: "THE SELECTION")
             if case .lines = appended {} else { error.pointee = Spoken.sentence(appended.hud) as NSString }
         } else {
-            Task { _ = await Self.appendWhenOpen(text, action: "Append to Nib Scratch") }   // just launched for it
+            Task { _ = await Self.appendWhenOpen(text, action: "Append to Nib Scratch", from: "THE SELECTION") }   // just launched for it
         }
     }
 
@@ -40,10 +40,10 @@ final class ServiceProvider: NSObject {
     }
 
     /// Once the scratch file is open (up to 15 s), the text appended to it.
-    static func appendWhenOpen(_ text: String, action: String) async -> Clipboard.Appended {
+    static func appendWhenOpen(_ text: String, action: String, from source: String) async -> Clipboard.Appended {
         let document = Documents.scratch
         for _ in 0..<150 where !document.ready && document.locked == nil { try? await Task.sleep(for: .milliseconds(100)) }
-        return Clipboard.append(text, action: action)
+        return Clipboard.append(text, action: action, from: source)
     }
 }
 
@@ -61,7 +61,7 @@ struct AppendToScratchIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        let appended = await ServiceProvider.appendWhenOpen(text, action: "Append to Scratch")
+        let appended = await ServiceProvider.appendWhenOpen(text, action: "Append to Scratch", from: "THE TEXT")
         guard case .lines = appended else { throw NibIntentError.message(Spoken.sentence(appended.hud)) }
         return .result()
     }

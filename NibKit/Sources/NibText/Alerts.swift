@@ -32,11 +32,14 @@ public enum Alerts {
         }
     }
 
-    /// "✕ CONFLICT WITH AIR · 1 PLACE · BOTH VERSIONS ARE IN THE TEXT".
-    public static func conflict(_ name: String, with who: String, places: Int) -> Alert {
+    /// "✕ CONFLICT WITH AIR · 1 PLACE · BOTH VERSIONS ARE IN THE TEXT"; or, `whole`, both whole
+    /// versions between markers, with no version both had to tell what each changed (it said
+    /// "1 place" for that too: the QA review's F14).
+    public static func conflict(_ name: String, with who: String, places: Int, whole: Bool = false) -> Alert {
         Alert(kind: .conflict, title: "Conflict with \(who) in \(name)",
               // ⌘3 keeps both (it said "⌘1, ⌘2 or ⌘3 keeps one": the QA review's F8, 2026-10-07).
-              body: places == 1 ? "In 1 place: both versions are in the text, between markers. In Nib, ⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both."
+              body: whole ? "Both whole versions are in the text, between markers: Nib couldn't tell what each one changed. In Nib, ⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both."
+                  : places == 1 ? "In 1 place: both versions are in the text, between markers. In Nib, ⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both."
                                 : "In \(places) places: both versions of each are in the text, between markers. In Nib, ⌘1 or ⌘2 in a block keeps one version, ⌘3 keeps both.")
     }
 
@@ -74,7 +77,7 @@ public enum Alerts {
     }
 
     /// An error's short words ("NO PERMISSION", as the strip has them) as the start of a sentence.
-    static func sentence(_ text: String) -> String {
+    public static func sentence(_ text: String) -> String {
         let plain = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let first = plain.first else { return "" }
         let lower = plain.uppercased() == plain ? plain.lowercased() : plain

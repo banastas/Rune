@@ -101,9 +101,12 @@ struct SyncHUD: View {
     private var iCloudPanel: some View {
         HUDPanel(document.untitled || !document.inICloud ? "This Mac" : "iCloud") {
             HUDRow("STATE", Self.stateWord(document.state))
-            HUDRow("SAVED", SyncState.clock.string(from: document.savedAt))
-            HUDRow("UPLOADED", document.untitled ? "NEVER" : !document.inICloud ? "NOT IN ICLOUD" : document.uploadedAt.map { SyncState.clock.string(from: $0) } ?? "—")
-            HUDRow("ON DISK", document.dirty ? "SAVING" : "CURRENT")
+                .foregroundStyle(document.state.isProblem ? HUDColor.failureText : HUDColor.bright)
+            // "—" until there's a time to show (F13: both said the time it opened).
+            HUDRow("SAVED", document.savedAt.map(SyncState.stamp) ?? "—")
+            HUDRow("UPLOADED", document.untitled ? "NEVER" : !document.inICloud ? "NOT IN ICLOUD"
+                   : document.uploadedAt.map(SyncState.stamp) ?? (document.uploadedBeforeOpening ? "BEFORE OPENING" : "—"))
+            HUDRow("ON DISK", Self.onDisk(document))
         }
         .accessibilityElement(children: .combine)
     }
@@ -215,16 +218,50 @@ struct SyncHUD: View {
         switch state {
         case .opening: "· OPENING"
         case .notDownloaded: "◐ DOWNLOADING"
-        case .offline: "◐ OFFLINE"
+        case .offline(_, let slow): slow ? "◐ NOT HERE YET" : "◐ OFFLINE"
         case .editing: "· EDITING"
         case .saved: "= SAVED LOCALLY"
         case .savedHere: "✓ SAVED"
         case .uploading: "▲ UPLOADING"
         case .local: "= THIS MAC ONLY"
         case .synced: "✓ SYNCED"
-        case .waiting: "‖ WAITING"
-        case .problem: "✕ PROBLEM"
+        case .waiting(let why): "‖ " + fact(why)
+        case .problem(let why): "✕ " + problemWord(why)
         }
+    }
+
+    /// A problem's first fact, short enough for its row: "✕ PROBLEM" said nothing of what (the QA
+    /// review's F12). The strip and the tooltip have the whole line.
+    static func problemWord(_ why: String) -> String {
+        if why.hasPrefix("MOVED TO THE TRASH") { return "IN THE TRASH" }
+        if why.hasPrefix("DELETED") { return "DELETED" }
+        if why == Document.diskFull { return "DISK FULL" }
+        if why.hasPrefix("ICLOUD STORAGE IS FULL") { return "ICLOUD FULL" }
+        if why.hasPrefix("ICLOUD DRIVE IS OFF") { return "ICLOUD DRIVE OFF" }
+        if why.hasPrefix("COULDN'T WRITE THE RECOVERY JOURNAL") { return "NO JOURNAL" }
+        if why.hasPrefix("COULDN'T SAVE") || why.hasPrefix("COULDN'T RESTORE") { return "NOT SAVED" }
+        if why.hasPrefix("COULDN'T READ") || why.hasPrefix("COULDN'T CREATE") { return "NOT OPENED" }
+        if why.hasPrefix("NIB'S ICLOUD FOLDER ISN'T AVAILABLE") { return "NO ICLOUD FOLDER" }
+        if why.contains(" MOVED ") { return "MOVED" }
+        return fact(why)
+    }
+
+    /// The first fact of a line, at most 18 characters.
+    static func fact(_ line: String) -> String {
+        let first = line.components(separatedBy: " · ").first ?? line
+        return first.count <= 18 ? first : String(first.prefix(17)) + "…"
+    }
+
+    /// Where the text stands against the file: "CURRENT" for a deleted file and the copy shown
+    /// offline, and "SAVING" for good once a save couldn't be made (the QA review's F12).
+    static func onDisk(_ document: Document) -> String {
+        if document.awaitingDownload { return "NOT HERE YET" }
+        if document.deleted { return document.iCloudOff && document.dirty ? "IN THE RECOVERY FOLDER" : "GONE" }
+        if case .problem(let why) = document.state, document.dirty {
+            if why == Document.diskFull || why.hasPrefix("COULDN'T WRITE THE RECOVERY JOURNAL") { return "NOT SAVED · IN MEMORY" }
+            if why.hasPrefix("COULDN'T SAVE") || why.hasPrefix("COULDN'T RESTORE") { return "NOT SAVED · IN THE JOURNAL" }
+        }
+        return document.dirty ? "SAVING" : "CURRENT"
     }
 
     /// A Sync Log line in the HUD's words: the event's glyph and word (the Sync Log window's,

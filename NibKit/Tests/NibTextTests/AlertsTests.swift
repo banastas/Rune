@@ -53,6 +53,9 @@ import Testing
         let conflict = Alerts.conflict("scratch.md", with: "Air", places: 1)
         #expect(conflict.title == "Conflict with Air in scratch.md" && conflict.body.hasPrefix("In 1 place: both versions are in the text"))
         #expect(Alerts.conflict("scratch.md", with: "Air", places: 3).body.hasPrefix("In 3 places: both versions of each"))
+        // Both whole versions, with no version both had: not "1 place" (the QA review's F14).
+        let whole = Alerts.conflict("scratch.md", with: "Air", places: 1, whole: true).body
+        #expect(whole.hasPrefix("Both whole versions are in the text") && !whole.contains("place"))
         // ⌘3 keeps both, not one (the QA review's F8).
         #expect(conflict.body.hasSuffix("⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both.") && !conflict.body.contains("⌘3 keeps one"))
         let failed = Alerts.saveFailed("notes.md", why: "NO PERMISSION")

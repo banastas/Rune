@@ -31,8 +31,9 @@ final class MergeSession {
         original = text
         let found = ConflictText.blocks(in: text)
         let sides = ConflictText.sides(of: text)
-        first = .init(text: sides.first, label: Self.title(found.first?.firstLabel ?? "First", device: device))
-        second = .init(text: sides.second, label: Self.title(found.first?.secondLabel ?? "Second", device: device))
+        // From every block's labels, not the first one's alone (the QA review's F34).
+        first = .init(text: sides.first, label: Self.title(found.map(\.firstLabel), fallback: "First", device: device))
+        second = .init(text: sides.second, label: Self.title(found.map(\.secondLabel), fallback: "Second", device: device))
         let marks = ConflictText.lineMarks(sides.first, sides.second)
         self.marks = (marks.a, marks.b)
         total = found.count
@@ -47,10 +48,22 @@ final class MergeSession {
     }
 
     /// "Air · 10:42" → "AIR · 10:42", or "AIR · THIS MAC · 10:42" for this Mac's side.
-    static func title(_ label: String, device: String) -> String {
-        var parts = label.components(separatedBy: " · ")
-        if parts.first == device { parts.insert("This Mac", at: 1) }
-        return parts.joined(separator: " · ").uppercased()
+    /// A pane's title from its side's label in every block: the name they share (or the names,
+    /// two at most, else "SEVERAL"), and the time they share, or the span of their times. One
+    /// source and one time for every block came from the first block alone (F34).
+    static func title(_ labels: [String], fallback: String, device: String) -> String {
+        guard !labels.isEmpty else { return fallback.uppercased() }
+        var names: [String] = [], times: [String] = []
+        for label in labels {
+            let parts = label.components(separatedBy: " · ")
+            if let name = parts.first, !names.contains(name) { names.append(name) }
+            if parts.count > 1, !times.contains(parts[1]) { times.append(parts[1]) }
+        }
+        var title = names.count == 1 ? [names[0]] + (names[0] == device ? ["This Mac"] : [])
+            : names.count == 2 ? [names.joined(separator: " / ")] : ["Several"]
+        let clock = times.allSatisfy { $0.range(of: #"^\d{1,2}:\d{2}(:\d{2})?$"#, options: .regularExpression) != nil }
+        if times.count == 1 { title.append(times[0]) } else if clock, let earliest = times.min(), let latest = times.max() { title.append("\(earliest)-\(latest)") }
+        return title.joined(separator: " · ").uppercased()
     }
 
     func update() {

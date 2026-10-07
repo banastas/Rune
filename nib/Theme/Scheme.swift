@@ -178,6 +178,7 @@ final class Schemes {
 
     /// What Import from Sublime Text would bring, for the first run's Look step (§5.9):
     /// "MENLO 13 · TAB SIZE 2 · SPACES · MONOKAI", or why there's nothing (HUD words, W1).
+    /// What Import from Sublime Text would bring, in the HUD's words, or why it can't, as a sentence.
     func sublimePreview() -> (found: String?, failure: String?) {
         do {
             let found = try findSublime()
@@ -191,9 +192,9 @@ final class Schemes {
             parts.append(found.scheme.isOriginalAnOldHope ? "\(found.scheme.name.uppercased()) (NIB KEEPS ITS OWN EDITION)" : found.scheme.name.uppercased())
             return (parts.joined(separator: " · "), nil)
         } catch let failure as SublimeImport.Failure {
-            return (nil, failure.description)
+            return (nil, failure.sentence)
         } catch {
-            return (nil, "COULDN'T READ SUBLIME TEXT'S SETTINGS · \(error.localizedDescription.uppercased())")
+            return (nil, "Nib couldn't read Sublime Text's settings: \(Alerts.sentence(ErrorWords.hud(error)))")
         }
     }
 

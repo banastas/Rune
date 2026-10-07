@@ -49,6 +49,16 @@ public struct SublimeImport: Sendable {
             case .unreadable(let name, let why): "COULDN'T READ “\(name.uppercased())” · \(why.uppercased()) · NOTHING IMPORTED"
             }
         }
+
+        /// As a sentence, the names as they're written (the welcome window lowercased the HUD's
+        /// words, "sublime text's scheme “mariana…” not found": the QA review's F17).
+        public var sentence: String {
+            switch self {
+            case .noSublime: "Sublime Text isn't on this Mac, so there's nothing to import."
+            case .noScheme(let name): "Sublime Text's settings name the color scheme “\(name)”, which isn't in its packages, so nothing was imported."
+            case .unreadable(let name, let why): "Nib couldn't read “\(name)” (\(why)), so nothing was imported."
+            }
+        }
     }
 
     /// Sublime's data folder (~/Library/Application Support/Sublime Text) and the app's own

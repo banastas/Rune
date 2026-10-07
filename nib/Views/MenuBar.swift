@@ -69,13 +69,33 @@ enum MenuBarState {
         return false
     }
 
+    /// What a file needs a look for, in the HUD's words: "CONFLICT · 2 PLACES", "IN THE TRASH".
+    static func look(_ document: Document) -> String? {
+        if !document.blocks.isEmpty { return "CONFLICT · \(document.blocks.count) PLACE\(document.blocks.count == 1 ? "" : "S")" }
+        if case .problem(let why) = document.state { return SyncHUD.problemWord(why) }
+        return nil
+    }
+
+    /// The open files besides the scratch file that need a look: the ✕ lit for them, while the
+    /// panel and the tooltip spoke only of the scratch file (the QA review's F11).
+    static func othersNeedingLook() -> [Document] {
+        Documents.all.filter { $0 !== Documents.scratch && needsLook($0) }
+    }
+
+    /// The tooltip's and VoiceOver's words for them: "NOTES.MD NEEDS A LOOK (CONFLICT · 2 PLACES)".
+    static func othersLine(_ others: [Document]) -> String? {
+        guard let first = others.first else { return nil }
+        if others.count > 1 { return "\(others.count) OTHER FILES NEED A LOOK" }
+        return "\(first.url.lastPathComponent.uppercased()) NEEDS A LOOK (\(look(first) ?? "SEE ITS WINDOW"))"
+    }
+
     /// The scratch file's card, in the HUD's words (W5): its name, its state, when it was
     /// saved and uploaded, and the other Mac's last version ("—" where there's none yet).
     static func card(_ document: Document) -> [String] {
         let clock = SyncState.clock
-        let uploaded = document.uploadedAt.map { clock.string(from: $0) } ?? "—"
+        let uploaded = document.uploadedAt.map(SyncState.stamp) ?? (document.uploadedBeforeOpening ? "BEFORE OPENING" : "—")
         var lines = [document.url.lastPathComponent.uppercased(), document.statusLine,
-                     "SAVED \(clock.string(from: document.savedAt)) · UPLOADED \(uploaded)"]
+                     "SAVED \(document.savedAt.map(SyncState.stamp) ?? "—") · UPLOADED \(uploaded)"]
         if !document.blocks.isEmpty {
             lines.append("✕ CONFLICT · \(document.blocks.count) PLACE\(document.blocks.count == 1 ? "" : "S") · BOTH VERSIONS IN THE TEXT")
         }
@@ -185,9 +205,11 @@ final class MenuBarController: NSObject {
         let marching = pendingSince.map { Date().timeIntervalSince($0) > 3 } ?? false
         // With Reduce Motion (A16, AX3) the line doesn't march: it stays in dashes while it waits.
         button.image = NibMark.image(frame: marching ? (Self.reduceMotion ? 0 : frame) : nil, failure: look)
-        let spoken = "Nib, " + Documents.scratch.statusSpoken.lowercased() + (look ? "; something needs a look" : "")
+        // The scratch file's line says its own problem; the others are named (F11).
+        let others = MenuBarState.othersLine(MenuBarState.othersNeedingLook())
+        let spoken = "Nib, " + SyncState.midSentence(Documents.scratch.statusSpoken) + (others.map { "; " + SyncState.midSentence(Spoken.sentence($0)) } ?? "")
         button.setAccessibilityLabel(spoken)
-        button.toolTip = "Nib · " + Documents.scratch.statusLine + (look ? " · SOMETHING NEEDS A LOOK" : "")
+        button.toolTip = "Nib · " + Documents.scratch.statusLine + (others.map { " · " + $0 } ?? "")
         if pending, ticker == nil {
             ticker = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated {
@@ -265,6 +287,21 @@ struct NibMenuBarPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             ScratchCard(document: Documents.scratch)
+            // The other open files the ✕ is lit for, each opening its window (F11).
+            let others = MenuBarState.othersNeedingLook()
+            if !others.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(others, id: \.url) { document in
+                        let look = MenuBarState.look(document) ?? ""
+                        PanelRow(document.url.lastPathComponent, detail: "✕ " + look, spoken: "\(document.url.lastPathComponent), \(Spoken.sentence(look).lowercased())") {
+                            close()
+                            NSApp.activate()
+                            AppDelegate.openFile(document.url)
+                        }
+                        .foregroundStyle(HUDColor.failureText)
+                    }
+                }
+            }
             if let message {
                 hudText(message, glyphSize: 9)
                     .font(HUDFont.terminal(15))
@@ -357,11 +394,13 @@ struct PanelRow: View {
     let title: String
     var keys: String?
     var detail: String?
+    /// What VoiceOver says, when the title and detail as written don't read well.
+    var spoken: String?
     let action: () -> Void
     @State private var hovering = false
 
-    init(_ title: String, keys: String? = nil, detail: String? = nil, action: @escaping () -> Void) {
-        self.title = title; self.keys = keys; self.detail = detail; self.action = action
+    init(_ title: String, keys: String? = nil, detail: String? = nil, spoken: String? = nil, action: @escaping () -> Void) {
+        self.title = title; self.keys = keys; self.detail = detail; self.spoken = spoken; self.action = action
     }
 
     var body: some View {
@@ -380,6 +419,7 @@ struct PanelRow: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .accessibilityLabel(keys.map { "\(title), \($0)" } ?? title)
+        // The detail too: Recent rows with the same name sounded the same (F82).
+        .accessibilityLabel(spoken ?? [title, detail, keys].compactMap { $0 }.joined(separator: ", "))
     }
 }

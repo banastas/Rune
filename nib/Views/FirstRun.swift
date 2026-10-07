@@ -106,13 +106,46 @@ final class FirstRun: NSObject, NSWindowDelegate {
     func look() async {
         let document = Documents.scratch
         if chosen == nil { scratchFound = nil }
-        let url = document.url
+        let url = scratchURL
         if ScratchLocation.inContainer(url) {
             _ = await CloudControl.containerAvailable(ScratchLocation.containerID, within: 10)
         }
         let exists = await Task.detached { FileManager.default.fileExists(atPath: url.path) }.value
         scratchFound = exists
         if exists, document.awaitingFirstRun { await document.open() }
+        if !exists { keepLooking() }
+    }
+
+    @ObservationIgnored private var looking: Task<Void, Never>?
+
+    /// Not there yet: looked for again every 2 s while the window's open, as another Mac's may be
+    /// on its way. It looked once and offered Create, which on a second Mac made an empty one
+    /// where the first Mac's was still coming (the QA review's F26).
+    private func keepLooking() {
+        looking?.cancel()
+        looking = Task { [weak self] in
+            while let self, !Task.isCancelled, self.window != nil, self.scratchFound == false, self.chosen == nil, !self.creating {
+                try? await Task.sleep(for: .seconds(Self.lookEvery))
+                let url = self.scratchURL
+                guard await Task.detached(operation: { FileManager.default.fileExists(atPath: url.path) }).value, self.scratchFound == false else { continue }
+                self.scratchFound = true
+                if Documents.scratch.awaitingFirstRun { await Documents.scratch.open() }
+            }
+        }
+    }
+
+    static var lookEvery: Double = 2
+
+    #if DEBUG
+    /// The `firstrun` scenario: a scratch file to look for that isn't there yet.
+    static var lookingFor: URL?
+    #endif
+
+    private var scratchURL: URL {
+        #if DEBUG
+        if let url = Self.lookingFor { return url }
+        #endif
+        return Documents.scratch.url
     }
 
     /// Makes the scratch file where Nib looked: opening it creates it, empty.
@@ -124,7 +157,7 @@ final class FirstRun: NSObject, NSWindowDelegate {
         await document.open()
         creating = false
         scratchFound = FileManager.default.fileExists(atPath: document.url.path)
-        if scratchFound != true { message = "Nib couldn't make it: \(document.state.line.lowercased())." }
+        if scratchFound != true { message = "Nib couldn't make it. \(Spoken.sentence(document.state.line))." }
     }
 
     func choose() {
@@ -168,6 +201,7 @@ final class FirstRun: NSObject, NSWindowDelegate {
             NibDefaults.store.set(1, forKey: Self.doneKey)
             Notifier.shared.askIfNeeded()
         }
+        looking?.cancel()
         window = nil
     }
 }
@@ -321,7 +355,9 @@ private struct ScratchStep: View {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                     }
                 } else {
-                    Label("There's no \(name) in \(place) yet.", systemImage: "doc.badge.plus")
+                    // Said as maybe on its way, and looked for while this window's open (F26).
+                    Label("There's no \(name) in \(place) yet. If another Mac has one, iCloud may still be bringing it: Nib keeps looking while this window is open.",
+                          systemImage: "doc.badge.plus")
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -384,9 +420,7 @@ private struct LookStep: View {
                 // Everything it sets, as Settings › Themes says too (the QA review's F25: it listed five).
                 firstRunNote("Import takes Sublime's color scheme, font and size, tab width and spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs and ⌘S tidying, and sets Nib's to match. Sublime's files are only read, never changed. \(model.imported ? "" : "Continue skips it; ")Settings › Themes can import later.")
             } else {
-                Text(model.sublime.failure == SublimeImport.Failure.noSublime.description
-                     ? "Sublime Text isn't on this Mac, so there's nothing to import."
-                     : "Nib couldn't read Sublime Text's settings: \(model.sublime.failure?.lowercased() ?? "").")
+                Text(model.sublime.failure ?? "")
                     .fixedSize(horizontal: false, vertical: true)
                 firstRunNote("Settings › Themes can import a .tmTheme or .sublime-color-scheme file later, and Settings › Editor has the font.")
             }

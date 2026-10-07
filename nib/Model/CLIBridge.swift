@@ -39,11 +39,11 @@ enum CLIBridge {
             // A Nib the tool just started is still opening the scratch file.
             let document = Documents.scratch
             for _ in 0..<150 where !document.ready && document.locked == nil { try? await Task.sleep(for: .milliseconds(100)) }
-            let result = Clipboard.append(request.text ?? "", action: "Append")
+            let result = Clipboard.append(request.text ?? "", action: "Append", from: "STANDARD INPUT")
             if !NSApp.isActive || AppDelegate.scratchWindow?.isKeyWindow != true { Toast.show(result.hud) }
             switch result {
             case .lines: reply(token, ok: true)
-            case .notOpen: reply(token, ok: false, "the scratch file isn't open (\(document.state.spoken.lowercased()))")
+            case .notOpen: reply(token, ok: false, "the scratch file isn't open (\(SyncState.midSentence(document.state.spoken)))")
             case .empty: reply(token, ok: false, "nothing on standard input to append")
             case .readOnly: reply(token, ok: false, "the scratch file is read-only")
             }

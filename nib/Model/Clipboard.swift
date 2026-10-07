@@ -50,18 +50,21 @@ enum Clipboard {
     @discardableResult
     static func appendToScratch() -> String {
         guard Documents.scratch.ready else { return Appended.notOpen.hud }
-        return append(text() ?? "", action: "Append Clipboard").hud
+        return append(text() ?? "", action: "Append Clipboard", from: "THE CLIPBOARD").hud
     }
 
     enum Appended: Equatable {
-        case lines(Int), notOpen, empty, readOnly
+        /// Nothing left once cleaned, said of where the text came from: "the clipboard has no
+        /// text" was said for the Service's selection, a Shortcut's text and `nib -a` too (F19).
+        case lines(Int), notOpen, empty(from: String), readOnly
 
         /// For the strip, the menu bar panel and the HUD line.
         var hud: String {
             switch self {
             case .lines(let n): "APPENDED \(n) LINE\(n == 1 ? "" : "S") TO SCRATCH"
             case .notOpen: "COULDN'T APPEND · THE SCRATCH FILE ISN'T OPEN"
-            case .empty: "THE CLIPBOARD HAS NO TEXT · NOTHING APPENDED"
+            case .empty(let source): source == "THE CLIPBOARD" ? "NOTHING TO APPEND · THE CLIPBOARD HAS NO TEXT"
+                                                                : "NOTHING TO APPEND · \(source) IS EMPTY ONCE CLEANED"
             case .readOnly: "COULDN'T APPEND · THE SCRATCH FILE IS READ-ONLY"
             }
         }
@@ -69,12 +72,12 @@ enum Clipboard {
 
     /// Text at the end of the scratch file, cleaned as Paste Clean cleans it: the clipboard's
     /// (SC6), or standard input's (`cmd | nib -a`, AP4).
-    static func append(_ text: String, action: String) -> Appended {
+    static func append(_ text: String, action: String, from source: String) -> Appended {
         let document = Documents.scratch
         guard document.ready, document.locked == nil else { return .notOpen }
         var clean = PasteCleaner.clean(text, options: options).text
         while clean.hasSuffix("\n") { clean.removeLast() }
-        guard !clean.isEmpty else { return .empty }
+        guard !clean.isEmpty else { return .empty(from: source) }
         let view = document.editor.textView
         let current = view.string as NSString
         let lead = current.length == 0 ? "" : current.hasSuffix("\n\n") ? "" : current.hasSuffix("\n") ? "\n" : "\n\n"

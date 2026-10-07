@@ -98,6 +98,22 @@ public final class SyncLog: Sendable {
         return text.split(separator: "\n").compactMap { try? decoder.decode(SyncEvent.self, from: Data($0.utf8)) }
     }
 
+    /// The events in whole lines from byte `offset` on, and the offset after the last of them
+    /// (a line still being written is left for next time). The Sync Log window reads only what's
+    /// new: it read the whole log, never trimmed, after every line (the QA review's F33). An
+    /// offset past the file's end (the log replaced) gives nothing and the end: read from 0 again.
+    public func read(from offset: UInt64) -> (events: [SyncEvent], end: UInt64) {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return ([], 0) }
+        defer { try? handle.close() }
+        let size = (try? handle.seekToEnd()) ?? 0
+        guard offset < size else { return ([], size) }
+        guard (try? handle.seek(toOffset: offset)) != nil, let data = try? handle.readToEnd(), let last = data.lastIndex(of: 0x0A) else { return ([], offset) }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let events = data[data.startIndex...last].split(separator: 0x0A).compactMap { try? decoder.decode(SyncEvent.self, from: Data($0)) }
+        return (events, offset + UInt64(last - data.startIndex + 1))
+    }
+
     /// One file's last `limit` events, oldest first, read from the log's end a chunk at a time:
     /// the log is never trimmed, and the sync HUD wants only its last few lines (§5.3).
     public func recent(path: String, limit: Int, chunk: Int = 65_536) -> [SyncEvent] {

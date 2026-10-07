@@ -200,9 +200,13 @@ final class Document {
     @ObservationIgnored private var lastNote: Announcement? { didSet { if let lastNote, lastNote.device != device { otherMac = lastNote } } }
     /// The latest note from another Mac: the menu bar panel's "other Macs" line (§5.7).
     private(set) var otherMac: Announcement?
-    /// When this Mac's last upload was taken, and when it last saved (the panel's times).
+    /// When this Mac's last upload was taken, and when the version in the file was saved (the
+    /// panel's and the HUD's times): its modification time at open, nil when there's no file
+    /// here yet. Both were the time it opened, as if saved and uploaded then (the QA review's F13).
     private(set) var uploadedAt: Date?
-    var savedAt: Date { lastSaved }
+    private(set) var savedAt: Date?
+    /// iCloud had the file's version when it opened: uploaded, by this Mac or another, before.
+    private(set) var uploadedBeforeOpening = false
     /// The version the buffer comes from, or was last saved as (the sync HUD's SHA256).
     var versionSHA: String? { baseFingerprint?.sha256 }
 
@@ -310,7 +314,8 @@ final class Document {
     /// Not opened yet: the welcome window will say which file, or make it (AP5).
     func awaitFirstRun() {
         awaitingFirstRun = true
-        state = .waiting("NO SCRATCH FILE YET · SEE THE WELCOME WINDOW")
+        // Said as a way back: the welcome window may be closed (the QA review's F21).
+        state = .waiting("NO SCRATCH FILE YET · HELP › WELCOME TO NIB SETS ONE UP")
         editor.textView.isEditable = false
     }
 
@@ -414,6 +419,7 @@ final class Document {
                 format = decoded.format
                 fileBytes = data.count
                 baseFingerprint = fingerprint
+                savedAt = Date(timeIntervalSince1970: fingerprint.modified)
                 remember(text, sha: fingerprint.sha256)
                 recordHistory { history in try? history.record(data, parent: nil, source: "opened") }
             } catch {
@@ -464,11 +470,14 @@ final class Document {
         openSteps = steps
         #endif
         if let shadow {
-            state = .offline(shadow.entry.time)
+            state = .offline(shadow.entry.time, slow: !offlineNow)
             awaitingDownload = true
             editor.textView.alphaValue = 0.75   // slightly dimmed (§4.8 F)
         } else {
-            state = untitled ? .local(Date()) : status.uploaded ? .synced(Date()) : savedState(Date())
+            // The version's own time, not the time it opened (F13).
+            let version = savedAt ?? Date()
+            uploadedBeforeOpening = !untitled && status.uploaded
+            state = untitled ? .local(version) : status.uploaded ? .synced(version) : savedState(version)
         }
         ready = true
         #if DEBUG
@@ -524,6 +533,13 @@ final class Document {
         var asked = false
         while !closing {
             let waited = Date().timeIntervalSince(started)
+            #if DEBUG
+            if TestHarness.slowDownload {   // the `evicted` scenario: online, iCloud slow (F15)
+                if waited >= min(seconds, 2) { return false }
+                try? await Task.sleep(for: .milliseconds(250))
+                continue
+            }
+            #endif
             if offlineNow {
                 if waited > 1.5 { return false }
             } else if !asked {
@@ -1101,6 +1117,7 @@ final class Document {
                 if !pendingResolved.isEmpty || !pendingTrash.isEmpty { settleOthers() }
                 savedEditCount = snapshot
                 lastSaved = Date()
+                savedAt = lastSaved
                 let journal = self.journal, path = url.path
                 if recoveryPending {
                     // The file has the text now: the Recovery folder's copy isn't needed.
@@ -1437,6 +1454,7 @@ final class Document {
         let mine = editor.textView.string
         if holds(theirs) {
             baseFingerprint = fingerprint
+            if let fingerprint { savedAt = Date(timeIntervalSince1970: fingerprint.modified) }
             savedEditCount = editCount
             if fromServer { uploadedSHA = fingerprint?.sha256 }
             return
@@ -1445,6 +1463,7 @@ final class Document {
             apply(theirs)
             record("update", sha: fingerprint?.sha256, detail: "nothing unsent here: the buffer is now \(source)'s version")
             baseFingerprint = fingerprint
+            if let fingerprint { savedAt = Date(timeIntervalSince1970: fingerprint.modified) }
             show("▼ UPDATED FROM \(source.uppercased()) · \(SyncState.clock.string(from: Date()))", for: 10)
             if fromServer {
                 uploadedSHA = fingerprint?.sha256
@@ -1509,9 +1528,11 @@ final class Document {
     private func writeBlocks(_ text: String, places: Int, merged: Bool, from who: String) {
         replaceBuffer(with: text, action: "Conflict with \(who)")
         mergedAroundBlocks = merged
-        show("✕ CONFLICT WITH \(who.uppercased()) · \(places) PLACE\(places == 1 ? "" : "S") · BOTH VERSIONS ARE IN THE TEXT", for: 10)
+        // Merged: the places both changed. Not: both whole versions, which isn't "1 place" (F14).
+        show(merged ? "✕ CONFLICT WITH \(who.uppercased()) · \(places) PLACE\(places == 1 ? "" : "S") · BOTH VERSIONS ARE IN THE TEXT"
+                    : "✕ CONFLICT WITH \(who.uppercased()) · BOTH WHOLE VERSIONS ARE IN THE TEXT", for: 10)
         NSApp.requestUserAttention(.informationalRequest)
-        Notifier.shared.began(Alerts.conflict(url.lastPathComponent, with: who, places: places), for: url)
+        Notifier.shared.began(Alerts.conflict(url.lastPathComponent, with: who, places: places, whole: !merged), for: url)
     }
 
     /// Blocks were written two-way, and now a note proves the base: if the text is as it was
@@ -1644,9 +1665,11 @@ final class Document {
         guard !closing, let data = history.data(entry.sha256) else { NSSound.beep(); return }   // F2
         let text = TextFile.decode(data).text
         guard !holds(text) else { return }
-        let time = SyncState.clock.string(from: entry.time)
+        // Named as History and Revert To name it: a version can be 30 days old, and the time of
+        // day alone read as today's (the QA review's F20).
+        let time = HistoryView.when(entry.time)
         replaceBuffer(with: text, action: "Revert to \(time)")
-        show("= BACK TO THE VERSION FROM \(time) (\(entry.source.uppercased())) · ⌘Z UNDOES", for: 10)
+        show("= BACK TO THE VERSION FROM \(time.uppercased()) (\(entry.source.uppercased())) · ⌘Z UNDOES", for: 10)
         record("revert", sha: entry.sha256, detail: "to the version from \(time) (\(entry.source))")
     }
 
@@ -2070,7 +2093,13 @@ final class Document {
         let url = self.url
         Task {
             guard let status = await CloudControl.status(url, within: 5), ready, !held, !dirty else { return }
-            if status.uploading { state = .uploading(lastSaved) } else if status.uploaded { state = .synced(Date()) }
+            if status.uploading {
+                state = .uploading(lastSaved)
+            } else if status.uploaded, !state.isSynced {
+                // iCloud took this Mac's save itself: synced, at the time it said so (and kept, as F7).
+                uploadedAt = Date()
+                state = .synced(uploadedAt ?? Date())
+            }
         }
     }
 
@@ -2149,6 +2178,7 @@ final class Document {
                 baseFingerprint = fingerprint
                 savedEditCount = snapshot
                 lastSaved = Date()
+                savedAt = lastSaved
                 remember(text, sha: fingerprint.sha256)
                 recordHistory { history in try? history.record(data, parent: nil, source: "restored") }
                 record("save", size: data.count, sha: fingerprint.sha256, detail: "restored where it was deleted")
@@ -2336,6 +2366,8 @@ final class Document {
             Task { @MainActor in
                 guard let self, self.online != up else { return }
                 self.online = up
+                // Showing the copy: offline, or online with iCloud slow (F15).
+                if case .offline(let time, _) = self.state { self.state = .offline(time, slow: up) }
                 if up {
                     await self.upload(now: true)
                     await self.checkAnnouncement(reason: "network back")
@@ -2657,8 +2689,13 @@ final class Document {
 
     private func ms(since start: Date) -> Int { Int((Date().timeIntervalSince(start) * 1000).rounded()) }
 
+    /// An error in a few words for the strip: "PERMISSION DENIED", "FILE IS LOCKED", "FOLDER IS
+    /// GONE" (it was Cocoa's sentence uppercased, the file named twice: the QA review's F17).
     private func short(_ error: Error) -> String {
-        (error as NSError).localizedDescription.uppercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        let words = ErrorWords.hud(error)
+        if words == "PERMISSION DENIED", (try? url.resourceValues(forKeys: [.isUserImmutableKey]))?.isUserImmutable == true { return "FILE IS LOCKED" }
+        if words == "FILE IS GONE", !FileManager.default.fileExists(atPath: url.deletingLastPathComponent().path) { return "FOLDER IS GONE" }
+        return words
     }
 
     #if DEBUG

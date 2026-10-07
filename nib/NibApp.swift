@@ -222,6 +222,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             #endif
             ClosedItems.shared.sweep()
             Untitled.restore()   // hot exit (ED3): the untitled buffers from before
+            // HTML isn't a kind Nib takes any more: given back once where it had it (2026-10-07,
+            // the user's call; DefaultApps). Not the test harness's Nib, whose is a stand-in.
+            if !NibPaths.isScenario, let said = await DefaultApps.shared.giveBackHTML() { document.show(said, for: 15) }
             #if DEBUG
             TestHarness.runIfRequested(document)
             #endif

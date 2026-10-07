@@ -37,19 +37,41 @@ struct ConflictBanner: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var message: String {
-        let n = document.blocks.count
-        guard let other else { return n == 1 ? "1 conflict in this file, between markers." : "\(n) conflicts in this file, between markers." }
-        if document.mergedAroundBlocks {
-            return "\(other) and this Mac both changed \(n == 1 ? "1 place" : "\(n) places"). Everything else merged."
+    private var message: String { Self.message(blocks: document.blocks.count, others: others, merged: document.mergedAroundBlocks,
+                                               fileExtension: document.url.pathExtension) }
+
+    /// The banner's sentence, from who the other sides are. It took the first label not starting
+    /// with this Mac's name: "This Mac and this Mac both changed this file", "The file and this
+    /// Mac…" after a crash, and a Mac named "Studio 2" taken for "Studio" (the QA review's F10).
+    static func message(blocks n: Int, others: [String], merged: Bool, fileExtension: String) -> String {
+        let between = n == 1 ? "1 conflict in this file, between markers." : "\(n) conflicts in this file, between markers."
+        guard let other = others.first else { return between }
+        if others.count > 1 { return "Several versions changed this file. \(between.prefix(1).uppercased() + between.dropFirst())" }
+        if other == "The file" {
+            return "The file changed while Nib was closed. It and the typing Nib recovered are both in the text, between markers."
         }
-        return "\(other) and this Mac both changed this file. Both versions are in the text, between markers."
+        if other == "Merge view" {
+            return "The merge view's choices and the typing since both changed this file. Both versions are in the text, between markers."
+        }
+        if !fileExtension.isEmpty, other.hasSuffix("." + fileExtension) {
+            return "\(other) is a copy of this file with other text. Both versions are in the text, between markers."
+        }
+        let who = other.prefix(1).uppercased() + other.dropFirst()   // "another Mac" begins the sentence
+        if merged { return "\(who) and this Mac both changed \(n == 1 ? "1 place" : "\(n) places"). Everything else merged." }
+        return "\(who) and this Mac both changed this file. Both versions are in the text, between markers."
     }
 
-    /// Who the other side is, from the blocks' labels ("Air · 10:42" → "Air").
-    private var other: String? {
-        let labels = document.blocks.flatMap { [$0.firstLabel, $0.secondLabel] }
-        let name = labels.first { !$0.hasPrefix(document.device) }?.components(separatedBy: " · ").first
-        return name.flatMap { $0.isEmpty ? nil : $0 }
+    /// The other sides, from the blocks' labels ("Air · 10:42" → "Air"), whole names compared
+    /// with this Mac's, each once.
+    private var others: [String] { Self.others(document.blocks.flatMap { [$0.firstLabel, $0.secondLabel] }, device: document.device) }
+
+    static func others(_ labels: [String], device: String) -> [String] {
+        var names: [String] = []
+        for label in labels {
+            let name = (label.components(separatedBy: " · ").first ?? "").trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty, name != device, name.caseInsensitiveCompare("This Mac") != .orderedSame, !names.contains(name) else { continue }
+            names.append(name)
+        }
+        return names
     }
 }

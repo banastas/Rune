@@ -38,6 +38,13 @@ final class SyncLogModel {
 
     static var url: URL { NibPaths.support.appendingPathComponent("sync.jsonl") }
     @ObservationIgnored private var pending: Task<Void, Never>?
+    /// Where the lines read so far end in the log, and the windows open on it. Only while one is
+    /// open does a new line mean a read, and then of what's new: once used, every line read the
+    /// whole log again, window open or not, for the rest of the session (the QA review's F33).
+    @ObservationIgnored private var offset: UInt64 = 0
+    @ObservationIgnored private var windows = 0
+    /// Reads of the whole log, for the `synclog` scenario.
+    @ObservationIgnored private(set) var wholeReads = 0
 
     private init() {
         NotificationCenter.default.addObserver(forName: SyncLog.didAppend, object: nil, queue: .main) { _ in
@@ -49,21 +56,51 @@ final class SyncLogModel {
         rows.filter { $0.event.belongs(to: filter) && $0.event.matches(search) }.sorted(using: sortOrder)
     }
 
-    /// Lines come in bursts (a save, an upload, a fetch): read the file once they settle.
+    /// Lines come in bursts (a save, an upload, a fetch): read what's new once they settle.
     func scheduleReload() {
+        guard windows > 0 else { return }
         pending?.cancel()
         pending = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled else { return }
-            await self?.reload()
+            await self?.readNew()
         }
+    }
+
+    /// A window opened: the whole log.
+    func opened() async {
+        windows += 1
+        await reload()
+    }
+
+    /// A window closed: with none left, the lines are let go, and nothing's read till one opens.
+    func closed() {
+        windows = max(0, windows - 1)
+        guard windows == 0 else { return }
+        pending?.cancel()
+        rows = []
+        offset = 0
+        loaded = false
     }
 
     func reload() async {
         let url = Self.url
-        let events = await Task.detached(priority: .userInitiated) { SyncLog(url: url).read() }.value
+        let (events, end) = await Task.detached(priority: .userInitiated) { SyncLog(url: url).read(from: 0) }.value
         rows = events.enumerated().map { SyncLogRow(id: $0.offset, event: $0.element) }
+        offset = end
+        wholeReads += 1
         loaded = true
+    }
+
+    /// The lines added since the last read; the whole log again if it was replaced.
+    private func readNew() async {
+        let url = Self.url, from = offset
+        let (events, end) = await Task.detached(priority: .userInitiated) { SyncLog(url: url).read(from: from) }.value
+        guard windows > 0 else { return }
+        guard end >= from, offset == from else { await reload(); return }
+        let first = rows.count
+        rows += events.enumerated().map { SyncLogRow(id: first + $0.offset, event: $0.element) }
+        offset = end
     }
 
     /// The strip's Show Sync Log: the window, on that file.
@@ -76,6 +113,9 @@ final class SyncLogModel {
 
 struct SyncLogView: View {
     @State private var selection: SyncLogRow.ID?
+    /// Whether the selected line's file is there, looked at when the selection changes, not at
+    /// every draw (the QA review's F35).
+    @State private var selectedExists = false
     @Environment(\.openWindow) private var openWindow
 
     private static let clock: DateFormatter = {
@@ -158,7 +198,12 @@ struct SyncLogView: View {
         .navigationTitle("Sync Log")
         .navigationSubtitle(shown.count == model.rows.count ? "\(model.rows.count.formatted()) events" : "\(shown.count.formatted()) of \(model.rows.count.formatted()) events")
         .frame(minWidth: 820, minHeight: 360)
-        .task { await SyncLogModel.shared.reload() }
+        .onChange(of: selection) { _, id in
+            let path = SyncLogModel.shared.rows.first { $0.id == id }?.event.path
+            selectedExists = path.map { FileManager.default.fileExists(atPath: $0) } ?? false
+        }
+        .task { await SyncLogModel.shared.opened() }
+        .onDisappear { SyncLogModel.shared.closed() }
     }
 
     @ViewBuilder private func detail(_ row: SyncLogRow) -> some View {
@@ -196,8 +241,9 @@ struct SyncLogView: View {
         .padding(12)
         HStack {
             let url = URL(fileURLWithPath: event.path)
-            if FileManager.default.fileExists(atPath: event.path) {
+            if selectedExists {
                 Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+                // A file that isn't open: its History window offers to open it (F35).
                 Button("Show History") { openWindow(id: "history", value: url) }
             }
             if let sha = event.sha256 {

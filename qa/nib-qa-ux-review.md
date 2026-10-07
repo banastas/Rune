@@ -27,7 +27,9 @@ Reduce Motion, colour never the only signal, and the HUD's tokens all held up (�
 **Fixed so far:** the first round (2026-10-07), F1-F9, F16, F18, F23, F24, F29, F30 and F36, each
 with a check in its scenario or NibKit's tests (PRD §8, "The QA and UX review, and its first round of
 fixes"); the second (2026-10-07), F22, F25, F28, F31, F37-F39 and F48, with parts of F74, F82 and F84
-(PRD §8, "The QA review's second round").
+(PRD §8, "The QA review's second round"); the third (2026-10-07), the rest of §1: F10-F15, F17,
+F19-F21, F26, F27 (HTML out of Settings › Files), F32-F35, with parts of F65 and F82 (PRD §8, "The QA review's third
+round").
 
 ---
 
@@ -98,7 +100,7 @@ markers written to the file (">>>>>>> ICloud · 10:42:05"), the notification ("C
 in notes.md"), the banner, the Conflicts menu ("Use ICloud · 10:42") and the undo name.
 *Fix:* a label form and a sentence form per source; never capitalise "iCloud".
 
-**F10. The conflict banner guesses who the other side is** — `nib/Views/ConflictBanner.swift:40-55` · W1, W2 · pictures `synchud-warning.png`, `snapshot-in-app.png`
+**F10. The conflict banner guesses who the other side is** — `nib/Views/ConflictBanner.swift:40-55` · W1, W2 · pictures `synchud-warning.png`, `snapshot-in-app.png` · **fixed 2026-10-07**
 The first label not starting with this Mac's name: "This Mac and this Mac both changed this file.",
 "The file and this Mac…" after a crash, a duplicate file named as the other Mac ("scratch-test 2.md
 and this Mac…") while the block in view is between two Macs, and a Mac named "Studio 2" taken for
@@ -106,30 +108,30 @@ and this Mac…") while the block in view is between two Macs, and a Mac named "
 *Fix:* compare whole labels with `device`; give "This Mac", "The file" and duplicates their own
 sentences; with several sources, "Several versions changed this file…".
 
-**F11. The menu bar's ✕ lights for any open file, but its panel, tooltip and Settings note speak only of the scratch file** — `nib/Views/MenuBar.swift:183, 188-190, 267`, `nib/Views/SettingsView.swift:54` · W1, §5.7 · **checked**
+**F11. The menu bar's ✕ lights for any open file, but its panel, tooltip and Settings note speak only of the scratch file** — `nib/Views/MenuBar.swift:183, 188-190, 267`, `nib/Views/SettingsView.swift:54` · W1, §5.7 · **checked** · **fixed 2026-10-07**
 A conflict in notes.md lights the ✕; the panel shows the scratch card at "✓ SYNCED"; the tooltip
 says "SOMETHING NEEDS A LOOK".
 *Fix:* a panel line per other file that needs a look ("✕ NOTES.MD · CONFLICT · 2 PLACES", opening
 it), the file named in the tooltip, and the Settings note saying "your open files".
 
-**F12. The HUD's STATE and ON DISK rows say things that aren't so** — `nib/Views/SyncHUD.swift:106, 224-225` · W2, W1
+**F12. The HUD's STATE and ON DISK rows say things that aren't so** — `nib/Views/SyncHUD.swift:106, 224-225` · W2, W1 · **fixed 2026-10-07**
 ON DISK is "CURRENT" for a deleted file before typing and "SAVING" for good after; "SAVING" for good
 with iCloud Drive off or the disk full; "CURRENT" for the offline copy. STATE is "✕ PROBLEM" or "‖
 WAITING" without saying what (and not red).
 *Fix:* "GONE", "NOT SAVED · IN THE JOURNAL", "IN THE RECOVERY FOLDER", "NOT HERE YET"; STATE with the
 problem's first fact, in the red's text tint.
 
-**F13. A save time is shown before anything was saved** — `nib/Model/Document.swift:164, 448, 554`, `SyncHUD.swift:104`, `MenuBar.swift:78` · W2, W5
+**F13. A save time is shown before anything was saved** — `nib/Model/Document.swift:164, 448, 554`, `SyncHUD.swift:104`, `MenuBar.swift:78` · W2, W5 · **fixed 2026-10-07**
 At open: "= SAVED LOCALLY · <the time it opened>", the HUD's SAVED at launch, the panel "SAVED
 22:24:04 · UPLOADED —"; a held file opened already uploaded shows "✓ SYNCED" beside "UPLOADED —".
 *Fix:* "—" until a save (or the file's modification time), "--:--" where the time isn't known.
 
-**F14. "1 PLACE" when the whole of both versions is between markers** — `nib/Model/Document.swift:1453, 1470, 1634, 1654`, `Alerts.swift:38` · W2
+**F14. "1 PLACE" when the whole of both versions is between markers** — `nib/Model/Document.swift:1453, 1470, 1634, 1654`, `Alerts.swift:38` · W2 · **fixed 2026-10-07**
 With no proven base, a conflict version or a duplicate: "✕ CONFLICT WITH AIR · 1 PLACE · BOTH
 VERSIONS ARE IN THE TEXT".
 *Fix:* "BOTH WHOLE VERSIONS ARE IN THE TEXT, BETWEEN MARKERS", and the same in the notification.
 
-**F15. "◐ OFFLINE" on a Mac that's online** — `nib/Model/Document.swift:360-362, 444` · W2, W4
+**F15. "◐ OFFLINE" on a Mac that's online** — `nib/Model/Document.swift:360-362, 444` · W2, W4 · **fixed 2026-10-07**
 A file not here in 20 s opens from the copy as "◐ OFFLINE · …" even when only iCloud is slow (the
 no-copy case already tells the two apart).
 *Fix:* "◐ NOT HERE YET · ICLOUD IS SLOW TO BRING IT · SHOWING THE COPY FROM 16:38 · …" when online.
@@ -138,7 +140,7 @@ no-copy case already tells the two apart).
 "SCRATCH.MD MOVED TO SCRATCH.MD · …" for a move to another folder (the new name only).
 *Fix:* the new place and name: "…MOVED TO ICLOUD DRIVE › ARCHIVE › SCRATCH.MD · …".
 
-**F17. Error lines are Cocoa's whole sentences, uppercased, then lowercased into notifications and sentences** — `nib/Model/Document.swift:2596` (`short`), `Alerts.swift:76-82`, `nib/Views/FirstRun.swift:98, 331-333`, `nib/Model/CLIBridge.swift:46`, `nib/Model/SyncState.swift:81-82` · W1, W3, W5, §5.13 · **checked**
+**F17. Error lines are Cocoa's whole sentences, uppercased, then lowercased into notifications and sentences** — `nib/Model/Document.swift:2596` (`short`), `Alerts.swift:76-82`, `nib/Views/FirstRun.swift:98, 331-333`, `nib/Model/CLIBridge.swift:46`, `nib/Model/SyncState.swift:81-82` · W1, W3, W5, §5.13 · **checked** · **fixed 2026-10-07**
 "COULDN'T SAVE SCRATCH.MD · YOU DON'T HAVE PERMISSION TO SAVE THE FILE “SCRATCH.MD” IN THE FOLDER
 “NIB” · …" (the name twice, no quotes on the first, too long for the strip); the notification
 lowercases it ("…in the folder “nib”", "readme.md"); the welcome window says "Nib couldn't read
@@ -154,15 +156,15 @@ Not so since 2026-10-02 (a save writes from the first byte that differs).
 *Fix:* "…and History keeps only the versions opened and closed with. In iCloud Drive every save is
 uploaded whole."
 
-**F19. "The clipboard has no text" when the text came from somewhere else** — `nib/Model/Clipboard.swift:64` · W1
+**F19. "The clipboard has no text" when the text came from somewhere else** — `nib/Model/Clipboard.swift:64` · W1 · **fixed 2026-10-07**
 Said for the Service, the Shortcut and `nib -a` too.
 *Fix:* name the source: "NOTHING TO APPEND · THE SELECTION IS EMPTY ONCE CLEANED" and so on.
 
-**F20. Restored versions are named by time of day only** — `nib/Model/Document.swift:1605-1608` · W1
+**F20. Restored versions are named by time of day only** — `nib/Model/Document.swift:1605-1608` · W1 · **fixed 2026-10-07**
 "= BACK TO THE VERSION FROM 17:40:00 (SAVED)", "Revert to 17:40:00", for a version up to 30 days old.
 *Fix:* History's own "Sep 26 17:40:00" / "Yesterday 09:12:05".
 
-**F21. The strip keeps saying "SEE THE WELCOME WINDOW" after it's closed** — `nib/Model/Document.swift:291` · W1
+**F21. The strip keeps saying "SEE THE WELCOME WINDOW" after it's closed** — `nib/Model/Document.swift:291` · W1 · **fixed 2026-10-07**
 *Fix:* "NO SCRATCH FILE YET · HELP › WELCOME TO NIB SETS ONE UP".
 
 ### 1.3 Settings and the first run
@@ -195,13 +197,13 @@ mentions guides, brackets or pairs.
 *Fix:* say all of it in both places ("…and sets Nib's to match"), ask "Use Sublime's color scheme,
 font and editor settings?", and add the three to the report.
 
-**F26. The welcome window looks for the scratch file once, then offers Create** — `nib/Views/FirstRun.swift:77-87, 275, 282-284` · W4, §4 · **checked**
+**F26. The welcome window looks for the scratch file once, then offers Create** — `nib/Views/FirstRun.swift:77-87, 275, 282-284` · W4, §4 · **checked** · **fixed 2026-10-07**
 On a second Mac, if iCloud hasn't listed the folder within 10 s it says there's no scratch.md yet
 and offers Create, which makes an empty one where the other Mac's is on its way.
 *Fix:* Look Again, and "If another Mac has one, iCloud may still be bringing it", or keep watching
 the folder while the window's open.
 
-**F27. With HTML set to open in Nib, links to local .html files open in Nib too, and nothing says so** — `nib/Views/SettingsView.swift:101, 110`, `nib/Model/DefaultApps.swift:53` · W7 · seen by the user (2026-10-06)
+**F27. With HTML set to open in Nib, links to local .html files open in Nib too, and nothing says so** — `nib/Views/SettingsView.swift:101, 110`, `nib/Model/DefaultApps.swift:53` · W7 · seen by the user (2026-10-06) · **fixed 2026-10-07**: HTML taken out of Settings › Files (the user's call), given back once where Nib had it
 A link in a terminal or another app to a page on this Mac opens it as text in Nib.
 *Fix:* say so on the HTML row ("Any app that opens a .html file on this Mac opens it in Nib, as text;
 web links still open in your browser"); and see the user's open question on an Open in Nib Quick
@@ -235,23 +237,23 @@ buffer behind, and ⌃G opens the strip's line field behind it.
 *Fix:* while `merge != nil`, send these to the merge result's editor (with a find bar in the sheet),
 or disable them.
 
-**F32. Escape hides the conflict banner before the find bar** — `nib/Views/Editor.swift:61-67` · KB1, §5.12, V9 · **checked**
+**F32. Escape hides the conflict banner before the find bar** — `nib/Views/Editor.swift:61-67` · KB1, §5.12, V9 · **checked** · **fixed 2026-10-07**
 The order is HUD, banner, find bar; with the bar open and the caret in the text, the first Escape
 hides the red banner (until the blocks change) and the bar stays. KB1 and §5.12 also disagree.
 *Fix:* carets, HUD, find bar, then the banner; one order in the PRD.
 
 ### 1.5 Windows
 
-**F33. Once opened, the Sync Log re-reads the whole log after every line, for the rest of the session** — `nib/Views/SyncLogView.swift:42-67` · A11, §6.5 · **checked**
+**F33. Once opened, the Sync Log re-reads the whole log after every line, for the rest of the session** — `nib/Views/SyncLogView.swift:42-67` · A11, §6.5 · **checked** · **fixed 2026-10-07**
 Its model observes every append from the first time it's used and decodes all of `sync.jsonl`
 (never trimmed) each time, window open or not.
 *Fix:* observe only while the window's open, and read only what's new.
 
-**F34. The merge panes' titles come from the first block only** — `nib/Views/MergeView.swift:34-35` · W1, W2 · picture `snapshot-mergeview.png`
+**F34. The merge panes' titles come from the first block only** — `nib/Views/MergeView.swift:34-35` · W1, W2 · picture `snapshot-mergeview.png` · **fixed 2026-10-07**
 One source and one time for every block in the pane.
 *Fix:* the shared name when the blocks agree; otherwise a range of times, or none.
 
-**F35. The Sync Log's Show History leads to a dead end for a file that isn't open** — `nib/Views/SyncLogView.swift:198-201` · W6, SY13
+**F35. The Sync Log's Show History leads to a dead end for a file that isn't open** — `nib/Views/SyncLogView.swift:198-201` · W6, SY13 · **fixed 2026-10-07**
 "Open the file to see its History." with no way to open it (and a `fileExists` in `body`).
 *Fix:* show the path's History read-only with an Open button, or offer it only for open files.
 
@@ -397,7 +399,8 @@ conflicts resolved".
 - **F64.** Curly quotes around file names, unevenly (FirstRun, banners, Alerts, Document's save
   line). W3.
 - **F65.** Times from another day without a date ("✓ SYNCED · 10:42:07" from yesterday); 24-hour
-  times may follow the Mac's 12-hour setting (to check). W1, W5.
+  times may follow the Mac's 12-hour setting (to check). W1, W5. *(2026-10-07: the strip's, the
+  HUD's and the panel's times say the day when it isn't today.)*
 - **F66.** "Its note" (internal word) in "‖ … WAITING FOR ITS NOTE TO MERGE IT"; "· OPENING" without
   saying it waits on iCloud. W1, W4.
 - **F67.** "CLIPBOARD CLEANED · ALREADY PLAIN AND CLEAN"; "⌘Z UNDOES IT" against "⌘Z UNDOES";
@@ -431,7 +434,8 @@ conflicts resolved".
 - **F82.** Syntax names spoken "Html", "Javascript"; the gutter not hidden or labelled for VoiceOver;
   the Toast always interrupts VoiceOver; Recent rows with the same name sound the same; the panel
   isn't keyboard-navigable; the Dock ✕ has no words; About's "NIB" and "V0.1 · BUILD 3" read raw;
-  the palette's group labels at 2.3:1. *(2026-10-07: the palette's labels fixed.)*
+  the palette's group labels at 2.3:1. *(2026-10-07: the palette's labels fixed; the menu bar
+  panel's rows say their detail, so Recent rows with the same name differ.)*
 - **F83.** Acknowledgements cuts long names and versions in its 230-point list (**checked**,
   `acknowledgements.png`).
 - **F84.** Settings opens on its third tab (Editor) the first time; the Dock switch goes grey with no

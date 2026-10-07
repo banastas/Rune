@@ -64,9 +64,11 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.textStorage?.delegate = self   // the caret's line count follows edits (position(of:))
         textView.onEscape = { [weak self] in
             guard let self else { return false }
+            // Carets first (the text view's own), then the HUD, the find bar, and last the banner:
+            // the banner went before the bar, hiding the red line while the bar stayed (F32).
             if let document = self.document, document.syncDetailsShown { document.syncDetailsShown = false; return true }
-            if self.document?.hideBanner() == true { return true }
             if self.find.shown { self.find.close(); return true }
+            if self.document?.hideBanner() == true { return true }
             return false
         }
         textView.finder = find

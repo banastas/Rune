@@ -4,9 +4,15 @@
 // and remembers the app it took them from; off, that app gets them back, or the one macOS ranks
 // next if it's gone. macOS keeps the choice, and may ask the user first for some types. A test
 // run's Nib never changes the Mac's: it keeps a stand-in.
+//
+// Not HTML (the user's call, 2026-10-07): macOS opens every page on the Mac with the app for
+// .html, `open page.html`, Python's webbrowser, the reports build tools open, links in Terminal
+// and Mail, so with Nib as it those came up as source. Nib still edits HTML, highlighted, when
+// asked (Open With, ⌘O, `nib page.html`); a Mac where it had them gives them back once.
 
 import AppKit
 import NibSync
+import NibText
 import UniformTypeIdentifiers
 
 @MainActor
@@ -15,7 +21,7 @@ final class DefaultApps {
     static let shared = DefaultApps()
 
     enum Kind: String, CaseIterable, Identifiable {
-        case markdown, text, json, html, css, javaScript, shell
+        case markdown, text, json, css, javaScript, shell
 
         var id: String { rawValue }
 
@@ -24,7 +30,6 @@ final class DefaultApps {
             case .markdown: "Markdown"
             case .text: "Plain text"
             case .json: "JSON"
-            case .html: "HTML"
             case .css: "CSS"
             case .javaScript: "JavaScript"
             case .shell: "Shell scripts"
@@ -37,7 +42,6 @@ final class DefaultApps {
             case .markdown: ".md"
             case .text: ".txt"
             case .json: ".json"
-            case .html: ".html"
             case .css: ".css"
             case .javaScript: ".js"
             case .shell: ".sh, .zsh, .bash"
@@ -50,7 +54,6 @@ final class DefaultApps {
             case .markdown: ["net.daringfireball.markdown"]
             case .text: ["public.plain-text"]
             case .json: ["public.json"]
-            case .html: ["public.html"]
             case .css: ["public.css"]
             case .javaScript: ["com.netscape.javascript-source"]
             case .shell: ["public.shell-script", "public.zsh-script", "public.bash-script"]
@@ -79,7 +82,39 @@ final class DefaultApps {
         for type in kind.types { fake?[type.identifier] = app }
         refresh()
     }
+
+    /// The same for one type: HTML, which isn't a kind.
+    func pretend(_ app: URL, opensType identifier: String) {
+        fake?[identifier] = app
+    }
     #endif
+
+    static let htmlGivenBackKey = "htmlGivenBack"
+
+    /// HTML, given back once where Nib had it (it was a kind until 2026-10-07): to the app Nib took
+    /// it from, or the Mac's web browser if that's gone. What to say on the strip, or nil when
+    /// there was nothing to do.
+    func giveBackHTML() async -> String? {
+        guard !NibDefaults.store.bool(forKey: Self.htmlGivenBackKey) else { return nil }
+        NibDefaults.store.set(true, forKey: Self.htmlGivenBackKey)   // once, whatever comes of it
+        guard let html = UTType("public.html"), opener(of: html).map(Self.isNib) == true else { return nil }
+        var back: URL?
+        if let path = NibDefaults.store.string(forKey: Self.beforeKey(html)), FileManager.default.fileExists(atPath: path), !Self.isNib(URL(fileURLWithPath: path)) {
+            back = URL(fileURLWithPath: path)
+        } else if let web = URL(string: "https://example.com"), let browser = NSWorkspace.shared.urlForApplication(toOpen: web), !Self.isNib(browser) {
+            back = browser
+        } else {
+            back = previous(for: html)
+        }
+        guard let back else { return "HTML FILES STAY WITH NIB · NO OTHER APP ON THIS MAC OPENS THEM" }
+        let name = Self.name(back).uppercased()
+        do {
+            try await setOpener(back, for: html)
+            return "HTML FILES OPEN IN \(name) AGAIN · NIB STILL EDITS THEM: OPEN WITH, ⌘O OR NIB PAGE.HTML"
+        } catch {
+            return "COULDN'T GIVE HTML FILES BACK TO \(name) · \(ErrorWords.hud(error)) · FINDER'S GET INFO › OPEN WITH CAN"
+        }
+    }
 
     private init() {}
 

@@ -124,19 +124,61 @@ struct HistoryWindow: View {
         _document = State(initialValue: url.flatMap(Documents.existing(for:)) ?? (url == nil ? Documents.scratch : nil))
     }
 
+    /// What the window shows: the file's History while it's open; for one that isn't, a way to
+    /// open it (it said "Open the file to see its History." with no way to, from the Sync Log:
+    /// the QA review's F35); for one that's gone, that it is.
+    enum Shown: Equatable { case history, notOpen(String), gone(String), nothing }
+
+    static func shown(url: URL?, document: Document?) -> Shown {
+        if let document, !document.closed { return .history }
+        guard let url else { return .nothing }
+        return FileManager.default.fileExists(atPath: url.path) ? .notOpen(url.lastPathComponent) : .gone(url.lastPathComponent)
+    }
+
     var body: some View {
         Group {
-            if let document, !document.closed {
-                HistoryView(document: document)
-                    .background(WindowConfigurator { $0.tabbingMode = .disallowed })
-            } else {
-                Text("Open the file to see its History.")
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 400, minHeight: 200)
+            switch Self.shown(url: url, document: document) {
+            case .history:
+                if let document {
+                    HistoryView(document: document)
+                        .background(WindowConfigurator { $0.tabbingMode = .disallowed })
+                }
+            case .notOpen(let name):
+                VStack(spacing: 12) {
+                    Text("“\(name)” isn't open. Its History shows here once it is.")
+                        .foregroundStyle(.secondary)
+                    Button("Open “\(name)”") { if let url { open(url) } }
+                        .keyboardShortcut(.defaultAction)
+                }
+                .padding(20)
+                .frame(minWidth: 400, minHeight: 200)
+            case .gone(let name):
+                message("“\(name)” isn't there any more.")
+            case .nothing:
+                message("Open the file to see its History.")
             }
         }
         // Its file closed: the window goes too, as the document it shows is let go (the QA
         // review's F2: Restore here saved into the closed file).
         .onChange(of: document?.closed ?? false) { _, closed in if closed { dismiss() } }
+    }
+
+    private func message(_ text: String) -> some View {
+        Text(text)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .padding(20)
+            .frame(minWidth: 400, minHeight: 200)
+    }
+
+    /// Opens the file, and shows its History once it's open.
+    private func open(_ url: URL) {
+        guard AppDelegate.openFile(url) else { return }
+        Task {
+            for _ in 0..<100 {
+                if let opened = Documents.existing(for: url), opened.ready { document = opened; return }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+        }
     }
 }

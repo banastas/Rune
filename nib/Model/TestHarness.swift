@@ -14,6 +14,7 @@ import NibSyntax
 import NibText
 import ServiceManagement
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 enum TestHarness {
@@ -36,6 +37,9 @@ enum TestHarness {
     static var fakeTrash: URL?
     /// The `evicted` scenario: this Mac offline, as far as Nib's own files go (iCloud isn't asked).
     static var offline = false
+    /// The `evicted` scenario: online, with iCloud slow to bring a file (a download's wait gives up
+    /// after 2 s, and iCloud isn't asked).
+    static var slowDownload = false
     /// The `large` scenario's answer to ED9's question about a file over 100 MB, and the files asked about.
     static var largeFileAnswer: Bool?
     static var largeFileAsked: [String] = []
@@ -1133,6 +1137,22 @@ enum TestHarness {
         model.window?.close()
         log.check(again && model.window == nil, "Help › Welcome to Nib shows it again")
 
+        // Not there yet: looked for again while the window's open, for another Mac's may be on its
+        // way (the QA review's F26: it looked once and offered Create).
+        let coming = folder.appendingPathComponent("coming-\(marker).md")
+        FirstRun.lookingFor = coming
+        FirstRun.lookEvery = 0.5
+        model.show()
+        _ = await waitFor(5) { model.scratchFound == false }
+        let missing = model.scratchFound == false
+        try? Data("# Coming \(marker)\n".utf8).write(to: coming)
+        let cameIn = await waitFor(5) { model.scratchFound == true }
+        model.window?.close()
+        FirstRun.lookingFor = nil
+        FirstRun.lookEvery = 2
+        try? FileManager.default.removeItem(at: coming)
+        log.check(missing && cameIn, "a scratch file not there yet is looked for again while the window's open, and found once it comes")
+
         // Settings › General has them too, with Append's.
         defaults.set("general", forKey: "settingsTab")
         AppDelegate.openSettings()
@@ -1735,6 +1755,21 @@ enum TestHarness {
         log.check(ran && view.string.hasSuffix("\n\nappended by Shortcuts \(marker)\n") && got == view.string,
                   "Shortcuts: Append to Scratch adds to its end, and Get Scratch gives its text as it is in Nib (\(got.map { "\(($0 as NSString).length) characters" } ?? "nothing"))")
         log.check(CleanTextIntent.clean("a\u{200B}b   \n") == "ab\n", "Shortcuts: Clean Text (\(CleanTextIntent.clean("a\u{200B}b   \n").debugDescription))")
+
+        // Nothing left once cleaned: said of where the text came from (the QA review's F19: "the
+        // clipboard has no text" for the selection, a Shortcut's text and `nib -a` too).
+        let before = view.string
+        board.clearContents()
+        board.setString("\u{200B}   \n", forType: .string)
+        error = nil
+        ServiceProvider.shared.appendToScratch(board, userData: nil, error: &error)
+        let shortcut = AppendToScratchIntent()
+        shortcut.text = "\u{200B}\n"
+        var thrown = ""
+        do { _ = try await shortcut.perform() } catch { thrown = "\(error)" }
+        let service = (error as String?) ?? ""
+        log.check(view.string == before && service.contains("selection is empty once cleaned") && thrown.contains("text is empty once cleaned"),
+                  "nothing to append, said of where it came from: “\(service)”, “\(thrown)”")
     }
 
     /// The sync HUD (§5.3, SY16): View › Show Sync Details (⇧⌘Y) opens it over the text's foot,
@@ -1863,6 +1898,27 @@ enum TestHarness {
         let hudFirst = !buffer.syncDetailsShown && !buffer.bannerHidden
         log.check(buffer.blocks.count == 1 && red > 0.08 && hudFirst,
                   "a conflict block adds the WARNING panel (\(Int(red * 100))% of the band its red), and Escape closes the HUD before the banner")
+        // Then the find bar before the banner (the QA review's F32: the banner went first, the bar
+        // staying), and the banner last.
+        buffer.editor.find.open(replace: false)
+        bufferView.window?.makeFirstResponder(bufferView)
+        bufferView.cancelOperation(nil)
+        let barFirst = !buffer.editor.find.shown && !buffer.bannerHidden
+        bufferView.cancelOperation(nil)
+        log.check(barFirst && buffer.bannerHidden, "Escape closes the find bar before the banner, and the banner last")
+        // The banner's sentence, from the blocks' whole names (the QA review's F10: "This Mac and
+        // this Mac both changed this file", the file after a crash, a duplicate, "Studio 2").
+        let me = buffer.device
+        func said(_ labels: [String], device: String? = nil) -> String {
+            ConflictBanner.message(blocks: 1, others: ConflictBanner.others(labels, device: device ?? me), merged: false, fileExtension: "md")
+        }
+        let sayings = [said(["This Mac · 10:42", "Test Mac · 10:43"]), said(["\(me) · 10:42", "The file · now"]),
+                       said(["\(me) · 10:42", "scratch-test 2.md · 10:40"]), said(["Studio · 10:42", "Studio 2 · 10:43"], device: "Studio"),
+                       said(["\(me) · 10:42", "Air · 10:41", "\(me) · 10:44", "iCloud · 10:43"])]
+        log.check(sayings[0].hasPrefix("Test Mac and this Mac both changed") && sayings[1].hasPrefix("The file changed while Nib was closed")
+                  && sayings[2].hasPrefix("scratch-test 2.md is a copy of this file") && sayings[3].hasPrefix("Studio 2 and this Mac")
+                  && sayings[4].hasPrefix("Several versions changed this file"),
+                  "the banner names the other side by its whole name: \(sayings.map { "“\($0.prefix(40))…”" }.joined(separator: ", "))")
         Untitled.letGo(url)
         bufferView.window?.performClose(nil)
         if !(await waitFor(15) { !FileManager.default.fileExists(atPath: url.path) }) { log.line("the buffer was still there after 15 s") }
@@ -1883,8 +1939,9 @@ enum TestHarness {
             for type in types { NibDefaults.store.removeObject(forKey: DefaultApps.beforeKey(type)) }
         }
         for kind in kinds { apps.pretend(textEdit, opens: kind) }
-        log.check(types.count == 9 && kinds.allSatisfy { apps.openers[$0] == .init(name: "TextEdit", isNib: false) },
-                  "seven kinds, nine types (\(types.map(\.identifier).joined(separator: ", "))), each opening in TextEdit to start with")
+        // Not HTML (2026-10-07, the user's call): pages on this Mac opened as source.
+        log.check(types.count == 8 && !types.contains { $0.identifier == "public.html" } && kinds.allSatisfy { apps.openers[$0] == .init(name: "TextEdit", isNib: false) },
+                  "six kinds, eight types, not HTML (\(types.map(\.identifier).joined(separator: ", "))), each opening in TextEdit to start with")
 
         // On: Nib opens them, and TextEdit is remembered. Off: TextEdit has them back.
         let markdown = DefaultApps.Kind.markdown.types[0]
@@ -1914,8 +1971,10 @@ enum TestHarness {
         AppDelegate.openSettings()
         func settingsWindow() -> NSWindow? { NSApp.windows.first { $0.isVisible && $0.title == "Files" } }
         let shown = await waitFor(5) { settingsWindow() != nil }
+        var plainHeight: CGFloat = 0
         if let window = settingsWindow(), let view = window.contentView {
             try? await Task.sleep(for: .milliseconds(400))
+            plainHeight = window.frame.height
             if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
                 view.cacheDisplay(in: view.bounds, to: rep)
                 try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("settings-files.png"))
@@ -1923,6 +1982,18 @@ enum TestHarness {
             window.close()
         }
         log.check(shown, "Settings › Files shows them")
+        log.check(plainHeight > 0 && plainHeight <= 860, "Settings › Files fits the Air's screen (\(Int(plainHeight)) points)")
+        // A Mac where Nib had HTML: given back once, to the app it took it from (the stand-in's).
+        let html = UTType("public.html")!
+        apps.pretend(Bundle.main.bundleURL, opensType: html.identifier)
+        NibDefaults.store.set(textEdit.path, forKey: DefaultApps.beforeKey(html))
+        NibDefaults.store.removeObject(forKey: DefaultApps.htmlGivenBackKey)
+        let said = await apps.giveBackHTML() ?? ""
+        let backTo = apps.opener(of: html).map(DefaultApps.name) ?? "none"
+        let again = await apps.giveBackHTML()
+        NibDefaults.store.removeObject(forKey: DefaultApps.beforeKey(html))
+        log.check(backTo == "TextEdit" && said.hasPrefix("HTML FILES OPEN IN TEXTEDIT AGAIN") && again == nil,
+                  "where Nib had HTML, it's given back once, to the app it took it from (\(backTo)): \(said)")
 
         // Every tab on the Air's screen (about 900 points under its menu bar): Settings can't scroll,
         // and General was 967 points tall (the QA review's F22). A picture of each.
@@ -2072,6 +2143,9 @@ enum TestHarness {
         }
         log.check(banner && document.deletedToTrash && document.state.line.contains("MOVED TO THE TRASH") && !document.held,
                   "moved to the Trash by another app: the text stays, and the banner and the strip say so (\(document.state.line))")
+        // The HUD says it too (the QA review's F12: "✕ PROBLEM", and the file "CURRENT").
+        log.check(SyncHUD.stateWord(document.state) == "✕ IN THE TRASH" && SyncHUD.onDisk(document) == "GONE",
+                  "the sync HUD: STATE \(SyncHUD.stateWord(document.state)), ON DISK \(SyncHUD.onDisk(document))")
         func gone() -> [Alerts.Alert] { Notifier.shared.posted.filter { $0.kind == .deleted && $0.title.hasPrefix("gone-\(marker).md") } }
         log.check(gone().map(\.title) == ["gone-\(marker).md was moved to the Trash"], "and a notification (SY15): “\(gone().first.map { $0.title + ": " + $0.body } ?? "none")”")
         await document.flush(reason: "test")
@@ -2083,6 +2157,11 @@ enum TestHarness {
         try? await Task.sleep(for: .milliseconds(1_500))
         log.check(document.state.line.contains("MOVED TO THE TRASH") && MenuBarState.needsLook(document),
                   "typing after it went keeps the strip's red line (\(document.state.line)) and the menu bar's ✕")
+        // The menu bar names it: its panel and tooltip spoke only of the scratch file (the QA review's F11).
+        let others = MenuBarState.othersNeedingLook()
+        let named = MenuBarState.othersLine(others) ?? ""
+        log.check(others.contains { $0 === document } && named.contains("GONE-\(marker.uppercased()).MD NEEDS A LOOK (IN THE TRASH)"),
+                  "and the menu bar's panel and tooltip name it: \(named)")
         await document.restoreDeleted()
         let restored = fileText(document)
         log.check(!document.deleted && restored.contains("typed before it went \(marker)") && restored.contains("typed after it went \(marker)"),
@@ -2167,6 +2246,8 @@ enum TestHarness {
         try? await Task.sleep(for: .seconds(2))
         log.check(full && document.state.line.contains("ICLOUD STORAGE IS FULL") && fileText(document).contains("storage full \(marker)"),
                   "iCloud storage full: saved here, and the strip says so, and goes on saying so (\(document.state.line))")
+        log.check(SyncHUD.stateWord(document.state) == "✕ ICLOUD FULL" && SyncHUD.onDisk(document) == "CURRENT",
+                  "the sync HUD: STATE \(SyncHUD.stateWord(document.state)), ON DISK \(SyncHUD.onDisk(document)) (F12)")
         // SY15: a notification (a scenario's Nib is never frontmost), once however often it's retried.
         func said(_ kind: Alerts.Kind) -> [Alerts.Alert] { Notifier.shared.posted.filter { $0.kind == kind } }
         log.check(said(.storageFull).map(\.title) == ["iCloud storage is full"], "a notification: “\(said(.storageFull).first.map { $0.title + ": " + $0.body } ?? "none")”")
@@ -2194,6 +2275,9 @@ enum TestHarness {
         await document.flush(reason: "test")
         log.check(journalFull && document.state.line.contains("ONLY IN MEMORY") && !fileText(document).contains("disk full \(marker)"),
                   "disk full: the journal and the file refuse, and the strip says so (\(document.state.line))")
+        // Not "SAVING" for good (the QA review's F12).
+        log.check(SyncHUD.stateWord(document.state) == "✕ DISK FULL" && SyncHUD.onDisk(document) == "NOT SAVED · IN MEMORY",
+                  "the sync HUD: STATE \(SyncHUD.stateWord(document.state)), ON DISK \(SyncHUD.onDisk(document))")
         let offered = await waitFor(5) { document.trashOffer != nil }
         log.check(offered && document.trashOffer?.label.hasPrefix("EMPTY TRASH · 3") == true,
                   "the strip offers to empty the Trash, with what that frees (\(document.trashOffer?.label ?? "nothing"))")
@@ -2261,6 +2345,8 @@ enum TestHarness {
         let copy = (try? String(contentsOf: recovery, encoding: .utf8)) ?? ""
         log.check(copy.contains("typed while iCloud was off \(marker)") && !FileManager.default.fileExists(atPath: url.path),
                   "saved to Nib's Recovery folder, and nothing made at the file's place")
+        log.check(SyncHUD.stateWord(document.state) == "✕ ICLOUD DRIVE OFF" && SyncHUD.onDisk(document) == "IN THE RECOVERY FOLDER",
+                  "the sync HUD: STATE \(SyncHUD.stateWord(document.state)), ON DISK \(SyncHUD.onDisk(document)) (F12: “SAVING” for good)")
 
         // iCloud on again, and the file back, as it was when it went: not a second and a half
         // after going (the typing above), as no real iCloud Drive comes back. iCloud's file
@@ -2401,6 +2487,7 @@ enum TestHarness {
         // Closed, and only then removed: removed while its window was closing, the folder stayed
         // (five were left in the test folder, 2026-10-01).
         TestHarness.offline = false
+        TestHarness.slowDownload = false
         let never = folder.appendingPathComponent("never-\(marker).md")
         for file in [url, never] { Documents.existing(for: file)?.editor.textView.window?.performClose(nil) }
         _ = await waitFor(20) { Documents.existing(for: url) == nil && Documents.existing(for: never) == nil }
@@ -2459,6 +2546,19 @@ enum TestHarness {
         let goneAgain = await evict()
         log.check(goneAgain, "taken off this Mac again")
         guard goneAgain else { return }
+
+        // Online, and iCloud slow to bring it: the copy, said as not here yet, not as offline (the
+        // QA review's F15: "◐ OFFLINE" on a Mac that's online). Closed before iCloud's asked.
+        TestHarness.slowDownload = true
+        if let slow = await open() {
+            let said = await waitFor(10) { slow.awaitingDownload }
+            log.check(said && slow.state.line.hasPrefix("◐ NOT HERE YET · ICLOUD IS SLOW TO BRING IT · SHOWING THE COPY FROM") && SyncHUD.stateWord(slow.state) == "◐ NOT HERE YET",
+                      "online, iCloud slow to bring it: the copy, not here yet rather than offline (\(slow.state.line))")
+            await close(slow)
+        } else {
+            log.check(false, "it opened with iCloud slow")
+        }
+        TestHarness.slowDownload = false
 
         // Offline: the copy Nib saw last, dimmed; typing allowed, and the file left alone.
         TestHarness.offline = true
@@ -3720,6 +3820,10 @@ enum TestHarness {
                 let conflicts = Notifier.shared.posted.filter { $0.kind == .conflict }
                 log.check(conflicts.count == 1 && conflicts[0].title.hasPrefix("Conflict with ") && conflicts[0].title.hasSuffix(" in \(document.url.lastPathComponent)"),
                           "and a notification (SY15): “\(conflicts.first.map { $0.title + ": " + $0.body } ?? "none")”")
+                // Both whole versions, not "1 place" (the QA review's F14), on the strip and in the notification.
+                log.check(document.notice?.contains("BOTH WHOLE VERSIONS ARE IN THE TEXT") == true && document.notice?.contains("PLACE") == false
+                          && conflicts.first?.body.hasPrefix("Both whole versions are in the text") == true,
+                          "said as both whole versions, not 1 place: \(document.notice ?? "no notice")")
                 let resolved = await keepBoth(document, marker)
                 log.check(resolved, "and Keep Both resolves it")
                 log.check(Notifier.shared.withdrawn.contains(.conflict), "resolved, the notification's taken back")
@@ -3788,6 +3892,10 @@ enum TestHarness {
                   && session.second.text.contains("theirs 1 \(marker)") && !session.second.text.contains("mine 4 \(marker)"),
                   "each pane holds one version's whole text (\(session.first.label) · \(session.second.label))")
         log.check(session.marks.first.contains(.changed) && session.marks.second.contains(.changed), "and marks what differs (~)")
+        // Each pane's title from all four blocks: their times' span, not the first block's time
+        // for all of them (the QA review's F34).
+        log.check(session.first.label == "\(document.device.uppercased()) · THIS MAC · 10:41-10:44" && session.second.label == "TEST MAC · 10:31-10:34",
+                  "the panes' titles span every block: \(session.first.label) and \(session.second.label)")
         // The window's own commands, chosen with the sheet up, don't reach the text behind it (the QA
         // review's F31: Find opened the window's find bar under the sheet, Go to Line its strip field).
         func choose(_ path: [String]) -> String {
@@ -4030,9 +4138,16 @@ enum TestHarness {
         let local = ScratchLocation.localTestFolder.appendingPathComponent("local-\(marker).md")
         try? FileManager.default.createDirectory(at: ScratchLocation.localTestFolder, withIntermediateDirectories: true)
         try? Data("# Local \(marker)\n".utf8).write(to: local)
+        // Last changed two days ago: opened, it says that time, with its day (the QA review's F13
+        // and F65: the time it opened, as if saved then, and no day).
+        let twoDaysAgo = Date(timeIntervalSinceNow: -2 * 86_400).addingTimeInterval(-37)
+        try? FileManager.default.setAttributes([.modificationDate: twoDaysAgo], ofItemAtPath: local.path)
         AppDelegate.openFile(local)
         _ = await waitFor(10) { Documents.existing(for: local)?.ready == true }
         if let file = Documents.existing(for: local) {
+            let saidAt = file.savedAt.map { abs($0.timeIntervalSince(twoDaysAgo)) < 1 } == true
+            log.check(saidAt && file.statusLine == "✓ SAVED · \(SyncState.moment(twoDaysAgo))" && file.uploadedAt == nil,
+                      "opened, its version's own time and day, not the time it opened: “\(file.statusLine)”")
             await type("- typed in a file on this Mac only \(marker)\n", into: file)
             await file.flush(reason: "test")
             let saved = await waitFor(10) { if case .savedHere = file.state { true } else { false } }
@@ -5131,6 +5246,7 @@ enum TestHarness {
         func window() -> NSWindow? { NSApp.windows.first { $0.title == "Sync Log" && $0.isVisible } }
         let opened = await waitFor(5) { window() != nil && model.loaded }
         log.check(opened && !model.rows.isEmpty, "it opens on this Mac's log (\(model.rows.count) events)")
+        let wholeReads = model.wholeReads
         let shown = model.shown
         log.check(zip(shown, shown.dropFirst()).allSatisfy { $0.time >= $1.time }, "newest first")
 
@@ -5138,6 +5254,8 @@ enum TestHarness {
         await type("\n- sync log \(marker)\n", into: document)
         let arrived = await waitFor(10) { model.rows.contains { $0.event.event == "save" && $0.event.path == document.url.path && $0.time >= start } }
         log.check(arrived && model.shown.first?.time ?? .distantPast >= start, "a save made while it's open appears, at the top")
+        // Read as the lines come, not the whole log again (the QA review's F33).
+        log.check(model.wholeReads == wholeReads, "and only the new lines were read, not the whole log again (\(model.wholeReads - wholeReads) whole reads)")
         if let sha = model.rows.last(where: { $0.event.event == "save" && $0.event.path == document.url.path })?.event.sha256 {
             model.search = String(sha.prefix(10))
             let found = model.shown
@@ -5158,6 +5276,23 @@ enum TestHarness {
             try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("snapshot-synclog.png"))
         }
         window()?.close()
+        // Closed, it reads nothing and keeps nothing as lines are added (F33: every line read the
+        // whole log for the rest of the session).
+        _ = await waitFor(5) { window() == nil && model.rows.isEmpty }
+        let readsClosed = model.wholeReads
+        await type("- after the sync log closed \(marker)\n", into: document)
+        await document.flush(reason: "test")
+        try? await Task.sleep(for: .milliseconds(800))
+        log.check(model.rows.isEmpty && model.wholeReads == readsClosed, "closed, it reads nothing as lines are added, and keeps none (\(model.rows.count) rows)")
+        // Show History for a line's file: open, its History; not open, a way to open it; gone, so
+        // said (the QA review's F35: "Open the file to see its History.", with no way to).
+        let elsewhere = URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("elsewhere-\(marker).md")
+        try? Data("# Elsewhere\n".utf8).write(to: elsewhere)
+        let gone = elsewhere.deletingLastPathComponent().appendingPathComponent("gone-\(marker).md")
+        let views = [HistoryWindow.shown(url: document.url, document: document), HistoryWindow.shown(url: elsewhere, document: nil), HistoryWindow.shown(url: gone, document: nil)]
+        try? FileManager.default.removeItem(at: elsewhere)
+        log.check(views == [.history, .notOpen(elsewhere.lastPathComponent), .gone(gone.lastPathComponent)],
+                  "Show History: its History for an open file, Open for one that isn't, and gone for one that's gone")
     }
 
     /// History (SY13): each saved version is kept; Revert To puts one back as an edit, and the
@@ -5191,7 +5326,8 @@ enum TestHarness {
         guard let opened, let entry else { return }
         document.restore(opened)
         let back = await waitFor(10) { !fileText(document).contains("history one \(marker)") && !document.dirty }
-        log.check(back && document.notice?.contains("BACK TO THE VERSION FROM") == true, "Revert To: the earlier version, in the buffer and the file (\(document.notice ?? "no notice"))")
+        // Named with its day, as History names it (the QA review's F20: the time alone).
+        log.check(back && document.notice?.contains("BACK TO THE VERSION FROM TODAY ") == true, "Revert To: the earlier version, in the buffer and the file, named with its day (\(document.notice ?? "no notice"))")
         let atOnce = await waitFor(3) { document.history.entries().last.map { !text(document, $0).contains("history one \(marker)") && $0.time > savedTwo } == true }
         log.check(atOnce, "and it went into History at once, not at a span's end")
         document.restore(entry)
