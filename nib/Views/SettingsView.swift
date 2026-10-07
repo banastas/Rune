@@ -7,6 +7,7 @@
 // import's report, HL2-HL4). Each tab fits the Air's screen, as Settings can't scroll (F22).
 
 import AppKit
+import NibText
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -115,6 +116,7 @@ private struct SyncSettings: View {
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
+        .onChange(of: refusal) { _, why in if let why { Announce.sentence(why) } }   // said, not only shown (F62)
     }
 
     private func change() {
@@ -156,6 +158,7 @@ private struct FileSettings: View {
         .formStyle(.grouped)
         .scrollDisabled(true)
         .onAppear { apps.refresh() }
+        .onChange(of: apps.failure) { _, why in if let why { Announce.sentence(why) } }   // F62
     }
 }
 
@@ -239,7 +242,8 @@ struct ThemeSettings: View {
                     }
                 }
                 if schemes.currentID != Schemes.builtIn {
-                    Button("Remove “\(schemes.current.name)”") { schemes.remove(schemes.currentID) }
+                    Button("Move “\(schemes.current.name)” to the Trash") { schemes.remove(schemes.currentID) }
+                        .help("Nib's copy goes to the Trash, where you can put it back; the file you imported it from isn't touched")
                 }
                 note("Colors the page: the text, its background, the caret, the selection and the line numbers. Nib's windows, menus and status strip stay dark whatever the scheme.")
             }
@@ -262,12 +266,13 @@ struct ThemeSettings: View {
                         .background(HUDColor.background)
                         .overlay(RoundedRectangle(cornerRadius: 6).stroke(HUDColor.border, lineWidth: 1))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .accessibilityLabel("Last import: \(report.lowercased())")
+                        .accessibilityLabel("Last import: \(Spoken.sentence(report))")   // F61
                 }
             }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
+        .onChange(of: schemes.report) { _, report in if let report { Announce.hud(report) } }   // the import's report, said (F62)
         .overlay {
             if dropping { RoundedRectangle(cornerRadius: 8).stroke(Color.accentColor, lineWidth: 2).padding(4) }
         }

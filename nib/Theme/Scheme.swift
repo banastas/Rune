@@ -40,6 +40,12 @@ enum Scheme {
     static var markupDeleted: NSColor { theme.style(for: "markup.deleted").background.map(NSColor.init) ?? color(0x420E09) }
     static var markupChanged: NSColor { theme.style(for: "markup.changed").background.map(NSColor.init) ?? color(0x4A4A0F) }
     static var comment: NSColor { NSColor(theme.style(for: "comment").foreground) }
+    /// A color made at least 4.5:1 on a background (V2), lighter on a dark one: the conflict
+    /// frames' key hints in the comment color and the merge panes' HUD grey titles were about 4.1:1
+    /// on the page, at 9 pt (the QA review's F59).
+    static func legible(_ color: NSColor, on background: NSColor, ratio: Double = 4.5) -> NSColor {
+        NSColor(ColorAdjuster.minContrast(RGBA(background), ratio: ratio).apply(to: RGBA(color)))
+    }
     /// Line numbers (ED6): the gutter, its numbers (at least 4.5:1, unless the scheme sets its
     /// own), and the caret's line's number in the text color.
     static var gutter: NSColor { NSColor(theme.gutter) }
@@ -140,10 +146,14 @@ final class Schemes {
     }
 
     /// Takes an imported scheme out of the list, and the file out of the Themes folder.
+    /// Nib's copy of an imported scheme, to the Trash, where it can be put back: it was deleted at
+    /// once, unasked (the QA review's F54). The file it was imported from isn't touched. A test
+    /// run's Nib deletes its own, so as not to fill the Trash.
     func remove(_ id: String) {
         guard id != Self.builtIn else { return }
         if currentID == id { use(Self.builtIn) }
-        try? FileManager.default.removeItem(at: Self.folder.appendingPathComponent(id))
+        let file = Self.folder.appendingPathComponent(id)
+        if NibPaths.isScenario { try? FileManager.default.removeItem(at: file) } else { try? FileManager.default.trashItem(at: file, resultingItemURL: nil) }
         reload()
     }
 

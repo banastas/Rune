@@ -221,6 +221,9 @@ enum TestHarness {
     /// Typing reaches the journal, then the file, then iCloud, with the times.
     static func typeAndSync(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
+        // The empty scratch file's line, for when it's empty (§5.1; the QA review's F56).
+        log.check(document === Documents.scratch && document.editor.textView.placeholder == Document.emptyScratchLine,
+                  "the scratch file says what it's for while it's empty: “\(document.editor.textView.placeholder ?? "nothing")”")
         let started = Date()
         await type("\n- harness \(marker)\n", into: document)
         let lastKey = Date()
@@ -387,7 +390,10 @@ enum TestHarness {
         // ⌘F, from Edit › Find, with "deploy" (line 2) selected.
         let findMenu = NSApp.mainMenu?.items.first { $0.title == "Edit" }?.submenu?.items.first { $0.title == "Find" }?.submenu
         let titles = findMenu?.items.filter { !$0.isHidden && !$0.isSeparatorItem }.map(\.title) ?? []
-        log.check(titles == ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find", "Find All", "Replace", "Replace All"],
+        // With the bar's options too (the QA review's F51).
+        log.check(titles == ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find", "Find All", "Replace", "Replace All",
+                             "Regular Expression", "Match Case", "Whole Word", "In Selection"]
+                  && findMenu?.item(withTitle: "Match Case")?.keyEquivalent == "c" && findMenu?.item(withTitle: "Whole Word")?.keyEquivalent == "w",
                   "Edit › Find: \(titles.joined(separator: ", "))")
         view.setSelectedRange(range("deploy"))
         let keys = ["Find…", "Find and Replace…", "Find Next", "Find Previous", "Use Selection for Find", "Replace", "Replace All"].map { title in
@@ -453,14 +459,21 @@ enum TestHarness {
         find.next(backwards: true)
         log.check(third && wrapped && selected() == "DEPLOY" && find.countLabel == "4 OF 4", "⌘G, round the end to the top, and ⇧⌘G back round")
 
-        // The options.
-        find.options.matchCase = true
+        // The options: Match Case from Edit › Find, as ⌥⌘C does (the QA review's F51), when Nib is
+        // in front to have a window's document for the menu.
+        if let menu = findMenu, let index = menu.items.firstIndex(where: { $0.title == "Match Case" }) {
+            menu.update()
+            menu.performActionForItem(at: index)
+        }
+        let byMenu = await waitFor(1) { find.options.matchCase }
+        if !byMenu { find.options.matchCase = true }
         let cased = await waitFor(3) { find.matches.count == 2 }
         find.options.wholeWord = true
         let whole = await waitFor(3) { find.matches.count == 1 }
         find.options = SearchOptions()
         let back = await settle("4 OF 4")
-        log.check(cased && whole && back, "Match Case: 2 matches; and Whole Word: 1")
+        log.check(cased && whole && back && (byMenu || !NSApp.isActive),
+                  "Match Case\(byMenu ? ", from Edit › Find," : "") 2 matches; and Whole Word: 1")
 
         // A regular expression, typed as it would be (finding as it goes), then a bad one.
         view.setSelectedRange(NSRange(location: 0, length: 0))
@@ -646,6 +659,14 @@ enum TestHarness {
         let windows = palette.entries.contains { $0.name == url.lastPathComponent }
         log.check(listed.count == 6 && !own && !windows,
                   "the command palette: every command with its menu and keys (\(listed.count) of 6 checked), not its own or the window list (\(palette.entries.count) commands)")
+        // Commands that were only on the strip or a banner, and Show Scratch, in menus and so here
+        // (the QA review's F44, F47).
+        // (The File ones act on the window in front's file: with Nib behind, there's none.)
+        let inFront = NSApp.isActive && view.window?.isKeyWindow == true
+        let added = [("Show Scratch", "Window"), ("Show in Finder", "File"), ("Show Sync Log for This File", "File")]
+            .filter { name, menu in entry(name)?.detail == menu }.map(\.0)
+        log.check(added.first == "Show Scratch" && (added.count == 3 || !inFront) && entry("Show Scratch")?.shortcut != nil && entry("Restore") == nil,
+                  "and the strip's commands (Restore only while deleted), and Show Scratch with its keys (\(entry("Show Scratch")?.shortcut ?? "no keys")): \(added.joined(separator: ", "))")
         let front = NSApp.isActive && view.window?.isKeyWindow == true
         if front, let duplicate = entry("Duplicate Line") {
             palette.choose(duplicate)
@@ -880,12 +901,22 @@ enum TestHarness {
         try? await Task.sleep(for: .milliseconds(400))
         log.check(still != nil && picture() == still, "still while synced (\(document.state.line))")
         defaults.set(true, forKey: "NibHoldUploads")
+        Document.stallAfter = 2
+        Document.stallCheckEvery = 0.5
         await type("\n- menu bar \(marker)\n", into: document)
         _ = await waitFor(8) { if case .saved = document.state { true } else { false } }
-        try? await Task.sleep(for: .milliseconds(3_600))
+        // Not through typing's pause, which the upload waits for by design: only once it's 3 s past
+        // due (the QA review's F43: it marched from the save, after most pauses in typing).
+        try? await Task.sleep(for: .milliseconds(1_500))
+        log.check(picture() == still && !MenuBarController.overdue([document]), "through typing's pause, before its upload is due, the line stays still")
+        try? await Task.sleep(for: .milliseconds(5_000))
         let a = picture()
         try? await Task.sleep(for: .milliseconds(250))
-        log.check(a != nil && a != picture(), "its line marches while an upload has waited more than 3 s (\(document.state.line))")
+        log.check(a != nil && a != picture(), "its line marches once an upload is more than 3 s past due (\(document.state.line))")
+        // Saved here, the network up, iCloud not uploading it: the strip says how long (§4.5; F42).
+        log.check(document.statusLine.contains(" · ICLOUD HASN'T STARTED UPLOADING (1 MIN)"), "and the strip says iCloud hasn't started uploading it: \(document.statusLine)")
+        Document.stallAfter = 60
+        Document.stallCheckEvery = 15
         defaults.set(true, forKey: "NibReduceMotion")
         try? await Task.sleep(for: .milliseconds(400))
         let calmA = picture(saving: "menubar-item-reduce-motion")
@@ -985,6 +1016,9 @@ enum TestHarness {
         await picture("firstrun-1")
         model.use(URL(fileURLWithPath: NSHomeDirectory() + "/Documents/scratch-\(marker).md"))   // a path only: never read
         log.check(model.chosen == nil && model.message?.contains("only test files") == true, "a file outside the test folder is refused: \(model.message ?? "no message")")
+        // Said, not only shown beside the button (the QA review's F62).
+        let saidRefusal = await waitFor(2) { model.message.map { Announce.said.contains($0) } == true }
+        log.check(saidRefusal, "and the refusal is said to VoiceOver as it shows")
         let other = document.url.deletingLastPathComponent().appendingPathComponent("firstrun-\(marker).md")
         model.use(other)
         log.check(model.chosen == other && model.message == nil, "another test file is taken, for when Nib reopens")
@@ -1434,6 +1468,12 @@ enum TestHarness {
                 let clash = await FileCommands.rename(now, to: names[2])
                 log.check(clash?.contains("IS ALREADY THERE") == true && Documents.existing(for: renamed) === now && fm.fileExists(atPath: renamed.path),
                           "onto another file's name: refused (\(clash ?? "no answer")), nothing moved")
+                // A failure: the ✕, in the red; a wait's notice dim; a problem's tag kept under a
+                // notice (the QA review's F40: bright, no glyph, the problem hidden).
+                let red = StatusStrip.color(notice: now.notice, state: now.state) == HUDColor.failureText
+                let dim = StatusStrip.color(notice: "‖ WAITING", state: .synced(Date())) == HUDColor.dim
+                log.check(now.notice?.hasPrefix("✕ “") == true && red && dim && SyncState.problem("DELETED").tag == "✕",
+                          "a refusal on the strip is a failure: ✕, in the red (\(now.notice ?? "no notice"))")
             }
         }
         // By case alone: the same file to the disk, a new name to Nib.
@@ -1453,7 +1493,7 @@ enum TestHarness {
         if let a = Documents.existing(for: urls[0]) {
             let outside = URL(fileURLWithPath: NSHomeDirectory() + "/Documents/\(names[0])")   // a path only: nothing is written there
             let refused = await FileCommands.move(a, to: outside)
-            log.check(refused?.hasPrefix("NOT MOVED · NIB OPENS ONLY TEST FILES") == true && Documents.existing(for: urls[0]) === a && !fm.fileExists(atPath: outside.path),
+            log.check(refused?.hasPrefix("✕ NOT MOVED · NIB OPENS ONLY TEST FILES") == true && Documents.existing(for: urls[0]) === a && !fm.fileExists(atPath: outside.path),
                       "Move To… outside the test folder: refused (\(refused ?? "no answer"))")
             let why = await FileCommands.move(a, to: moved)
             _ = await opened(moved)
@@ -1478,7 +1518,7 @@ enum TestHarness {
                       "an untitled buffer renamed: “\(again?.url.lastPathComponent ?? "none")”, its History with it, the old one gone, nothing left to reopen")
         }
         let scratch = await FileCommands.rename(document, to: "elsewhere-\(marker).md")
-        log.check(!FileCommands.canMove(document) && scratch?.hasPrefix("THE SCRATCH FILE STAYS") == true && Documents.scratch.url == document.url,
+        log.check(!FileCommands.canMove(document) && scratch?.hasPrefix("✕ THE SCRATCH FILE STAYS") == true && Documents.scratch.url == document.url,
                   "the scratch file isn't renamed or moved: \(scratch ?? "no answer")")
 
         // Files dragged onto a window: files open, folders don't.
@@ -1586,13 +1626,20 @@ enum TestHarness {
                 }
             }
             newer = await waitFor(10) {
-                testMac()?.loaded.sha256 == unseen && document.statusLine.hasPrefix("▼ NEWER ON TEST MAC (") && document.statusLine.hasSuffix(") · NOT HERE YET")
+                testMac()?.loaded.sha256 == unseen && document.statusLine.hasPrefix("▼ NEWER ON TEST MAC · ") && document.statusLine.hasSuffix(" · NOT HERE YET")
             }
             onCard = MenuBarState.card(document).contains { $0.hasPrefix("▼ NEWER ON TEST MAC · ") }
             folderKept = folderChanged() == folderBefore
         } while newer && !folderKept && tries < 2
         log.check(newer && onCard && folderKept,
                   "another Mac with a version this Mac hasn't seen, its receipt changed in place: “\(document.statusLine)”, on the card \(onCard), the folder unchanged \(folderKept)\(tries > 1 ? " (on the second try: the folder changed under the first)" : "")")
+        // Said the same way on the strip, the card and the HUD (the QA review's F41: "OLDER", "HAS
+        // …'S", "(10:42)", and the HUD's STATE "✓ SYNCED" beside the strip's "▼ NEWER").
+        if let other = testMac() {
+            log.check(MenuBarState.card(document).contains(document.statusLine) && other.short == "▼ NEWER · \(other.time)"
+                      && SyncHUD.stateWord(document) == "▼ NEWER ON TEST MAC" && other.sentence.hasPrefix("Test Mac has a newer version, from "),
+                      "one wording: the strip's line on the card, the HUD's “\(other.short)” and STATE “\(SyncHUD.stateWord(document))”")
+        }
 
         // An earlier one: the strip as it was, a line on the card.
         pretend(before)
@@ -1737,6 +1784,9 @@ enum TestHarness {
         board.clearContents()
         board.setString("appended by the service \(marker)\u{200B}   \n", forType: .string)
         ServiceProvider.shared.appendToScratch(board, userData: nil, error: &error)
+        // Confirmed where it can be seen, with the scratch window behind (the QA review's F63).
+        let confirmed = NSApp.isActive && AppDelegate.scratchWindow?.isKeyWindow == true || Announce.said.last == "Appended 1 line to scratch"
+        log.check(confirmed, "Services › Append to Nib Scratch says what it did, with Nib behind (“\(Announce.said.last ?? "nothing")”)")
         log.check(error == nil && view.string.hasSuffix("\n\nappended by the service \(marker)\n"),
                   "Services › Append to Nib Scratch: the selection at the end of the scratch file after a blank line, cleaned (\((view.string.components(separatedBy: "\n").suffix(2).first ?? "").debugDescription))")
 
@@ -1975,6 +2025,14 @@ enum TestHarness {
         if let window = settingsWindow(), let view = window.contentView {
             try? await Task.sleep(for: .milliseconds(400))
             plainHeight = window.frame.height
+            // With Settings in front the text commands are off (the QA review's F46: on, doing nothing).
+            if NSApp.isActive, window.isKeyWindow, let text = NSApp.mainMenu?.items.first(where: { $0.title == "Text" })?.submenu {
+                text.update()
+                let on = ["Indent", "Toggle Comment", "Select Line"].filter { title in text.items.first { $0.title == title }?.isEnabled == true }
+                log.check(on.isEmpty, "with Settings in front, Text's commands are off\(on.isEmpty ? "" : ": \(on.joined(separator: ", ")) on")")
+            } else {
+                log.line("skipped: Text's commands with Settings in front (Nib isn't in front)")
+            }
             if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
                 view.cacheDisplay(in: view.bounds, to: rep)
                 try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("settings-files.png"))
@@ -3888,6 +3946,15 @@ enum TestHarness {
         let opened = await waitFor(5) { document.merge != nil && view.window?.attachedSheet != nil }
         guard opened, let session = document.merge else { log.line("FAIL Resolve… didn't open the merge view"); return }
         log.check(true, "Resolve… with four blocks opened the merge view")
+        // ⌥⌘R is Merge View…, always the merge view, as its ellipsis says ("Resolve…" went to the
+        // next block with three or fewer: the QA review's F52).
+        let conflictsMenu = NSApp.mainMenu?.items.first { $0.title == "Conflicts" }?.submenu
+        log.check(conflictsMenu?.items.first { $0.title == "Merge View…" }?.keyEquivalent == "r" && conflictsMenu?.items.contains { $0.title == "Resolve…" } == false,
+                  "Conflicts › Merge View… on ⌥⌘R, named for what it does")
+        // Its titles and the blocks' key hints at 4.5:1 or more (the QA review's F59: about 4.1).
+        let hint = RGBA(Scheme.legible(Scheme.comment, on: Scheme.conflictBlock)).contrast(RGBA(Scheme.conflictBlock))
+        let title = RGBA(Scheme.legible(NSColor(HUDColor.dim), on: Scheme.background)).contrast(RGBA(Scheme.background))
+        log.check(hint >= 4.5 && title >= 4.5, String(format: "the blocks' hints %.1f:1 and the panes' titles %.1f:1 on the page", hint, title))
         log.check(session.first.text.contains("mine 4 \(marker)") && !session.first.text.contains("theirs 1 \(marker)")
                   && session.second.text.contains("theirs 1 \(marker)") && !session.second.text.contains("mine 4 \(marker)"),
                   "each pane holds one version's whole text (\(session.first.label) · \(session.second.label))")
@@ -3989,7 +4056,9 @@ enum TestHarness {
 
         // The version as opened is in History, and the file has moved on from it.
         let now = Digest.sha256(TextFile.encode(view.string, as: document.format))
-        let earlier = document.history.entries().last { ($0.source == "opened" || $0.source == "saved") && $0.sha256 != now }
+        // Not the version as opened: the identical duplicate above was that one, already dealt with.
+        // (Merges were "saved" in History until F55 named them; this took the opened one then.)
+        let earlier = document.history.entries().last { $0.source != "opened" && $0.sha256 != now }
         if let earlier, let data = document.history.data(earlier.sha256) {
             let old = free()
             try? data.write(to: old)
@@ -5329,7 +5398,12 @@ enum TestHarness {
         // Named with its day, as History names it (the QA review's F20: the time alone).
         log.check(back && document.notice?.contains("BACK TO THE VERSION FROM TODAY ") == true, "Revert To: the earlier version, in the buffer and the file, named with its day (\(document.notice ?? "no notice"))")
         let atOnce = await waitFor(3) { document.history.entries().last.map { !text(document, $0).contains("history one \(marker)") && $0.time > savedTwo } == true }
-        log.check(atOnce, "and it went into History at once, not at a span's end")
+        // Named for what it is, not "saved" (the QA review's F55).
+        let restoredAs = document.history.entries().last?.source ?? ""
+        log.check(atOnce && restoredAs.hasPrefix("restored from Today "), "and it went into History at once, not at a span's end, as “\(restoredAs)”")
+        // What Revert To and the History window show is read off the main thread, and follows (F57).
+        let mirrored = await waitFor(3) { document.historyEntries.map(\.sha256) == document.history.entries().map(\.sha256) }
+        log.check(mirrored, "Revert To's and the History window's list follows History (\(document.historyEntries.count) versions), read off the main thread")
         document.restore(entry)
         let again = await waitFor(10) { fileText(document).contains("history two \(marker)") }
         log.check(again, "and the version it replaced came back from History")
@@ -5346,7 +5420,7 @@ enum TestHarness {
     static func historyClosed(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
         let entries = document.history.entries()
-        let closed = entries.last { $0.source == "saved" && text(document, $0).contains("history closed \(marker)") }
+        let closed = entries.last { ["saved", "closed"].contains($0.source) && text(document, $0).contains("history closed \(marker)") }
         log.check(closed != nil, "the save Nib quit with is in History, as saved (\(entries.suffix(3).map(\.source).joined(separator: ", ")))")
     }
 

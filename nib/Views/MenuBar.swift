@@ -92,7 +92,6 @@ enum MenuBarState {
     /// The scratch file's card, in the HUD's words (W5): its name, its state, when it was
     /// saved and uploaded, and the other Mac's last version ("—" where there's none yet).
     static func card(_ document: Document) -> [String] {
-        let clock = SyncState.clock
         let uploaded = document.uploadedAt.map(SyncState.stamp) ?? (document.uploadedBeforeOpening ? "BEFORE OPENING" : "—")
         var lines = [document.url.lastPathComponent.uppercased(), document.statusLine,
                      "SAVED \(document.savedAt.map(SyncState.stamp) ?? "—") · UPLOADED \(uploaded)"]
@@ -100,16 +99,9 @@ enum MenuBarState {
             lines.append("✕ CONFLICT · \(document.blocks.count) PLACE\(document.blocks.count == 1 ? "" : "S") · BOTH VERSIONS IN THE TEXT")
         }
         // Each other Mac: what its receipt says it has (SY14), and its last upload (its note).
-        for other in document.otherMacs {
-            let name = other.device.uppercased(), time = clock.string(from: other.loaded.time)
-            switch other.delivery {
-            case .same: lines.append("✓ ON \(name) · SINCE \(time)")
-            case .newer: lines.append("▼ NEWER ON \(name) · \(time) · NOT HERE YET")
-            case .earlier: lines.append("\(name) HASN'T GOT THIS VERSION YET · HAS \(time)'S")
-            }
-        }
+        for other in document.otherMacs { lines.append(other.line) }   // the strip's and the HUD's words (F41)
         if let other = document.otherMac {
-            lines.append("\(other.device.uppercased()) · LAST UPLOAD \(clock.string(from: other.time))")
+            lines.append("\(other.device.uppercased()) · LAST UPLOAD \(SyncState.stamp(other.time))")
         } else if document.otherMacs.isEmpty {
             lines.append("NO OTHER MAC YET")
         }
@@ -125,7 +117,6 @@ final class MenuBarController: NSObject {
     private(set) var item: NSStatusItem?
     private(set) var panel: NSPanel?
     private var frame = 0
-    private var pendingSince: Date?
     private var ticker: Timer?
     private var outside: Any?
 
@@ -194,15 +185,20 @@ final class MenuBarController: NSObject {
         }
     }
 
-    /// The image, the words for VoiceOver, and the march: still, then after 3 s pending, a
-    /// step every 0.16 s until the upload is taken.
+    /// An upload more than 3 s past when it was due: counted from the save, typing's ordinary
+    /// pause marched for a second or two (the QA review's F43).
+    static func overdue(_ documents: [Document]) -> Bool {
+        documents.contains { MenuBarState.pending($0) && ($0.uploadPendingSince.map { Date().timeIntervalSince($0) > 3 } ?? false) }
+    }
+
+    /// The image, the words for VoiceOver, and the march: still, then once an upload is 3 s past
+    /// due, a step every 0.16 s until it's taken.
     func refresh() {
         guard let button else { return }
         let documents = Documents.all
         let pending = documents.contains(where: MenuBarState.pending)
         let look = documents.contains(where: MenuBarState.needsLook)
-        if pending { pendingSince = pendingSince ?? Date() } else { pendingSince = nil }
-        let marching = pendingSince.map { Date().timeIntervalSince($0) > 3 } ?? false
+        let marching = Self.overdue(documents)
         // With Reduce Motion (A16, AX3) the line doesn't march: it stays in dashes while it waits.
         button.image = NibMark.image(frame: marching ? (Self.reduceMotion ? 0 : frame) : nil, failure: look)
         // The scratch file's line says its own problem; the others are named (F11).
@@ -214,7 +210,7 @@ final class MenuBarController: NSObject {
             ticker = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated {
                     guard let self else { return }
-                    if !Self.reduceMotion, self.pendingSince.map({ Date().timeIntervalSince($0) > 3 }) == true { self.frame = (self.frame + 1) % 3 }
+                    if !Self.reduceMotion, Self.overdue(Documents.all) { self.frame = (self.frame + 1) % 3 }
                     self.refresh()
                 }
             }
@@ -307,7 +303,7 @@ struct NibMenuBarPanel: View {
                     .font(HUDFont.terminal(15))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(message.lowercased())
+                    .accessibilityLabel(Spoken.sentence(message))   // F61
             }
             Divider()
             VStack(spacing: 0) {
@@ -345,6 +341,8 @@ struct NibMenuBarPanel: View {
         }
         .padding(12)
         .frame(width: 320)
+        // What the clipboard commands did, said as it shows (the QA review's F62: only drawn).
+        .onChange(of: message) { _, said in if let said { Announce.hud(said) } }
     }
 }
 
@@ -420,6 +418,6 @@ struct PanelRow: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         // The detail too: Recent rows with the same name sounded the same (F82).
-        .accessibilityLabel(spoken ?? [title, detail, keys].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityLabel(spoken ?? [title, detail, keys.map(Spoken.sentence)].compactMap { $0 }.joined(separator: ", "))   // keys as words (F61)
     }
 }

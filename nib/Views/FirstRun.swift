@@ -274,6 +274,9 @@ struct FirstRunView: View {
         .frame(width: Self.width)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Color(nsColor: .windowBackgroundColor))
+        // What a choice or an import did, said as it shows (the QA review's F62: only drawn).
+        .onChange(of: model.message) { _, said in if let said { Announce.sentence(said) } }
+        .onChange(of: model.imported) { _, done in if done, let report = Schemes.shared.report { Announce.hud(report) } }
     }
 
     private var footer: some View {
@@ -392,7 +395,7 @@ private struct ScratchStep: View {
             }
         }
         Section("What macOS may ask") {
-            firstRunNote("Nothing, for Nib's own iCloud Drive folder, and nothing for its global shortcuts, which need no Accessibility access. If you choose a scratch file in Documents, on the Desktop or elsewhere in iCloud Drive, macOS may ask once whether Nib can open files there: Nib only opens the files you choose. If you have Nib open when you log in (the last step), macOS says so in a notification.")
+            firstRunNote("Nothing, for Nib's own iCloud Drive folder, and nothing for its global shortcuts, which need no Accessibility access. If you choose a scratch file in Documents, on the Desktop or elsewhere in iCloud Drive, macOS may ask once whether Nib can open files there: Nib only opens the files you choose. If you have Nib open when you log in (the last step), macOS says so in a notification. At the end, macOS asks whether Nib may send its notifications (the last step says which). And only if this Mac's disk fills and you choose Empty Trash, it asks once whether Nib may have Finder empty it.")
         }
     }
 }
@@ -438,7 +441,7 @@ private struct LookStep: View {
             .background(HUDColor.background)
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(HUDColor.border, lineWidth: 1))
             .clipShape(RoundedRectangle(cornerRadius: 6))
-            .accessibilityLabel(text.lowercased())
+            .accessibilityLabel(Spoken.sentence(text))   // F61
     }
 }
 
@@ -468,6 +471,7 @@ struct LoginToggle: View {
         let login = LoginItem.shared
         Toggle("Open Nib when you log in", isOn: Binding(get: { login.enabled || login.needsApproval }, set: { login.set($0) }))
             .onAppear { login.refresh() }
+            .onChange(of: login.failure) { _, why in if let why { Announce.sentence(why) } }   // F62
         if login.needsApproval {
             HStack {
                 Text("macOS is waiting for your OK in System Settings › General › Login Items.")

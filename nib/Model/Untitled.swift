@@ -146,11 +146,11 @@ enum Untitled {
     @discardableResult
     static func save(_ document: Document, to target: URL) async -> Bool {
         if let reason = ScratchLocation.refusal(for: target) {
-            document.show(reason, for: 12)
+            document.show("✕ " + reason, for: 12)
             return false
         }
         if Documents.existing(for: target) != nil {
-            document.show("“\(target.lastPathComponent.uppercased())” IS OPEN IN NIB · CLOSE IT FIRST, OR PICK ANOTHER NAME", for: 12)
+            document.show("✕ “\(target.lastPathComponent.uppercased())” IS OPEN IN NIB · CLOSE IT FIRST, OR PICK ANOTHER NAME", for: 12)
             return false
         }
         let data = TextFile.encode(document.editor.textView.string, as: document.format)
@@ -159,7 +159,7 @@ enum Untitled {
             let base = FileManager.default.fileExists(atPath: target.path) ? try FileAccess.read(target).fingerprint : nil
             guard case .written = try FileAccess.write(data, to: target, base: base) else { throw CocoaError(.fileWriteUnknown) }
         } catch {
-            document.show("COULDN'T SAVE “\(target.lastPathComponent.uppercased())” · \(error.localizedDescription.uppercased())", for: 12)
+            document.show("✕ COULDN'T SAVE “\(target.lastPathComponent.uppercased())” · \(ErrorWords.hud(error))", for: 12)
             return false
         }
         await handOver(document, to: target)

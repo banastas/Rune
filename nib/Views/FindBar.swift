@@ -30,7 +30,7 @@ struct FindBar: View {
                     .truncationMode(.tail)
                     .frame(minWidth: 90, maxWidth: find.failure == nil ? 150 : 320, alignment: .leading)
                     .help(find.failure.map { _ in "The pattern isn't a regular expression Nib can read. Check the brackets and escapes, or turn off .* to find it as typed." } ?? "Matches in the text")
-                    .accessibilityLabel(find.countLabel.isEmpty ? "No search" : find.countLabel.lowercased())
+                    .accessibilityLabel(find.countLabel.isEmpty ? "No search" : Spoken.sentence(find.countLabel))   // F61
                 optionToggle(".*", isOn: $find.options.regex, help: "Regular expression: $1 in Replace is the first group")
                 optionToggle("Aa", isOn: $find.options.matchCase, help: "Match case")
                 optionToggle("ab", underline: true, isOn: $find.options.wholeWord, help: "Whole words only")

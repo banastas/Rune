@@ -29,7 +29,8 @@ with a check in its scenario or NibKit's tests (PRD §8, "The QA and UX review, 
 fixes"); the second (2026-10-07), F22, F25, F28, F31, F37-F39 and F48, with parts of F74, F82 and F84
 (PRD §8, "The QA review's second round"); the third (2026-10-07), the rest of §1: F10-F15, F17,
 F19-F21, F26, F27 (HTML out of Settings › Files), F32-F35, with parts of F65 and F82 (PRD §8, "The QA review's third
-round").
+round"); the fourth (2026-10-07), §2 but F48 (done), F50 (the user's call) and F58, F60 (next): F40-F47, F49,
+F51-F57, F59, F61-F63 (PRD §8, "The QA review's fourth round").
 
 ---
 
@@ -285,47 +286,47 @@ reads an upload as "transferring".
 
 ## 2 · Rules: the PRD says otherwise, or Nib disagrees with itself
 
-**F40. Failure notices mostly lack the ✕, and none are red; a notice hides a standing problem** — `nib/Views/StatusStrip.swift:98, 107, 133-134`, `nib/Model/FileCommands.swift:19, 85, 103-124`, `nib/Model/Untitled.swift:153, 162` · V3, V9
+**F40. Failure notices mostly lack the ✕, and none are red; a notice hides a standing problem** — `nib/Views/StatusStrip.swift:98, 107, 133-134`, `nib/Model/FileCommands.swift:19, 85, 103-124`, `nib/Model/Untitled.swift:153, 162` · V3, V9 · **fixed 2026-10-07**
 "COULDN'T SAVE “X” · …" and "“NOTES.MD” IS ALREADY THERE · NOTHING MOVED" show bright with no glyph;
 "✕ …" notices draw their ✕ in white; any notice replaces a red problem line (and its tag) for up to
 20 s; "‖" notices are bright.
 *Fix:* ✕ on every failure, drawn in the red; keep the problem and its tag under routine notices;
 "‖" dim.
 
-**F41. The same fact is worded differently on each surface** — `nib/Model/Document.swift:1909-1913`, `SyncHUD.swift:134-136, 222-223`, `MenuBar.swift:86-88`, `StatusStrip.swift:147-149`
+**F41. The same fact is worded differently on each surface** — `nib/Model/Document.swift:1909-1913`, `SyncHUD.swift:134-136, 222-223`, `MenuBar.swift:86-88`, `StatusStrip.swift:147-149` · **fixed 2026-10-07**
 Another Mac's older version: HUD "OLDER · 21:06", panel "M4CK800K412 HASN'T GOT THIS VERSION YET ·
 HAS 21:06:27'S", tooltip "…hasn't got this version yet (it has one from 21:06:27…)"; "= ON THIS MAC
 ONLY" in the strip and "= THIS MAC ONLY" in the HUD; the HUD's STATE "✓ SYNCED" while the strip says
 "▼ NEWER ON AIR…".
 *Fix:* one helper for the three surfaces.
 
-**F42. Upload trouble doesn't say why, and §4.5's line for a stalled upload isn't built** — `nib/Model/Document.swift:1246-1252` · §4.5, §4.9 row 12, W4
+**F42. Upload trouble doesn't say why, and §4.5's line for a stalled upload isn't built** — `nib/Model/Document.swift:1246-1252` · §4.5, §4.9 row 12, W4 · **fixed 2026-10-07**
 A failed upload call is a dim "‖ ICLOUD ISN'T TAKING UPLOADS · SAVED LOCALLY · RETRYING" with no
 reason or time; an unheld file sits at "= SAVED LOCALLY" however long iCloud waits.
 *Fix:* "✕ ICLOUD REFUSED THE UPLOAD · <REASON> · TRYING AGAIN AT 10:47"; the 60 s "ICLOUD HASN'T
 STARTED UPLOADING (2 MIN)".
 
-**F43. The menu bar line marches after most pauses in typing** — `nib/Views/MenuBar.swift:59-63, 184-185` · A10, V8
+**F43. The menu bar line marches after most pauses in typing** — `nib/Views/MenuBar.swift:59-63, 184-185` · A10, V8 · **fixed 2026-10-07**
 Pending counts from the save, but the upload waits 3 s for the pause by design (UploadSchedule) and
 takes 0.5-3 s, so an ordinary pause marches for a second or two.
 *Fix:* count from when the upload is due.
 
-**F44. Commands only on the strip or a banner, so not in a menu or the palette** — `nib/Views/StatusStrip.swift:22-31, 170-183`, `nib/Views/DeletedBanner.swift:41-54` · KB1, KB3
+**F44. Commands only on the strip or a banner, so not in a menu or the palette** — `nib/Views/StatusStrip.swift:22-31, 170-183`, `nib/Views/DeletedBanner.swift:41-54` · KB1, KB3 · **fixed 2026-10-07**
 Empty Trash, Show in Finder, Show Sync Log for this file, Restore.
 *Fix:* File › Show in Finder, Show Sync Log for This File, Restore (enabled while deleted), Empty
 Trash… (while offered).
 
-**F45. "Reveal in Finder" here, "Show in Finder" everywhere else; the strip's Save Now isn't ⌘S** — `nib/Views/StatusStrip.swift:177, 182` · W3 · **checked**
+**F45. "Reveal in Finder" here, "Show in Finder" everywhere else; the strip's Save Now isn't ⌘S** — `nib/Views/StatusStrip.swift:177, 182` · W3 · **checked** · **fixed 2026-10-07**
 Save Now flushes, skipping ⌘S's trim and final newline; for an untitled buffer, Reveal shows Nib's own
 Untitled folder.
 *Fix:* "Show in Finder" (and §5.2), hidden for untitled buffers; Save Now runs File › Save.
 
-**F46. Text, Selection and Edit commands are enabled with no editor, and do nothing** — `nib/NibApp.swift:457, 494-522` · W3, KB1
+**F46. Text, Selection and Edit commands are enabled with no editor, and do nothing** — `nib/NibApp.swift:457, 494-522` · W3, KB1 · **fixed 2026-10-07**
 With Settings, the Sync Log or History in front, ⌘], ⌘/, ⌘D, ⇧⌘C, ⌘U stay enabled and silently do
 nothing; the same in a read-only document.
 *Fix:* disable on `document == nil || locked`, or validate through the text view.
 
-**F47. Show Scratch (⌥Space, P0) isn't in any menu** — `nib/NibApp.swift:463-465` · KB1, KB3, SC2
+**F47. Show Scratch (⌥Space, P0) isn't in any menu** — `nib/NibApp.swift:463-465` · KB1, KB3, SC2 · **fixed 2026-10-07**
 So the palette can't list it.
 *Fix:* Window › Show Scratch with its global key shown.
 
@@ -335,7 +336,7 @@ retention, Clear History…, the ADP note or the sync note; no word that text al
 *Fix:* a Scratch & Sync tab with the scratch file (also F22), the sync note, notifications with Open
 Notification Settings, and History.
 
-**F49. Commands without the keys KB1 promises, and §8 says otherwise** — `nib/NibApp.swift:428-444, 460, 521, 526`, `PRD.md:1477` · KB1
+**F49. Commands without the keys KB1 promises, and §8 says otherwise** — `nib/NibApp.swift:428-444, 460, 521, 526`, `PRD.md:1477` · KB1 · **fixed 2026-10-07**
 Rename…, Move To…, Revert To ›, the View toggles, the syntax picks, One Caret, Welcome to Nib.
 *Fix:* reword KB1 ("Apple's or Sublime's key where one exists") and correct §8; don't invent keys.
 
@@ -345,37 +346,37 @@ The strip shows "2 SPACES · UTF-8 · LF" but nothing changes or converts them; 
 *Fix:* View › Indentation and Line Endings (and menus on the strip's slots), or record in §8 that
 they're dropped.
 
-**F51. The find bar's options have no menu items or keys** — `nib/Views/FindBar.swift:34-37` · KB1, KB4
+**F51. The find bar's options have no menu items or keys** — `nib/Views/FindBar.swift:34-37` · KB1, KB4 · **fixed 2026-10-07**
 *Fix:* Edit › Find toggles; Sublime's ⌥⌘C and ⌥⌘W while the bar is shown.
 
-**F52. "Resolve…" has an ellipsis but usually just moves the caret** — `nib/NibApp.swift:623`, `ConflictBanner.swift:30-31` · W3
+**F52. "Resolve…" has an ellipsis but usually just moves the caret** — `nib/NibApp.swift:623`, `ConflictBanner.swift:30-31` · W3 · **fixed 2026-10-07**
 With three blocks or fewer it goes to the next one, asking nothing; the HUD's RESOLVE says it opens
 the merge view.
 *Fix:* name it for what it will do, or always open the merge view.
 
-**F53. "What macOS may ask" leaves out two questions; step 3 leaves out deleted files** — `nib/Views/FirstRun.swift:304, 368` · AP5, SY15
+**F53. "What macOS may ask" leaves out two questions; step 3 leaves out deleted files** — `nib/Views/FirstRun.swift:304, 368` · AP5, SY15 · **fixed 2026-10-07**
 The notifications question at Done and Finder control for Empty Trash aren't mentioned; folder
 prompts for Documents and Desktop now that Nib opens any file have no usage descriptions
 (`Support/Info.plist`).
 *Fix:* say both; add the folder usage descriptions ("Nib opens only the files you open in it").
 
-**F54. Removing an imported scheme deletes it at once, unasked** — `nib/Views/SettingsView.swift:204`, `nib/Theme/Scheme.swift:143-147` · V8
+**F54. Removing an imported scheme deletes it at once, unasked** — `nib/Views/SettingsView.swift:204`, `nib/Theme/Scheme.swift:143-147` · V8 · **fixed 2026-10-07**
 *Fix:* to the Trash, or ask first; a note that the original isn't touched.
 
-**F55. History calls merged, restored and closed-with versions "saved"** — `nib/Model/Document.swift:2511-2523` · SY13, A13
+**F55. History calls merged, restored and closed-with versions "saved"** — `nib/Model/Document.swift:2511-2523` · SY13, A13 · **fixed 2026-10-07**
 *Fix:* keep the reason and show it.
 
-**F56. The empty scratch file's line isn't built** — `nib/Views/ScratchView.swift:22-41` · §5.1, W6, §5.13
+**F56. The empty scratch file's line isn't built** — `nib/Views/ScratchView.swift:22-41` · §5.1, W6, §5.13 · **fixed 2026-10-07**
 *Fix:* "Paste or type. Saved as you go, on every Mac." in the comment colour while it's empty.
 
-**F57. History reads and hashes on the main thread, in `body`** — `nib/Views/HistoryView.swift:22, 40, 104` · T5
+**F57. History reads and hashes on the main thread, in `body`** — `nib/Views/HistoryView.swift:22, 40, 104` · T5 · **fixed 2026-10-07**
 2.4 MB hashed per selection change, under History's lock.
 *Fix:* load on the journal queue into state.
 
 **F58. Sizes: the find bar needs about 700 points, the merge sheet more than its window; History's list takes half** — `nib/Views/FindBar.swift:16-48`, `MergeView.swift:108`, `HistoryView.swift:28-38` · V12
 *Fix:* `ViewThatFits` for the bar; a merge minimum about 600×420; History in a 170-300 pt sidebar.
 
-**F59. HUD grey on the editor's background is under 4.5:1** — `nib/Views/MergeView.swift:132-135`, `nib/Views/Editor.swift:1290-1297` · V2
+**F59. HUD grey on the editor's background is under 4.5:1** — `nib/Views/MergeView.swift:132-135`, `nib/Views/Editor.swift:1290-1297` · V2 · **fixed 2026-10-07**
 The merge panes' titles (4.1:1) and the block hints "⌘1 USE · ⌘3 BOTH" (4.2:1), both 9 pt.
 *Fix:* a grey of at least #909090.
 
@@ -383,13 +384,13 @@ The merge panes' titles (4.1:1) and the block hints "⌘1 USE · ⌘3 BOTH" (4.2
 *Fix:* custom actions in a block ("Use Air's version, Command-1"…), and say each resolve and "All
 conflicts resolved".
 
-**F61. Labels that skip `Spoken`** — `SyncState.swift:81-82`, `MenuBar.swift:188, 273, 383`, `FindBar.swift:33`, `SettingsView.swift:227`, `FirstRun.swift:351` · AX1
+**F61. Labels that skip `Spoken`** — `SyncState.swift:81-82`, `MenuBar.swift:188, 273, 383`, `FindBar.swift:33`, `SettingsView.swift:227`, `FirstRun.swift:351` · AX1 · **fixed 2026-10-07**
 *Fix:* `Spoken.sentence`, and `keys.spoken` for shortcuts.
 
-**F62. Results that appear beside a button aren't said** — `MenuBar.swift:268-280`, `SettingsView.swift:216-228`, `FirstRun.swift:197-214` · AX2
+**F62. Results that appear beside a button aren't said** — `MenuBar.swift:268-280`, `SettingsView.swift:216-228`, `FirstRun.swift:197-214` · AX2 · **fixed 2026-10-07**
 *Fix:* announce them.
 
-**F63. Services › Append to Nib Scratch confirms nothing while Nib is behind** — `nib/Model/Services.swift:19-30` · W1, SC6
+**F63. Services › Append to Nib Scratch confirms nothing while Nib is behind** — `nib/Model/Services.swift:19-30` · W1, SC6 · **fixed 2026-10-07**
 *Fix:* the Toast, as Append Clipboard to Scratch shows.
 
 ---

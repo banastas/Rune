@@ -1,7 +1,7 @@
 // The conflict banner (PRD §5.4, §4.8 B): above the text while it holds conflict blocks,
 // not a dialog (V8, V9). Native text with the muted-red tag (V3); it stays until every
-// block is resolved, and Escape hides it until the blocks change. Resolve… goes to the
-// next block (the merge view, §5.5, comes later).
+// block is resolved, and Escape hides it until the blocks change. Its button goes to the next
+// block, or with more than three opens the merge view (§5.5), and is named for which.
 
 import NibText
 import SwiftUI
@@ -27,8 +27,9 @@ struct ConflictBanner: View {
             .font(.callout)
             .lineLimit(2)
             Spacer(minLength: 8)
-            Button("Resolve…") { document.resolveConflicts() }
-                .help(document.blocks.count > 3 ? "Open the merge view (⌥⌘R)" : "Go to the next conflict (⌥⌘R)")
+            // Named for what it does (F52): the next block with three or fewer, else the merge view.
+            Button(document.blocks.count > 3 ? "Merge View…" : "Next Conflict") { document.resolveConflicts() }
+                .help(document.blocks.count > 3 ? "Open the merge view (⌥⌘R)" : "Go to the next conflict (⌥⌘↓); the merge view is ⌥⌘R")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 7)

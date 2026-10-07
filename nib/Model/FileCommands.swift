@@ -10,13 +10,14 @@
 
 import AppKit
 import NibSync
+import NibText
 
 @MainActor
 enum FileCommands {
     /// File › Duplicate (⇧⌘S).
     static func duplicate(_ document: Document) {
         guard let url = Untitled.create(text: document.editor.textView.string, name: copyName(document.url.lastPathComponent)) else {
-            document.show("COULDN'T MAKE A COPY · NIB'S UNTITLED FOLDER ISN'T WRITABLE", for: 8)
+            document.show("✕ COULDN'T MAKE A COPY · NIB'S UNTITLED FOLDER ISN'T WRITABLE", for: 8)
             return
         }
         AppDelegate.openFile(url)
@@ -125,7 +126,7 @@ enum FileCommands {
             let moved = FileManager.default.fileExists(atPath: target.path) && !FileManager.default.fileExists(atPath: old.path)
             AppDelegate.openFile(moved ? target : old)
             let late = CloudControl.isNoAnswer(error) ? " · IT MAY STILL MOVE" : ""
-            let why = "COULDN'T MOVE “\(old.lastPathComponent.uppercased())” · \(error.localizedDescription.uppercased())\(late)"
+            let why = "✕ COULDN'T MOVE “\(old.lastPathComponent.uppercased())” · \(ErrorWords.hud(error))\(late)"
             Toast.show(why, for: 6)
             return why
         }
@@ -135,9 +136,12 @@ enum FileCommands {
         return nil
     }
 
+    /// A refusal on the strip, as a failure: the ✕, drawn in the red (V3; the QA review's F40:
+    /// "“NOTES.MD” IS ALREADY THERE · NOTHING MOVED" showed bright with no glyph).
     private static func refuse(_ document: Document, _ why: String) -> String {
-        document.show(why, for: 10)
-        return why
+        let said = why.hasPrefix("✕") ? why : "✕ " + why
+        document.show(said, for: 10)
+        return said
     }
 
     /// An untitled buffer by another name: a new one with the same text, caret and History, this one let go.

@@ -92,10 +92,11 @@ struct StatusStrip: View {
         .accessibilityLabel(Self.summary(document))
     }
 
-    /// The sync state: a muted-red tag for a problem, then the glyph and words (or a notice).
+    /// The sync state: a muted-red tag for a problem, then the glyph and words (or a notice). The
+    /// tag stays while a notice shows: a notice hid a standing problem for up to 20 s (F40).
     private var syncState: some View {
         HStack(spacing: 10) {
-            if document.notice == nil, let tag = document.state.tag {
+            if let tag = document.state.tag {
                 hudText(tag, glyphSize: 9)
                     .font(HUDFont.label(9))
                     .foregroundStyle(HUDColor.onFailure)
@@ -130,26 +131,27 @@ struct StatusStrip: View {
         return first.lowercased() + said.dropFirst()
     }
 
-    private var stateColor: Color {
-        if document.notice != nil { return HUDColor.bright }
-        switch document.state {
+    private var stateColor: Color { Self.color(notice: document.notice, state: document.state) }
+
+    /// A failure's notice in the red's text tint, a wait's dim, the rest bright (V3; the QA
+    /// review's F40: every notice was bright, its ✕ white).
+    static func color(notice: String?, state: SyncState) -> Color {
+        if let notice {
+            if notice.hasPrefix("✕") { return HUDColor.failureText }
+            if notice.hasPrefix("‖") { return HUDColor.dim }
+            return HUDColor.bright
+        }
+        switch state {
         case .problem: return HUDColor.failureText
-        default: return document.state.isDim ? HUDColor.dim : HUDColor.bright
+        default: return state.isDim ? HUDColor.dim : HUDColor.bright
         }
     }
 
     /// What the other Macs' receipts say (SY14), each Mac's time by its own clock.
     private var receipts: String {
         guard !document.otherMacs.isEmpty else { return "" }
-        let clock = SyncState.clock
-        let each = document.otherMacs.map { other -> String in
-            switch other.delivery {
-            case .same: "\(other.device) has this version (since \(clock.string(from: other.loaded.time)) by its clock)"
-            case .newer: "\(other.device) has a version this Mac hasn't got yet (from \(clock.string(from: other.loaded.time)) by its clock)"
-            case .earlier: "\(other.device) hasn't got this version yet (it has one from \(clock.string(from: other.loaded.time)) by its clock)"
-            }
-        }
-        return each.joined(separator: "; ") + ". Receipts come through iCloud too, so they're as late as iCloud is. "
+        // The HUD's and the panel's words, as sentences (F41).
+        return document.otherMacs.map(\.sentence).joined(separator: "; ") + ". Receipts come through iCloud too, so they're as late as iCloud is. "
     }
 
     /// The precise meaning, in sentence case (PRD §4.5, "tooltips carry the precise meaning").
@@ -169,18 +171,22 @@ struct StatusStrip: View {
 }
 
 /// Right-click on the strip (PRD §5.2): Save Now, Show Sync Log (on this file), Show
-/// History, Reveal in Finder.
+/// History, Show in Finder.
 struct StripMenu: View {
     let document: Document
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Button("Save Now") { Task { await document.flush(reason: "strip") } }
+        // File › Save's own: ⌘S's tidying, and Save… for an untitled buffer (it skipped both: F45).
+        Button(document.untitled ? "Save…" : "Save Now") { AppDelegate.save(document) }
         if !document.untitled {   // untitled buffers stay out of the Sync Log (ED3)
             Button("Show Sync Log") { SyncLogModel.shared.show(file: document.url, openWindow: openWindow) }
         }
         Button("Show History") { openWindow(id: "history", value: document.url) }
-        Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([document.url]) }
+        // "Show in Finder", as everywhere else; not for an untitled buffer, whose file is Nib's own (F45).
+        if !document.untitled, !document.deleted {
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([document.url]) }
+        }
     }
 }
 

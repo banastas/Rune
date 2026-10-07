@@ -44,8 +44,48 @@ final class Document {
             case .saved, .savedHere, .local, .synced: if fullVolume != nil { fullVolume = nil; trashOffer = nil }
             default: break
             }
+            watchStall()
         }
     }
+    /// Saved here a minute or more with the network up and iCloud not uploading it: how long, in
+    /// minutes, said after the strip's "= SAVED LOCALLY" (§4.5 W4; the QA review's F42: an unheld
+    /// file sat there however long iCloud waited, saying nothing).
+    private(set) var stalledMinutes: Int?
+    @ObservationIgnored private var stallTask: Task<Void, Never>?
+
+    private func watchStall() {
+        guard case .saved = state else {
+            stallTask?.cancel()
+            stallTask = nil
+            if stalledMinutes != nil { stalledMinutes = nil }
+            return
+        }
+        guard stallTask == nil else { return }
+        stallTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(Self.stallCheckEvery))
+                guard let self, !Task.isCancelled, case .saved(let since) = self.state else { return }
+                let waited = Date().timeIntervalSince(since)
+                let shown = self.online && waited >= Self.stallAfter ? max(1, Int(waited / 60)) : nil
+                if self.stalledMinutes != shown { self.stalledMinutes = shown }
+            }
+        }
+    }
+
+    /// Since when this version's upload has been waiting for no reason of its own: its save, or
+    /// later when typing's pause is to be waited out first (UploadSchedule; after a long idle that
+    /// due time is long past, and the first save uploads at once). The menu bar marches only once
+    /// one is 3 s past it, not through the pause it waits for by design (F43). Nil when nothing waits.
+    var uploadPendingSince: Date? {
+        switch state {
+        case .saved(let time), .uploading(let time): max(uploads.due, time)
+        default: nil
+        }
+    }
+
+    /// A minute (§4.5), and how often it's looked at; the `menubar` scenario makes them short.
+    static var stallAfter: Double = 60
+    static var stallCheckEvery: Double = 15
     /// While this Mac's disk is full (§4.9, 13): the Trash that would give space back, as the
     /// strip offers it, or nil (none, or empty).
     private(set) var trashOffer: TrashOffer?
@@ -190,6 +230,41 @@ final class Document {
         var device: String
         var loaded: DeviceReceipts.Loaded
         var delivery: Delivery
+
+        // One wording for the HUD, the menu bar panel, the strip and its tooltip: each said it its
+        // own way ("OLDER · 21:06", "…HAS 21:06:27'S", "…it has one from 21:06:27…": the QA
+        // review's F41). Times by that Mac's clock, with the day when it isn't today.
+        var time: String { SyncState.stamp(loaded.time) }
+
+        /// The HUD's MACS row: "✓ SINCE 10:42:31", "▼ NEWER · 10:42:31", "NOT YET · 10:40:12".
+        var short: String {
+            switch delivery {
+            case .same: "✓ SINCE \(time)"
+            case .newer: "▼ NEWER · \(time)"
+            case .earlier: "NOT YET · \(time)"
+            }
+        }
+
+        /// The panel's and the strip's line: "✓ ON AIR · SINCE 10:42:31", "▼ NEWER ON AIR ·
+        /// 10:42:31 · NOT HERE YET", "AIR HASN'T GOT THIS VERSION YET · IT HAS 10:40:12'S".
+        var line: String {
+            let name = device.uppercased()
+            return switch delivery {
+            case .same: "✓ ON \(name) · SINCE \(time)"
+            case .newer: "▼ NEWER ON \(name) · \(time) · NOT HERE YET"
+            case .earlier: "\(name) HASN'T GOT THIS VERSION YET · IT HAS \(time)'S"
+            }
+        }
+
+        /// The tooltip's and VoiceOver's sentence.
+        var sentence: String {
+            let when = SyncState.spokenStamp(loaded.time)
+            return switch delivery {
+            case .same: "\(device) has this version, since \(when) by its clock"
+            case .newer: "\(device) has a newer version, from \(when) by its clock, that isn't here yet"
+            case .earlier: "\(device) hasn't got this version yet: it has the one from \(when) by its clock"
+            }
+        }
     }
     /// Versions this Mac saved, and when: a receipt for one says how long it took to get there.
     @ObservationIgnored private var madeHere: [String: Date] = [:]
@@ -219,6 +294,8 @@ final class Document {
 
     /// In iCloud Drive, where receipts and notes go: a file outside it has nothing to sync.
     var inICloud: Bool { ReceiptBook.applies(to: url) }
+
+    static let emptyScratchLine = "Paste or type. Saved as you go, on every Mac."
 
     /// Saved: waiting for iCloud in iCloud Drive, done outside it (F6).
     private func savedState(_ time: Date) -> SyncState { inICloud ? .saved(time) : .savedHere(time) }
@@ -430,6 +507,11 @@ final class Document {
         }
         applying = true
         stepStart = Date()
+        // The empty scratch file says what it's for (§5.1, W6; F56); outside iCloud Drive it isn't
+        // on every Mac.
+        if self === Documents.scratch {
+            editor.textView.placeholder = inICloud ? Self.emptyScratchLine : "Paste or type. Saved as you go."
+        }
         editor.textView.string = text
         step("into the view")
         applying = false
@@ -480,6 +562,7 @@ final class Document {
             state = untitled ? .local(version) : status.uploaded ? .synced(version) : savedState(version)
         }
         ready = true
+        Task { await reloadHistory() }   // for Revert To and the History window (F57)
         #if DEBUG
         if self === Documents.scratch { AppDelegate.launchMoments.text = AppDelegate.launchMoments.text ?? Date() }
         #endif
@@ -935,7 +1018,8 @@ final class Document {
         editor.go(forward: forward, in: blocks)
     }
 
-    /// Resolve… (⌥⌘R): the merge view for more than three blocks (§5.5), else the next block.
+    /// The banner's button: the merge view for more than three blocks (§5.5), else the next block.
+    /// (⌥⌘R, Merge View…, always opens the merge view: F52.)
     func resolveConflicts() {
         if merge == nil, blocks.count > 3 { openMerge() } else { goToBlock(forward: true) }
     }
@@ -1296,9 +1380,13 @@ final class Document {
                 state = .problem("ICLOUD STORAGE IS FULL · SAVED LOCALLY ONLY · RETRYING")
                 Notifier.shared.began(Alerts.storageFull(url.lastPathComponent), for: url)
             } else {
+                // Why, and when it's tried again (F42: "RETRYING", with no reason or time). A wait,
+                // dim, not red: it goes on by itself (§4.5, L6).
+                let delay = noAnswer ? 2 : uploadBackoff
+                let again = "TRYING AGAIN AT \(SyncState.clock.string(from: Date().addingTimeInterval(delay)))"
                 state = .waiting(!online ? "WAITING FOR NETWORK · SAVED LOCALLY"
-                                 : noAnswer ? "ICLOUD ISN'T ANSWERING · SAVED LOCALLY · RETRYING"
-                                 : "ICLOUD ISN'T TAKING UPLOADS · SAVED LOCALLY · RETRYING")
+                                 : noAnswer ? "ICLOUD ISN'T ANSWERING · SAVED LOCALLY · \(again)"
+                                 : "ICLOUD ISN'T TAKING UPLOADS · \(ErrorWords.hud(error)) · SAVED LOCALLY · \(again)")
             }
             // No answer: retry soon; the retry is typically refused or accepted at once.
             let delay = noAnswer ? 2 : uploadBackoff
@@ -1585,6 +1673,19 @@ final class Document {
 
     /// Bumped with every version History keeps, so Revert To and the History window follow.
     private(set) var historyChanged = 0
+    /// History's versions, oldest first, as last read off the main thread. The History window
+    /// and Revert To read the index from disk in their `body`, at every redraw and menu update,
+    /// on the main thread (the QA review's F57).
+    private(set) var historyEntries: [HistoryEntry] = []
+
+    /// History changed (or the file opened): its versions read again, off the main thread and
+    /// off the journal's queue (History has its own lock): on the queue, the read of every
+    /// version's line held up the journal, and so a merge's save, behind it.
+    func reloadHistory() async {
+        let history = self.history
+        historyEntries = await Task.detached(priority: .utility) { history.entries() }.value
+        historyChanged += 1
+    }
 
     private func recordHistory(_ work: @escaping @Sendable (History) -> Void) {
         let history = self.history, pending = takePendingHistory()   // first, so History stays in order
@@ -1593,7 +1694,7 @@ final class Document {
                 if let pending { try? history.record(pending.data, parent: pending.parent, source: "saved", time: pending.time) }
                 work(history)
             }
-            historyChanged += 1
+            await reloadHistory()
         }
     }
 
@@ -1618,7 +1719,7 @@ final class Document {
         let history = self.history, queue = journalQueue, every = Self.thinEvery
         thinTask = Task { [weak self] in
             repeat {
-                if await queue.run({ history.thin() }) { self?.historyChanged += 1 }   // the History window follows
+                if await queue.run({ history.thin() }) { await self?.reloadHistory() }   // the History window follows
                 try? await Task.sleep(for: .seconds(every))
             } while !Task.isCancelled && self?.closing == false
         }
@@ -1788,6 +1889,7 @@ final class Document {
     /// would otherwise join it), journaled, then the normal save and upload.
     private func replaceBuffer(with text: String, action: String) {
         saveTask?.cancel()
+        keptAs = Self.historySource(for: action)
         let view = editor.textView
         view.breakUndoCoalescing()
         view.undoManager?.beginUndoGrouping()
@@ -1960,33 +2062,26 @@ final class Document {
         }
     }
 
-    private static let shortClock: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
-
     /// The strip's words: the state, with what the receipts say while it's synced (§4.5):
     /// "✓ SYNCED · ON STUDIO 10:42:31", or "▼ NEWER ON AIR (10:42) · NOT HERE YET".
     var statusLine: String {
-        guard case .synced = state else { return state.line }
-        if let newer = otherMacs.first(where: { $0.delivery == .newer }) {
-            return "▼ NEWER ON \(newer.device.uppercased()) (\(Self.shortClock.string(from: newer.loaded.time))) · NOT HERE YET"
+        if case .saved = state, let stalledMinutes {
+            return state.line + " · ICLOUD HASN'T STARTED UPLOADING (\(stalledMinutes) MIN)"
         }
+        guard case .synced = state else { return state.line }
+        if let newer = otherMacs.first(where: { $0.delivery == .newer }) { return newer.line }
         let same = otherMacs.filter { $0.delivery == .same }
         guard let latest = same.map(\.loaded.time).max() else { return state.line }
-        return "✓ SYNCED · ON \(same.map { $0.device.uppercased() }.joined(separator: ", ")) \(SyncState.clock.string(from: latest))"
+        return "✓ SYNCED · ON \(same.map { $0.device.uppercased() }.joined(separator: ", ")) \(SyncState.stamp(latest))"
     }
 
     /// The same for VoiceOver.
     var statusSpoken: String {
         guard case .synced = state else { return state.spoken }
-        if let newer = otherMacs.first(where: { $0.delivery == .newer }) {
-            return "A newer version on \(newer.device), from \(Self.shortClock.string(from: newer.loaded.time)), isn't here yet"
-        }
+        if let newer = otherMacs.first(where: { $0.delivery == .newer }) { return newer.sentence }
         let same = otherMacs.filter { $0.delivery == .same }
         guard let latest = same.map(\.loaded.time).max() else { return state.spoken }
-        return "\(state.spoken), and on \(same.map(\.device).joined(separator: " and ")) since \(SyncState.clock.string(from: latest))"
+        return "\(state.spoken), and on \(same.map(\.device).joined(separator: " and ")) since \(SyncState.spokenStamp(latest))"
     }
 
     /// Brings down the server's version of the held file (§4.4): hand it back taking the
@@ -2552,7 +2647,7 @@ final class Document {
         if contents?.isEmpty == true {
             NSSound.beep()
             trashOffer = nil
-            show("THE TRASH IS EMPTY · FREE SPACE ANOTHER WAY, OR COPY YOUR TEXT", for: 8)
+            show("✕ THE TRASH IS EMPTY · FREE SPACE ANOTHER WAY, OR COPY YOUR TEXT", for: 8)
             return
         }
         guard TrashService.confirm(what, contents) else { return }
@@ -2601,13 +2696,26 @@ final class Document {
     /// from another Mac, restored or closed with goes in; of the plain saves, the newest of each
     /// five minutes: a save every 1-5 s of typing was 720 whole copies an hour, 1.7 GB at the
     /// scratch file's 2.4 MB, kept a day. Each save is known as seen, kept or not (receipts).
+    /// What the next version to go into History at once is: a merge, the blocks written, Revert
+    /// To, the merge view. History called them all "saved" (the QA review's F55).
+    @ObservationIgnored private var keptAs: String?
+
+    /// History's word for a version Nib changed the buffer to, from its undo action's name.
+    static func historySource(for action: String) -> String {
+        if action.hasPrefix("Merge from ") { return "merged from " + action.dropFirst("Merge from ".count) }
+        if action.hasPrefix("Conflict with ") { return "both versions kept, with " + action.dropFirst("Conflict with ".count) }
+        if action.hasPrefix("Revert to ") { return "restored from " + action.dropFirst("Revert to ".count) }
+        if action == "Merge View" { return "from the merge view" }
+        return action.lowercased()
+    }
+
     private func historySaved(_ data: Data, parent: String?, sha: String?, keep: Bool) {
         let history = self.history
         if let sha { Task { await journalQueue.run { history.noteSeen(sha) } } }
         if closing {
             // The version closed with, whatever its size: in at once, before iCloud's steps.
             historyBehind = false
-            recordHistory { history in try? history.record(data, parent: parent, source: "saved") }
+            recordHistory { history in try? history.record(data, parent: parent, source: "closed") }
             return
         }
         guard data.count <= Self.historyEverySave else {
@@ -2615,8 +2723,10 @@ final class Document {
             return
         }
         if keep {
-            // Nib's own change (a merge, blocks written, Revert To): kept as it is.
-            recordHistory { history in try? history.record(data, parent: parent, source: "saved") }
+            // Nib's own change (a merge, blocks written, Revert To): kept as it is, saying which.
+            let source = keptAs ?? "saved"
+            keptAs = nil
+            recordHistory { history in try? history.record(data, parent: parent, source: source) }
             return
         }
         let starting = historyPending == nil
@@ -2651,7 +2761,7 @@ final class Document {
             if let pending { try? history.record(pending.data, parent: pending.parent, source: "saved", time: pending.time) }
             if let closed { try? history.record(closed.data, parent: closed.parent, source: "closed") }
         }
-        historyChanged += 1
+        await reloadHistory()
     }
 
     // MARK: - Helpers

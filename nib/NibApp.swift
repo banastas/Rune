@@ -121,7 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static func openListed(_ url: URL) {
         guard FileManager.default.fileExists(atPath: url.path) || Documents.existing(for: url) != nil else {
             RecentFiles.shared.remove(url)
-            Toast.show("“\(url.lastPathComponent.uppercased())” ISN'T THERE ANY MORE · TAKEN OFF OPEN RECENT", for: 4)
+            Toast.show("✕ “\(url.lastPathComponent.uppercased())” ISN'T THERE ANY MORE · TAKEN OFF OPEN RECENT", for: 4)
             return
         }
         openFile(url)
@@ -168,6 +168,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "Cancel").keyEquivalent = "\u{1b}"
         NSApp.activate()
         return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    /// File › Save, and the strip's Save Now: ⌘S's tidying, then saved and uploaded now; an
+    /// untitled buffer asks where to put it (W3).
+    static func save(_ document: Document) {
+        if document.untitled { document.tidyForSave(); Untitled.saveAs(document) } else { Task { await document.saveNow() } }
     }
 
     static func showOpenPanel() {
@@ -414,9 +420,21 @@ struct NibCommands: Commands {
         if let document { command(document.editor.find) } else { send(action) }
     }
 
+    /// One of the find bar's options, for its menu item.
+    private func findOption(_ path: ReferenceWritableKeyPath<FindSession, Bool>) -> Binding<Bool> {
+        Binding(get: { document.map { $0.editor.find[keyPath: path] } ?? false },
+                set: { value in document.map { $0.editor.find[keyPath: path] = value } })
+    }
+
     /// The merge view is up: Find, Replace, Go to Line and the sync HUD would act on the window
     /// behind it, under the sheet (the QA review's F31, 2026-10-07).
     private var merging: Bool { document?.merge != nil }
+
+    /// A window with no editor in front (Settings, History, the Sync Log), or an editor that can't
+    /// be changed: the text commands did nothing, silently, enabled all the same (the QA review's
+    /// F46). With no window in front (Nib behind another app) they're sent on as before.
+    private var noEditor: Bool { document == nil && NSApp.keyWindow != nil }
+    private var cantEdit: Bool { noEditor || document?.locked != nil }
 
     var body: some Commands {
         // Blit's About, not the standard panel (§5.10).
@@ -448,10 +466,7 @@ struct NibCommands: Commands {
             Divider()
             // Everything saves by itself; ⌘S saves and uploads now. An untitled buffer asks
             // where to put it (W3).
-            Button(document?.untitled == true ? "Save…" : "Save") {
-                guard let document else { return }
-                if document.untitled { document.tidyForSave(); Untitled.saveAs(document) } else { Task { await document.saveNow() } }
-            }
+            Button(document?.untitled == true ? "Save…" : "Save") { document.map(AppDelegate.save) }
                 .keyboardShortcut("s")
                 .disabled(document == nil)
             // Apple's autosave model (ED4, W3): a copy to Save… somewhere, a new name, a new folder.
@@ -463,6 +478,18 @@ struct NibCommands: Commands {
             Button("Move To…") { document.map(FileCommands.askMove) }
                 .disabled(!FileCommands.canMove(document))
             if let document { RevertToMenu(document: document) } else { Menu("Revert To") {}.disabled(true) }
+            Divider()
+            // The strip's and the banners' commands, in a menu too, so in the palette (KB1, KB3;
+            // the QA review's F44: Show in Finder, the file's Sync Log, Restore, Empty Trash).
+            Button("Show in Finder") { document.map { NSWorkspace.shared.activateFileViewerSelecting([$0.url]) } }
+                .disabled(document == nil || document?.untitled == true || document?.deleted == true)
+            Button("Show Sync Log for This File") { document.map { SyncLogModel.shared.show(file: $0.url, openWindow: openWindow) } }
+                .disabled(document == nil || document?.untitled == true)
+            Button("Restore") { Task { await document?.restoreDeleted() } }
+                .disabled(document?.deleted != true || document?.iCloudOff == true)
+            if document?.trashOffer != nil {
+                Button("Empty Trash…") { Task { await document?.emptyTrashForSpace() } }
+            }
         }
         CommandGroup(before: .toolbar) {
             Button("Command Palette…") { AppDelegate.showPalette(.commands, in: document) }.keyboardShortcut("p", modifiers: [.command, .shift])
@@ -487,7 +514,7 @@ struct NibCommands: Commands {
         CommandGroup(replacing: .pasteboard) {
             Button("Cut") { send(#selector(NSText.cut(_:))) }.keyboardShortcut("x")
             Button("Copy") { send(#selector(NSText.copy(_:))) }.keyboardShortcut("c")
-            Button("Copy Block") { send(#selector(NibTextView.copyBlock(_:))) }.keyboardShortcut("c", modifiers: [.command, .shift])
+            Button("Copy Block") { send(#selector(NibTextView.copyBlock(_:))) }.keyboardShortcut("c", modifiers: [.command, .shift]).disabled(noEditor)
             Button("Paste") { send(#selector(NSText.paste(_:))) }.keyboardShortcut("v")
             Button("Paste Clean") { send(#selector(NSTextView.pasteAsPlainText(_:))) }.keyboardShortcut("v", modifiers: [.command, .option, .shift])
             Button("Delete") { send(#selector(NSText.delete(_:))) }
@@ -523,19 +550,29 @@ struct NibCommands: Commands {
                     .disabled(document?.editor.find.shown != true || document?.editor.find.replacing != true || merging)
                 Button("Replace All") { document?.editor.find.replaceAll() }.keyboardShortcut(.return, modifiers: [.control, .option])
                     .disabled(document?.editor.find.shown != true || document?.editor.find.replacing != true || merging)
+                Divider()
+                // The bar's options, while it's shown, Sublime's keys where they're free (⌥⌘R is
+                // Resolve's): they were only the bar's buttons (the QA review's F51).
+                Group {
+                    Toggle("Regular Expression", isOn: findOption(\.options.regex))
+                    Toggle("Match Case", isOn: findOption(\.options.matchCase)).keyboardShortcut("c", modifiers: [.command, .option])
+                    Toggle("Whole Word", isOn: findOption(\.options.wholeWord)).keyboardShortcut("w", modifiers: [.command, .option])
+                    Toggle("In Selection", isOn: findOption(\.inSelection))
+                }
+                .disabled(document?.editor.find.shown != true || merging)
             }
         }
         // Sublime's line commands on Sublime's keys (ED6, KB4, §5.12).
         CommandMenu("Text") {
-            Button("Indent") { send(#selector(NibTextView.indentLines(_:))) }.keyboardShortcut("]")
-            Button("Outdent") { send(#selector(NibTextView.outdentLines(_:))) }.keyboardShortcut("[")
-            Button("Toggle Comment") { send(#selector(NibTextView.toggleComment(_:))) }.keyboardShortcut("/")
+            Button("Indent") { send(#selector(NibTextView.indentLines(_:))) }.keyboardShortcut("]").disabled(cantEdit)
+            Button("Outdent") { send(#selector(NibTextView.outdentLines(_:))) }.keyboardShortcut("[").disabled(cantEdit)
+            Button("Toggle Comment") { send(#selector(NibTextView.toggleComment(_:))) }.keyboardShortcut("/").disabled(cantEdit)
             Divider()
-            Button("Duplicate Line") { send(#selector(NibTextView.duplicateLine(_:))) }.keyboardShortcut("d", modifiers: [.command, .shift])
-            Button("Move Line Up") { send(#selector(NibTextView.moveLineUp(_:))) }.keyboardShortcut(.upArrow, modifiers: [.command, .control])
-            Button("Move Line Down") { send(#selector(NibTextView.moveLineDown(_:))) }.keyboardShortcut(.downArrow, modifiers: [.command, .control])
-            Button("Select Line") { send(#selector(NibTextView.selectWholeLine(_:))) }.keyboardShortcut("l")
-            Button("Join Lines") { send(#selector(NibTextView.joinLines(_:))) }.keyboardShortcut("j")
+            Button("Duplicate Line") { send(#selector(NibTextView.duplicateLine(_:))) }.keyboardShortcut("d", modifiers: [.command, .shift]).disabled(cantEdit)
+            Button("Move Line Up") { send(#selector(NibTextView.moveLineUp(_:))) }.keyboardShortcut(.upArrow, modifiers: [.command, .control]).disabled(cantEdit)
+            Button("Move Line Down") { send(#selector(NibTextView.moveLineDown(_:))) }.keyboardShortcut(.downArrow, modifiers: [.command, .control]).disabled(cantEdit)
+            Button("Select Line") { send(#selector(NibTextView.selectWholeLine(_:))) }.keyboardShortcut("l").disabled(noEditor)
+            Button("Join Lines") { send(#selector(NibTextView.joinLines(_:))) }.keyboardShortcut("j").disabled(cantEdit)
             Divider()
             Button("Go to Line…") { if !merging { document?.goingToLine = true } }.keyboardShortcut("g", modifiers: .control).disabled(document == nil || merging)
             // Sublime's Goto Symbol (SC7): a Markdown file's headings.
@@ -543,17 +580,20 @@ struct NibCommands: Commands {
         }
         // Multiple carets (ED8), on Sublime's keys; Escape is one caret again.
         CommandMenu("Selection") {
-            Button("Add Next Occurrence") { send(#selector(NibTextView.selectNextOccurrence(_:))) }.keyboardShortcut("d")
-            Button("Skip to Next Occurrence") { send(#selector(NibTextView.skipToNextOccurrence(_:))) }   // ⌘K ⌘D: open question 10
-            Button("Select All Occurrences") { send(#selector(NibTextView.selectAllOccurrences(_:))) }.keyboardShortcut("g", modifiers: [.command, .control])
-            Button("Split into Lines") { send(#selector(NibTextView.splitSelectionIntoLines(_:))) }.keyboardShortcut("l", modifiers: [.command, .shift])
-            Divider()
-            Button("Add Caret Above") { send(#selector(NibTextView.addCaretAbove(_:))) }.keyboardShortcut(.upArrow, modifiers: [.control, .shift])
-            Button("Add Caret Below") { send(#selector(NibTextView.addCaretBelow(_:))) }.keyboardShortcut(.downArrow, modifiers: [.control, .shift])
-            Divider()
-            Button("Undo Selection") { send(#selector(NibTextView.undoSelection(_:))) }.keyboardShortcut("u")
-            Button("Redo Selection") { send(#selector(NibTextView.redoSelection(_:))) }.keyboardShortcut("u", modifiers: [.command, .shift])
-            Button("One Caret (⎋)") { send(#selector(NibTextView.singleCaret(_:))) }
+            Group {
+                Button("Add Next Occurrence") { send(#selector(NibTextView.selectNextOccurrence(_:))) }.keyboardShortcut("d")
+                Button("Skip to Next Occurrence") { send(#selector(NibTextView.skipToNextOccurrence(_:))) }   // ⌘K ⌘D: open question 10
+                Button("Select All Occurrences") { send(#selector(NibTextView.selectAllOccurrences(_:))) }.keyboardShortcut("g", modifiers: [.command, .control])
+                Button("Split into Lines") { send(#selector(NibTextView.splitSelectionIntoLines(_:))) }.keyboardShortcut("l", modifiers: [.command, .shift])
+                Divider()
+                Button("Add Caret Above") { send(#selector(NibTextView.addCaretAbove(_:))) }.keyboardShortcut(.upArrow, modifiers: [.control, .shift])
+                Button("Add Caret Below") { send(#selector(NibTextView.addCaretBelow(_:))) }.keyboardShortcut(.downArrow, modifiers: [.control, .shift])
+                Divider()
+                Button("Undo Selection") { send(#selector(NibTextView.undoSelection(_:))) }.keyboardShortcut("u")
+                Button("Redo Selection") { send(#selector(NibTextView.redoSelection(_:))) }.keyboardShortcut("u", modifiers: [.command, .shift])
+                Button("One Caret (⎋)") { send(#selector(NibTextView.singleCaret(_:))) }
+            }
+            .disabled(noEditor)   // F46
         }
         CommandMenu("Conflicts") { ConflictMenuItems(document: document) }
         // The first run again (AP5), in place of the Help Book Nib doesn't have.
@@ -561,6 +601,9 @@ struct NibCommands: Commands {
             Button("Welcome to Nib") { FirstRun.shared.show() }
         }
         CommandGroup(before: .windowArrangement) {
+            // Show Scratch (SC2, P0) with its global keys, as Settings › General has them, so it's
+            // in a menu and the palette (the QA review's F47).
+            Button("Show Scratch") { AppDelegate.showScratch() }.globalShortcut(GlobalShortcuts.shared.shortcut(.showScratch))
             Button("Sync Log") { openWindow(id: "sync-log") }
                 .keyboardShortcut("l", modifiers: [.command, .option])
         }
@@ -631,8 +674,8 @@ final class RecentFiles {
 }
 
 /// The Conflicts menu (PRD §5.4, §5.12): with the caret in a block, ⌘1 uses the first
-/// version, ⌘2 the second, ⌘3 keeps both; ⌥⌘↓ and ⌥⌘↑ go between blocks; Resolve… opens
-/// the merge view for more than three. In the merge view, they act on its result.
+/// version, ⌘2 the second, ⌘3 keeps both; ⌥⌘↓ and ⌥⌘↑ go between blocks; Merge View… (⌥⌘R)
+/// opens the merge view. In the merge view, they act on its result.
 struct ConflictMenuItems: View {
     let document: Document?
 
@@ -655,7 +698,9 @@ struct ConflictMenuItems: View {
         Button("Previous Conflict") { document?.goToBlock(forward: false) }
             .keyboardShortcut(.upArrow, modifiers: [.command, .option])
             .disabled(count == 0)
-        Button("Resolve…") { document?.resolveConflicts() }
+        // Always the merge view, as its ellipsis says: "Resolve…" went to the next block with three
+        // or fewer, asking nothing (the QA review's F52). The banner's button still does that.
+        Button("Merge View…") { document?.openMerge() }
             .keyboardShortcut("r", modifiers: [.command, .option])
             .disabled(document?.blocks.isEmpty != false || document?.merge != nil)
     }

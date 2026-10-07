@@ -100,7 +100,7 @@ struct SyncHUD: View {
 
     private var iCloudPanel: some View {
         HUDPanel(document.untitled || !document.inICloud ? "This Mac" : "iCloud") {
-            HUDRow("STATE", Self.stateWord(document.state))
+            HUDRow("STATE", Self.stateWord(document))
                 .foregroundStyle(document.state.isProblem ? HUDColor.failureText : HUDColor.bright)
             // "—" until there's a time to show (F13: both said the time it opened).
             HUDRow("SAVED", document.savedAt.map(SyncState.stamp) ?? "—")
@@ -132,13 +132,7 @@ struct SyncHUD: View {
         if document.untitled { return rows }
         let others = document.otherMacs.sorted { $0.device < $1.device }
         for other in others.prefix(Self.macRows - 1) {
-            let time = other.loaded.time
-            let value = switch other.delivery {
-            case .same: "✓ \(SyncState.clock.string(from: time))"
-            case .newer: "▼ NEWER · \(Self.short.string(from: time))"
-            case .earlier: "OLDER · \(Self.short.string(from: time))"
-            }
-            rows.append((other.device.uppercased(), value))
+            rows.append((other.device.uppercased(), other.short))   // the strip's and the panel's words (F41)
         }
         if others.count > Self.macRows - 1 {   // the last row says how many more
             rows[Self.macRows - 1] = (name: "+\(others.count - (Self.macRows - 2)) MORE", value: "")
@@ -195,8 +189,8 @@ struct SyncHUD: View {
             }
             .font(HUDFont.terminal(18))
             Spacer(minLength: 0)
-            Button { document.resolveConflicts() } label: {
-                Text("RESOLVE ⌥⌘R").font(HUDFont.label()).underline()
+            Button { document.openMerge() } label: {   // as ⌥⌘R does (F52)
+                Text("MERGE VIEW ⌥⌘R").font(HUDFont.label()).underline()
             }
             .buttonStyle(.plain)
             .help("Open the merge view (⌥⌘R)")
@@ -213,6 +207,15 @@ struct SyncHUD: View {
 
     // MARK: Words
 
+    /// The strip's state without its time: "▼ NEWER ON AIR" while the strip says so, not
+    /// "✓ SYNCED" beside it (F41).
+    static func stateWord(_ document: Document) -> String {
+        if case .synced = document.state, let newer = document.otherMacs.first(where: { $0.delivery == .newer }) {
+            return "▼ NEWER ON \(newer.device.uppercased())"
+        }
+        return stateWord(document.state)
+    }
+
     /// The state's glyph and words, without its time (the rows have the times).
     static func stateWord(_ state: SyncState) -> String {
         switch state {
@@ -223,7 +226,7 @@ struct SyncHUD: View {
         case .saved: "= SAVED LOCALLY"
         case .savedHere: "✓ SAVED"
         case .uploading: "▲ UPLOADING"
-        case .local: "= THIS MAC ONLY"
+        case .local: "= ON THIS MAC ONLY"   // as the strip says it (F41)
         case .synced: "✓ SYNCED"
         case .waiting(let why): "‖ " + fact(why)
         case .problem(let why): "✕ " + problemWord(why)
@@ -286,10 +289,4 @@ struct SyncHUD: View {
     static func bytes(_ count: Int) -> String {
         ByteCountFormatter.string(fromByteCount: Int64(count), countStyle: .file).uppercased()
     }
-
-    private static let short: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
 }

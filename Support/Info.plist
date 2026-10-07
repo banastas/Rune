@@ -73,6 +73,15 @@
 	<!-- Finder empties the Trash when the disk is full and the user chooses Empty Trash (PRD §4.9, 13). -->
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Nib asks Finder to empty the Trash when this Mac’s disk is full and you choose Empty Trash on the strip.</string>
+	<!-- The folders macOS asks about, now that Nib opens any file (the QA review's F53, 2026-10-07). -->
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Nib opens only the files you open in it, and saves them where they are.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Nib opens only the files you open in it, and saves them where they are.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Nib opens only the files you open in it, and saves them where they are.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Nib opens only the files you open in it, and saves them where they are.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.com.banastas.nib</key>

@@ -62,10 +62,10 @@ enum Clipboard {
         var hud: String {
             switch self {
             case .lines(let n): "APPENDED \(n) LINE\(n == 1 ? "" : "S") TO SCRATCH"
-            case .notOpen: "COULDN'T APPEND · THE SCRATCH FILE ISN'T OPEN"
+            case .notOpen: "✕ COULDN'T APPEND · THE SCRATCH FILE ISN'T OPEN"
             case .empty(let source): source == "THE CLIPBOARD" ? "NOTHING TO APPEND · THE CLIPBOARD HAS NO TEXT"
                                                                 : "NOTHING TO APPEND · \(source) IS EMPTY ONCE CLEANED"
-            case .readOnly: "COULDN'T APPEND · THE SCRATCH FILE IS READ-ONLY"
+            case .readOnly: "✕ COULDN'T APPEND · THE SCRATCH FILE IS READ-ONLY"
             }
         }
     }

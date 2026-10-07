@@ -23,10 +23,16 @@ final class ServiceProvider: NSObject {
         }
         if Documents.scratch.ready {
             let appended = Clipboard.append(text, action: "Append to Nib Scratch", from: "THE SELECTION")
-            if case .lines = appended {} else { error.pointee = Spoken.sentence(appended.hud) as NSString }
+            if case .lines = appended { Self.confirm(appended) } else { error.pointee = Spoken.sentence(appended.hud) as NSString }
         } else {
-            Task { _ = await Self.appendWhenOpen(text, action: "Append to Nib Scratch", from: "THE SELECTION") }   // just launched for it
+            Task { Self.confirm(await Self.appendWhenOpen(text, action: "Append to Nib Scratch", from: "THE SELECTION")) }   // just launched for it
         }
+    }
+
+    /// Said where it can be seen: with the scratch window behind, the Toast, as Append Clipboard
+    /// to Scratch shows it (it confirmed nothing: the QA review's F63).
+    static func confirm(_ appended: Clipboard.Appended) {
+        if !NSApp.isActive || AppDelegate.scratchWindow?.isKeyWindow != true { Toast.show(appended.hud) }
     }
 
     /// Services › Clean Text: the selection replaced by its cleaned plain text.

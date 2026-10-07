@@ -144,7 +144,7 @@ struct HUDBox<Content: View>: View {
             .overlay(alignment: .topLeading) {
                 Text(" \(title) ")
                     .font(HUDFont.label(9))
-                    .foregroundStyle(HUDColor.dim)
+                    .foregroundStyle(Color(nsColor: Scheme.legible(NSColor(HUDColor.dim), on: Scheme.background)))   // F59: 4.1:1
                     .background(Color(nsColor: Scheme.background))
                     .offset(x: 10, y: -6)
             }

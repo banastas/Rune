@@ -610,6 +610,8 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             lastEdit = editedRange
             if let storage = textView.textStorage { lineIndex.update(storage.mutableString, edited: editedRange, delta: delta) }
             ruler?.needsDisplay = true
+            // Empty, or just not: the empty scratch file's line comes or goes (F56).
+            if textView.placeholder != nil, let length = textView.textStorage?.length, length == 0 || length == delta { textView.needsDisplay = true }
             // A wider gutter re-tiles the scroll view, which lays the text out: not while the
             // storage is mid-edit (TextKit 2 throws), but once it's done.
             guard !fitPending else { return }
@@ -818,6 +820,9 @@ final class NibTextView: NSTextView {
     /// Find's current match (ED7): in the find color as every match is, and outlined above the
     /// text, so it stands out from the rest without its color changing as it moves.
     var currentMatch: NSRange? { didSet { if oldValue != currentMatch { placeCurrentMatch() } } }
+    /// The empty scratch file's line (§5.1, W6), in the scheme's comment color, drawn while there's
+    /// no text: it wasn't built (the QA review's F56).
+    var placeholder: String? { didSet { needsDisplay = true } }
     private var currentMatchView: MatchOutline?
 
     /// The outline round the current match, where it's laid out now (after a scroll or an edit).
@@ -1101,6 +1106,10 @@ final class NibTextView: NSTextView {
         if showsInvisibles { drawInvisibles(in: rect) }
         if showsIndentGuides { drawIndentGuides(in: rect) }
         if matchBrackets { drawMatches(in: rect) }
+        if let placeholder, (textStorage?.length ?? 0) == 0 {
+            let origin = NSPoint(x: textContainerOrigin.x + (textContainer?.lineFragmentPadding ?? 0), y: textContainerOrigin.y)
+            NSAttributedString(string: placeholder, attributes: [.font: Scheme.font, .foregroundColor: Scheme.comment]).draw(at: origin)
+        }
     }
 
     // MARK: Indent guides and matching brackets (ED10)
@@ -1301,7 +1310,7 @@ final class NibTextView: NSTextView {
             string.draw(at: origin)
         }
         draw(label, color: Scheme.conflictMarker) { _ in left + 10 }
-        draw(hint, color: Scheme.comment) { width in right - 10 - width }
+        draw(hint, color: Scheme.legible(Scheme.comment, on: Scheme.conflictBlock)) { width in right - 10 - width }   // F59
     }
 
     /// The pixel ✕ (Blit's 7×7 glyph, 1 pt a pixel) in the one red.
@@ -1412,6 +1421,13 @@ extension NibTextView: @preconcurrency NSAccessibilityCustomRotorItemSearchDeleg
 extension NSColor {
     convenience init(_ color: RGBA) {
         self.init(srgbRed: color.r, green: color.g, blue: color.b, alpha: color.a)
+    }
+}
+
+extension RGBA {
+    init(_ color: NSColor) {
+        let c = color.usingColorSpace(.sRGB) ?? color
+        self.init(r: Double(c.redComponent), g: Double(c.greenComponent), b: Double(c.blueComponent), a: Double(c.alphaComponent))
     }
 }
 

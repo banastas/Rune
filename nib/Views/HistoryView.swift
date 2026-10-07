@@ -11,16 +11,16 @@ import SwiftUI
 struct HistoryView: View {
     let document: Document
     @State private var selection: String?
+    /// The selected version's text, read and checked off the main thread (F57: read and hashed in
+    /// `body`, 2.4 MB a selection, under History's lock).
+    @State private var preview = ""
 
     private struct Row: Identifiable {
         let entry: HistoryEntry
         var id: String { entry.sha256 + "@" + String(entry.time.timeIntervalSince1970) }
     }
 
-    private var rows: [Row] {
-        _ = document.historyChanged   // follow new versions
-        return document.history.entries().reversed().map(Row.init)
-    }
+    private var rows: [Row] { document.historyEntries.reversed().map(Row.init) }
 
     var body: some View {
         let rows = self.rows
@@ -37,7 +37,13 @@ struct HistoryView: View {
             }
             .frame(minWidth: 220, idealWidth: 260)
             VStack(alignment: .leading, spacing: 8) {
-                VersionText(text: selected.flatMap { document.history.data($0.entry.sha256) }.map { TextFile.decode($0).text } ?? "")
+                VersionText(text: preview)
+                    .task(id: selected?.entry.sha256) {
+                        let history = document.history, sha = selected?.entry.sha256
+                        preview = await Task.detached(priority: .userInitiated) {
+                            sha.flatMap { history.data($0) }.map { TextFile.decode($0).text } ?? ""
+                        }.value
+                    }
                 HStack {
                     Text(selected.map { "\(Self.when($0.entry.time)) · \($0.entry.source)" } ?? "No versions yet")
                         .foregroundStyle(.secondary)
@@ -100,8 +106,7 @@ struct RevertToMenu: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        _ = document.historyChanged
-        let recent = Array(document.history.entries().reversed().prefix(15))
+        let recent = Array(document.historyEntries.reversed().prefix(15))   // read off the main thread (F57)
         return Menu("Revert To") {
             ForEach(Array(recent.enumerated()), id: \.offset) { _, entry in
                 Button("\(HistoryView.when(entry.time)) · \(entry.source)") { document.restore(entry) }
