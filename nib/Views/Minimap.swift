@@ -185,6 +185,8 @@ final class MinimapView: NSView {
     private(set) var drawnColors: Set<String> = []
     private(set) var drawnBars = 0
     private(set) var drawMilliseconds = 0.0
+    /// Where the text's view stood after each move of the last drag, for the scenario.
+    private(set) var dragTops: [CGFloat] = []
     #endif
 
     override func draw(_ dirtyRect: NSRect) {
@@ -358,11 +360,31 @@ final class MinimapView: NSView {
         dragging = true
         needsDisplay = true
         defer { dragging = false; needsDisplay = true }
+        #if DEBUG
+        dragTops = []
+        #endif
+        // The mouse's place becomes a row by the minimap as it stood when the button went down.
+        // Worked out afresh at each move, the rows in view changed with each scroll at the very
+        // end (a wrapped line in view or not), and with them the row to go to, back and forth: the
+        // text shook 14 points at every move while the box stood at the foot (the user, 2026-10-06).
+        // So: a scroll only for another row, and at the foot, the end of the text.
+        let start = place, foot = max(0, place.totalRows - place.visibleRows)
+        var went: Int?
         while let next = window?.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
             if next.type == .leftMouseUp { break }
-            guard let now = self.place() else { break }
             let top = convert(next.locationInWindow, from: nil).y - grab
-            scroll(editor, toRow: topRow(forBoxAt: top, now), now)
+            let row = min(max(0, topRow(forBoxAt: top, start)), foot)
+            if row != went {
+                went = row
+                if row == foot, row > 0 {
+                    editor.textView.reveal(editor.textView.textStorage?.length ?? 0)
+                } else {
+                    scroll(editor, toRow: row, start)
+                }
+            }
+            #if DEBUG
+            dragTops.append(editor.textView.visibleRect.minY)
+            #endif
         }
     }
 

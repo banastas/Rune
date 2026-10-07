@@ -102,7 +102,7 @@ private struct FileSettings: View {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
                     }
                 }
-                note("A double-click in Finder opens these files in Nib, and so does the open command in Terminal. Turning one off gives its files back to the app they opened in before. macOS may ask first for some kinds. For one file alone, use Finder's Get Info › Open With.")
+                note("A double-click in Finder opens these files in Nib, and so does the open command in Terminal. Turning one off gives its files back to the app they opened in before. Shell scripts are files macOS can run, so it asks you to confirm each of .sh, .zsh and .bash: three times. For one file alone, use Finder's Get Info › Open With.")
             }
         }
         .formStyle(.grouped)

@@ -2635,6 +2635,17 @@ enum TestHarness {
         minimap.display()
         log.check(dragged < 700 && abs(minimap.drawnBox.midY - height * 0.1) < max(40, minimap.drawnBox.height),
                   "dragging the box up scrolls the text with it (line \(dragged) at the top; the box at \(Int(minimap.drawnBox.midY)), dragged to \(Int(height * 0.1)))")
+        // The box dragged to the foot and past it, the mouse moving a point or so there as a hand
+        // does: the text at its end, and still (the user, 2026-10-06: at the very bottom it shook).
+        let from = minimap.drawnBox.midY
+        let past = (0..<24).map { height + 6 + CGFloat($0 % 3) }
+        minimap.simulateDrag(from: from, to: [height * 0.5, height * 0.95] + past)
+        let tops = Array(minimap.dragTops.suffix(past.count))
+        let shook = zip(tops, tops.dropFirst()).map { abs($0 - $1) }.max() ?? 0
+        let foot = lastLine(editor), lines = editor.lineIndex.lineCount
+        log.line("dragged past the foot: the text's top after each move there \(tops.map { Int($0.rounded()) })")
+        log.check(tops.count == past.count && shook < 1 && foot >= lines - 1,
+                  "dragging the box past the minimap's foot: the text at its end (line \(foot) of \(lines) in view), and still (it moved \(Int(shook.rounded())) points between moves there)")
 
         // View › Hide Minimap: the text has its width back; Show brings it again.
         let viewMenu = NSApp.mainMenu?.items.first { $0.title == "View" }?.submenu
