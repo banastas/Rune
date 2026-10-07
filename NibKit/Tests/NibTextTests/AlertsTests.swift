@@ -51,7 +51,7 @@ import Testing
 
     @Test func words() {
         let conflict = Alerts.conflict("scratch.md", with: "Air", places: 1)
-        #expect(conflict.title == "Conflict with Air in scratch.md" && conflict.body.hasPrefix("In 1 place: both versions are in the text"))
+        #expect(conflict.title == "Conflict with Air in “scratch.md”" && conflict.body.hasPrefix("In 1 place: both versions are in the text"))
         #expect(Alerts.conflict("scratch.md", with: "Air", places: 3).body.hasPrefix("In 3 places: both versions of each"))
         // Both whole versions, with no version both had: not "1 place" (the QA review's F14).
         let whole = Alerts.conflict("scratch.md", with: "Air", places: 1, whole: true).body
@@ -62,8 +62,8 @@ import Testing
         #expect(failed.kind == .saveFailed && failed.body == "No permission. Your text is in Nib's recovery journal, and Nib keeps trying.")
         #expect(Alerts.saveFailed("notes.md", why: "The volume is read-only.").body.hasPrefix("The volume is read-only. Your text"))
         #expect(Alerts.diskFull("scratch.md").body.contains("only in memory") && Alerts.diskFull("scratch.md").kind == .saveFailed)
-        #expect(Alerts.deleted("a.md", trash: true).title == "a.md was moved to the Trash" && Alerts.deleted("a.md", trash: false).title == "a.md was deleted")
-        #expect(Alerts.iCloudOff("a.md").body.hasPrefix("a.md went with it.") && Alerts.storageFull("a.md").body.hasPrefix("a.md is saved on this Mac only"))
+        #expect(Alerts.deleted("a.md", trash: true).title == "“a.md” was moved to the Trash" && Alerts.deleted("a.md", trash: false).title == "“a.md” was deleted")
+        #expect(Alerts.iCloudOff("a.md").body.hasPrefix("“a.md” went with it.") && Alerts.storageFull("a.md").body.hasPrefix("“a.md” is saved on this Mac only"))
         #expect(Alerts.journalFailed("a.md", why: "I/O ERROR").title == "Couldn't write Nib's recovery journal")
     }
 }

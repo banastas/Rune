@@ -36,7 +36,7 @@ public enum Alerts {
     /// versions between markers, with no version both had to tell what each changed (it said
     /// "1 place" for that too: the QA review's F14).
     public static func conflict(_ name: String, with who: String, places: Int, whole: Bool = false) -> Alert {
-        Alert(kind: .conflict, title: "Conflict with \(who) in \(name)",
+        Alert(kind: .conflict, title: "Conflict with \(who) in \(quoted(name))",
               // ⌘3 keeps both (it said "⌘1, ⌘2 or ⌘3 keeps one": the QA review's F8, 2026-10-07).
               body: whole ? "Both whole versions are in the text, between markers: Nib couldn't tell what each one changed. In Nib, ⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both."
                   : places == 1 ? "In 1 place: both versions are in the text, between markers. In Nib, ⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both."
@@ -45,36 +45,40 @@ public enum Alerts {
 
     /// This Mac's disk is full: the journal and the save both fail (§4.9, 13).
     public static func diskFull(_ name: String) -> Alert {
-        Alert(kind: .saveFailed, title: "Couldn't save \(name)",
+        Alert(kind: .saveFailed, title: "Couldn't save \(quoted(name))",
               body: "This Mac's disk is full. Your latest changes are only in memory: free some space, or copy them.")
     }
 
     /// A save that failed for another reason (`why`, the error in short): the text is in the journal.
     public static func saveFailed(_ name: String, why: String, toRecovery: Bool = false) -> Alert {
-        Alert(kind: .saveFailed, title: toRecovery ? "Couldn't save \(name) to Nib's Recovery folder" : "Couldn't save \(name)",
+        Alert(kind: .saveFailed, title: toRecovery ? "Couldn't save \(quoted(name)) to Nib's Recovery folder" : "Couldn't save \(quoted(name))",
               body: "\(sentence(why)) Your text is in Nib's recovery journal, and Nib keeps trying.")
     }
 
     /// The journal that couldn't be written: the latest typing is in memory only.
     public static func journalFailed(_ name: String, why: String) -> Alert {
         Alert(kind: .saveFailed, title: "Couldn't write Nib's recovery journal",
-              body: "\(sentence(why)) Your latest typing in \(name) is only in memory, and Nib keeps trying.")
+              body: "\(sentence(why)) Your latest typing in \(quoted(name)) is only in memory, and Nib keeps trying.")
     }
 
     public static func deleted(_ name: String, trash: Bool) -> Alert {
-        Alert(kind: .deleted, title: trash ? "\(name) was moved to the Trash" : "\(name) was deleted",
+        Alert(kind: .deleted, title: trash ? "\(quoted(name)) was moved to the Trash" : "\(quoted(name)) was deleted",
               body: "\(trash ? "Another app" : "Another app, or another Mac,") did it. Your text is still in Nib, and Restore puts the file back.")
     }
 
     public static func iCloudOff(_ name: String) -> Alert {
         Alert(kind: .iCloudOff, title: "iCloud Drive is off on this Mac",
-              body: "\(name) went with it. Nib saves your text to its Recovery folder, and puts it back when iCloud Drive is on again.")
+              body: "\(quoted(name)) went with it. Nib saves your text to its Recovery folder, and puts it back when iCloud Drive is on again.")
     }
 
     public static func storageFull(_ name: String) -> Alert {
         Alert(kind: .storageFull, title: "iCloud storage is full",
-              body: "\(name) is saved on this Mac only, and won't reach your other Macs until there's room.")
+              body: "\(quoted(name)) is saved on this Mac only, and won't reach your other Macs until there's room.")
     }
+
+    /// A file's name in a sentence, in curly quotes, as everywhere in Nib's sentences and lines (it
+    /// was quoted in some and bare in others: the QA review's F64).
+    public static func quoted(_ name: String) -> String { "“\(name)”" }
 
     /// An error's short words ("NO PERMISSION", as the strip has them) as the start of a sentence.
     public static func sentence(_ text: String) -> String {

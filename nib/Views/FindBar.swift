@@ -32,7 +32,7 @@ struct FindBar: View {
                     .foregroundStyle(find.failure != nil || (find.matches.isEmpty && !find.query.isEmpty) ? HUDColor.failureText : HUDColor.dim)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .frame(minWidth: 90, maxWidth: find.failure == nil ? 150 : 320, alignment: .leading)
+                    .frame(minWidth: 90, maxWidth: find.failure == nil ? 190 : 320, alignment: .leading)
                     .help(find.failure.map { _ in "The pattern isn't a regular expression Nib can read. Check the brackets and escapes, or turn off .* to find it as typed." } ?? "Matches in the text")
                     .accessibilityLabel(find.countLabel.isEmpty ? "No search" : Spoken.sentence(find.countLabel))   // F61
                 controls
@@ -67,7 +67,7 @@ struct FindBar: View {
             optionToggle(".*", isOn: $find.options.regex, help: "Regular expression: $1 in Replace is the first group")
             optionToggle("Aa", isOn: $find.options.matchCase, help: "Match case")
             optionToggle("ab", underline: true, isOn: $find.options.wholeWord, help: "Whole words only")
-            optionToggle("In Selection", isOn: $find.inSelection, help: "Only in what was selected when this was turned on")
+            optionToggle("In Selection", isOn: $find.inSelection, help: "Only in what was selected when this was turned on", label: "In selection")
             Button { find.next(backwards: true) } label: { Image(systemName: "chevron.left") }
                 .help("Previous match (⇧⌘G)")
                 .accessibilityLabel("Previous match")
@@ -82,11 +82,12 @@ struct FindBar: View {
         .fixedSize()
     }
 
-    private func optionToggle(_ title: String, underline: Bool = false, isOn: Binding<Bool>, help: String) -> some View {
+    /// `label`, for VoiceOver: the tooltip's first words otherwise (In Selection's was its whole tooltip: F81).
+    private func optionToggle(_ title: String, underline: Bool = false, isOn: Binding<Bool>, help: String, label: String? = nil) -> some View {
         Toggle(isOn: isOn) { Text(title).underline(underline).monospaced(title.count <= 2) }
             .toggleStyle(.button)
             .help(help)
-            .accessibilityLabel(help.components(separatedBy: ":").first ?? help)
+            .accessibilityLabel(label ?? help.components(separatedBy: ":").first ?? help)
     }
 }
 

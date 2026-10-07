@@ -104,6 +104,9 @@ final class Document {
     private(set) var notice: String?
     /// For the strip: "MARKDOWN", "JAVASCRIPT", "PLAIN TEXT" (HL1).
     private(set) var syntaxName = "PLAIN TEXT"
+    /// The same as it's written, for VoiceOver: "HTML", "JavaScript" (capitalizing the strip's
+    /// "HTML" said "Html": the QA review's F82).
+    private(set) var syntaxSpokenName = "Plain Text"
     /// Over 5,000,000 characters (ED9): no highlighting, and the strip says so with the size.
     private(set) var highlightingOff = false
     /// The file's size in bytes, as last read or saved (ED9's strip).
@@ -443,7 +446,7 @@ final class Document {
                     record("open", size: 0, sha: fingerprint.sha256, detail: "created")
                 }
             } catch {
-                state = .problem("COULDN'T CREATE \(url.lastPathComponent.uppercased()) · \(short(error))")
+                state = .problem("COULDN'T CREATE “\(url.lastPathComponent.uppercased())” · \(short(error))")
                 record("problem", detail: "create: \(CloudControl.describe(error))")
                 return
             }
@@ -500,7 +503,7 @@ final class Document {
                 remember(text, sha: fingerprint.sha256)
                 recordHistory { history in try? history.record(data, parent: nil, source: "opened") }
             } catch {
-                state = .problem("COULDN'T READ \(url.lastPathComponent.uppercased()) · \(short(error))")
+                state = .problem("COULDN'T READ “\(url.lastPathComponent.uppercased())” · \(short(error))")
                 record("problem", detail: CloudControl.describe(error))
                 return
             }
@@ -1270,7 +1273,7 @@ final class Document {
             return
         } catch {
             state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
-                             : "COULDN'T SAVE \(url.lastPathComponent.uppercased()) · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
+                             : "COULDN'T SAVE “\(url.lastPathComponent.uppercased())” · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
             Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
                                   : Alerts.saveFailed(url.lastPathComponent, why: short(error)), for: url)
             if CloudControl.isOutOfSpace(error) { diskIsFull(at: url) }
@@ -1293,7 +1296,7 @@ final class Document {
         if NibDefaults.store.bool(forKey: "NibHoldUploads") { return }   // the "unsent" scenario
         #endif
         guard held, !deleted, online || now else {
-            if held, !online { state = .waiting("WAITING FOR NETWORK · SAVED LOCALLY \(SyncState.clock.string(from: lastSaved))") }
+            if held, !online { state = .waiting("WAITING FOR NETWORK · SAVED LOCALLY · \(SyncState.stamp(lastSaved))") }   // the dot (F67)
             return
         }
         guard !uploading else { uploadAgain = true; return }
@@ -1609,7 +1612,8 @@ final class Document {
             if waitingForNote?.sha == sha { return }
             waitingForNote = (sha, data, fingerprint, source, fromServer)
             record("merge", sha: sha, detail: "from \(source): waiting up to 10 s for its note, to merge from the version both had")
-            show("‖ A NEWER VERSION FROM ANOTHER MAC · WAITING FOR ITS NOTE TO MERGE IT", for: 10)
+            // Said without Nib's own word for it, "its note" (the QA review's F66).
+            show("‖ A NEWER VERSION FROM ANOTHER MAC · CHECKING WHAT IT WAS MADE FROM, TO MERGE IT", for: 10)
             Task { await awaitNote(for: sha) }
             return
         }
@@ -2331,7 +2335,7 @@ final class Document {
                 incoming(onDisk, fingerprint: fingerprint, from: "another app")
             }
         } catch {
-            state = .problem("COULDN'T RESTORE \(url.lastPathComponent.uppercased()) · \(short(error)) · YOUR TEXT IS STILL HERE AND IN THE JOURNAL")
+            state = .problem("COULDN'T RESTORE “\(url.lastPathComponent.uppercased())” · \(short(error)) · YOUR TEXT IS STILL HERE AND IN THE JOURNAL")
             record("problem", detail: "restoring: \(CloudControl.describe(error))")
         }
     }
@@ -2412,12 +2416,12 @@ final class Document {
         let name = (ScratchLocation.place(of: newURL) + " › " + newURL.lastPathComponent).uppercased()
         if self === Documents.scratch || untitled {
             record("problem", detail: "the file moved to \(newURL.path): not followed (the scratch file stays as Settings › Scratch & Sync has it)")
-            state = .problem("\(url.lastPathComponent.uppercased()) MOVED TO \(name) · SETTINGS › SCRATCH & SYNC TO FOLLOW IT")
+            state = .problem("“\(url.lastPathComponent.uppercased())” MOVED TO \(name) · SETTINGS › SCRATCH & SYNC TO FOLLOW IT")
             return
         }
         if ScratchLocation.refusal(for: newURL) != nil {
             record("problem", detail: "the file moved to \(newURL.path), outside the test folders: not followed (§8)")
-            state = .problem("\(url.lastPathComponent.uppercased()) MOVED OUT OF THE TEST FOLDERS · YOUR TEXT IS STILL HERE AND IN THE JOURNAL")
+            state = .problem("“\(url.lastPathComponent.uppercased())” MOVED OUT OF THE TEST FOLDERS · YOUR TEXT IS STILL HERE AND IN THE JOURNAL")
             return
         }
         following = true
@@ -2682,14 +2686,18 @@ final class Document {
         let (folder, mac) = Self.trash(for: place)
         guard let folder else { return }
         var contents = await TrashService.contents(of: folder)
-        var what = mac ? "the Trash" : "the Trash on “\(TrashService.volumeName(containing: place))”"
+        let what = mac ? "the Trash" : "the Trash on “\(TrashService.volumeName(containing: place))”"
+        var items: Int?
         if contents == nil, mac {
-            // Nib can't look into the Mac's Trash: Finder counts it.
-            guard let count = await TrashService.finderTrashCount() else {
-                show("✕ NIB ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION", for: 10)
+            // Nib can't look into the Mac's Trash: Finder counts it. Not allowed to ask it, or no
+            // answer, said apart (F72: any failure read as not allowed).
+            let finder = await TrashService.finderTrashCount()
+            guard let count = finder.count else {
+                show(finder.denied ? "✕ NIB ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION"
+                                   : "✕ FINDER DIDN'T SAY WHAT'S IN THE TRASH · EMPTY IT IN FINDER", for: 10)
                 return
             }
-            if count == 0 { contents = TrashService.Contents(items: 0, bytes: 0) } else { what = "the Trash (\(count) item\(count == 1 ? "" : "s"))" }
+            if count == 0 { contents = TrashService.Contents(items: 0, bytes: 0) } else { items = count }
         }
         if contents?.isEmpty == true {
             NSSound.beep()
@@ -2697,7 +2705,7 @@ final class Document {
             show("✕ THE TRASH IS EMPTY · FREE SPACE ANOTHER WAY, OR COPY YOUR TEXT", for: 8)
             return
         }
-        guard TrashService.confirm(what, contents) else { return }
+        guard TrashService.confirm(what, contents, items: items) else { return }   // the count said once (F72)
         if mac {
             if let problem = await TrashService.emptyFinderTrash() {
                 show(problem.hasPrefix("Nib isn't allowed") ? "✕ NIB ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION"
@@ -2973,6 +2981,7 @@ extension Document {
             syntax = detected?.language == language ? detected : language.rootScope.map { (language, $0) }
         }
         syntaxName = syntax?.language.name.uppercased() ?? "PLAIN TEXT"
+        syntaxSpokenName = syntax?.language.name ?? "Plain Text"
         editor.syntax = syntax
     }
 }

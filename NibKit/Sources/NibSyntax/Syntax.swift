@@ -55,6 +55,43 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
     case csv, tsv, log
 
     /// For the strip (HL1).
+    /// The extension a new file in this language is saved with ("js"); nil for one known by its
+    /// whole name (a commit message, .gitignore). Save… suggested ".txt" for JavaScript (F71).
+    public var fileExtension: String? {
+        switch self {
+        case .html: "html"
+        case .css: "css"
+        case .javascript: "js"
+        case .json: "json"
+        case .markdown, .markdownInline: "md"
+        case .shell: "sh"
+        case .xml: "xml"
+        case .jsx: "jsx"
+        case .typescript: "ts"
+        case .tsx: "tsx"
+        case .diff: "diff"
+        case .gitCommit, .gitIgnore, .gitAttributes, .gitConfig: nil
+        case .makefile: "mk"
+        case .yaml: "yaml"
+        case .toml: "toml"
+        case .python: "py"
+        case .ini: "ini"
+        case .go: "go"
+        case .rust: "rs"
+        case .ruby: "rb"
+        case .java: "java"
+        case .c: "c"
+        case .lua: "lua"
+        case .php: "php"
+        case .sql: "sql"
+        case .rst: "rst"
+        case .swift: "swift"
+        case .csv: "csv"
+        case .tsv: "tsv"
+        case .log: "log"
+        }
+    }
+
     public var name: String {
         switch self {
         case .html: "HTML"

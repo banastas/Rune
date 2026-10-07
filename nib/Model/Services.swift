@@ -76,7 +76,7 @@ struct AppendToScratchIntent: AppIntent {
 /// Shortcuts › Nib › Get Scratch.
 struct GetScratchIntent: AppIntent {
     static let title: LocalizedStringResource = "Get Scratch"
-    static let description = IntentDescription("The scratch file's text, as it is in Nib, typing not yet saved included.")
+    static let description = IntentDescription("Gets the scratch file's text as it is in Nib, including typing not yet saved.")   // a sentence (F75)
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
@@ -87,7 +87,8 @@ struct GetScratchIntent: AppIntent {
     static func text() async throws -> String {
         let document = Documents.scratch
         for _ in 0..<150 where !document.ready && document.locked == nil { try? await Task.sleep(for: .milliseconds(100)) }
-        guard document.ready else { throw NibIntentError.message("The scratch file isn't open in Nib.") }
+        // Why, as the strip says it (F75: it failed saying only that it wasn't open).
+        guard document.ready else { throw NibIntentError.message("The scratch file isn't open in Nib: \(SyncState.midSentence(document.locked.map(Spoken.sentence) ?? document.state.spoken)).") }
         return document.editor.textView.string
     }
 }
@@ -95,7 +96,7 @@ struct GetScratchIntent: AppIntent {
 /// Shortcuts › Nib › Clean Text.
 struct CleanTextIntent: AppIntent {
     static let title: LocalizedStringResource = "Clean Text"
-    static let description = IntentDescription("Text made plain, as Paste Clean makes it: invisible characters out, unusual spaces made plain, trailing whitespace trimmed.")
+    static let description = IntentDescription("Makes text plain, as Paste Clean does: removes invisible characters, makes unusual spaces plain and trims trailing whitespace.")
 
     @Parameter(title: "Text")
     var text: String

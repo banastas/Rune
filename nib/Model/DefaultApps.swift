@@ -36,16 +36,35 @@ final class DefaultApps {
             }
         }
 
-        /// How their names end.
+        /// How their names end: the extensions macOS gives their types (one each was shown: F69).
         var extensions: String {
             switch self {
-            case .markdown: ".md"
-            case .text: ".txt"
+            case .markdown: ".md, .markdown"
+            case .text: ".txt, .text"
             case .json: ".json"
             case .css: ".css"
-            case .javaScript: ".js"
+            case .javaScript: ".js, .mjs"
             case .shell: ".sh, .zsh, .bash"
             }
+        }
+
+        /// The kind mid-sentence: "plain text files", "shell scripts" (it was "Shell scripts files": F69).
+        var inSentence: String {
+            switch self {
+            case .markdown: "Markdown files"
+            case .text: "plain text files"
+            case .json: "JSON files"
+            case .css: "CSS files"
+            case .javaScript: "JavaScript files"
+            case .shell: "shell scripts"
+            }
+        }
+
+        /// The row's second line: its extensions, and the app that has them when it isn't Nib.
+        func detail(_ opener: Opener?) -> String {
+            guard let opener, !opener.isNib else { return extensions }
+            if let partly = opener.partly { return "\(extensions) · \(partly)" }
+            return opener.name == "no app" ? "\(extensions) · no app opens them now" : "\(extensions) · now \(opener.name)"
         }
 
         /// The types macOS gives those files. Terminal's `.command` stays Terminal's: it runs them.
@@ -62,10 +81,12 @@ final class DefaultApps {
         }
     }
 
-    /// The app a kind's files open in now: Nib only if every one of its types does.
+    /// The app a kind's files open in now: Nib only if every one of its types does; when only some
+    /// do (macOS asks for each shell type, and one can be declined), which are still elsewhere.
     struct Opener: Equatable {
         var name: String
         var isNib: Bool
+        var partly: String? = nil
     }
 
     private(set) var openers: [Kind: Opener] = [:]
@@ -125,7 +146,12 @@ final class DefaultApps {
             let apps = kind.types.map { opener(of: $0) }
             let isNib = !apps.isEmpty && apps.allSatisfy { $0.map(Self.isNib) ?? false }
             let other = apps.compactMap { $0 }.first { !Self.isNib($0) }
-            next[kind] = Opener(name: isNib ? "Nib" : other.map(Self.name) ?? "no app", isNib: isNib)
+            // Some of its types Nib's and some not: "now Xcode" read as if none were (F69).
+            let elsewhere = zip(kind.types, apps).filter { $0.1.map(Self.isNib) != true }
+            let partly = !isNib && elsewhere.count < apps.count
+                ? elsewhere.map { "." + ($0.0.preferredFilenameExtension ?? "?") }.joined(separator: " and ") + " still with \(other.map(Self.name) ?? "no app")"
+                : nil
+            next[kind] = Opener(name: isNib ? "Nib" : other.map(Self.name) ?? "no app", isNib: isNib, partly: partly)
         }
         openers = next
     }
@@ -147,7 +173,7 @@ final class DefaultApps {
             } else {
                 guard now.map(Self.isNib) == true else { continue }
                 guard let back = previous(for: type) else {
-                    failure = "No other app on this Mac opens \(kind.name) files, so they stay with Nib."
+                    failure = "No other app on this Mac opens \(kind.inSentence), so they stay with Nib."
                     return
                 }
                 app = back
@@ -155,7 +181,7 @@ final class DefaultApps {
             do {
                 try await setOpener(app, for: type)
             } catch {
-                failure = "macOS didn't change the app for \(kind.name) files: \(error.localizedDescription)"
+                failure = "macOS didn't change the app for \(kind.inSentence): \(error.localizedDescription)"
                 return
             }
         }

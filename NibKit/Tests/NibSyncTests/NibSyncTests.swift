@@ -638,6 +638,7 @@ func scratchFolder() -> URL {
         #expect(event("pause", detail: "held on try 3").word == "Held" && event("pause", detail: "held on try 3").glyph == "·")
         #expect(event("pause", detail: "still failing after 6 tries: running unheld, trying every minute while it's open").glyph == "✕")
         #expect(event("resume").word == "Handed back" && event("quit").word == "Closed")
+        #expect(event("quit", detail: "closing").word == "Closing")   // not "Closed" before it had (the QA review's F79)
         #expect(event("merge view").word == "Merge view" && event("something new").word == "Something new")
     }
 

@@ -17,7 +17,7 @@ enum FileCommands {
     /// File › Duplicate (⇧⌘S).
     static func duplicate(_ document: Document) {
         guard let url = Untitled.create(text: document.editor.textView.string, name: copyName(document.url.lastPathComponent)) else {
-            document.show("✕ COULDN'T MAKE A COPY · NIB'S UNTITLED FOLDER ISN'T WRITABLE", for: 8)
+            document.show("✕ COULDN'T MAKE A COPY · \(Untitled.lastError.map(ErrorWords.hud) ?? "NIB'S UNTITLED FOLDER")", for: 8)   // why, not a guess (F72)
             return
         }
         AppDelegate.openFile(url)
@@ -82,7 +82,9 @@ enum FileCommands {
     /// A new name in the same folder. Nil when done; otherwise why not, in the HUD's words (shown).
     @discardableResult
     static func rename(_ document: Document, to name: String) async -> String? {
-        guard !name.isEmpty, !name.contains("/"), !name.hasPrefix(".") else {
+        // A name starting with "." is a hidden file, as `.env` is (it was refused: the QA review's F70).
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return refuse(document, "A NAME IS NEEDED · NOTHING RENAMED") }
+        guard !name.contains("/"), name != ".", name != ".." else {
             return refuse(document, "“\(name.uppercased())” CAN'T BE A FILE NAME · NOTHING RENAMED")
         }
         return await move(document, to: document.url.deletingLastPathComponent().appendingPathComponent(name))
@@ -150,7 +152,7 @@ enum FileCommands {
             return refuse(document, "AN UNTITLED BUFFER IS ALREADY CALLED “\(name.uppercased())” · NOTHING RENAMED")
         }
         guard let url = Untitled.create(text: document.editor.textView.string, name: name) else {
-            return refuse(document, "COULDN'T RENAME IT · NIB'S UNTITLED FOLDER ISN'T WRITABLE")
+            return refuse(document, "COULDN'T RENAME IT · \(Untitled.lastError.map(ErrorWords.hud) ?? "NIB'S UNTITLED FOLDER")")
         }
         await Untitled.handOver(document, to: url)
         return nil

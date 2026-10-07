@@ -62,7 +62,7 @@ private struct GeneralSettings: View {
             Section {
                 Toggle("Show Nib in the menu bar", isOn: $showMenuBarExtra)
                     .disabled(hideDockIcon && showMenuBarExtra)   // with no Dock icon, the way to Nib
-                note("It shows how your open files sync: still when all's well, its line marching while an upload waits, a red ✕ when one needs a look. Click it for the scratch file, the clipboard commands and recent files.")
+                note("It shows how your open files sync: still when all's well, its line marching while an upload waits, a red ✕ when one needs a look. Click it for the scratch file, the clipboard commands and recent files." + (hideDockIcon ? " It stays on while Nib isn't in the Dock: it's the way to Nib then." : ""))   // why it's grey (F84)
                 Toggle("Show Nib in the Dock", isOn: Binding(get: { !hideDockIcon }, set: { hideDockIcon = !$0 }))
                     .disabled(!showMenuBarExtra && !hideDockIcon)
                 note("Off, Nib is only in the menu bar: not in the Dock or ⌘Tab, and with no menu bar of its own. It can be off only while the nib in the menu bar is shown.")
@@ -128,7 +128,12 @@ private struct SyncSettings: View {
         alert.informativeText = "It's in \(ScratchLocation.place(of: url)). Nib quits and opens again with it; “\(Documents.scratch.url.lastPathComponent)” stays where it is, with its History."
         alert.addButton(withTitle: "Reopen Nib")
         alert.addButton(withTitle: "Cancel")
-        if alert.runModal() == .alertFirstButtonReturn { ScratchChoice.use(url) }
+        // A sheet on Settings, not the whole app held up (the QA review's F74).
+        if let window = NSApp.keyWindow {
+            alert.beginSheetModal(for: window) { response in if response == .alertFirstButtonReturn { ScratchChoice.use(url) } }
+        } else if alert.runModal() == .alertFirstButtonReturn {
+            ScratchChoice.use(url)
+        }
     }
 }
 
@@ -149,7 +154,7 @@ private struct FileSettings: View {
                 ForEach(DefaultApps.Kind.allCases) { kind in
                     Toggle(isOn: Binding(get: { apps.openers[kind]?.isNib == true }, set: { on in Task { await apps.set(kind, on) } })) {
                         Text(kind.name)
-                        Text(apps.openers[kind].map { $0.isNib ? kind.extensions : "\(kind.extensions) · now \($0.name)" } ?? kind.extensions)
+                        Text(kind.detail(apps.openers[kind]))
                     }
                     .disabled(apps.changing.contains(kind))
                 }

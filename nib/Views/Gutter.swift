@@ -26,6 +26,11 @@ final class LineNumberRuler: NSRulerView {
 
     required init(coder: NSCoder) { fatalError("not from a nib") }
 
+    /// Not for VoiceOver: the strip says the line and column, and a conflict block is said as the
+    /// caret comes into it, ✕ and all (it was an unlabelled ruler: the QA review's F82).
+    override func isAccessibilityElement() -> Bool { false }
+    override func accessibilityChildren() -> [Any]? { [] }
+
     override var isFlipped: Bool { true }
     override var isOpaque: Bool { true }
     override var requiredThickness: CGFloat { ruleThickness }

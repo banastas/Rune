@@ -30,6 +30,7 @@ enum SyncState: Equatable {
 
     static let clock: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")   // 24-hour whatever the Mac's 12-hour setting (W5; F65)
         formatter.dateFormat = "HH:mm:ss"
         return formatter
     }()
@@ -43,6 +44,7 @@ enum SyncState: Equatable {
     /// "10:42", or "SEP 30 10:42" for another day.
     static func moment(_ time: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = Calendar.current.isDateInToday(time) ? "HH:mm" : "MMM d HH:mm"
         return formatter.string(from: time).uppercased()
     }
@@ -92,6 +94,7 @@ enum SyncState: Equatable {
     static func spokenStamp(_ time: Date) -> String {
         guard !Calendar.current.isDateInToday(time) else { return clock.string(from: time) }
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "MMM d HH:mm"
         return formatter.string(from: time)
     }

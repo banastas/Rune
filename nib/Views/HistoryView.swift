@@ -29,7 +29,7 @@ struct HistoryView: View {
             List(rows, selection: $selection) { row in
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Self.when(row.entry.time)).monospacedDigit()
-                    Text("\(row.entry.source) · \(ByteCountFormatter.string(fromByteCount: Int64(row.entry.size), countStyle: .file))")
+                    Text("\(Self.source(row.entry.source)) · \(ByteCountFormatter.string(fromByteCount: Int64(row.entry.size), countStyle: .file))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -45,11 +45,13 @@ struct HistoryView: View {
                         }.value
                     }
                 HStack {
-                    Text(selected.map { "\(Self.when($0.entry.time)) · \($0.entry.source)" } ?? "No versions yet")
+                    Text(selected.map { "\(Self.when($0.entry.time)) · \(Self.source($0.entry.source))" } ?? "No versions yet")
                         .foregroundStyle(.secondary)
                     Spacer()
+                    // Off for the version the text is now: it did nothing (the QA review's F80).
                     Button("Restore This Version") { if let selected { document.restore(selected.entry) } }
-                        .disabled(selected == nil)
+                        .disabled(selected == nil || (selected?.entry.sha256 == document.versionSHA && !document.dirty))
+                        .help(selected?.entry.sha256 == document.versionSHA && !document.dirty ? "This is the text as it is now" : "Put this version back in the text, as one edit ⌘Z undoes")
                 }
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
@@ -58,7 +60,14 @@ struct HistoryView: View {
         }
         .frame(minWidth: 640, minHeight: 360)
         .navigationTitle("History · \(document.url.lastPathComponent)")
+        .navigationSubtitle(document.untitled ? "On this Mac only" : ScratchLocation.place(of: document.url))   // where it is (F80)
         .onAppear { if selection == nil { selection = rows.first?.id } }
+    }
+
+    /// A version's source with a capital, "Saved", "Merged from Air", "iCloud conflict version
+    /// from Air" (lowercase, "saved · 588 bytes", it read as a fragment: F80).
+    static func source(_ source: String) -> String {
+        source.hasPrefix("iCloud") ? source : source.prefix(1).uppercased() + source.dropFirst()
     }
 
     /// "Today 15:48:31", "Yesterday 09:12:05", "Sep 26 17:40:00".
@@ -109,7 +118,7 @@ struct RevertToMenu: View {
         let recent = Array(document.historyEntries.reversed().prefix(15))   // read off the main thread (F57)
         return Menu("Revert To") {
             ForEach(Array(recent.enumerated()), id: \.offset) { _, entry in
-                Button("\(HistoryView.when(entry.time)) · \(entry.source)") { document.restore(entry) }
+                Button("\(HistoryView.when(entry.time)) · \(HistoryView.source(entry.source))") { document.restore(entry) }
             }
             if !recent.isEmpty { Divider() }
             Button("Browse All Versions…") { openWindow(id: "history", value: document.url) }

@@ -17,6 +17,12 @@ struct AboutView: View {
         return "V\(short) · BUILD \(build)"
     }
 
+    /// "Version 0.1, build 3", for VoiceOver (it read "V0.1 · BUILD 3": F82).
+    static var spokenVersion: String {
+        let info = Bundle.main.infoDictionary
+        return "Version \(info?["CFBundleShortVersionString"] as? String ?? "?"), build \(info?["CFBundleVersion"] as? String ?? "?")"
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             Image(nsImage: NSApp.applicationIconImage ?? NSImage())
@@ -25,6 +31,7 @@ struct AboutView: View {
                 .frame(width: 96, height: 96)
                 .accessibilityHidden(true)
             Text("NIB").font(HUDFont.label(34))
+                .accessibilityLabel("Nib")   // not spelled out (F82)
             HStack(spacing: 0) {
                 Text("WRITE IT DOWN. LOSE NOTHING")
                 if reduceMotion {
@@ -45,6 +52,7 @@ struct AboutView: View {
                 .overlay(Rectangle().stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 3])).foregroundStyle(HUDColor.off))
                 .padding(.vertical, 4)
             Text(Self.version).font(HUDFont.terminal(20))
+                .accessibilityLabel(Self.spokenVersion)
             // The open-source software Nib ships, with its notices and licenses (the fonts' among
             // them, and An Old Hope's), as each asks (DS3).
             Button { openWindow(id: "acknowledgements") } label: {

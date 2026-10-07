@@ -118,12 +118,6 @@ struct SyncLogView: View {
     @State private var selectedExists = false
     @Environment(\.openWindow) private var openWindow
 
-    private static let clock: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d  HH:mm:ss"   // 24-hour (W5)
-        return formatter
-    }()
-
     var body: some View {
         @Bindable var model = SyncLogModel.shared
         let shown = model.shown
@@ -137,9 +131,10 @@ struct SyncLogView: View {
                 }
                 .width(16)
                 TableColumn("Time", value: \.time) { row in
-                    Text(Self.clock.string(from: row.time)).monospacedDigit().foregroundStyle(.secondary)
+                    // As History names times, "Today 22:29:37" (it was "Oct 6  22:29:37": F79).
+                    Text(HistoryView.when(row.time)).monospacedDigit().foregroundStyle(.secondary)
                 }
-                .width(min: 110, ideal: 126)
+                .width(min: 110, ideal: 140)
                 TableColumn("Event", value: \.word) { row in
                     Text(row.word).foregroundStyle(row.event.failed ? HUDColor.failureText : .primary)
                 }
@@ -151,7 +146,7 @@ struct SyncLogView: View {
                 }
                 .width(min: 160, ideal: 250)
                 TableColumn("Size", value: \.size) { row in
-                    Text(row.event.size.map { Int64($0).formatted(.byteCount(style: .file)) } ?? "—")
+                    Text(row.event.size.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) } ?? "—")   // "3 KB", as elsewhere (F79)
                         .monospacedDigit().foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
@@ -196,7 +191,10 @@ struct SyncLogView: View {
             }
         }
         .navigationTitle("Sync Log")
-        .navigationSubtitle(shown.count == model.rows.count ? "\(model.rows.count.formatted()) events" : "\(shown.count.formatted()) of \(model.rows.count.formatted()) events")
+        .navigationSubtitle(!model.loaded ? "Loading…" : shown.count == model.rows.count ? "\(model.rows.count.formatted()) events" : "\(shown.count.formatted()) of \(model.rows.count.formatted()) events")   // not "0 events" while it reads (F79)
+        // A selection the search or filter hides goes with it (F79: kept, its detail still showing).
+        .onChange(of: model.search) { _, _ in if let selection, !model.shown.contains(where: { $0.id == selection }) { self.selection = nil } }
+        .onChange(of: model.filter) { _, _ in if let selection, !model.shown.contains(where: { $0.id == selection }) { self.selection = nil } }
         .frame(minWidth: 820, minHeight: 360)
         .onChange(of: selection) { _, id in
             let path = SyncLogModel.shared.rows.first { $0.id == id }?.event.path
@@ -215,7 +213,7 @@ struct SyncLogView: View {
             }
             GridRow {
                 Text("When").foregroundStyle(.secondary)
-                Text("\(Self.clock.string(from: event.time)) · \(event.device) · \(event.word) (“\(event.event)”)").textSelection(.enabled)
+                Text("\(HistoryView.when(event.time)) · \(event.device) · \(event.word) (“\(event.event)”)").textSelection(.enabled)
             }
             if let sha = event.sha256 {
                 GridRow {

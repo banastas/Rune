@@ -103,7 +103,7 @@ extension SyncEvent {
             if detail.hasPrefix("the hold didn't last") { return "Hold lost" }
             return ["not ", "failed", "still failing"].contains { detail.hasPrefix($0) } ? "Not held" : "Held"
         case "resume": return "Handed back"
-        case "quit": return "Closed"
+        case "quit": return detail == "closing" ? "Closing" : "Closed"   // "Closed · closing" before it had (F79)
         case "problem": return "Problem"
         default: return event.prefix(1).uppercased() + event.dropFirst()
         }

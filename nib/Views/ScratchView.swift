@@ -140,16 +140,27 @@ struct FileWindow: View {
     /// at the end of the tabs (the user's call, 2026-10-07): macOS tabs a new window in beside the
     /// selected tab, and the hand-made join went beside the host, so opening A and then B gave
     /// "scratch, B, A".
+    /// The end as it was when the window was made: after the tabs made before it, not after one
+    /// made since. A look 0.2 s on found A joined but not last, B opened meanwhile, and moved it
+    /// behind B ("B, A" again: the suite's `reopen`, 2026-10-07; `nib a b` opens them as fast).
     static func joinTabs(_ window: NSWindow, attempts: Int = 10) {
         guard attempts > 0 else { return }
+        if made[ObjectIdentifier(window)] == nil {
+            madeCount += 1
+            made = made.filter { id, _ in NSApp.windows.contains { ObjectIdentifier($0) == id } }   // gone ones forgotten
+            made[ObjectIdentifier(window)] = madeCount
+        }
         let chosen = tabHost.flatMap { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible ? $0 : nil }
         let host = chosen ?? NSApp.windows.first { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible }
         if window.isVisible {
             guard let host else { return }                                   // the first file window
-            if let group = host.tabGroup, group.windows.contains(window) {   // joined: at the end
-                if group.windows.last !== window {
+            if let group = host.tabGroup, group.windows.contains(window) {   // joined: after the older tabs
+                let mine = made[ObjectIdentifier(window)] ?? 0
+                let others = group.windows.filter { $0 !== window }
+                let at = (others.lastIndex { (made[ObjectIdentifier($0)] ?? 0) < mine } ?? -1) + 1
+                if group.windows.firstIndex(of: window) != at {
                     group.removeWindow(window)
-                    group.insertWindow(window, at: group.windows.count)
+                    group.insertWindow(window, at: min(at, group.windows.count))
                     window.makeKeyAndOrderFront(nil)
                 }
                 return
@@ -159,6 +170,10 @@ struct FileWindow: View {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { joinTabs(window, attempts: attempts - 1) }
     }
+
+    /// The order file windows were made in (`joinTabs`), while they're open.
+    private static var made: [ObjectIdentifier: Int] = [:]
+    private static var madeCount = 0
 }
 
 /// Runs once with the hosting NSWindow, when the view first lands in it (a tick after it's

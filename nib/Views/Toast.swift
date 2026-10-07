@@ -37,7 +37,7 @@ enum Toast {
         }
         panel.alphaValue = 1
         panel.orderFrontRegardless()
-        Announce.hud(text, urgent: true)
+        Announce.hud(text, urgent: text.hasPrefix("✕"))   // only a failure interrupts VoiceOver (F82)
         hide?.cancel()
         let work = DispatchWorkItem {
             NSAnimationContext.runAnimationGroup({ $0.duration = 0.3; panel.animator().alphaValue = 0 }, completionHandler: {

@@ -55,7 +55,7 @@ struct ConflictBanner: View {
             return "The merge view's choices and the typing since both changed this file. Both versions are in the text, between markers."
         }
         if !fileExtension.isEmpty, other.hasSuffix("." + fileExtension) {
-            return "\(other) is a copy of this file with other text. Both versions are in the text, between markers."
+            return "\(Alerts.quoted(other)) is a copy of this file with other text. Both versions are in the text, between markers."   // F64
         }
         let who = other.prefix(1).uppercased() + other.dropFirst()   // "another Mac" begins the sentence
         if merged { return "\(who) and this Mac both changed \(n == 1 ? "1 place" : "\(n) places"). Everything else merged." }

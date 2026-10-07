@@ -66,7 +66,7 @@ struct StatusStrip: View {
                     .menuIndicator(.hidden)
                     .fixedSize()
                     .help("The syntax for this file. Click to choose another.")
-                    .accessibilityLabel("Syntax, \(document.syntaxName.capitalized)")
+                    .accessibilityLabel("Syntax, \(document.syntaxSpokenName)")
                 }
                 Text(" · \(document.indentationLabel) · \(document.format.encoding.label) · \(document.format.lineEnding.label)")
                     .help("Indentation (found in the file), encoding and line endings")
@@ -116,7 +116,7 @@ struct StatusStrip: View {
 
     /// "scratch.md, synced at 10:42:21, line 14, column 3, Markdown" (AX1).
     static func summary(_ document: Document) -> String {
-        "\(document.url.lastPathComponent), \(spokenState(document)), line \(document.cursor.line), column \(document.cursor.column)\(document.caretCount > 1 ? ", \(document.caretCount) carets" : ""), \(document.highlightingOff ? "highlighting off" : document.syntaxName.capitalized)"
+        "\(document.url.lastPathComponent), \(spokenState(document)), line \(document.cursor.line), column \(document.cursor.column)\(document.caretCount > 1 ? ", \(document.caretCount) carets" : ""), \(document.highlightingOff ? "highlighting off" : document.syntaxSpokenName)"
     }
 
     /// "2 spaces, UTF-8, LF line endings".

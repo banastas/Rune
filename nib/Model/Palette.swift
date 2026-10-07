@@ -97,7 +97,7 @@ final class PaletteSession: Identifiable {
         let root = ScratchLocation.hasContainer ? ScratchLocation.folder : ScratchLocation.unsignedTestFolder
         Task { [weak self] in
             let found = await Task.detached(priority: .userInitiated) { Self.textFiles(in: root) }.value
-            for url in found { self?.add(url, group: "Nib Folder", symbol: "folder") }
+            for url in found { self?.add(url, group: "Nib Folder", symbol: "doc.text") }   // a file, not a folder (F76)
         }
     }
 
@@ -133,7 +133,7 @@ final class PaletteSession: Identifiable {
     private func listHeadings() {
         guard let document else { return }
         guard document.language == .markdown else {
-            empty = "No headings: ⌘R lists a Markdown file's"
+            empty = "Go to Heading lists a Markdown file's headings, and this file isn't Markdown"   // a sentence (F77)
             return
         }
         let text = document.editor.textView.string, caret = document.editor.textView.selectedRange().location
@@ -175,10 +175,13 @@ final class PaletteSession: Identifiable {
                 walk(submenu, path: path + [item.title])
                 continue
             }
+            // Go to Heading… listed too (only the palette's own two aren't); and a Revert To version or
+            // a syntax named with its menu, not bare ("Today 10:42 · saved", "Markdown": the QA review's F76).
             guard item.isEnabled, item.action != nil, item.action != #selector(NSWindow.makeKeyAndOrderFront(_:)),
-                  !["Go to File…", "Command Palette…", "Go to Heading…"].contains(item.title) else { continue }
+                  !["Go to File…", "Command Palette…"].contains(item.title) else { continue }
             let id = (path + [item.title, String(index)]).joined(separator: "\u{1F}")
-            entries.append(PaletteEntry(id: id, name: item.title, detail: path.joined(separator: " › "), symbol: "command",
+            let named = ["Revert To", "Syntax"].contains(path.last ?? "") ? "\(path.last ?? ""): \(item.title)" : item.title
+            entries.append(PaletteEntry(id: id, name: named, detail: path.joined(separator: " › "), symbol: "command",
                                         group: "", shortcut: Self.keys(of: item)))
             // Found again when it's done, in the menus as they are then (SwiftUI may have made
             // them afresh meanwhile).

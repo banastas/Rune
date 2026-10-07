@@ -349,17 +349,17 @@ private struct ScratchStep: View {
         Section("Where's your scratch file?") {
             Group {
                 if let chosen = model.chosen {
-                    Label("Nib will use \(chosen.lastPathComponent) in \(ScratchLocation.place(of: chosen)) once it reopens, at the end.",
+                    Label("Nib will use “\(chosen.lastPathComponent)” in \(ScratchLocation.place(of: chosen)) once it reopens, at the end.",   // names quoted (F64)
                           systemImage: "arrow.triangle.2.circlepath")
                 } else if model.scratchFound == nil {
                     Label { Text("Looking in \(place)…") } icon: { ProgressView().controlSize(.small) }
                 } else if model.scratchFound == true {
-                    Label { Text("Found \(name) in \(place).") } icon: {
+                    Label { Text("Found “\(name)” in \(place).") } icon: {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                     }
                 } else {
                     // Said as maybe on its way, and looked for while this window's open (F26).
-                    Label("There's no \(name) in \(place) yet. If another Mac has one, iCloud may still be bringing it: Nib keeps looking while this window is open.",
+                    Label("There's no “\(name)” in \(place) yet. If another Mac has one, iCloud may still be bringing it: Nib keeps looking while this window is open.",
                           systemImage: "doc.badge.plus")
                 }
             }
@@ -384,7 +384,7 @@ private struct ScratchStep: View {
             // What it says of the file that will be used: one chosen outside iCloud Drive stays on this
             // Mac (the QA review's F28: it said every Mac whatever was chosen).
             if let chosen = model.chosen, !ScratchLocation.place(of: chosen).hasPrefix("iCloud Drive") {
-                firstRunNote("The scratch file is where everything you jot down goes. \(chosen.lastPathComponent) is on this Mac only, so your other Macs won't see it: choose one in iCloud Drive to have it on every Mac.")
+                firstRunNote("The scratch file is where everything you jot down goes. “\(chosen.lastPathComponent)” is on this Mac only, so your other Macs won't see it: choose one in iCloud Drive to have it on every Mac.")
             } else {
                 firstRunNote("The scratch file is where everything you jot down goes. It's in Nib's own folder in iCloud Drive, so every Mac signed in to your Apple Account opens the same file, and Nib keeps them the same. If one Mac already has it, this finds it; make it only on the first Mac.")
             }
@@ -474,9 +474,9 @@ struct LoginToggle: View {
             .onChange(of: login.failure) { _, why in if let why { Announce.sentence(why) } }   // F62
         if login.needsApproval {
             HStack {
-                Text("macOS is waiting for your OK in System Settings › General › Login Items.")
+                Text("macOS is waiting for your OK in System Settings › General › Login Items & Extensions.")
                     .fixedSize(horizontal: false, vertical: true)
-                Button("Open Login Items") { login.openSystemSettings() }
+                Button("Open Login Items & Extensions") { login.openSystemSettings() }   // macOS's name for it (F85)
             }
         }
         if let failure = login.failure {
@@ -484,7 +484,7 @@ struct LoginToggle: View {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
             }
         }
-        firstRunNote("So Show Scratch works from the moment you log in. macOS confirms it in a notification and lists Nib in System Settings › General › Login Items, where you can turn it off too.")
+        firstRunNote("So Show Scratch works from the moment you log in. macOS confirms it in a notification and lists Nib in System Settings › General › Login Items & Extensions, where you can turn it off too.")
     }
 }
 

@@ -93,8 +93,9 @@ enum TrashService {
     static var testAnswer: Bool?
     #endif
 
-    /// Asks before erasing. `what` names the Trash ("the Trash on “SSD”").
-    static func confirm(_ what: String, _ contents: Contents?) -> Bool {
+    /// Asks before erasing. `what` names the Trash ("the Trash on “SSD”"); `items`, Finder's count,
+    /// when Nib can't look in it itself.
+    static func confirm(_ what: String, _ contents: Contents?, items: Int? = nil) -> Bool {
         #if DEBUG
         if let testAnswer { return testAnswer }
         #endif
@@ -105,6 +106,8 @@ enum TrashService {
         if let contents {
             let size = contents.bytes.formatted(.byteCount(style: .file))
             detail = "\(contents.items) item\(contents.items == 1 ? "" : "s"), \(size). " + detail
+        } else if let items {
+            detail = "\(items) item\(items == 1 ? "" : "s"). " + detail
         }
         alert.informativeText = detail
         alert.addButton(withTitle: "Empty Trash").hasDestructiveAction = true
@@ -122,10 +125,11 @@ enum TrashService {
         return "Couldn't empty the Trash: \(error.message)"
     }
 
-    /// Items in Finder's Trash (all drives), or nil if Finder can't be asked.
-    static func finderTrashCount() async -> Int? {
+    /// Items in Finder's Trash (all drives), or nil if Finder can't be asked; `denied` when macOS
+    /// doesn't let Nib ask it (any failure read as that before: the QA review's F72).
+    static func finderTrashCount() async -> (count: Int?, denied: Bool) {
         let result = await runFinder("tell application \"Finder\" to count items of trash")
-        return result.error == nil ? result.value.flatMap { Int($0) } : nil
+        return (result.error == nil ? result.value.flatMap { Int($0) } : nil, result.error?.code == -1743)
     }
 
     private struct ScriptResult: Sendable {

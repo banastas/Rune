@@ -96,9 +96,12 @@ struct AcknowledgementsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(items) { item in
                     Button { selection = item.id } label: {
+                        // Two lines, not cut: long names and their versions ran off a 230-point
+                        // list (the QA review's F83); the whole name in its tooltip too.
                         Text(item.title.uppercased())
                             .font(HUDFont.terminal(17))
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
@@ -107,12 +110,13 @@ struct AcknowledgementsView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .help(item.title)
                     .accessibilityAddTraits(item.id == selection ? .isSelected : [])
                 }
             }
             .padding(10)
         }
-        .frame(width: 230)
+        .frame(width: 280)
     }
 
     private var detail: some View {

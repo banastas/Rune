@@ -1,6 +1,6 @@
 // Open Nib when you log in (PRD AP2): the system's login item for the app itself
 // (`SMAppService.mainApp`, §6.3). macOS confirms it with a notification and lists Nib in
-// System Settings › General › Login Items, where it can be turned off too; this follows.
+// System Settings › General › Login Items & Extensions (its name since macOS 15), where it can be turned off too; this follows.
 
 import Foundation
 import NibSync

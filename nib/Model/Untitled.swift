@@ -30,6 +30,9 @@ enum Untitled {
 
     /// A new untitled buffer's file, named "Untitled", "Untitled 2"… (the lowest number free), or
     /// as asked ("notes copy.md", then "notes copy 2.md").
+    /// Why the last `create` failed, for saying so (it was guessed as "NOT WRITABLE": F72).
+    static var lastError: Error?
+
     static func create(text: String = "", name wanted: String = "Untitled") -> URL? {
         let taken = Set(all().map(\.lastPathComponent))
         let base = (wanted as NSString).deletingPathExtension, ext = (wanted as NSString).pathExtension
@@ -40,6 +43,7 @@ enum Untitled {
             try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
             try Data(text.utf8).write(to: file)
         } catch {
+            lastError = error
             return nil
         }
         return file
@@ -136,14 +140,31 @@ enum Untitled {
     static func saveAs(_ document: Document) {
         let panel = NSSavePanel()
         panel.title = "Save “\(document.url.lastPathComponent)”"
-        let name = document.url.lastPathComponent
-        // "notes copy.md" as it is; a new buffer named for its syntax, Markdown unless another was picked.
-        let suffix = document.pickedSyntax == .language(.markdown) ? ".md" : ".txt"
-        panel.nameFieldStringValue = (name as NSString).pathExtension.isEmpty ? name + suffix : name
+        panel.nameFieldStringValue = suggestedName(document)
         panel.directoryURL = ScratchLocation.url.deletingLastPathComponent()   // the scratch file's (in a test run, the test folder: §8)
         panel.canCreateDirectories = true
-        guard panel.runModal() == .OK, let target = panel.url else { return }
-        Task { await save(document, to: target) }
+        // A sheet on its window, not the whole app held up (the QA review's F71).
+        if let window = document.editor.textView.window {
+            panel.beginSheetModal(for: window) { response in
+                guard response == .OK, let target = panel.url else { return }
+                Task { await save(document, to: target) }
+            }
+        } else if panel.runModal() == .OK, let target = panel.url {
+            Task { await save(document, to: target) }
+        }
+    }
+
+    /// The name Save… suggests: the buffer's, with the extension of the syntax picked for it, or its
+    /// own (Markdown when it has none). It suggested ".txt" for JavaScript (F71).
+    static func suggestedName(_ document: Document) -> String {
+        let name = document.url.lastPathComponent as NSString
+        let picked: String? = switch document.pickedSyntax {
+        case .language(let language)?: language.fileExtension
+        case .plain?: "txt"
+        case nil: nil
+        }
+        guard let ext = picked ?? (name.pathExtension.isEmpty ? "md" : nil) else { return name as String }
+        return name.deletingPathExtension + "." + ext
     }
 
     /// Writes the buffer to `target` and opens that file in its place, the buffer's History and
@@ -211,7 +232,10 @@ final class ClosedItems {
         // A file deleted since is skipped (opening it would make an empty one).
         items.removeAll { !$0.untitled && !FileManager.default.fileExists(atPath: $0.path) }
         persist()
-        guard let item = items.first else { NSSound.beep(); return }
+        guard let item = items.first else {   // said, not only a beep (F72)
+            Toast.show("✕ NOTHING TO REOPEN · THE FILES CLOSED LAST ARE GONE", for: 4)
+            return
+        }
         reopen(item)
     }
 

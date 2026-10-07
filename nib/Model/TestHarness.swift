@@ -537,9 +537,23 @@ enum TestHarness {
         let inside = await settle("2 MATCHES") || find.matches.count == 2
         find.replaceAll()
         await endOfEvent(view)
-        log.check(inside && view.string == "Deploy to seedbox.\nship again; reship later.\nDEPLOY v1.2 and v1.10\n",
-                  "In Selection: 2 matches there, and only they're replaced")
+        let replaced = "Deploy to seedbox.\nship again; reship later.\nDEPLOY v1.2 and v1.10\n"
+        log.check(inside && view.string == replaced, "In Selection: 2 matches there, and only they're replaced")
+        // Saved, then undone and redone: each saved too. TextKit 2's undo tells the delegate
+        // nothing, and an undo after a save stayed in the buffer only (the suite, 2026-10-07: an
+        // app switch saved this Replace All, and the file kept it).
+        await document.flush(reason: "test")
+        let savedReplaced = fileText(document) == replaced
         view.undoManager?.undo(); await endOfEvent(view)
+        let undoneDirty = document.dirty
+        await document.flush(reason: "test")
+        let savedUndo = fileText(document) == original
+        view.undoManager?.redo(); await endOfEvent(view)
+        await document.flush(reason: "test")
+        let savedRedo = fileText(document) == replaced
+        view.undoManager?.undo(); await endOfEvent(view)
+        log.check(savedReplaced && undoneDirty && savedUndo && savedRedo && view.string == original,
+                  "an undo after a save is saved, and a redo (saved \(savedReplaced), edited after the undo \(undoneDirty), the undo saved \(savedUndo), the redo \(savedRedo))")
         find.inSelection = false
 
         // In a narrow window the bar's buttons take a row of their own, and the field keeps its room
@@ -689,6 +703,16 @@ enum TestHarness {
         let inFront = NSApp.isActive && view.window?.isKeyWindow == true
         let added = [("Show Scratch", "Window"), ("Show in Finder", "File"), ("Show Sync Log for This File", "File")]
             .filter { name, menu in entry(name)?.detail == menu }.map(\.0)
+        // Go to Heading… listed, and a Revert To version or a syntax named with its menu, not bare
+        // (the QA review's F76); "One Caret" without its key in its title.
+        // With Nib behind, the window's commands are off and not listed (Show in Finder among them):
+        // then only that nothing's named the old way.
+        let named = palette.entries.contains { $0.name.hasPrefix("Syntax: ") }
+        let bare = palette.entries.contains { $0.detail.hasSuffix("› Syntax") && !$0.name.hasPrefix("Syntax: ") }
+        let windowCommands = entry("Show in Finder") != nil
+        log.check(entry("One Caret") != nil && entry("One Caret (⎋)") == nil && !bare && (!windowCommands || (entry("Go to Heading…") != nil && named)),
+                  "Go to Heading… is there, the syntaxes as “\(palette.entries.first { $0.name.hasPrefix("Syntax: ") }?.name ?? "none")”, One Caret named plainly"
+                  + (windowCommands ? "" : " (Nib behind: the window's commands off, so only the names checked)"))
         log.check(added.first == "Show Scratch" && (added.count == 3 || !inFront) && entry("Show Scratch")?.shortcut != nil && entry("Restore") == nil,
                   "and the strip's commands (Restore only while deleted), and Show Scratch with its keys (\(entry("Show Scratch")?.shortcut ?? "no keys")): \(added.joined(separator: ", "))")
         let front = NSApp.isActive && view.window?.isKeyWindow == true
@@ -1380,7 +1404,11 @@ enum TestHarness {
                   "nib on a path with no file: made empty to open (\(typoOpened)), gone when closed still empty (\(left)), nothing kept for it (\(!kept)), and not made again from a list (\(notAgain))")
         try? FileManager.default.removeItem(at: typo)
         let wrong = await run(["-x"])
-        log.check(wrong?.status == 2 && wrong?.error.hasPrefix("nib: no option -x") == true, "an unknown option: exit 2 and the usage")
+        log.check(wrong?.status == 2 && wrong?.error.hasPrefix("nib: unknown option -x") == true && wrong?.error.contains("show this help") == true
+                  && wrong?.error.contains("Exits 0 when done") == true,
+                  "an unknown option: exit 2 and the usage, with --scratch and the exit statuses (the QA review's F73)")
+        let both = await run(["-w", "-a"])
+        log.check(both?.status == 2 && both?.error.contains("-w waits for files to close, and -a opens none") == true, "-w with -a: refused, not ignored (\(both?.error.trimmingCharacters(in: .whitespacesAndNewlines) ?? "no answer"))")
 
         // A waiting -w let go when Nib quits, its file saved first.
         let quitWaiter = start(["-w", made[2].path])
@@ -1498,6 +1526,18 @@ enum TestHarness {
                 let dim = StatusStrip.color(notice: "‖ WAITING", state: .synced(Date())) == HUDColor.dim
                 log.check(now.notice?.hasPrefix("✕ “") == true && red && dim && SyncState.problem("DELETED").tag == "✕",
                           "a refusal on the strip is a failure: ✕, in the red (\(now.notice ?? "no notice"))")
+                // An empty name, said as such; a name starting with "." (`.env`) allowed, then back
+                // (the QA review's F70: refused as "can't be a file name", and "“”" for an empty one).
+                let empty = await FileCommands.rename(now, to: "  ")
+                let dotted = renamed.deletingLastPathComponent().appendingPathComponent(".dot-\(marker).txt")
+                let dotWhy = await FileCommands.rename(now, to: dotted.lastPathComponent)
+                let dotOpen = await waitFor(10) { Documents.existing(for: dotted)?.ready == true }
+                if let back = Documents.existing(for: dotted) {
+                    _ = await FileCommands.rename(back, to: renamed.lastPathComponent)
+                    _ = await waitFor(10) { Documents.existing(for: renamed)?.ready == true }
+                }
+                log.check(empty == "✕ A NAME IS NEEDED · NOTHING RENAMED" && dotWhy == nil && dotOpen && Documents.existing(for: renamed) != nil,
+                          "an empty name: “\(empty ?? "renamed")”; a name starting with “.”: renamed\(dotWhy.map { " not (\($0))" } ?? ""), and back")
             }
         }
         // By case alone: the same file to the disk, a new name to Nib.
@@ -1867,6 +1907,12 @@ enum TestHarness {
         log.check(recent.count == SyncHUD.logLines && recent.allSatisfy { $0.path == document.url.path }
                   && lines.contains { $0.hasPrefix("= SAVED · ") } && lines.contains { $0.hasPrefix("▲ UPLOADED · ") },
                   "its log: the file's last \(recent.count) Sync Log lines, newest last, in its words (\(lines.suffix(3).joined(separator: " | ")))")
+        // A detail's paths as names, and its semicolons and colons as dots (the QA review's F67).
+        let detail = SyncHUD.hudDetail("to the Recovery folder (iCloud Drive is off): /Users/someone/Library/Application Support/nib/Recovery/notes.md; retrying")
+        log.check(detail == "TO THE RECOVERY FOLDER (ICLOUD DRIVE IS OFF) · NOTES.MD · RETRYING", "a log line's detail in the HUD's grammar: \(detail)")
+        // WARNING with two blocks says where the first is, not as if both were there (F68).
+        let two = SyncHUD.whereWords(.init(count: 2, lines: 3...7)), one = SyncHUD.whereWords(.init(count: 1, lines: 3...3))
+        log.check(two == "FIRST AT LINES 3-7" && one == "LINE 3", "the WARNING panel's lines: “\(two)”, “\(one)”")
 
         // A check for anything newer that finds nothing leaves the time alone (the QA review's F7:
         // "✓ SYNCED · 10:42:07" moved on every 30 s and at every focus).
@@ -1990,7 +2036,7 @@ enum TestHarness {
                        said(["\(me) · 10:42", "scratch-test 2.md · 10:40"]), said(["Studio · 10:42", "Studio 2 · 10:43"], device: "Studio"),
                        said(["\(me) · 10:42", "Air · 10:41", "\(me) · 10:44", "iCloud · 10:43"])]
         log.check(sayings[0].hasPrefix("Test Mac and this Mac both changed") && sayings[1].hasPrefix("The file changed while Nib was closed")
-                  && sayings[2].hasPrefix("scratch-test 2.md is a copy of this file") && sayings[3].hasPrefix("Studio 2 and this Mac")
+                  && sayings[2].hasPrefix("“scratch-test 2.md” is a copy of this file") && sayings[3].hasPrefix("Studio 2 and this Mac")
                   && sayings[4].hasPrefix("Several versions changed this file"),
                   "the banner names the other side by its whole name: \(sayings.map { "“\($0.prefix(40))…”" }.joined(separator: ", "))")
         Untitled.letGo(url)
@@ -2031,6 +2077,16 @@ enum TestHarness {
         await apps.set(.shell, true)
         log.check(shell.allSatisfy { apps.opener(of: $0).map(DefaultApps.isNib) == true } && apps.openers[.shell]?.isNib == true,
                   "Shell scripts on: .sh, .zsh and .bash files all open in Nib")
+        // One of them declined (macOS asks for each): the row says which are still elsewhere, not
+        // "now Xcode" as if none were (the QA review's F69).
+        apps.pretend(textEdit, opensType: "public.zsh-script")
+        apps.refresh()
+        let mixed = DefaultApps.Kind.shell.detail(apps.openers[.shell])
+        log.check(apps.openers[.shell]?.isNib == false && mixed == ".sh, .zsh, .bash · .zsh still with TextEdit"
+                  && DefaultApps.Kind.text.inSentence == "plain text files" && DefaultApps.Kind.markdown.extensions == ".md, .markdown",
+                  "one of three declined: “\(mixed)”; and the kinds' words, “\(DefaultApps.Kind.shell.inSentence)”, “\(DefaultApps.Kind.markdown.extensions)”")
+        apps.pretend(Bundle.main.bundleURL, opensType: "public.zsh-script")
+        apps.refresh()
 
         // The app one had is gone: the one macOS ranks next, never Nib.
         NibDefaults.store.set("/Applications/Gone \(marker).app", forKey: DefaultApps.beforeKey(shell[0]))
@@ -2228,8 +2284,8 @@ enum TestHarness {
         // The HUD says it too (the QA review's F12: "✕ PROBLEM", and the file "CURRENT").
         log.check(SyncHUD.stateWord(document.state) == "✕ IN THE TRASH" && SyncHUD.onDisk(document) == "GONE",
                   "the sync HUD: STATE \(SyncHUD.stateWord(document.state)), ON DISK \(SyncHUD.onDisk(document))")
-        func gone() -> [Alerts.Alert] { Notifier.shared.posted.filter { $0.kind == .deleted && $0.title.hasPrefix("gone-\(marker).md") } }
-        log.check(gone().map(\.title) == ["gone-\(marker).md was moved to the Trash"], "and a notification (SY15): “\(gone().first.map { $0.title + ": " + $0.body } ?? "none")”")
+        func gone() -> [Alerts.Alert] { Notifier.shared.posted.filter { $0.kind == .deleted && $0.title.hasPrefix("“gone-\(marker).md”") } }
+        log.check(gone().map(\.title) == ["“gone-\(marker).md” was moved to the Trash"], "and a notification (SY15): “\(gone().first.map { $0.title + ": " + $0.body } ?? "none")”")
         await document.flush(reason: "test")
         log.check(!FileManager.default.fileExists(atPath: url.path) && document.editor.textView.string.contains("typed before it went \(marker)"),
                   "saving makes nothing at the path, and the text is all here")
@@ -2261,7 +2317,7 @@ enum TestHarness {
         }
         let deletedAgain = await waitFor(10) { document.deleted }
         log.check(deletedAgain && !document.deletedToTrash && document.state.line.contains("DELETED ·"), "deleted outright: the banner again (\(document.state.line))")
-        log.check(gone().last?.title == "gone-\(marker).md was deleted" && gone().count == 2, "and a notification again: it's news again once it was over")
+        log.check(gone().last?.title == "“gone-\(marker).md” was deleted" && gone().count == 2, "and a notification again: it's news again once it was over")
         document.editor.textView.window?.performClose(nil)
         let closed = await waitFor(10) { Documents.existing(for: url) == nil }
         log.check(Notifier.shared.withdrawn.filter { $0 == .deleted }.count == 2, "closed, that one's taken back too")
@@ -2368,7 +2424,7 @@ enum TestHarness {
         log.check(FileManager.default.fileExists(atPath: old.path) && document.trashOffer != nil, "it asks first, and Cancel erases nothing")
         try? await Task.sleep(for: .seconds(16))   // a retry, refused too
         let diskAlerts = said(.saveFailed)
-        log.check(diskAlerts.count == 1 && diskAlerts[0].title == "Couldn't save \(document.url.lastPathComponent)" && diskAlerts[0].body.contains("disk is full"),
+        log.check(diskAlerts.count == 1 && diskAlerts[0].title == "Couldn't save “\(document.url.lastPathComponent)”" && diskAlerts[0].body.contains("disk is full"),
                   "a notification for it, once through the retries: “\(diskAlerts.first.map { $0.title + ": " + $0.body } ?? "none")” (\(diskAlerts.count))")
         // Emptied: the space back (the made-up full disk let go with it), and the save goes at
         // once, not at the next 15 s retry.
@@ -2420,7 +2476,7 @@ enum TestHarness {
         let off = await waitFor(10) { document.iCloudOff }
         log.check(off && document.deleted && document.state.line.contains("ICLOUD DRIVE IS OFF"), "iCloud Drive off: the text stays, and the banner and the strip say so (\(document.state.line))")
         let offAlerts = Notifier.shared.posted.filter { $0.kind == .iCloudOff }
-        log.check(offAlerts.count == 1 && offAlerts[0].body.hasPrefix("away-\(marker).md went with it."),
+        log.check(offAlerts.count == 1 && offAlerts[0].body.hasPrefix("“away-\(marker).md” went with it."),
                   "and a notification (SY15): “\(offAlerts.first.map { $0.title + ": " + $0.body } ?? "none")”")
         await type("\n- typed while iCloud was off \(marker)\n", into: document)
         await document.flush(reason: "test")
@@ -3358,7 +3414,7 @@ enum TestHarness {
         if let script = await open("// Go to Heading in a script \(marker)\nfunction f() {}\n", "headings-\(marker).js") {
             AppDelegate.showPalette(.headings, in: script)
             _ = await waitFor(3) { script.palette != nil }
-            log.check(script.palette?.entries.isEmpty == true && script.palette?.empty == "No headings: ⌘R lists a Markdown file's",
+            log.check(script.palette?.entries.isEmpty == true && script.palette?.empty == "Go to Heading lists a Markdown file's headings, and this file isn't Markdown",
                       "a JavaScript file: no headings, and the list says why (\(script.palette?.empty ?? "no palette"))")
             script.palette = nil
             _ = await waitFor(3) { script.palette == nil }
@@ -3984,7 +4040,7 @@ enum TestHarness {
             NibDefaults.store.register(defaults: ["NibHoldUploads": false])
             if timing == "never" {
                 let conflicts = Notifier.shared.posted.filter { $0.kind == .conflict }
-                log.check(conflicts.count == 1 && conflicts[0].title.hasPrefix("Conflict with ") && conflicts[0].title.hasSuffix(" in \(document.url.lastPathComponent)"),
+                log.check(conflicts.count == 1 && conflicts[0].title.hasPrefix("Conflict with ") && conflicts[0].title.hasSuffix(" in “\(document.url.lastPathComponent)”"),
                           "and a notification (SY15): “\(conflicts.first.map { $0.title + ": " + $0.body } ?? "none")”")
                 // Both whole versions, not "1 place" (the QA review's F14), on the strip and in the notification.
                 log.check(document.notice?.contains("BOTH WHOLE VERSIONS ARE IN THE TEXT") == true && document.notice?.contains("PLACE") == false
@@ -4271,9 +4327,25 @@ enum TestHarness {
         if let fresh, let tab = fresh.editor.textView.window {
             let url = fresh.url
             // Close goes to the window in front, as ⌘W from the keys: this tab, once it's there.
+            ScenarioFocus.take()
             tab.makeKeyAndOrderFront(nil)
-            let inFront = await waitFor(5) { NSApp.keyWindow === tab }
-            if let index = file?.items.firstIndex(where: { $0.title == "Close" }) { file?.performActionForItem(at: index) }
+            var inFront = await waitFor(5) { NSApp.keyWindow === tab }
+            // ("Close Tab" in a window of tabs, as Apple says it: the QA review's F78. SwiftUI makes
+            // the menu's items as it opens, as the palette has it do: the File menu afresh, brought
+            // up to date. In front as it's read: another app coming forward takes the key window.)
+            func fileMenu() -> NSMenu? {
+                let menu = NSApp.mainMenu?.items.first { $0.title == "File" }?.submenu
+                if let menu { PaletteSession.refresh(menu) }
+                return menu
+            }
+            _ = await waitFor(3) { fileMenu()?.items.contains { $0.title == "Close Tab" } == true || NSApp.keyWindow !== tab }
+            inFront = inFront && NSApp.keyWindow === tab
+            let file = fileMenu()
+            let closeTitle = file?.items.first { ["Close", "Close Tab"].contains($0.title) }?.title ?? "none"
+            if let index = file?.items.firstIndex(where: { $0.title == closeTitle }) { file?.performActionForItem(at: index) }
+            log.check((closeTitle == "Close Tab" || !inFront) && file?.items.contains { $0.title == "Close Window" && $0.keyEquivalent.lowercased() == "w" } == true,
+                      "in a window of tabs, File says Close Tab (⌘W) and Close Window (⇧⌘W): “\(closeTitle)”"
+                      + (closeTitle == "Close Tab" ? "" : " (Nib active \(NSApp.isActive), the tab key \(NSApp.keyWindow === tab), its tabs \(tab.tabbedWindows?.count ?? 0), tabbed \(KeyWindowTabs.shared.tabbed))"))
             let closed = await waitFor(10) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
             // (Its document not made again as its window went: `FileWindow.document`.)
             var detail = closed ? "closed" : "still open"
@@ -4899,6 +4971,14 @@ enum TestHarness {
                   "and saved in Nib's own folder, on this Mac only (\(one.state.line))")
         let syncLog = (try? String(contentsOf: NibPaths.support.appendingPathComponent("sync.jsonl"), encoding: .utf8)) ?? ""
         log.check(!syncLog.contains(Untitled.folder.path), "nothing about it in the Sync Log: it never syncs")
+        // Save…'s name for it: the extension of the syntax picked for it (the QA review's F71: ".txt" for JavaScript).
+        let asIs = Untitled.suggestedName(one)
+        one.pickSyntax(.language(.javascript))
+        let asJS = Untitled.suggestedName(one)
+        one.pickSyntax(nil)
+        let base = (name as NSString).deletingPathExtension
+        log.check(asIs == ((name as NSString).pathExtension.isEmpty ? base + ".md" : name) && asJS == base + ".js",
+                  "Save… suggests “\(asIs)”, and “\(asJS)” once JavaScript is picked")
 
         guard let two = await newBuffer() else { log.check(false, "a second untitled buffer"); return }
         let twoURL = two.url, twoName = twoURL.lastPathComponent
@@ -5587,6 +5667,9 @@ enum TestHarness {
         // Named for what it is, not "saved" (the QA review's F55).
         let restoredAs = document.history.entries().last?.source ?? ""
         log.check(atOnce && restoredAs.hasPrefix("restored from Today "), "and it went into History at once, not at a span's end, as “\(restoredAs)”")
+        // Shown with a capital, "iCloud" kept (F80: "saved · 588 bytes").
+        log.check(HistoryView.source("saved") == "Saved" && HistoryView.source(restoredAs).hasPrefix("Restored from Today ")
+                  && HistoryView.source("iCloud conflict version from Air") == "iCloud conflict version from Air", "History shows its sources with a capital")
         // What Revert To and the History window show is read off the main thread, and follows (F57).
         let mirrored = await waitFor(3) { document.historyEntries.map(\.sha256) == document.history.entries().map(\.sha256) }
         log.check(mirrored, "Revert To's and the History window's list follows History (\(document.historyEntries.count) versions), read off the main thread")

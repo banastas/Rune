@@ -100,9 +100,40 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         NotificationCenter.default.addObserver(forName: .nibSchemeChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.applyScheme() }
         }
+        // Undo and redo: on the posting thread, so the count is taken before the step runs.
+        for name: NSNotification.Name in [.NSUndoManagerWillUndoChange, .NSUndoManagerWillRedoChange] {
+            NotificationCenter.default.addObserver(forName: name, object: undo, queue: nil) { [weak self] _ in
+                MainActor.assumeIsolated { self?.undoStepBegins() }
+            }
+        }
+        for name: NSNotification.Name in [.NSUndoManagerDidUndoChange, .NSUndoManagerDidRedoChange] {
+            NotificationCenter.default.addObserver(forName: name, object: undo, queue: nil) { [weak self] _ in
+                MainActor.assumeIsolated { self?.undoStepEnded() }
+            }
+        }
     }
 
     func undoManager(for view: NSTextView) -> UndoManager? { undo }
+
+    // TextKit 2's own undo and redo (of typing, a paste, Replace All) change the text without
+    // telling the delegate (macOS 27; TextKit 1 does): nothing marked the buffer edited, so an
+    // undo after a save was never saved, journaled or colored again unless more typing followed
+    // (the suite, 2026-10-07: an app switch saved Replace All's text, the undo after it stayed
+    // in the buffer only). A step that changed the characters and said nothing is said here;
+    // Nib's own steps (multiple carets) say it themselves, and aren't said twice.
+    private var charactersEdited = 0
+    private var editedAtUndoStep = 0
+    private var saidSinceUndoStep = false
+
+    private func undoStepBegins() {
+        editedAtUndoStep = charactersEdited
+        saidSinceUndoStep = false
+    }
+
+    private func undoStepEnded() {
+        guard charactersEdited != editedAtUndoStep, !saidSinceUndoStep else { return }
+        textDidChange(Notification(name: NSText.didChangeNotification, object: textView))
+    }
 
     private var highlighted: [ConflictBlock] = []
 
@@ -122,6 +153,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     var onSelection: (() -> Void)?
 
     func textDidChange(_ notification: Notification) {
+        saidSinceUndoStep = true
         textView.matchedTags = []   // till the tree has the edit (`updateMatches`)
         document?.textDidChange()
         onChange?()
@@ -605,6 +637,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     nonisolated func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
         guard editedMask.contains(.editedCharacters) else { return }
         MainActor.assumeIsolated {
+            charactersEdited &+= 1   // an undo step's own changes among them
             textView.textChangedForCarets()   // Undo Selection's steps were for the text before
             minimap?.textChanged()
             minimapAsked = nil

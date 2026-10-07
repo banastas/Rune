@@ -52,7 +52,7 @@ final class FindSession {
     var countLabel: String {
         if let failure { return failure }
         if query.isEmpty { return "" }
-        if matches.isEmpty { return inSelection ? "NO MATCHES IN THE SELECTION" : "NO MATCHES" }
+        if matches.isEmpty { return inSelection ? "NONE IN THE SELECTION" : "NO MATCHES" }   // short enough for its slot (F81)
         let total = matches.count >= TextSearch.limit ? "\(TextSearch.limit.formatted())+" : matches.count.formatted()
         if let current { return "\((current + 1).formatted()) OF \(total)" }
         return "\(total) MATCH\(matches.count == 1 ? "" : "ES")"
@@ -211,7 +211,7 @@ final class FindSession {
         view.undoManager?.setActionName("Replace All")
         view.setSelectedRange(NSRange(location: span.location, length: 0))
         let count = result.count >= TextSearch.limit ? "\(TextSearch.limit.formatted()) (THE MOST AT ONCE)" : result.count.formatted()
-        editor?.document?.show("REPLACED \(count) MATCH\(result.count == 1 ? "" : "ES") · ⌘Z UNDOES IT", for: 8)
+        editor?.document?.show("REPLACED \(count) MATCH\(result.count == 1 ? "" : "ES") · ⌘Z UNDOES", for: 8)   // as every other line says it (F67)
         searchNow()
     }
 

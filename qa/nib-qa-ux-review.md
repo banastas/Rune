@@ -31,7 +31,8 @@ fixes"); the second (2026-10-07), F22, F25, F28, F31, F37-F39 and F48, with part
 F19-F21, F26, F27 (HTML out of Settings › Files), F32-F35, with parts of F65 and F82 (PRD §8, "The QA review's third
 round"); the fourth (2026-10-07), §2 but F48 (done), F50 (the user's call) and F58, F60 (next): F40-F47, F49,
 F51-F57, F59, F61-F63 (PRD §8, "The QA review's fourth round"); the fifth, F58 and F60 (PRD §8, "The QA review's
-fifth round"). Of §1 and §2, only F50 is left, the user's call.
+fifth round"). Of §1 and §2, only F50 is left, the user's call. The sixth (2026-10-07), §3's polish: all but
+two parts of F82 (PRD §8, "The QA review's sixth round").
 
 ---
 
@@ -399,51 +400,48 @@ conflicts resolved".
 ## 3 · Polish
 
 - **F64.** Curly quotes around file names, unevenly (FirstRun, banners, Alerts, Document's save
-  line). W3.
+  line). W3. **Fixed 2026-10-07.**
 - **F65.** Times from another day without a date ("✓ SYNCED · 10:42:07" from yesterday); 24-hour
-  times may follow the Mac's 12-hour setting (to check). W1, W5. *(2026-10-07: the strip's, the
-  HUD's and the panel's times say the day when it isn't today.)*
+  times may follow the Mac's 12-hour setting (to check). W1, W5. **Fixed 2026-10-07.**
 - **F66.** "Its note" (internal word) in "‖ … WAITING FOR ITS NOTE TO MERGE IT"; "· OPENING" without
-  saying it waits on iCloud. W1, W4.
+  saying it waits on iCloud. W1, W4. **Fixed 2026-10-07.**
 - **F67.** "CLIPBOARD CLEANED · ALREADY PLAIN AND CLEAN"; "⌘Z UNDOES IT" against "⌘Z UNDOES";
-  "SAVED LOCALLY 10:42:05" without its dot; the HUD log's paths and semicolons. W5.
+  "SAVED LOCALLY 10:42:05" without its dot; the HUD log's paths and semicolons. W5. **Fixed 2026-10-07.**
 - **F68.** The HUD's WARNING says only the first block's lines for "2 CONFLICTS"; its RESOLVE hides
-  its name from VoiceOver.
+  its name from VoiceOver. **Fixed 2026-10-07.**
 - **F69.** Settings › Files: "Shell scripts files", "Plain text files"; a declined shell prompt leaves
-  the row "now Xcode"; "now no app"; one extension shown per kind.
+  the row "now Xcode"; "now no app"; one extension shown per kind. **Fixed 2026-10-07.**
 - **F70.** Rename refuses ".env" as "CAN'T BE A FILE NAME" (**checked**), and "“” CAN'T BE…" for an
-  empty field.
-- **F71.** Save… for an untitled buffer is app-modal and suggests ".txt" for JavaScript.
+  empty field. **Fixed 2026-10-07.**
+- **F71.** Save… for an untitled buffer is app-modal and suggests ".txt" for JavaScript. **Fixed 2026-10-07.**
 - **F72.** Failures that guess a cause or only beep (Duplicate's "NOT WRITABLE", ⌘N, Reopen Closed
-  File); the Trash messages ("NOT ALLOWED TO CONTROL FINDER" for any error, "(3 items)" twice).
+  File); the Trash messages ("NOT ALLOWED TO CONTROL FINDER" for any error, "(3 items)" twice). **Fixed 2026-10-07.**
 - **F73.** The CLI's usage: "-h, --help this", `--scratch` and the exit statuses missing, "no option
-  -x", `-w` ignored silently with `-a`.
+  -x", `-w` ignored silently with `-a`. **Fixed 2026-10-07.**
 - **F74.** The scratch-change alert's wording ("Nib reopens to use it, in iCloud Drive › Nib") and its
   app-modal sheet; step 3 says "Done" when the button reads "Reopen Nib"; "Continue skips it" after the
-  import is done. *(2026-10-07: all but the app-modal sheet fixed.)*
-- **F75.** Shortcuts' descriptions are fragments; Get Scratch fails without saying why.
+  import is done. **Fixed 2026-10-07.**
+- **F75.** Shortcuts' descriptions are fragments; Get Scratch fails without saying why. **Fixed 2026-10-07.**
 - **F76.** "One Caret (⎋)" puts its key in the title; Go to Heading… missing from the palette; Revert
-  To's versions and syntax picks named bare in the palette; Nib-folder files with a folder icon.
-- **F77.** Go to Heading's empty line ("No headings: ⌘R lists a Markdown file's").
-- **F78.** ⌘W "Close" where Apple says Close Tab, and no Close Window ⇧⌘W.
+  To's versions and syntax picks named bare in the palette; Nib-folder files with a folder icon. **Fixed 2026-10-07.**
+- **F77.** Go to Heading's empty line ("No headings: ⌘R lists a Markdown file's"). **Fixed 2026-10-07.**
+- **F78.** ⌘W "Close" where Apple says Close Tab, and no Close Window ⇧⌘W. **Fixed 2026-10-07.**
 - **F79.** The Sync Log: "Closed · closing" before anything closed; "0 events" while loading; a
   selection kept after the search hides it; times "Oct 6  22:29:37" against History's "Today …";
-  "3 kB" against "KB" elsewhere.
+  "3 kB" against "KB" elsewhere. **Fixed 2026-10-07.**
 - **F80.** History: lowercase sources ("saved · 588 bytes"); no folder subtitle; Restore enabled on the
-  current text, doing nothing.
+  current text, doing nothing. **Fixed 2026-10-07.**
 - **F81.** The find count cuts "NO MATCHES IN THE SELECTION"; In Selection's VoiceOver label is its
-  whole tooltip.
+  whole tooltip. **Fixed 2026-10-07.**
 - **F82.** Syntax names spoken "Html", "Javascript"; the gutter not hidden or labelled for VoiceOver;
   the Toast always interrupts VoiceOver; Recent rows with the same name sound the same; the panel
   isn't keyboard-navigable; the Dock ✕ has no words; About's "NIB" and "V0.1 · BUILD 3" read raw;
-  the palette's group labels at 2.3:1. *(2026-10-07: the palette's labels fixed; the menu bar
-  panel's rows say their detail, so Recent rows with the same name differ.)*
+  the palette's group labels at 2.3:1. **Mostly fixed 2026-10-07**: left, the menu bar panel by the keyboard, and words for the Dock ✕ (macOS gives a Dock tile no accessibility of its own but its red badge).
 - **F83.** Acknowledgements cuts long names and versions in its 230-point list (**checked**,
-  `acknowledgements.png`).
+  `acknowledgements.png`). **Fixed 2026-10-07.**
 - **F84.** Settings opens on its third tab (Editor) the first time; the Dock switch goes grey with no
-  reason given; the Editor tab's one seven-sentence note for six switches. *(2026-10-07: Settings opens on
-  General; the Editor note is three sentences.)*
-- **F85.** "Login Items" is "Login Items & Extensions" since macOS 15 (**to check** on macOS 27).
+  reason given; the Editor tab's one seven-sentence note for six switches. **Fixed 2026-10-07.**
+- **F85.** "Login Items" is "Login Items & Extensions" since macOS 15 (**to check** on macOS 27). **Fixed 2026-10-07.**
 
 ---
 

@@ -40,7 +40,8 @@ enum Clipboard {
         pasteboard.setString(result.text, forType: .string)
         var facts = result.changed ? result.facts : []
         if formatted { facts.append("FORMATTING DROPPED") }
-        if facts.isEmpty { facts = ["ALREADY PLAIN AND CLEAN"] }
+        // Not "cleaned" when nothing needed it (F67: "CLIPBOARD CLEANED · ALREADY PLAIN AND CLEAN").
+        if facts.isEmpty { return "THE CLIPBOARD WAS ALREADY PLAIN AND CLEAN · NOTHING CHANGED" }
         return (["CLIPBOARD CLEANED"] + facts).joined(separator: " · ")
     }
 

@@ -179,21 +179,34 @@ struct SyncHUD: View {
         return Warning(count: document.blocks.count, lines: start...max(start, end))
     }
 
+    /// "LINES 14-16", or with more than one block, "FIRST AT LINES 14-16": "2 CONFLICTS · LINES
+    /// 14-16" read as if both were there (the QA review's F68).
+    static func whereWords(_ warning: Warning) -> String {
+        let lines = warning.lines.count == 1 ? "LINE \(warning.lines.lowerBound)" : "LINES \(warning.lines.lowerBound)-\(warning.lines.upperBound)"
+        return warning.count == 1 ? lines : "FIRST AT " + lines
+    }
+
     private func warningPanel(_ warning: Warning) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            hudText("✕ WARNING", glyphSize: 9).font(HUDFont.label())
             Group {
-                Text("\(warning.count) CONFLICT\(warning.count == 1 ? "" : "S")")
-                Text(warning.lines.count == 1 ? "LINE \(warning.lines.lowerBound)" : "LINES \(warning.lines.lowerBound)-\(warning.lines.upperBound)")
-                Text("BOTH SIDES KEPT IN THE FILE")
+                hudText("✕ WARNING", glyphSize: 9).font(HUDFont.label())
+                Group {
+                    Text("\(warning.count) CONFLICT\(warning.count == 1 ? "" : "S")")
+                    Text(Self.whereWords(warning))
+                    Text("BOTH SIDES KEPT IN THE FILE")
+                }
+                .font(HUDFont.terminal(18))
             }
-            .font(HUDFont.terminal(18))
+            // Its words one element, the button another: combined, the button's name was hidden (F68).
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Warning: \(Spoken.sentence("\(warning.count) CONFLICT\(warning.count == 1 ? "" : "S") · \(Self.whereWords(warning))")), both sides kept in the file")
             Spacer(minLength: 0)
             Button { document.openMerge() } label: {   // as ⌥⌘R does (F52)
                 Text("MERGE VIEW ⌥⌘R").font(HUDFont.label()).underline()
             }
             .buttonStyle(.plain)
             .help("Open the merge view (⌥⌘R)")
+            .accessibilityLabel("Merge view, Option-Command-R")
             .disabled(document.merge != nil)
         }
         .foregroundStyle(HUDColor.onFailure)
@@ -201,8 +214,7 @@ struct SyncHUD: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(HUDColor.failure)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Warning: \(warning.count) conflict\(warning.count == 1 ? "" : "s"), \(warning.lines.count == 1 ? "line \(warning.lines.lowerBound)" : "lines \(warning.lines.lowerBound) to \(warning.lines.upperBound)"), both sides kept in the file")
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: Words
@@ -281,10 +293,28 @@ struct SyncHUD: View {
                 parts.append(bytes(size))
             }
         } else if let detail = event.detail, !detail.isEmpty {
-            parts.append(detail.uppercased())
+            parts.append(hudDetail(detail))
         }
         return parts.joined(separator: " · ")
     }
+
+    /// A Sync Log detail in the HUD's grammar: paths as their file's name, and its semicolons and
+    /// colons as the HUD's dots (the QA review's F67: "…FOLDER (ICLOUD DRIVE IS OFF): /USERS/…; …").
+    static func hudDetail(_ detail: String) -> String {
+        // A path runs from its "/" to the next "; ", ", ", ": " or ")", or the end: the folders on
+        // the way have spaces (Mobile Documents, Application Support), so a word isn't one.
+        let text = detail as NSString
+        var named = "", from = 0
+        for match in pathPattern.matches(in: detail, range: NSRange(location: 0, length: text.length)) {
+            named += text.substring(with: NSRange(location: from, length: match.range.location - from))
+            named += (text.substring(with: match.range) as NSString).lastPathComponent
+            from = NSMaxRange(match.range)
+        }
+        named += text.substring(from: from)
+        return named.replacingOccurrences(of: "; ", with: " · ").replacingOccurrences(of: ": ", with: " · ").uppercased()
+    }
+
+    private static let pathPattern = try! NSRegularExpression(pattern: #"(?<![^\s(])/[^;,)]+?(?=[;,:]\s|\)|$)"#)
 
     static func bytes(_ count: Int) -> String {
         ByteCountFormatter.string(fromByteCount: Int64(count), countStyle: .file).uppercased()

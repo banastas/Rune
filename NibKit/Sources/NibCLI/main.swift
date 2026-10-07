@@ -15,16 +15,22 @@ import AppKit
 import NibSync
 import NibText
 
+// The whole of it, as `man` would say it (the QA review's F73: "-h, --help this", no --scratch
+// and no exit statuses).
 let usage = """
     usage: nib [-w] [file[:line[:column]] …]
            cmd | nib [-w]      standard input as an untitled buffer
            cmd | nib -a        standard input at the end of the scratch file
-           nib --scratch       the scratch window
+           nib --scratch       the scratch window (as nib alone does)
 
       -w, --wait      wait until the files are closed (for $EDITOR and git)
       -a, --append    append standard input to the scratch file
+          --scratch   show the scratch window
       -               read standard input
-      -h, --help      this
+      -h, --help      show this help
+
+    Exits 0 when done, 1 when Nib refuses or quits before a file it waits on is closed,
+    and 2 for a mistake in the arguments.
     """
 
 func fail(_ message: String, code: Int32 = 1) -> Never {
@@ -46,7 +52,7 @@ for argument in CommandLine.arguments.dropFirst() {
         case "--append": append = true
         case "--scratch": scratch = true
         case "--help": print(usage); exit(0)
-        default: fail("no option \(argument)\n\(usage)", code: 2)
+        default: fail("unknown option \(argument)\n\(usage)", code: 2)
         }
         continue
     }
@@ -56,7 +62,7 @@ for argument in CommandLine.arguments.dropFirst() {
             case "w": wait = true
             case "a": append = true
             case "h": print(usage); exit(0)
-            default: fail("no option -\(flag)\n\(usage)", code: 2)
+            default: fail("unknown option -\(flag)\n\(usage)", code: 2)
             }
         }
         continue
@@ -75,6 +81,7 @@ if scratch {
     request = Bridge.Request(command: .scratch)
 } else if append {
     guard arguments.isEmpty else { fail("-a appends standard input, not files: cat file | nib -a", code: 2) }
+    guard !wait else { fail("-w waits for files to close, and -a opens none: use one or the other", code: 2) }   // it was ignored (F73)
     guard piped || readInput else { fail("-a appends standard input, and nothing is piped in: cmd | nib -a", code: 2) }
     let text = input()
     guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { fail("nothing on standard input to append") }

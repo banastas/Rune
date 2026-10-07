@@ -97,7 +97,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// scratch file's too, A5), in Markdown until another syntax is picked (the user's call,
     /// 2026-10-02).
     static func newUntitled() {
-        guard let url = Untitled.create() else { NSSound.beep(); return }
+        guard let url = Untitled.create() else {   // said, not only a beep (F72)
+            Toast.show("✕ COULDN'T MAKE A NEW BUFFER · \(Untitled.lastError.map(ErrorWords.hud) ?? "NIB'S UNTITLED FOLDER")", for: 4)
+            return
+        }
         NibDefaults.store.set(SyntaxPick.language(.markdown).stored, forKey: "syntax:" + url.path)
         FileWindow.tabHost = NSApp.keyWindow ?? NSApp.mainWindow
         openFile(url)
@@ -465,8 +468,9 @@ struct NibCommands: Commands {
             // Close is in this group too: replacing the group took it, and ⌘W with it (the user,
             // 2026-10-02). The window in front: a file's tab (saved, uploaded, handed back), the
             // scratch window (⌥Space or the Dock brings it back), Settings, History, the Sync Log.
-            Button("Close") { NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: nil) }
-                .keyboardShortcut("w")
+            // "Close Tab" in a window of tabs, as Apple's apps say it, and Close Window for all of
+            // them (the QA review's F78).
+            CloseMenuItems()
             Divider()
             // Everything saves by itself; ⌘S saves and uploads now. An untitled buffer asks
             // where to put it (W3).
@@ -595,7 +599,7 @@ struct NibCommands: Commands {
                 Divider()
                 Button("Undo Selection") { send(#selector(NibTextView.undoSelection(_:))) }.keyboardShortcut("u")
                 Button("Redo Selection") { send(#selector(NibTextView.redoSelection(_:))) }.keyboardShortcut("u", modifiers: [.command, .shift])
-                Button("One Caret (⎋)") { send(#selector(NibTextView.singleCaret(_:))) }
+                Button("One Caret") { send(#selector(NibTextView.singleCaret(_:))) }   // Escape too; not in its title (F76)
             }
             .disabled(noEditor)   // F46
         }
@@ -627,6 +631,21 @@ extension View {
 }
 
 /// File › Open Recent, from the system's list (ED2).
+/// File › Close, or Close Tab in a window of tabs, and Close Window (F78). A view of its own, as
+/// the Conflicts menu's items are: SwiftUI follows what a view's body reads.
+struct CloseMenuItems: View {
+    var body: some View {
+        let tabbed = KeyWindowTabs.shared.tabbed
+        Button(tabbed ? "Close Tab" : "Close") { NSApp.sendAction(#selector(NSWindow.performClose(_:)), to: nil, from: nil) }
+            .keyboardShortcut("w")
+        Button("Close Window") {
+            for window in NSApp.keyWindow?.tabbedWindows ?? [] { window.performClose(nil) }
+        }
+            .keyboardShortcut("w", modifiers: [.command, .shift])
+            .disabled(!tabbed)
+    }
+}
+
 struct OpenRecentMenu: View {
     var body: some View {
         Menu("Open Recent") {
@@ -674,6 +693,33 @@ final class RecentFiles {
         if !NibPaths.isScenario { NSDocumentController.shared.clearRecentDocuments(nil) }
         urls = []
         NibDefaults.store.removeObject(forKey: key)
+    }
+}
+
+/// Whether the window in front is one of several tabs: File › Close Tab, and Close Window on
+/// (the QA review's F78). Observed, so the menus follow it: SwiftUI makes the commands again
+/// only when something they read changes, and the key window isn't such a thing (the title
+/// stayed "Close" in a window of tabs, and ⇧⌘W off: the suite, 2026-10-07).
+@MainActor
+@Observable
+final class KeyWindowTabs {
+    static let shared = KeyWindowTabs()
+    private(set) var tabbed = false
+
+    private init() {
+        // A window coming in front or going, and tabs joined or parted: each window's update,
+        // after every event, is a look at one count.
+        for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification, NSWindow.didUpdateNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                MainActor.assumeIsolated { self?.refresh() }
+            }
+        }
+        refresh()
+    }
+
+    private func refresh() {
+        let now = (NSApp.keyWindow?.tabbedWindows?.count ?? 0) > 1
+        if now != tabbed { tabbed = now }
     }
 }
 
