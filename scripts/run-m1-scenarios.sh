@@ -86,6 +86,9 @@ swiftc -O -o build/hotkey-holder scripts/hotkey-holder.swift 2>/dev/null || true
 run firstrun -NibFakeLoginItem YES -NibHotKeyHolder "$PWD/build/hotkey-holder"
 run defaultapps   # Settings › Files: Nib as the default app, a kind at a time (a stand-in, never the Mac's)
 run synchud   # the sync HUD (§5.3): ⇧⌘Y, Escape, its log, the WARNING panel
+run about     # About Nib (§5.10) and its Acknowledgements (DS3)
+run dock      # the Dock: the ✕ badge while a conflict is unresolved (AP8), the icon hidden (AP6)
+run services  # Services › Append to Nib Scratch and Clean Text, and the Shortcuts (SC8, PT7)
 # The `nib` command-line tool (AP4), against the running scenario (it never starts or fronts Nib).
 (cd NibKit && swift build --product nib-cli 2>&1 | grep -E "error" || true)
 run cli -NibCLI "$PWD/NibKit/.build/debug/nib-cli"

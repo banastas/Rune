@@ -53,6 +53,21 @@ struct NibApp: App {
         .defaultSize(width: 1080, height: 560)
         .commandsRemoved()   // listed in the Window menu by NibCommands, with its shortcut
         Settings { SettingsView() }
+        Window("About Nib", id: "about") {
+            AboutView()
+        }
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+        .restorationBehavior(.disabled)
+        .commandsRemoved()
+        // Opened from About Nib: the third-party notices Nib ships (DS3).
+        Window("Acknowledgements", id: "acknowledgements") {
+            AcknowledgementsView()
+        }
+        .defaultSize(width: 820, height: 640)
+        .windowStyle(.hiddenTitleBar)
+        .restorationBehavior(.disabled)
+        .commandsRemoved()
     }
 }
 
@@ -148,6 +163,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Self.mark("will finish launching")
         #endif
         NSApp.appearance = NSAppearance(named: .darkAqua)   // dark only, always (A17)
+        DockIcon.apply()   // hidden from the start if Settings says so (AP6), before a window shows
         #if DEBUG
         ScenarioFocus.start()   // a scenario's Nib doesn't take the Mac's focus
         #endif
@@ -155,6 +171,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Documents.watchClosing()
+        // Services › Append to Nib Scratch and Clean Text (SC8, PT7). Not a test run's Nib: it
+        // would answer the user's.
+        if !NibPaths.isScenario {
+            NSApp.servicesProvider = ServiceProvider.shared
+            NSUpdateDynamicServices()
+        }
         let document = Self.document
         // First run (AP5): with no scratch file yet, none is made until the welcome window says so.
         let firstRun = FirstRun.needed
@@ -364,6 +386,10 @@ struct NibCommands: Commands {
     }
 
     var body: some Commands {
+        // Blit's About, not the standard panel (§5.10).
+        CommandGroup(replacing: .appInfo) {
+            Button("About Nib") { openWindow(id: "about") }
+        }
         CommandGroup(replacing: .newItem) {
             Button("New") { AppDelegate.newUntitled() }
                 .keyboardShortcut("n")

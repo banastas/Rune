@@ -856,7 +856,10 @@ final class Document {
             Announce.sentence("No conflicts left in \(url.lastPathComponent).")   // AX2
         }
         if found.isEmpty { Notifier.shared.ended(.conflict, for: url) }   // SY15: resolved, or merged away
-        if found != blocks { blocks = found }
+        if found != blocks {
+            blocks = found
+            DockBadge.shared.update()   // the Dock's ✕ while any file has blocks (AP8)
+        }
         if blocks.isEmpty { mergedAroundBlocks = false }
         editor.highlight(blocks)
         updateCaretBlock()

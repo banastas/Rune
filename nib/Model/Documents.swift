@@ -35,6 +35,7 @@ enum Documents {
         guard document !== scratch, files[key(document.url)] === document else { return }
         files[key(document.url)] = nil
         MenuBarController.shared.refresh()
+        DockBadge.shared.update()
     }
 
     /// Any window closing lets go of the file whose text is in it: one watch for every window,
@@ -60,6 +61,7 @@ enum Documents {
         guard document !== scratch, files[key(document.url)] === document else { return }
         files[key(document.url)] = nil
         MenuBarController.shared.refresh()
+        DockBadge.shared.update()   // its blocks go with it (AP8)
         await document.close()
         CLIBridge.closed(document.url)   // `nib -w` (AP4): its text is in the file now
         guard !AppDelegate.terminating else { return }

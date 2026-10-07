@@ -134,6 +134,9 @@ enum TestHarness {
             case "receipts": await receiptsScenario(log, marker)
             case "defaultapps": await defaultAppsScenario(log, marker)
             case "synchud": await syncHUDScenario(Documents.scratch, log, marker)
+            case "about": await aboutScenario(log, marker)
+            case "dock": await dockScenario(log, marker)
+            case "services": await servicesScenario(Documents.scratch, log, marker)
             case "nap": await napScenario(document, log, marker)
             case "findjump": await findJumpScenario(log, marker)
             case "uploads": await uploadsScenario(document, log, marker)
@@ -1464,22 +1467,33 @@ enum TestHarness {
         log.check(logged?.detail?.hasPrefix("Test Mac has this version, ") == true, "the Sync Log says how long it took: \(logged?.detail ?? "nothing")")
 
         // One this Mac hasn't seen, and changed in place, as iCloud changes a receipt that's
-        // there already: the folder stays as it was, so only the presenter can tell.
-        let unseen = Digest.sha256(Data("a version only Test Mac has \(marker)".utf8))
+        // there already: the folder stays as it was, so only the presenter can tell. Anything else
+        // writing in the folder meanwhile (iCloud settling the receipt just written, this Mac's
+        // own) leaves that unproven, so then once more, with another version (the suite at 22:26,
+        // 2026-10-06, the strip right and the folder changed).
         func folderChanged() -> Date? { (try? folder.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate }
-        let folderBefore = folderChanged()
-        if let data = try? DeviceReceipts(device: "Test Mac", files: [name: .init(sha256: unseen, time: Date())]).encoded() {
-            var error: NSError?
-            NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: other, options: [], error: &error) { url in
-                guard let handle = try? FileHandle(forWritingTo: url) else { return }
-                try? handle.truncate(atOffset: 0)
-                try? handle.write(contentsOf: data)
-                try? handle.close()
+        var newer = false, onCard = false, folderKept = false, tries = 0
+        repeat {
+            tries += 1
+            let unseen = Digest.sha256(Data("a version only Test Mac has \(marker) \(tries)".utf8))
+            let folderBefore = folderChanged()
+            if let data = try? DeviceReceipts(device: "Test Mac", files: [name: .init(sha256: unseen, time: Date())]).encoded() {
+                var error: NSError?
+                NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: other, options: [], error: &error) { url in
+                    guard let handle = try? FileHandle(forWritingTo: url) else { return }
+                    try? handle.truncate(atOffset: 0)
+                    try? handle.write(contentsOf: data)
+                    try? handle.close()
+                }
             }
-        }
-        let newer = await waitFor(10) { document.statusLine.hasPrefix("▼ NEWER ON TEST MAC (") && document.statusLine.hasSuffix(") · NOT HERE YET") }
-        log.check(newer && MenuBarState.card(document).contains { $0.hasPrefix("▼ NEWER ON TEST MAC · ") } && folderChanged() == folderBefore,
-                  "another Mac with a version this Mac hasn't seen, its receipt changed in place (the folder unchanged): “\(document.statusLine)”")
+            newer = await waitFor(10) {
+                testMac()?.loaded.sha256 == unseen && document.statusLine.hasPrefix("▼ NEWER ON TEST MAC (") && document.statusLine.hasSuffix(") · NOT HERE YET")
+            }
+            onCard = MenuBarState.card(document).contains { $0.hasPrefix("▼ NEWER ON TEST MAC · ") }
+            folderKept = folderChanged() == folderBefore
+        } while newer && !folderKept && tries < 2
+        log.check(newer && onCard && folderKept,
+                  "another Mac with a version this Mac hasn't seen, its receipt changed in place: “\(document.statusLine)”, on the card \(onCard), the folder unchanged \(folderKept)\(tries > 1 ? " (on the second try: the folder changed under the first)" : "")")
 
         // An earlier one: the strip as it was, a line on the card.
         pretend(before)
@@ -1526,6 +1540,122 @@ enum TestHarness {
         let entries = DeviceReceipts.read(mine)?.files ?? [:]
         log.check(carried && entries[sibling.lastPathComponent]?.sha256 == siblingSHA && FileManager.default.fileExists(atPath: takenURL.path),
                   "the next write carries the former name's entries over (the sibling's \(entries[sibling.lastPathComponent].map { String($0.sha256.prefix(8)) } ?? "missing")) and removes its file; the taken name's stays")
+    }
+
+    /// About's Acknowledgements opened as About opens (the `about` scenario: its button can't
+    /// be clicked from here).
+    static var openAcknowledgements = false
+
+    /// About Nib (§5.10) and its Acknowledgements (DS3): the window from the app menu, the version,
+    /// and every notice Nib ships. Pictures: build/scenarios/about.png and acknowledgements.png.
+    static func aboutScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let folder = URL(fileURLWithPath: log.path).deletingLastPathComponent()
+        func window(_ id: String) -> NSWindow? { NSApp.windows.first { $0.isVisible && $0.identifier?.rawValue.contains(id) == true } }
+        func picture(_ window: NSWindow?, _ name: String) {
+            guard let view = window?.contentView?.superview, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+            view.cacheDisplay(in: view.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent(name))
+        }
+        let appMenu = NSApp.mainMenu?.items.first?.submenu
+        let index = appMenu?.items.firstIndex { $0.title == "About Nib" }
+        openAcknowledgements = true
+        defer { openAcknowledgements = false }
+        if let appMenu, let index { appMenu.performActionForItem(at: index) }
+        let about = await waitFor(5) { window("about") != nil }
+        let acknowledgements = await waitFor(5) { window("acknowledgements") != nil }
+        try? await Task.sleep(for: .milliseconds(500))
+        let width = window("about")?.frame.width ?? 0
+        picture(window("about"), "about.png")
+        picture(window("acknowledgements"), "acknowledgements.png")
+        log.check(index != nil && about && abs(width - 360) < 2 && AboutView.version.hasPrefix("V") && AboutView.version.contains(" · BUILD "),
+                  "Nib › About Nib: Blit's About, \(Int(width)) points wide, \(AboutView.version)")
+        let items = Acknowledgements.load()
+        let names = items.map(\.title)
+        let wanted = ["SwiftTreeSitter", "tree-sitter 0.", "tree-sitter-gitcommit", "tree-sitter-ini", "An Old Hope", "Silkscreen (font)", "VT323 (font)"]
+        let missing = wanted.filter { want in !names.contains { $0.hasPrefix(want) } }
+        let gitcommit = items.first { $0.title.hasPrefix("tree-sitter-gitcommit") }
+        log.check(acknowledgements && items.count >= 30 && missing.isEmpty && items.allSatisfy { !$0.text.isEmpty } && gitcommit?.details.contains("License: WTFPL") == true,
+                  "its Acknowledgements: \(items.count) notices, each with its license text\(missing.isEmpty ? "" : " (missing: \(missing.joined(separator: ", ")))")")
+        window("acknowledgements")?.close()
+        window("about")?.close()
+    }
+
+    /// The Dock (AP8, AP6): the ✕ badge on Nib's icon while a file has conflict blocks, gone once
+    /// they're resolved; and the icon hidden by Settings › General only while the nib in the menu
+    /// bar is on. Picture: build/scenarios/dock-badge.png.
+    static func dockScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let folder = URL(fileURLWithPath: log.path).deletingLastPathComponent()
+        let block = "<<<<<<< This Mac · 10:42\nmine\n=======\ntheirs\n>>>>>>> Test Mac · 10:43\n"
+        guard let url = Untitled.create(text: "# Dock \(marker)\n\n" + block, name: "dock-\(marker).md") else { log.check(false, "a buffer with a conflict block"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let buffer = Documents.existing(for: url) else {
+            log.check(false, "it opened")
+            try? FileManager.default.removeItem(at: url.deletingLastPathComponent())   // or it comes back at the next launch
+            return
+        }
+        let shown = await waitFor(5) { DockBadge.shared.showing && NSApp.dockTile.contentView != nil }
+        try? DockBadge.shared.picture()?.write(to: folder.appendingPathComponent("dock-badge.png"))
+        // Resolved by hand: the markers taken out, both sides kept.
+        let view = buffer.editor.textView
+        view.insertText("# Dock \(marker)\n\nmine\ntheirs\n", replacementRange: NSRange(location: 0, length: (view.string as NSString).length))
+        let gone = await waitFor(5) { !DockBadge.shared.showing && NSApp.dockTile.contentView == nil }
+        log.check(shown && gone && buffer.blocks.isEmpty, "a conflict block puts the ✕ on Nib's icon in the Dock, and it goes once the block is resolved")
+        Untitled.letGo(url)
+        view.window?.performClose(nil)
+        if !(await waitFor(15) { !FileManager.default.fileExists(atPath: url.path) }) { log.line("the buffer was still there after 15 s") }
+
+        // Settings › General: Show Nib in the Dock off, with and without the nib in the menu bar.
+        let defaults = NibDefaults.store
+        defer {
+            defaults.removeObject(forKey: "hideDockIcon")
+            defaults.removeObject(forKey: "showMenuBarExtra")
+        }
+        defaults.set(false, forKey: "showMenuBarExtra")
+        defaults.set(true, forKey: "hideDockIcon")
+        try? await Task.sleep(for: .milliseconds(500))
+        let kept = NSApp.activationPolicy() == .regular
+        defaults.set(true, forKey: "showMenuBarExtra")
+        let hidden = await waitFor(3) { NSApp.activationPolicy() == .accessory }
+        defaults.set(false, forKey: "hideDockIcon")
+        let back = await waitFor(3) { NSApp.activationPolicy() == .regular }
+        defaults.set(false, forKey: "showMenuBarExtra")
+        log.check(kept && hidden && back,
+                  "Show Nib in the Dock off: kept while the nib in the menu bar is off (\(kept)), hidden with it on (\(hidden)), back when on again (\(back))")
+    }
+
+    /// Services and Shortcuts (SC8, PT7): Append to Nib Scratch and Clean Text as the system sends
+    /// them (on a pasteboard of their own), and the three App Intents as Shortcuts runs them.
+    static func servicesScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        let view = document.editor.textView
+        let board = NSPasteboard(name: NSPasteboard.Name("nib-services-\(marker)"))
+        defer { board.releaseGlobally() }
+        var error: NSString?
+
+        board.clearContents()
+        board.setString("appended by the service \(marker)\u{200B}   \n", forType: .string)
+        ServiceProvider.shared.appendToScratch(board, userData: nil, error: &error)
+        log.check(error == nil && view.string.hasSuffix("\n\nappended by the service \(marker)\n"),
+                  "Services › Append to Nib Scratch: the selection at the end of the scratch file after a blank line, cleaned (\((view.string.components(separatedBy: "\n").suffix(2).first ?? "").debugDescription))")
+
+        let dirty = "  Text\u{00A0}with a no-break space\u{200B} and a zero-width one  \nsecond line   \n"
+        board.clearContents()
+        board.setString(dirty, forType: .string)
+        ServiceProvider.shared.cleanText(board, userData: nil, error: &error)
+        let cleaned = board.string(forType: .string) ?? ""
+        log.check(error == nil && cleaned == CleanTextIntent.clean(dirty) && !cleaned.contains("\u{00A0}") && !cleaned.contains("\u{200B}") && !cleaned.contains("   \n"),
+                  "Services › Clean Text: the selection back as clean plain text (\(cleaned.debugDescription))")
+
+        let append = AppendToScratchIntent()
+        append.text = "appended by Shortcuts \(marker)"
+        let ran = (try? await append.perform()) != nil
+        let got = try? await GetScratchIntent.text()
+        log.check(ran && view.string.hasSuffix("\n\nappended by Shortcuts \(marker)\n") && got == view.string,
+                  "Shortcuts: Append to Scratch adds to its end, and Get Scratch gives its text as it is in Nib (\(got.map { "\(($0 as NSString).length) characters" } ?? "nothing"))")
+        log.check(CleanTextIntent.clean("a\u{200B}b   \n") == "ab\n", "Shortcuts: Clean Text (\(CleanTextIntent.clean("a\u{200B}b   \n").debugDescription))")
     }
 
     /// The sync HUD (§5.3, SY16): View › Show Sync Details (⇧⌘Y) opens it over the text's foot,

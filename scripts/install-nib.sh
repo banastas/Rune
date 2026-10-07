@@ -36,6 +36,9 @@ if [[ -n $stale ]]; then
   exit 1
 fi
 codesign --verify --deep --strict "$APP"
+# The third-party notices (DS3) follow what's built: said if they're behind it.
+scripts/acknowledgements.py --check --checkouts "$DERIVED/SourcePackages/checkouts" >/dev/null 2>&1 \
+  || echo "Note: About's acknowledgements are out of date: run scripts/acknowledgements.py, commit it, and install again."
 
 echo "==> Installing $TARGET"
 rm -rf "$TARGET.new"

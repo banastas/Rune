@@ -133,10 +133,17 @@ final class MenuBarController: NSObject {
 
     /// In the menu bar or not, as Settings › General says (on unless turned off; off in the
     /// test harness's Nib, whose item would stand beside the user's, but for `menubar`).
-    func apply() {
+    /// Settings › General's "Show Nib in the menu bar": on unless turned off, but not for a test
+    /// run's Nib (the `menubar` scenario's apart).
+    static var enabledInSettings: Bool {
         let defaults = NibDefaults.store
         let standard = !NibPaths.isScenario || NibDefaults.scenario == "menubar"
-        let on = defaults.object(forKey: "showMenuBarExtra") == nil ? standard : defaults.bool(forKey: "showMenuBarExtra")
+        return defaults.object(forKey: "showMenuBarExtra") == nil ? standard : defaults.bool(forKey: "showMenuBarExtra")
+    }
+
+    func apply() {
+        defer { DockIcon.apply() }   // hidden only while this is shown (AP6)
+        let on = Self.enabledInSettings
         if on, item == nil {
             let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
             item.button?.target = self

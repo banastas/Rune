@@ -36,6 +36,7 @@ struct SettingsView: View {
 /// bar extra (AP3) and the scratch file (SC1).
 private struct GeneralSettings: View {
     @AppStorage("showMenuBarExtra", store: NibDefaults.store) private var showMenuBarExtra = true
+    @AppStorage("hideDockIcon", store: NibDefaults.store) private var hideDockIcon = false
     @State private var refusal: String?
 
     var body: some View {
@@ -49,7 +50,11 @@ private struct GeneralSettings: View {
             }
             Section {
                 Toggle("Show Nib in the menu bar", isOn: $showMenuBarExtra)
+                    .disabled(hideDockIcon && showMenuBarExtra)   // with no Dock icon, the way to Nib
                 note("The nib in the menu bar shows the scratch file's sync at a glance: still when all's well, its line marching while an upload takes more than a few seconds, a red ✕ beside it when something needs a look. Click it for the scratch file's state, Clean Clipboard, Append Clipboard to Scratch and recent files. The global shortcuts work either way.")
+                Toggle("Show Nib in the Dock", isOn: Binding(get: { !hideDockIcon }, set: { hideDockIcon = !$0 }))
+                    .disabled(!showMenuBarExtra && !hideDockIcon)
+                note("Without its Dock icon, Nib isn't in the Dock or in ⌘Tab, and has no menu bar of its own: the nib in the menu bar, Show Scratch and its windows bring it forward. So the nib in the menu bar stays on meanwhile.")
             }
             Section("Scratch file") {
                 let url = Documents.scratch.url
