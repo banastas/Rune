@@ -75,6 +75,8 @@ final class Document {
     private(set) var indentation: Indentation = .tabs(width: 4)
     /// The strip's line slot is a field for Go to Line (⌃G).
     var goingToLine = false
+    /// The sync HUD open over the text (§5.3): the strip's sync state clicked, or ⇧⌘Y.
+    var syncDetailsShown = false
     /// Go to File or the command palette, over this window (KB2, KB3).
     var palette: PaletteSession? {
         didSet {
@@ -196,6 +198,10 @@ final class Document {
     /// When this Mac's last upload was taken, and when it last saved (the panel's times).
     private(set) var uploadedAt: Date?
     var savedAt: Date { lastSaved }
+    /// The version the buffer comes from, or was last saved as (the sync HUD's SHA256).
+    var versionSHA: String? { baseFingerprint?.sha256 }
+
+    func toggleSyncDetails() { syncDetailsShown.toggle() }
     /// Texts of the last few versions this Mac has had, by SHA-256: merge bases (§4.6).
     @ObservationIgnored private var versions: [String: String] = [:]
     @ObservationIgnored private var versionOrder: [String] = []

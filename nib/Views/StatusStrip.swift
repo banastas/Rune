@@ -1,7 +1,8 @@
 // The status strip (PRD §5.2, A2): one always-dark 24-pt line under the text in
 // Blit's HUD language. Left: the sync state (glyph and words, V4; a muted-red tag
-// only for a conflict or a problem, V3). Right: line, column, syntax, encoding,
-// line endings, in fixed-width slots (V10). Clicking the syntax picks another (HL1).
+// only for a conflict or a problem, V3), which opens the sync HUD when clicked (§5.3).
+// Right: line, column, syntax, encoding, line endings, in fixed-width slots (V10).
+// Clicking the syntax picks another (HL1).
 
 import NibText
 import SwiftUI
@@ -13,24 +14,11 @@ struct StatusStrip: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            HStack(spacing: 10) {
-                if document.notice == nil, let tag = document.state.tag {
-                    hudText(tag, glyphSize: 9)
-                        .font(HUDFont.label(9))
-                        .foregroundStyle(HUDColor.onFailure)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 1)
-                        .background(HUDColor.failure)
-                        .fixedSize()
-                }
-                hudText(document.notice ?? document.statusLine, glyphSize: 11)
-                    .font(HUDFont.terminal(16))
-                    .foregroundStyle(stateColor)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(document.url.lastPathComponent), \(Self.spokenState(document))")
+            Button { document.toggleSyncDetails() } label: { syncState }
+                .buttonStyle(.plain)
+                .help(tooltip + (document.syncDetailsShown ? " Click to hide the details (⇧⌘Y)." : " Click for the details (⇧⌘Y)."))
+                .accessibilityLabel("\(document.url.lastPathComponent), \(Self.spokenState(document))")
+                .accessibilityHint(document.syncDetailsShown ? "Hides the sync details" : "Shows the sync details")
             if let offer = document.trashOffer {
                 // The disk is full (§4.9, 13): deleted files hold their space until the Trash is emptied.
                 Button { Task { await document.emptyTrashForSpace() } } label: {
@@ -102,6 +90,27 @@ struct StatusStrip: View {
         // One summary, as Blit's strip reads (AX1); its buttons still reachable inside.
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Self.summary(document))
+    }
+
+    /// The sync state: a muted-red tag for a problem, then the glyph and words (or a notice).
+    private var syncState: some View {
+        HStack(spacing: 10) {
+            if document.notice == nil, let tag = document.state.tag {
+                hudText(tag, glyphSize: 9)
+                    .font(HUDFont.label(9))
+                    .foregroundStyle(HUDColor.onFailure)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(HUDColor.failure)
+                    .fixedSize()
+            }
+            hudText(document.notice ?? document.statusLine, glyphSize: 11)
+                .font(HUDFont.terminal(16))
+                .foregroundStyle(stateColor)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .contentShape(Rectangle())
     }
 
     /// "scratch.md, synced at 10:42:21, line 14, column 3, Markdown" (AX1).

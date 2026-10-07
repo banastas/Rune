@@ -416,6 +416,11 @@ struct NibCommands: Commands {
             Button(lineNumbers ? "Hide Line Numbers" : "Show Line Numbers") { lineNumbers.toggle() }
             Button(invisibles ? "Hide Invisibles" : "Show Invisibles") { invisibles.toggle() }
             Button(minimap ? "Hide Minimap" : "Show Minimap") { minimap.toggle() }
+            Divider()
+            // The sync HUD (§5.3) over the text of the window in front.
+            Button(document?.syncDetailsShown == true ? "Hide Sync Details" : "Show Sync Details") { document?.toggleSyncDetails() }
+                .keyboardShortcut("y", modifiers: [.command, .shift])
+                .disabled(document == nil)
         }
         // Nib doesn't print; ⌘P and ⇧⌘P are Sublime's palette keys.
         CommandGroup(replacing: .printItem) {}

@@ -84,6 +84,8 @@ run menubar
 # Another app holding a global shortcut, for the first run's warning (SC2).
 swiftc -O -o build/hotkey-holder scripts/hotkey-holder.swift 2>/dev/null || true
 run firstrun -NibFakeLoginItem YES -NibHotKeyHolder "$PWD/build/hotkey-holder"
+run defaultapps   # Settings › Files: Nib as the default app, a kind at a time (a stand-in, never the Mac's)
+run synchud   # the sync HUD (§5.3): ⇧⌘Y, Escape, its log, the WARNING panel
 # The `nib` command-line tool (AP4), against the running scenario (it never starts or fronts Nib).
 (cd NibKit && swift build --product nib-cli 2>&1 | grep -E "error" || true)
 run cli -NibCLI "$PWD/NibKit/.build/debug/nib-cli"

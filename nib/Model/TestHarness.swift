@@ -132,6 +132,8 @@ enum TestHarness {
             case "headings": await headingsScenario(log, marker)
             case "pairs": await pairsScenario(log, marker)
             case "receipts": await receiptsScenario(log, marker)
+            case "defaultapps": await defaultAppsScenario(log, marker)
+            case "synchud": await syncHUDScenario(Documents.scratch, log, marker)
             case "nap": await napScenario(document, log, marker)
             case "findjump": await findJumpScenario(log, marker)
             case "uploads": await uploadsScenario(document, log, marker)
@@ -1524,6 +1526,185 @@ enum TestHarness {
         let entries = DeviceReceipts.read(mine)?.files ?? [:]
         log.check(carried && entries[sibling.lastPathComponent]?.sha256 == siblingSHA && FileManager.default.fileExists(atPath: takenURL.path),
                   "the next write carries the former name's entries over (the sibling's \(entries[sibling.lastPathComponent].map { String($0.sha256.prefix(8)) } ?? "missing")) and removes its file; the taken name's stays")
+    }
+
+    /// The sync HUD (§5.3, SY16): View › Show Sync Details (⇧⌘Y) opens it over the text's foot,
+    /// Escape closes it, and the menu does both; its log is the file's last Sync Log lines in its
+    /// words; a conflict block in the text adds the WARNING panel, and Escape takes the HUD before
+    /// the banner. Pictures: build/scenarios/synchud.png and synchud-warning.png.
+    static func syncHUDScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        await waitReady(document)
+        await waitSynced(document, 30)
+        let folder = URL(fileURLWithPath: log.path).deletingLastPathComponent()
+        ScenarioFocus.take()
+        document.editor.textView.window?.makeKeyAndOrderFront(nil)
+        _ = await waitFor(5) { document.editor.textView.window?.isKeyWindow == true }
+
+        // A save and an upload, for its log.
+        await type("\n- sync hud \(marker)\n", into: document)
+        await document.flush(reason: "test")
+        await waitSynced(document, 30)
+        let recent = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl")).recent(path: document.url.path, limit: SyncHUD.logLines)
+        let lines = recent.map(SyncHUD.line)
+        log.check(recent.count == SyncHUD.logLines && recent.allSatisfy { $0.path == document.url.path }
+                  && lines.contains { $0.hasPrefix("= SAVED · ") } && lines.contains { $0.hasPrefix("▲ UPLOADED · ") },
+                  "its log: the file's last \(recent.count) Sync Log lines, newest last, in its words (\(lines.suffix(3).joined(separator: " | ")))")
+
+        func menuItem(_ title: String) -> (menu: NSMenu, index: Int)? {
+            for top in NSApp.mainMenu?.items ?? [] {
+                if let menu = top.submenu, let index = menu.items.firstIndex(where: { $0.title == title }) { return (menu, index) }
+            }
+            return nil
+        }
+        func choose(_ title: String) -> Bool {
+            guard let (menu, index) = menuItem(title) else { return false }
+            menu.update()
+            menu.performActionForItem(at: index)
+            return true
+        }
+        /// The window as drawn, saved as `name`.
+        func picture(_ view: NSView, _ name: String) -> NSBitmapImageRep? {
+            guard let frame = view.window?.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) else { return nil }
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            if !name.isEmpty { try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent(name)) }
+            return rep
+        }
+        /// The share of the band 40-200 points above the window's foot (over the strip, where
+        /// the HUD opens) in a color.
+        func share(_ rep: NSBitmapImageRep?, _ view: NSView, _ matches: (NSColor) -> Bool) -> Double {
+            guard let rep, let width = view.window?.contentView?.superview?.bounds.width, width > 0 else { return 0 }
+            let scale = Double(rep.pixelsWide) / width, height = rep.pixelsHigh
+            var hits = 0, total = 0
+            for y in stride(from: height - Int(200 * scale), to: height - Int(40 * scale), by: 7) {
+                for x in stride(from: Int(40 * scale), to: rep.pixelsWide - Int(40 * scale), by: 11) {
+                    total += 1
+                    if let color = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB), matches(color) { hits += 1 }
+                }
+            }
+            return total == 0 ? 0 : Double(hits) / Double(total)
+        }
+        func hudBlack(_ c: NSColor) -> Bool { c.redComponent < 0.06 && c.greenComponent < 0.06 && c.blueComponent < 0.06 }
+        // The picture lightens colors (#B35C5C comes out #B77571, as `find`'s #FFE792 does #FCEBAD):
+        // clearly red, where the text's own reds (a conflict block's tint) are dark.
+        func failureRed(_ c: NSColor) -> Bool {
+            c.redComponent > 0.6 && c.redComponent - c.greenComponent > 0.15 && c.redComponent - c.blueComponent > 0.15
+        }
+        let view = document.editor.textView
+        let before = share(picture(view, ""), view, hudBlack)
+
+        // View › Show Sync Details, on ⇧⌘Y. The menu acts on the document in front, which a
+        // test run's Nib isn't while macOS keeps another app in front (the user at the Mac):
+        // then the item is off, and the scenario takes its action, as `find` does ⌘F's.
+        let item = menuItem("Show Sync Details")
+        let keys = item.map { ($0.menu.items[$0.index].keyEquivalent, $0.menu.items[$0.index].keyEquivalentModifierMask) }
+        let byMenu = item.map { $0.menu.items[$0.index].isEnabled } == true
+        if byMenu { _ = choose("Show Sync Details") } else { document.toggleSyncDetails() }
+        _ = await waitFor(3) { document.syncDetailsShown }
+        try? await Task.sleep(for: .milliseconds(600))   // the CRT's 0.36 s
+        let shown = share(picture(view, "synchud.png"), view, hudBlack)
+        log.check(item != nil && document.syncDetailsShown && keys?.0.lowercased() == "y" && keys?.1.contains([.command, .shift]) == true
+                  && before < 0.05 && shown > 0.4,
+                  "View › Show Sync Details (⇧⌘Y)\(byMenu ? "" : ", by its action (Nib not let in front, the item off)") opens it over the text's foot: \(Int(shown * 100))% of it HUD black, \(Int(before * 100))% before")
+
+        // Escape closes it; the menu opens it and closes it again.
+        view.window?.makeFirstResponder(view)
+        view.cancelOperation(nil)
+        try? await Task.sleep(for: .milliseconds(600))
+        let closed = share(picture(view, ""), view, hudBlack)
+        let escaped = !document.syncDetailsShown
+        if byMenu { _ = choose("Show Sync Details") } else { document.toggleSyncDetails() }
+        let again = await waitFor(3) { document.syncDetailsShown }
+        // SwiftUI names the item again on its next pass.
+        var renamed = !byMenu
+        if byMenu { renamed = await waitFor(3) { menuItem("Hide Sync Details") != nil } }
+        if byMenu { _ = choose("Hide Sync Details") } else { document.toggleSyncDetails() }
+        let hidden = await waitFor(3) { !document.syncDetailsShown }
+        log.check(escaped && closed < 0.05 && again && renamed && hidden,
+                  "Escape closes it (\(Int(closed * 100))% left), and \(byMenu ? "the menu" : "its action") opens it and\(byMenu ? ", as Hide Sync Details," : "") closes it")
+
+        // A conflict block: the WARNING panel, at the log's height; Escape takes the HUD first.
+        let text = "# Sync HUD \(marker)\n\n<<<<<<< This Mac · 10:42\nmine\n=======\ntheirs\n>>>>>>> Test Mac · 10:43\n"
+        guard let url = Untitled.create(text: text, name: "synchud-\(marker).md") else { log.check(false, "a buffer with a conflict block"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let buffer = Documents.existing(for: url) else {
+            log.check(false, "it opened")
+            try? FileManager.default.removeItem(at: url.deletingLastPathComponent())   // or it comes back at the next launch
+            return
+        }
+        let bufferView = buffer.editor.textView
+        _ = await waitFor(5) { buffer.blocks.count == 1 }
+        buffer.toggleSyncDetails()
+        try? await Task.sleep(for: .milliseconds(600))
+        let red = share(picture(bufferView, "synchud-warning.png"), bufferView, failureRed)
+        bufferView.window?.makeFirstResponder(bufferView)
+        bufferView.cancelOperation(nil)
+        let hudFirst = !buffer.syncDetailsShown && !buffer.bannerHidden
+        log.check(buffer.blocks.count == 1 && red > 0.08 && hudFirst,
+                  "a conflict block adds the WARNING panel (\(Int(red * 100))% of the band its red), and Escape closes the HUD before the banner")
+        Untitled.letGo(url)
+        bufferView.window?.performClose(nil)
+        if !(await waitFor(15) { !FileManager.default.fileExists(atPath: url.path) }) { log.line("the buffer was still there after 15 s") }
+        document.syncDetailsShown = false
+    }
+
+    /// Open question 15: Settings › Files makes Nib the app a double-click opens, a kind of file at
+    /// a time, and gives a kind back to the app it had. A test run's Nib changes only its stand-in:
+    /// the Mac's own default apps are the same after.
+    static func defaultAppsScenario(_ log: HarnessLog, _ marker: String) async {
+        let apps = DefaultApps.shared
+        let kinds = DefaultApps.Kind.allCases
+        let types = kinds.flatMap(\.types)
+        func macs() -> [String] { types.map { NSWorkspace.shared.urlForApplication(toOpen: $0)?.path ?? "none" } }
+        let before = macs()
+        let textEdit = URL(fileURLWithPath: "/System/Applications/TextEdit.app")
+        defer {
+            for type in types { NibDefaults.store.removeObject(forKey: DefaultApps.beforeKey(type)) }
+        }
+        for kind in kinds { apps.pretend(textEdit, opens: kind) }
+        log.check(types.count == 9 && kinds.allSatisfy { apps.openers[$0] == .init(name: "TextEdit", isNib: false) },
+                  "seven kinds, nine types (\(types.map(\.identifier).joined(separator: ", "))), each opening in TextEdit to start with")
+
+        // On: Nib opens them, and TextEdit is remembered. Off: TextEdit has them back.
+        let markdown = DefaultApps.Kind.markdown.types[0]
+        await apps.set(.markdown, true)
+        log.check(apps.openers[.markdown]?.isNib == true && apps.opener(of: markdown).map(DefaultApps.isNib) == true
+                  && NibDefaults.store.string(forKey: DefaultApps.beforeKey(markdown)) == textEdit.path && apps.openers[.text]?.isNib == false,
+                  "Markdown on: .md files open in Nib, TextEdit remembered, and plain text still TextEdit's")
+        await apps.set(.markdown, false)
+        log.check(apps.openers[.markdown] == .init(name: "TextEdit", isNib: false) && apps.failure == nil, "Markdown off: back to TextEdit")
+
+        // A kind of three types: all three.
+        let shell = DefaultApps.Kind.shell.types
+        await apps.set(.shell, true)
+        log.check(shell.allSatisfy { apps.opener(of: $0).map(DefaultApps.isNib) == true } && apps.openers[.shell]?.isNib == true,
+                  "Shell scripts on: .sh, .zsh and .bash files all open in Nib")
+
+        // The app one had is gone: the one macOS ranks next, never Nib.
+        NibDefaults.store.set("/Applications/Gone \(marker).app", forKey: DefaultApps.beforeKey(shell[0]))
+        await apps.set(.shell, false)
+        let next = apps.opener(of: shell[0])
+        log.check(next.map(DefaultApps.isNib) == false && apps.openers[.shell]?.isNib == false
+                  && shell.dropFirst().allSatisfy { apps.opener(of: $0)?.path == textEdit.path },
+                  "Shell scripts off, the app .sh files had gone: the one macOS ranks next (\(next.map(DefaultApps.name) ?? "none")); .zsh and .bash back to TextEdit")
+
+        // Settings › Files (a picture: build/scenarios/settings-files.png).
+        NibDefaults.store.set("files", forKey: "settingsTab")
+        AppDelegate.openSettings()
+        func settingsWindow() -> NSWindow? { NSApp.windows.first { $0.isVisible && $0.title == "Files" } }
+        let shown = await waitFor(5) { settingsWindow() != nil }
+        if let window = settingsWindow(), let view = window.contentView {
+            try? await Task.sleep(for: .milliseconds(400))
+            if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("settings-files.png"))
+            }
+            window.close()
+        }
+        log.check(shown, "Settings › Files shows them")
+
+        let after = macs()
+        log.check(after == before, "the Mac's own default apps are as they were (\(Set(after.map { DefaultApps.name(URL(fileURLWithPath: $0)) }).sorted().joined(separator: ", ")))")
     }
 
     /// §4.9, 9 and 10: another app renames a file while it's open, typing not saved yet (saving

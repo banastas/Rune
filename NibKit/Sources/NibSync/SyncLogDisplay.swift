@@ -94,7 +94,14 @@ extension SyncEvent {
         case "resolve": return "Resolved"
         case "revert": return "Reverted"
         case "recover": return "Recovered"
-        case "pause": return detail == nil || detail?.hasPrefix("held") == true ? "Held" : "Not held"
+        case "pause":
+            // A hold not made says so first ("not held yet: …", "not offered: …", "failed, …", "still
+            // failing after 3 tries: …"), and a lost one begins "the hold didn't last"; every other
+            // line is a hold made ("after its upload (2.6 s)", "held on try 2", "already paused, by
+            // this Mac: holding it as it is"), which read "Not held" until 2026-10-06.
+            guard let detail else { return "Held" }
+            if detail.hasPrefix("the hold didn't last") { return "Hold lost" }
+            return ["not ", "failed", "still failing"].contains { detail.hasPrefix($0) } ? "Not held" : "Held"
         case "resume": return "Handed back"
         case "quit": return "Closed"
         case "problem": return "Problem"

@@ -60,6 +60,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.textStorage?.delegate = self   // the caret's line count follows edits (position(of:))
         textView.onEscape = { [weak self] in
             guard let self else { return false }
+            if let document = self.document, document.syncDetailsShown { document.syncDetailsShown = false; return true }
             if self.document?.hideBanner() == true { return true }
             if self.find.shown { self.find.close(); return true }
             return false

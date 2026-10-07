@@ -1,7 +1,7 @@
 // A document's window content (PRD §5.1): the text in An Old Hope, the status strip under
-// it, the find bar over the strip while it's open (ED7), and the conflict banner above the
-// text while the text holds conflict blocks (§5.4), or the deleted banner while its file is
-// gone (§4.8 E). Focus
+// it, the find bar over the strip while it's open (ED7), the sync HUD over the text's foot
+// while it's open (§5.3), and the conflict banner above the text while the text holds
+// conflict blocks (§5.4), or the deleted banner while its file is gone (§4.8 E). Focus
 // leaving the window saves (§4.3 step 3); focus arriving checks for a newer version (§4.4).
 // The scratch window shows it alone; file windows (ED2) show it as native tabs together.
 
@@ -16,6 +16,7 @@ extension FocusedValues {
 
 struct DocumentView: View {
     let document: Document
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,6 +26,15 @@ struct DocumentView: View {
                 ConflictBanner(document: document)
             }
             EditorHost(editor: document.editor)
+                // The sync HUD (§5.3), opening upward from the strip over the text.
+                .overlay(alignment: .bottom) {
+                    if document.syncDetailsShown {
+                        SyncHUD(document: document)
+                            .padding(8)
+                            .transition(.crt(reduceMotion: reduceMotion))
+                    }
+                }
+                .animation(.crt, value: document.syncDetailsShown)
             if document.editor.find.shown { FindBar(find: document.editor.find) }
             StatusStrip(document: document)
         }

@@ -97,6 +97,33 @@ public final class SyncLog: Sendable {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
         return text.split(separator: "\n").compactMap { try? decoder.decode(SyncEvent.self, from: Data($0.utf8)) }
     }
+
+    /// One file's last `limit` events, oldest first, read from the log's end a chunk at a time:
+    /// the log is never trimmed, and the sync HUD wants only its last few lines (§5.3).
+    public func recent(path: String, limit: Int, chunk: Int = 65_536) -> [SyncEvent] {
+        guard limit > 0, let handle = try? FileHandle(forReadingFrom: url) else { return [] }
+        defer { try? handle.close() }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        var end = (try? handle.seekToEnd()) ?? 0
+        var cut = Data()   // the start of a line the chunk after this one began inside
+        var found: [SyncEvent] = []   // newest first
+        while end > 0, found.count < limit {
+            let start = end > UInt64(chunk) ? end - UInt64(chunk) : 0
+            guard (try? handle.seek(toOffset: start)) != nil, var data = try? handle.read(upToCount: Int(end - start)) else { break }
+            data.append(cut)
+            var lines = data.split(separator: 0x0A, omittingEmptySubsequences: false)
+            // Above the file's start the first line may be cut: it's finished by the chunk before.
+            cut = start > 0 && !lines.isEmpty ? Data(lines.removeFirst()) : Data()
+            for line in lines.reversed() where !line.isEmpty {
+                guard let event = try? decoder.decode(SyncEvent.self, from: Data(line)), event.path == path else { continue }
+                found.append(event)
+                if found.count == limit { break }
+            }
+            end = start
+        }
+        return found.reversed()
+    }
 }
 
 /// When to write the file (PRD SY2): 1 s after typing pauses, and at least every 5 s

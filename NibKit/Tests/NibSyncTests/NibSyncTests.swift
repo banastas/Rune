@@ -336,6 +336,21 @@ func scratchFolder() -> URL {
         #expect(log.read().map(\.event) == ["save", "upload"])
     }
 
+    /// The sync HUD's lines (§5.3): one file's last few, read from the end a chunk at a time,
+    /// lines a chunk's edge cut put back together, other files' skipped.
+    @Test func syncLogRecentForOneFile() {
+        let log = SyncLog(url: scratchFolder().appendingPathComponent("sync.jsonl"))
+        for n in 0..<40 {
+            log.append(SyncEvent(n % 3 == 0 ? "upload" : "save", path: n % 2 == 0 ? "/a" : "/b", device: "Air", size: n))
+        }
+        for chunk in [16, 100, 65_536] {   // smaller than a line, a line or so, the whole log
+            #expect(log.recent(path: "/a", limit: 5, chunk: chunk).compactMap(\.size) == [30, 32, 34, 36, 38], "chunk \(chunk)")
+        }
+        #expect(log.recent(path: "/a", limit: 100, chunk: 100).count == 20)
+        #expect(log.recent(path: "/c", limit: 5).isEmpty)
+        #expect(SyncLog(url: scratchFolder().appendingPathComponent("none.jsonl")).recent(path: "/a", limit: 5).isEmpty)
+    }
+
     @Test func conflictErrorIsRecognized() {
         let underlying = NSError(domain: "NSFileProviderErrorDomain", code: -2015)
         let error = NSError(domain: NSCocoaErrorDomain, code: 512, userInfo: [NSUnderlyingErrorKey: underlying])
@@ -605,7 +620,12 @@ func scratchFolder() -> URL {
         #expect(event("conflict", detail: "merged from the version both had, 1 place between markers").glyph == "✕")
         #expect(event("problem", detail: "the file was deleted or moved away").failed)
         #expect(event("pause").word == "Held" && event("pause", detail: "not offered: iCloud uploads on its own schedule").word == "Not held")
-        #expect(event("pause", detail: "failed, running unheld: x").failed)
+        #expect(event("pause", detail: "failed, running unheld: x").failed && event("pause", detail: "failed, running unheld: x").word == "Not held")
+        // Holds made, with what came first: the upload waited for, a pause of this Mac's own.
+        #expect(event("pause", detail: "after its upload (2.6 s)").word == "Held")
+        #expect(event("pause", detail: "already paused, by this Mac: holding it as it is").word == "Held")
+        #expect(event("pause", detail: "left paused by an earlier session, and handing it back failed (x): holding it as it is").word == "Held")
+        #expect(event("pause", detail: "the hold didn't last (a hand-back a moment before, finishing): holding it again").word == "Hold lost")
         let notYet = event("pause", detail: "not held yet: NSCocoaErrorDomain 4099; trying again in 2 s")
         #expect(notYet.word == "Not held" && notYet.glyph == "‖" && !notYet.failed && notYet.needsLook)
         #expect(event("pause", detail: "held on try 3").word == "Held" && event("pause", detail: "held on try 3").glyph == "·")

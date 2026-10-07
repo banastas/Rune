@@ -1,8 +1,9 @@
 // Settings (PRD §5.8, V12, W7): tabs, grouped forms that size to fit, 480 pt wide, and a
 // plain note under each control saying what it does and doesn't do. General (open at login,
-// the global shortcuts, the menu bar extra, the scratch file), Editor (the font and size,
-// indentation, line numbers, invisibles, ⌘S tidying, Paste Clean) and Themes (the scheme,
-// Import from Sublime Text, Import File…, and the last import's report, HL2-HL4).
+// the global shortcuts, the menu bar extra, the scratch file), Files (the kinds of file a
+// double-click opens in Nib), Editor (the font and size, indentation, line numbers,
+// invisibles, ⌘S tidying, Paste Clean) and Themes (the scheme, Import from Sublime Text,
+// Import File…, and the last import's report, HL2-HL4).
 
 import AppKit
 import SwiftUI
@@ -16,6 +17,9 @@ struct SettingsView: View {
             GeneralSettings()
                 .tabItem { Label("General", systemImage: "gearshape") }
                 .tag("general")
+            FileSettings()
+                .tabItem { Label("Files", systemImage: "doc.on.doc") }
+                .tag("files")
             EditorSettings()
                 .tabItem { Label("Editor", systemImage: "character.cursor.ibeam") }
                 .tag("editor")
@@ -76,6 +80,34 @@ private struct GeneralSettings: View {
         alert.addButton(withTitle: "Reopen Nib")
         alert.addButton(withTitle: "Cancel")
         if alert.runModal() == .alertFirstButtonReturn { ScratchChoice.use(url) }
+    }
+}
+
+/// Settings › Files: the kinds of file a double-click in Finder opens in Nib (open question 15).
+private struct FileSettings: View {
+    private let apps = DefaultApps.shared
+
+    var body: some View {
+        Form {
+            Section("Open with Nib") {
+                ForEach(DefaultApps.Kind.allCases) { kind in
+                    Toggle(isOn: Binding(get: { apps.openers[kind]?.isNib == true }, set: { on in Task { await apps.set(kind, on) } })) {
+                        Text(kind.name)
+                        Text(apps.openers[kind].map { $0.isNib ? kind.extensions : "\(kind.extensions) · now \($0.name)" } ?? kind.extensions)
+                    }
+                    .disabled(apps.changing.contains(kind))
+                }
+                if let failure = apps.failure {
+                    Label { Text(failure).fixedSize(horizontal: false, vertical: true) } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
+                    }
+                }
+                note("A double-click in Finder opens these files in Nib, and so does the open command in Terminal. Turning one off gives its files back to the app they opened in before. macOS may ask first for some kinds. For one file alone, use Finder's Get Info › Open With.")
+            }
+        }
+        .formStyle(.grouped)
+        .scrollDisabled(true)
+        .onAppear { apps.refresh() }
     }
 }
 
