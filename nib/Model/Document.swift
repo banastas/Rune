@@ -2764,8 +2764,8 @@ final class IOQueue: Sendable {
 }
 
 /// Where the scratch file is (PRD §4.2): Nib's own folder in iCloud Drive, "Nib", an app
-/// container like other apps' folders, with the sync notes hidden inside it. And the M1
-/// safety rule (§8): until M1 has passed on both Macs, nib opens only test files, in
+/// container like other apps' folders, with the sync notes hidden inside it. And the safety
+/// rule (§8), which the test harness's Nib keeps: it opens only test files, in
 /// iCloud Drive/Nib/Test/ (or, in ad-hoc builds that can't carry the iCloud entitlement,
 /// iCloud Drive/nib-spike/).
 enum ScratchLocation {
@@ -2797,16 +2797,19 @@ enum ScratchLocation {
         return standardURL
     }
 
-    /// iCloud Drive/Nib/scratch.md (SC1) once the safety rule is lifted; the test file until then.
+    /// iCloud Drive/Nib/scratch.md (SC1); the test file for the test harness's Nib.
     static var standardURL: URL {
-        if hasContainer, NibDefaults.store.bool(forKey: "allowLiveScratch") { return folder.appendingPathComponent("scratch.md") }
+        if hasContainer, !safetyRule { return folder.appendingPathComponent("scratch.md") }
         return testURL
     }
 
     static var testURL: URL { (hasContainer ? testFolder : unsignedTestFolder).appendingPathComponent("scratch-test.md") }
 
-    /// Until M1 has passed, Nib opens only test files (§8).
-    static var safetyRule: Bool { !NibDefaults.store.bool(forKey: "allowLiveScratch") }
+    /// The safety rule (§8): until M1 had passed, Nib opened only test files; a Mac with
+    /// `allowLiveScratch` set opened any. Lifted on 2026-10-06 (the user's call): only the test
+    /// harness's Nib keeps it, so a scenario never opens, moves or saves a file outside the test
+    /// folders, and the Nib in daily use needs no setting.
+    static var safetyRule: Bool { NibPaths.isScenario }
 
     static func inContainer(_ url: URL) -> Bool { url.standardizedFileURL.path.hasPrefix(folder.path + "/") }
 
@@ -2823,11 +2826,11 @@ enum ScratchLocation {
     }
 
     static func refusal(for url: URL) -> String? {
-        if NibDefaults.store.bool(forKey: "allowLiveScratch") { return nil }
+        guard safetyRule else { return nil }
         if Untitled.contains(url) { return nil }   // Nib's own, on this Mac only (ED3)
         let path = url.standardizedFileURL.path
         guard path.hasPrefix(testFolder.path + "/") || path.hasPrefix(unsignedTestFolder.path + "/") else {
-            return "NIB OPENS ONLY TEST FILES (ICLOUD DRIVE › NIB › TEST) UNTIL M1 HAS PASSED (PRD §8)"
+            return "NIB OPENS ONLY TEST FILES IN A TEST RUN (ICLOUD DRIVE › NIB › TEST)"
         }
         return nil
     }

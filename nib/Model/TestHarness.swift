@@ -1489,6 +1489,41 @@ enum TestHarness {
         pretend(current, format: DeviceReceipts.currentFormat + 1)
         let ignored = await waitFor(10) { testMac() == nil }
         log.check(ignored && !document.statusLine.contains("TEST MAC"), "a receipt of a later format is ignored")
+
+        // This Mac renamed: its file under the former name (nothing in it later than the rename)
+        // isn't read as another Mac's, and the next write carries it over to this name and
+        // removes it; a file under a name another Mac took since (an entry after the rename) is
+        // that Mac's, left alone.
+        let sibling = url.deletingLastPathComponent().appendingPathComponent("receipts-sibling-\(marker).md")
+        let formerName = "Former Test Mac", takenName = "Taken Test Mac"
+        let formerURL = DeviceReceipts.url(in: folder, device: formerName)
+        let takenURL = DeviceReceipts.url(in: folder, device: takenName)
+        defer {
+            for file in [sibling, formerURL, takenURL] { try? FileManager.default.removeItem(at: file) }
+            for who in [formerName, takenName] { ReceiptBook.shared.forgetRenamed(who) }
+        }
+        try? Data("# Sibling \(marker)\n".utf8).write(to: sibling)
+        let renamedAt = Date()
+        for who in [formerName, takenName] { ReceiptBook.shared.pretendRenamed(from: who, at: renamedAt) }
+        let siblingSHA = Digest.sha256(Data("the sibling as this Mac had it \(marker)".utf8))
+        try? DeviceReceipts(device: formerName, files: [
+            name: .init(sha256: current, time: renamedAt.addingTimeInterval(-60)),
+            sibling.lastPathComponent: .init(sha256: siblingSHA, time: renamedAt.addingTimeInterval(-60)),
+        ]).write(to: formerURL)
+        try? DeviceReceipts(device: takenName, files: [name: .init(sha256: current, time: renamedAt.addingTimeInterval(30))]).write(to: takenURL)
+        let heard = await waitFor(10) { document.otherMacs.contains { $0.device == takenName } }
+        log.check(heard && !document.otherMacs.contains { $0.device == formerName },
+                  "this Mac's receipt under a former name isn't read as another Mac's; one under a name taken since is (\(document.otherMacs.map(\.device).joined(separator: ", ")))")
+        await type("- receipt three \(marker)\n", into: document)
+        await document.flush(reason: "test")
+        await waitSynced(document, 30)
+        let third = disk()
+        let carried = await waitFor(12) {
+            !FileManager.default.fileExists(atPath: formerURL.path) && DeviceReceipts.read(mine)?.files[name]?.sha256 == third
+        }
+        let entries = DeviceReceipts.read(mine)?.files ?? [:]
+        log.check(carried && entries[sibling.lastPathComponent]?.sha256 == siblingSHA && FileManager.default.fileExists(atPath: takenURL.path),
+                  "the next write carries the former name's entries over (the sibling's \(entries[sibling.lastPathComponent].map { String($0.sha256.prefix(8)) } ?? "missing")) and removes its file; the taken name's stays")
     }
 
     /// §4.9, 9 and 10: another app renames a file while it's open, typing not saved yet (saving

@@ -1,6 +1,6 @@
 // Nib: a small, fast macOS text editor that never loses a keystroke between Macs.
-// The scratch window, file windows as native tabs (ED2), and the sync pipeline of §4;
-// on test files only until M1 has passed (the safety rule, §8).
+// The scratch window, file windows as native tabs (ED2), and the sync pipeline of §4; in a
+// test run, on test files only (the safety rule, §8).
 
 import AppKit
 import NibSync

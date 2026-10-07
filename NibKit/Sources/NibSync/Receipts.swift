@@ -133,6 +133,37 @@ public struct DeviceReceipts: Codable, Sendable, Equatable {
         }
         return next
     }
+
+    /// Whether these are this Mac's own from before it was renamed. A Mac's file goes by its name,
+    /// so a rename left the old one, which every Mac read as another Mac's for its 30 days, this
+    /// one too (the two-Mac test at 09:27, 2026-10-03). This Mac's if nothing in it is later than
+    /// `renamed`, when its Nib first went by the new name; one written to since is another Mac's,
+    /// one that took the name.
+    public func written(before renamed: Date) -> Bool {
+        files.values.allSatisfy { $0.time <= renamed }
+    }
+
+    /// These with the entries this Mac wrote under former names carried in, the later of two for
+    /// a file winning.
+    public func carrying(_ former: [DeviceReceipts]) -> DeviceReceipts {
+        var next = self
+        for receipts in former {
+            next.files.merge(receipts.files) { mine, carried in carried.time > mine.time ? carried : mine }
+        }
+        return next
+    }
+
+    /// A former name's file, carried over: removed, coordinated.
+    public static func remove(_ url: URL) throws {
+        let mark = WriteMeter.start()
+        var coordinationError: NSError?
+        var removeError: Error?
+        NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forDeleting, error: &coordinationError) { target in
+            do { try FileManager.default.removeItem(at: target) } catch { removeError = error }
+        }
+        WriteMeter.add("receipt", bytes: 0, since: mark)
+        if let error = coordinationError ?? removeError { throw error }
+    }
 }
 
 /// Another Mac's version of a file, beside this Mac's (§4.5).

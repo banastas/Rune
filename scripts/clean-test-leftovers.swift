@@ -8,13 +8,13 @@
 //   swift scripts/clean-test-leftovers.swift            # says what it would move
 //   swift scripts/clean-test-leftovers.swift --remove   # moves it to the Trash
 //
-// What counts as a test leftover (Nib has opened only test files so far: the safety rule, §8):
-// History, journal files and per-file settings for files in iCloud Drive/Nib/Test, nib-spike,
-// temporary folders, and untitled buffers; History of files no record names any more; the whole
-// Sync Log; empty untitled-buffer folders; Open Recent's and Reopen Closed File's test entries; and
-// everything in iCloud Drive/Nib/Test but the scenarios' scratch-test.md and its .nib folder.
-// Kept: every other setting (window places, the first run done), a live untitled buffer's file,
-// and any record of a file outside those places.
+// What counts as a test leftover: History, journal files and per-file settings for files in
+// iCloud Drive/Nib/Test, nib-spike, temporary folders, and untitled buffers; empty untitled-buffer
+// folders; Open Recent's and Reopen Closed File's test entries; and everything in iCloud
+// Drive/Nib/Test but the scenarios' scratch-test.md and its .nib folder. Kept: every other setting
+// (window places, the first run done), a live untitled buffer's file, any record of a file outside
+// those places, History no record names, and the Sync Log. (Until 2026-10-06 the safety rule let
+// Nib open only test files, so those last two were test runs' too, and went; not since: §8.)
 
 import AppKit
 import CryptoKit
@@ -86,7 +86,8 @@ for folder in historyFolders where !folder.hasPrefix(".") {
         guard isTest(path) else { historyKept.append(path); continue }
         historyTest += 1
     } else {
-        historyUnnamed += 1   // a file no record names any more: under the safety rule, a test file
+        historyUnnamed += 1   // a file no record names any more: any file, since the safety rule went
+        continue
     }
     if folder == scratchKey, let index = try? String(contentsOf: url.appendingPathComponent("index.jsonl"), encoding: .utf8) {
         let recentLimit = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-2 * 86_400))
@@ -99,15 +100,15 @@ for folder in historyFolders where !folder.hasPrefix(".") {
     historyBytes += size(url)
     moves.append((url, "History/" + folder))
 }
-notes.append("History: \(historyTest + historyUnnamed) of \(historyFolders.count) folders, \(bytes(historyBytes)) (\(historyTest) for test files and untitled buffers, \(historyUnnamed) for files no record names any more)"
-             + (historyKept.isEmpty ? "" : "; kept \(historyKept.count), for other files"))
+notes.append("History: \(historyTest) of \(historyFolders.count) folders, \(bytes(historyBytes)), for test files and untitled buffers"
+             + (historyKept.isEmpty ? "" : "; kept \(historyKept.count), for other files")
+             + (historyUnnamed == 0 ? "" : "; kept \(historyUnnamed) for files no record names any more"))
 if recentScratch > 0 {
     notes.append("  NOTE: \(recentScratch) of those are versions of the test scratch file from the last 2 days (a day test's?). If you typed anything there you want, copy it out first (Nib's History window on that file), or put it back from the Trash after.")
 }
 
 if fm.fileExists(atPath: syncLog.path) {
-    moves.append((syncLog, "sync.jsonl"))
-    notes.append("The Sync Log, \(bytes(size(syncLog))): everything in it is test runs")
+    notes.append("The Sync Log, \(bytes(size(syncLog))): kept (Nib opens any file now, so it's your files' too)")
 }
 
 let journal = support.appendingPathComponent("Journal")

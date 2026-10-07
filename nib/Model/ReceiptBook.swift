@@ -15,6 +15,11 @@ final class ReceiptBook {
 
     /// The name the other Macs see, as the conflict labels and notes carry it.
     let device = Host.current().localizedName ?? "This Mac"
+    /// The names this Mac's receipts went under before it was renamed, with when this Nib first
+    /// went by the next one: a folder's file under one is carried over to this name at the first
+    /// write there, and removed, and never read as another Mac's. Forgotten after the receipts'
+    /// 30 days, when nothing under them counts anyway.
+    private(set) var former: [String: Date] = [:]
 
     /// This Mac's entries not written yet, and what it last said, by folder path and file name.
     private var pending: [String: [String: DeviceReceipts.Loaded]] = [:]
@@ -32,6 +37,24 @@ final class ReceiptBook {
     #if DEBUG
     /// Writes of this Mac's files so far, for the `receipts` scenario.
     private(set) var written = 0
+    #endif
+
+    private init() {
+        let store = NibDefaults.store, now = Date()
+        let kept = store.dictionary(forKey: "receiptsFormerNames") as? [String: Date] ?? [:]
+        var former = kept.filter { now.timeIntervalSince($0.value) < DeviceReceipts.lifetime }
+        let last = store.string(forKey: "receiptsName")
+        if let last, last != device { former[last] = now }
+        former[device] = nil
+        if last != device { store.set(device, forKey: "receiptsName") }
+        if former != kept { store.set(former, forKey: "receiptsFormerNames") }
+        self.former = former
+    }
+
+    #if DEBUG
+    /// The `receipts` scenario's rename, in memory only.
+    func pretendRenamed(from name: String, at time: Date) { former[name] = time }
+    func forgetRenamed(_ name: String) { former[name] = nil }
     #endif
 
     static func folder(of url: URL) -> URL { DeviceReceipts.folder(for: url) }
@@ -73,14 +96,21 @@ final class ReceiptBook {
             writing.remove(folder)
             return
         }
-        let writes = self.writes
+        let writes = self.writes, former = self.former
         var failure: String?
         do {
             try await CloudControl.within(15) {
                 try await writes.run {
                     let url = DeviceReceipts.url(in: place, device: device)
                     let current = DeviceReceipts.read(url) ?? DeviceReceipts(device: device)
-                    try current.updated(with: changes, folder: place).write(to: url)
+                    // Written here under a former name: carried over to this one, then removed.
+                    let left = former.compactMap { name, renamed -> (url: URL, receipts: DeviceReceipts)? in
+                        let old = DeviceReceipts.url(in: place, device: name)
+                        guard old != url, let receipts = DeviceReceipts.read(old), receipts.written(before: renamed) else { return nil }
+                        return (old, receipts)
+                    }
+                    try current.carrying(left.map(\.receipts)).updated(with: changes, folder: place).write(to: url)
+                    for old in left { try? DeviceReceipts.remove(old.url) }
                 }
             }
             #if DEBUG
@@ -164,9 +194,13 @@ final class ReceiptBook {
         guard !reading.contains(folder) else { readAgain.insert(folder); return }
         reading.insert(folder)
         let device = self.device, place = URL(fileURLWithPath: folder, isDirectory: true)
-        let reads = self.reads
+        let reads = self.reads, former = self.former
         let found = try? await CloudControl.within(fresh ? 20 : 10) {
-            await reads.run { DeviceReceipts.others(in: place, except: device, fresh: fresh) }
+            await reads.run {
+                DeviceReceipts.others(in: place, except: device, fresh: fresh).filter { receipts in
+                    !(former[receipts.device].map { receipts.written(before: $0) } ?? false)   // this Mac's, under a former name
+                }
+            }
         }
         reading.remove(folder)
         if let found, found != (others[folder] ?? []) {

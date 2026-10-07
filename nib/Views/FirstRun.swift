@@ -160,7 +160,7 @@ enum ScratchChoice {
     /// Why Nib won't use it, in a sentence (the safety rule, §8).
     static func refusal(_ url: URL) -> String? {
         guard ScratchLocation.refusal(for: url) != nil else { return nil }
-        return "Until M1 has passed, Nib opens only test files, in iCloud Drive › Nib › Test. \(url.lastPathComponent) isn't one."
+        return "In a test run, Nib opens only test files, in iCloud Drive › Nib › Test. \(url.lastPathComponent) isn't one."
     }
 
     static func isCurrent(_ url: URL) -> Bool {
@@ -297,7 +297,7 @@ private struct ScratchStep: View {
             // §4.9 row 7: macOS has no way for an app to keep one file on the Mac (M0 checked).
             firstRunNote("So that macOS never takes it off this Mac to free up space, Control-click iCloud Drive › Nib in Finder and choose Keep Downloaded. If it's off this Mac anyway, Nib brings it back when it opens, or shows the last copy it saw while you're offline.")
             if ScratchLocation.safetyRule {
-                firstRunNote("Until M1 has passed, Nib opens only test files, in iCloud Drive › Nib › Test, so for now this is its test file.")
+                firstRunNote("In a test run, Nib opens only test files, in iCloud Drive › Nib › Test, so this is its test file.")
             }
         }
         Section("What macOS may ask") {

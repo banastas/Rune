@@ -2,6 +2,12 @@
 // NibKit: nib's engine (PRD §6.2). No UI; the app links it as a local package.
 import PackageDescription
 
+/// Three vendored scanners narrow a `size_t` to 32 bits where it can't pass tree-sitter's 1 KB
+/// buffer for a scanner's state (the state's size, a dollar-quote tag's length), which Xcode's
+/// defaults warn about in every build. Left as they are upstream, and quieted. (Unsafe flags are
+/// fine in a local package.)
+let quietScanner: CSetting = .unsafeFlags(["-Wno-shorten-64-to-32"])
+
 let package = Package(
     name: "NibKit",
     platforms: [.macOS("27.0")],
@@ -61,9 +67,9 @@ let package = Package(
         .target(name: "TreeSitterTSX", path: "Vendor/tree-sitter-typescript", sources: ["tsx/src/parser.c", "tsx/src/scanner.c"],
                 publicHeadersPath: "bindings/swift/TreeSitterTSX", cSettings: [.headerSearchPath("tsx/src")]),
         .target(name: "TreeSitterPython", path: "Vendor/tree-sitter-python", sources: ["src/parser.c", "src/scanner.c"],
-                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src"), quietScanner]),
         .target(name: "TreeSitterYAML", path: "Vendor/tree-sitter-yaml", sources: ["src/parser.c", "src/scanner.c"],
-                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src"), quietScanner]),
         .target(name: "TreeSitterTOML", path: "Vendor/tree-sitter-toml", sources: ["src/parser.c", "src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         .target(name: "TreeSitterMake", path: "Vendor/tree-sitter-make", sources: ["src/parser.c"],
@@ -98,7 +104,7 @@ let package = Package(
         .target(name: "TreeSitterPHP", path: "Vendor/tree-sitter-php", sources: ["php/src/parser.c", "php/src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("php/src")]),
         .target(name: "TreeSitterSQL", path: "Vendor/tree-sitter-sql", sources: ["src/parser.c", "src/scanner.c"],
-                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
+                publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src"), quietScanner]),
         .target(name: "TreeSitterRST", path: "Vendor/tree-sitter-rst", sources: ["src/parser.c", "src/scanner.c"],
                 publicHeadersPath: "bindings/swift", cSettings: [.headerSearchPath("src")]),
         // Swift (Nib's own colors: Sublime has none), from the release's tag with generated files.

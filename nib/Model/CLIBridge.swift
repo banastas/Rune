@@ -71,7 +71,7 @@ enum CLIBridge {
             if FileManager.default.fileExists(atPath: url.path, isDirectory: &folder), folder.boolValue {
                 problems.append("\(url.path) is a folder: Nib opens files")
             } else if ScratchLocation.refusal(for: url) != nil {
-                problems.append("\(url.path) isn't a test file: until M1 has passed, Nib opens only files in iCloud Drive › Nib › Test")
+                problems.append("\(url.path) isn't a test file: in a test run, Nib opens only files in iCloud Drive › Nib › Test")
             } else {
                 if request.wait {
                     if key(url) == key(Documents.scratch.url) {

@@ -60,6 +60,39 @@ import Testing
         #expect(others == [air])
     }
 
+    /// A Mac renamed: what it wrote under the old name is its own if nothing in it is later than
+    /// the rename, and carried over, the later of two entries for a file winning.
+    @Test func renamed() {
+        let renamed = time.addingTimeInterval(3_600)
+        let former = DeviceReceipts(device: "Bill's MacBook Air", files: [
+            "scratch.md": .init(sha256: "old", time: time),
+            "notes.md": .init(sha256: "n", time: time),
+            "later.md": .init(sha256: "l2", time: time.addingTimeInterval(7_000)),
+        ])
+        #expect(!former.written(before: renamed))     // an entry since: another Mac took the name
+        var mine = former
+        mine.files["later.md"] = nil
+        #expect(mine.written(before: renamed))
+        let current = DeviceReceipts(device: "m4ck800k412", files: [
+            "scratch.md": .init(sha256: "new", time: renamed.addingTimeInterval(60)),
+            "later.md": .init(sha256: "l1", time: renamed),
+        ])
+        let carried = current.carrying([former])
+        #expect(carried.device == "m4ck800k412")
+        #expect(carried.files.mapValues(\.sha256) == ["scratch.md": "new", "notes.md": "n", "later.md": "l2"])
+        #expect(DeviceReceipts(device: "m4ck800k412").carrying([mine]).files == mine.files)
+    }
+
+    @Test func removed() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("receipts-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = DeviceReceipts.url(in: folder, device: "Bill's MacBook Air")
+        try DeviceReceipts(device: "Bill's MacBook Air", files: ["scratch.md": .init(sha256: "a", time: time)]).write(to: url)
+        try DeviceReceipts.remove(url)
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+        #expect(throws: (any Error).self) { try DeviceReceipts.remove(url) }
+    }
+
     @Test func judged() {
         let seen: Set<String> = ["old", "merged"]
         #expect(Delivery.of("mine", base: "mine") { seen.contains($0) } == .same)

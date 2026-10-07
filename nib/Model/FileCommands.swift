@@ -97,7 +97,7 @@ enum FileCommands {
         let caseOnly = target.path.lowercased() == old.path.lowercased()
         if document.untitled { return await renameUntitled(document, to: target.lastPathComponent) }
         if ScratchLocation.refusal(for: target) != nil {
-            return refuse(document, "NOT MOVED · NIB OPENS ONLY TEST FILES (ICLOUD DRIVE › NIB › TEST) UNTIL M1 HAS PASSED (PRD §8)")
+            return refuse(document, "NOT MOVED · NIB OPENS ONLY TEST FILES IN A TEST RUN (ICLOUD DRIVE › NIB › TEST)")
         }
         if !caseOnly, FileManager.default.fileExists(atPath: target.path) {
             return refuse(document, "“\(target.lastPathComponent.uppercased())” IS ALREADY THERE · NOTHING MOVED")

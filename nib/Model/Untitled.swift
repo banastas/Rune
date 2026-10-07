@@ -135,7 +135,7 @@ enum Untitled {
         // "notes copy.md" as it is; a new buffer named for its syntax, Markdown unless another was picked.
         let suffix = document.pickedSyntax == .language(.markdown) ? ".md" : ".txt"
         panel.nameFieldStringValue = (name as NSString).pathExtension.isEmpty ? name + suffix : name
-        panel.directoryURL = ScratchLocation.url.deletingLastPathComponent()   // the test folder, until M1 passes (§8)
+        panel.directoryURL = ScratchLocation.url.deletingLastPathComponent()   // the scratch file's (in a test run, the test folder: §8)
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let target = panel.url else { return }
         Task { await save(document, to: target) }
