@@ -461,9 +461,11 @@ enum TestHarness {
 
         // The options: Match Case from Edit › Find, as ⌥⌘C does (the QA review's F51), when Nib is
         // in front to have a window's document for the menu.
-        if let menu = findMenu, let index = menu.items.firstIndex(where: { $0.title == "Match Case" }) {
-            menu.update()
-            menu.performActionForItem(at: index)
+        // (The menu brought up to date first, as when it opens: SwiftUI makes its items afresh, and
+        // the item turns on once the window's document has the bar shown.)
+        if let menu = findMenu {
+            _ = await waitFor(1) { menu.update(); return menu.items.first { $0.title == "Match Case" }?.isEnabled == true }
+            if let index = menu.items.firstIndex(where: { $0.title == "Match Case" }) { menu.performActionForItem(at: index) }
         }
         let byMenu = await waitFor(1) { find.options.matchCase }
         if !byMenu { find.options.matchCase = true }
@@ -3863,6 +3865,25 @@ enum TestHarness {
             log.check(waiting && ours(document, marker).isEmpty && count("- merge theirs \(marker)") == 0,
                       "the version came before its note: the merge waits for it, nothing between markers yet")
             try? note.write(for: document.url)
+        }
+        if timing == "quit" {
+            // Closed (as a quit closes it) while it waits for the note: the merge is made then, as the
+            // 10 s would have made it, and saved. Closing in the wait left the other Mac's version in
+            // the file, this Mac's line only in History, and the journal gone as clean (the suite,
+            // 2026-10-07: `external`'s block in every block scenario after it).
+            let waiting = await waitFor(5) { events.read().dropFirst(before).contains { $0.event == "merge" && $0.detail?.contains("waiting up to 10 s for its note") == true } }
+            await document.close()
+            let disk = fileText(document)
+            log.check(waiting && disk.contains("merge mine \(marker)") && disk.contains("merge theirs \(marker)") && ConflictText.hasMarkers(disk),
+                      "closed while it waited for the note: the file has both versions, between markers, not only the other Mac's (\(disk.contains("merge mine \(marker)") ? "this Mac's line there" : "this Mac's line missing"))")
+            // The test file without the block, for the scenarios after it.
+            var tidy = disk as NSString
+            for block in ConflictText.blocks(in: disk).reversed() {
+                tidy = tidy.replacingCharacters(in: block.range, with: ConflictText.resolution(of: block, .both, in: disk)) as NSString
+            }
+            try? (tidy as String).write(to: document.url, atomically: false, encoding: .utf8)
+            NibDefaults.store.register(defaults: ["NibHoldUploads": false])
+            return
         }
         if timing == "never" || timing == "late" {
             // The blocks and the Sync Log's line together: the line is written just after the blocks

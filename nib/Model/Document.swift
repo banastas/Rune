@@ -2526,6 +2526,7 @@ final class Document {
         let started = Date()
         record("quit", detail: "closing")
         editor.saveSelection(for: url)
+        settleNoteWait()
         await flush(reason: "quit")
         #if DEBUG
         // The `history` scenario: iCloud's steps from here taking longer than a quit's 10 s.
@@ -2577,6 +2578,19 @@ final class Document {
         held = false
         pausedFiles.remove(url.path)
         record("resume", ms: ms(since: started))
+    }
+
+    /// Closing while a version waits for its note: the file holds that version and the buffer this
+    /// Mac's, saved before it came, so not dirty. The merge is made now, as the 10 s would have
+    /// made it (from the version both had if the note came, else both whole versions between
+    /// markers), and the close saves it. Closing in the wait saved nothing, took the journal for
+    /// clean and handed the file back with the other version in it: this Mac's text was only in
+    /// History (the suite, 2026-10-07: `external`'s block, left for every block scenario after).
+    private func settleNoteWait() {
+        guard let pending = waitingForNote else { return }
+        waitingForNote = nil
+        record("merge", sha: pending.sha, detail: "from \(pending.source): closing before its note came, so merged now")
+        incoming(pending.data, fingerprint: pending.fingerprint, from: pending.source, fromServer: pending.fromServer, noteWaited: true)
     }
 
     /// At launch: any file still paused from an earlier session that isn't this one goes back to iCloud (§4.9, 14a).

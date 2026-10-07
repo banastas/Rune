@@ -108,6 +108,7 @@ run unsent -NibHoldUploads YES
 AS=merge-note-first run merge
 AS=merge-no-note run merge -NibNoteTiming never
 AS=merge-late-note run merge -NibNoteTiming late
+AS=merge-quit run merge -NibNoteTiming quit   # closed while it waits for the note: the merge made then, and saved
 run merge -NibNoteTiming after
 run mergeview
 run duplicates
@@ -144,7 +145,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib-scenarios/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type uploads clipboard cleantext lines find findjump carets minimap nap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh large bigfile; do   # this run's logs only
+for name in type uploads clipboard cleantext lines find findjump carets minimap nap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge-quit merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh large bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
