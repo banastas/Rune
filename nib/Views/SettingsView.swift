@@ -132,12 +132,19 @@ private struct SyncSettings: View {
     }
 }
 
-/// Settings › Files: the kinds of file a double-click in Finder opens in Nib (open question 15).
+/// Settings › Files: reopening the files open at a quit, and the kinds of file a double-click in
+/// Finder opens in Nib (open question 15).
 private struct FileSettings: View {
     private let apps = DefaultApps.shared
+    @AppStorage(OpenTabs.settingKey, store: NibDefaults.store) private var reopenFiles = true
 
     var body: some View {
         Form {
+            Section {
+                // The files open at a quit, open again (the user's call, 2026-10-07; `OpenTabs`).
+                Toggle("Reopen the files that were open when Nib quit", isOn: $reopenFiles)
+                note("In their tabs, in the same order, the one in front in front again. Untitled buffers come back either way, and a file deleted since isn't made again.")
+            }
             Section("Open with Nib") {
                 ForEach(DefaultApps.Kind.allCases) { kind in
                     Toggle(isOn: Binding(get: { apps.openers[kind]?.isNib == true }, set: { on in Task { await apps.set(kind, on) } })) {

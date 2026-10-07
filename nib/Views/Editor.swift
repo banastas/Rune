@@ -74,6 +74,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.finder = find
         textView.onNotice = { [weak self] in self?.document?.show($0, for: 6) }
         textView.onFlash = { [weak self] in self?.flash($0) }
+        textView.onResolve = { [weak self] in self?.document?.resolveBlock($0) }   // VoiceOver's actions in a block (F60)
         textView.onCarets = { [weak self] in
             self?.document?.caretCount = $0
             self?.ruler?.needsDisplay = true   // every caret's line number bright
@@ -1075,10 +1076,17 @@ final class NibTextView: NSTextView {
     /// ⇧Tab: Outdent.
     override func insertBacktab(_ sender: Any?) { outdentLines(sender) }
 
-    /// Copying never carries RTF or the colors on screen: plain text only.
+    /// Copying never carries RTF or the colors on screen: plain text only. TextKit 2's text view
+    /// writes no data for the plain-text type alone: Copy and Cut declared it and left the
+    /// pasteboard empty, in Nib and for every other app (the user's report, 2026-10-07; macOS 27).
+    /// So the selection's text is written here, for Copy, Cut, a drag and the Services alike.
     override var writablePasteboardTypes: [NSPasteboard.PasteboardType] { [.string] }
-    override func writeSelection(to pboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Bool {
-        super.writeSelection(to: pboard, types: [.string])
+    override func writeSelection(to pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        guard type == .string else { return super.writeSelection(to: pboard, type: type) }
+        let text = string as NSString
+        let parts = selectedRanges.map(\.rangeValue).filter { $0.length > 0 && NSMaxRange($0) <= text.length }.map { text.substring(with: $0) }
+        guard !parts.isEmpty else { return false }
+        return pboard.setString(parts.joined(separator: "\n"), forType: .string)
     }
 
     /// Conflict blocks' panels, the caret's visual line in An Old Hope's line highlight
@@ -1328,6 +1336,25 @@ final class NibTextView: NSTextView {
     override func accessibilityCustomRotors() -> [NSAccessibilityCustomRotor] {
         let rotors = super.accessibilityCustomRotors()
         return conflictBlocks.isEmpty ? rotors : rotors + [NSAccessibilityCustomRotor(label: "Conflicts", itemSearchDelegate: self)]
+    }
+
+    /// ⌘1, ⌘2, ⌘3 for the block the caret is in, set by the editor's owner (the document, or the
+    /// merge view's session).
+    var onResolve: ((ConflictBlock.Choice) -> Void)?
+
+    /// With the caret in a block, VoiceOver's actions: use one version, or keep both, with their
+    /// keys. Only the menu and the keys did it (the QA review's F60).
+    override func accessibilityCustomActions() -> [NSAccessibilityCustomAction]? {
+        var actions = super.accessibilityCustomActions() ?? []
+        let caret = selectedRange().location
+        guard let onResolve, let block = conflictBlocks.first(where: { NSLocationInRange(caret, $0.range) }) else { return actions }
+        func name(_ label: String) -> String { label.components(separatedBy: " · ").first ?? label }
+        actions += [
+            NSAccessibilityCustomAction(name: "Use \(name(block.firstLabel))'s version, Command-1") { onResolve(.first); return true },
+            NSAccessibilityCustomAction(name: "Use \(name(block.secondLabel))'s version, Command-2") { onResolve(.second); return true },
+            NSAccessibilityCustomAction(name: "Keep both versions, Command-3") { onResolve(.both); return true },
+        ]
+        return actions
     }
 
     /// nil for a range that isn't all in the text: TextKit 2 takes an offset past the end without

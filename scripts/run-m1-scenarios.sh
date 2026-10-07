@@ -130,6 +130,9 @@ umarker="untitled-$(date +%s)"
 run untitled -NibMarker "$umarker" -NibSaveIdle 600 -NibSaveMax 600
 run untitled-return -NibMarker "$umarker"
 run untitled-quit -NibMarker "$umarker"
+rmarker="reopen-$(date +%s)"
+run reopen -NibMarker "$rmarker" -NibReopenFiles YES          # files open at a quit…
+run reopen-return -NibMarker "$rmarker" -NibReopenFiles YES   # …open again at the next launch, in their order
 run refresh
 run large
 # Near the end: renaming folders, and moving files to the Trash and deleting them, in iCloud
@@ -145,7 +148,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib-scenarios/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type uploads clipboard cleantext lines find findjump carets minimap nap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge-quit merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit refresh large bigfile; do   # this run's logs only
+for name in type uploads clipboard cleantext lines find findjump carets minimap nap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge-quit merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit reopen reopen-return refresh large bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done

@@ -992,7 +992,26 @@ final class Document {
 
     private func updateCaretBlock() {
         let inside = editor.block(atCaretIn: blocks)
-        if inside != caretBlock { caretBlock = inside }
+        guard inside != caretBlock else { return }
+        caretBlock = inside
+        // Said as the caret comes into a block: its two versions and the keys (AX2). The frames'
+        // words are drawn, and VoiceOver read the marker lines' raw text (the QA review's F60).
+        if let inside, inside < blocks.count, editor.textView.window?.isVisible == true {
+            Announce.sentence(Self.blockSaid(blocks[inside]))
+        }
+    }
+
+    /// "Conflict: Air, 10:42, or This Mac, 10:41. Command-1 or Command-2 uses one, Command-3 keeps both."
+    static func blockSaid(_ block: ConflictBlock) -> String {
+        func said(_ label: String) -> String { label.replacingOccurrences(of: " · ", with: ", ") }
+        return "Conflict: \(said(block.firstLabel)), or \(said(block.secondLabel)). Command-1 or Command-2 uses one, Command-3 keeps both."
+    }
+
+    /// What resolving a block kept, and how many are left; the last one's "No conflicts left" is
+    /// said as the blocks go (`updateBlocks`). Resolving was silent (F60).
+    static func resolvedSaid(_ choice: ConflictBlock.Choice, label: String, left: Int) -> String {
+        let kept = choice == .both ? "Kept both versions." : "Used \(label.components(separatedBy: " · ").first ?? label)'s version."
+        return left == 0 ? kept : "\(kept) \(left) conflict\(left == 1 ? "" : "s") left."
     }
 
     // The Conflicts menu acts on the merge view's result while it's open, else on the buffer.
@@ -1010,6 +1029,8 @@ final class Document {
         guard let index = caretBlock, index < blocks.count else { NSSound.beep(); return }
         let label = editor.resolve(blocks[index], choice)
         record("resolve", detail: choice == .both ? "a block: both" : "a block: \(label)'s")
+        let left = ConflictText.blocks(in: editor.textView.textStorage?.string ?? editor.textView.string).count
+        if left > 0, editor.textView.window?.isVisible == true { Announce.sentence(Self.resolvedSaid(choice, label: label, left: left)) }
     }
 
     /// ⌥⌘↓ and ⌥⌘↑: the caret to the next (or previous) block.
@@ -1031,6 +1052,18 @@ final class Document {
 
     func openMerge() {
         guard merge == nil, !blocks.isEmpty else { NSSound.beep(); return }
+        // Room for the sheet: a window smaller than the merge view's minimum grows to fit it, its
+        // top edge where it was (F58: the sheet hung past a small window).
+        if let window = editor.textView.window {
+            let need = CGSize(width: MergeView.minimum.width + 40, height: MergeView.minimum.height + 40)
+            let content = window.contentLayoutRect.size
+            if content.width < need.width || content.height < need.height {
+                let old = window.frame
+                var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: CGSize(width: max(content.width, need.width), height: max(content.height, need.height))))
+                frame.origin = NSPoint(x: old.minX, y: old.maxY - frame.height)
+                window.setFrame(frame, display: true, animate: false)
+            }
+        }
         merge = MergeSession(text: editor.textView.string, device: device, syntax: editor.syntax)
         record("merge view", detail: "opened on \(blocks.count) block\(blocks.count == 1 ? "" : "s")")
     }

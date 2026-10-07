@@ -136,15 +136,25 @@ struct FileWindow: View {
 
     /// SwiftUI shows the window before it can be set up, so it joins the other files' tabs by
     /// hand, and again if AppKit ignored that while the window was still coming on screen: the
-    /// window New was chosen in, else the first that takes them (the scratch window's too).
+    /// window New was chosen in, else the first that takes them (the scratch window's too). It goes
+    /// at the end of the tabs (the user's call, 2026-10-07): macOS tabs a new window in beside the
+    /// selected tab, and the hand-made join went beside the host, so opening A and then B gave
+    /// "scratch, B, A".
     static func joinTabs(_ window: NSWindow, attempts: Int = 10) {
         guard attempts > 0 else { return }
         let chosen = tabHost.flatMap { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible ? $0 : nil }
         let host = chosen ?? NSApp.windows.first { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible }
         if window.isVisible {
             guard let host else { return }                                   // the first file window
-            if host.tabGroup?.windows.contains(window) == true { return }  // joined
-            host.addTabbedWindow(window, ordered: .above)
+            if let group = host.tabGroup, group.windows.contains(window) {   // joined: at the end
+                if group.windows.last !== window {
+                    group.removeWindow(window)
+                    group.insertWindow(window, at: group.windows.count)
+                    window.makeKeyAndOrderFront(nil)
+                }
+                return
+            }
+            (host.tabGroup?.windows.last ?? host).addTabbedWindow(window, ordered: .above)
             window.makeKeyAndOrderFront(nil)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { joinTabs(window, attempts: attempts - 1) }

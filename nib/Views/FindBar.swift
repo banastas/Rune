@@ -13,7 +13,11 @@ struct FindBar: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            HStack(spacing: 8) {
+            // In one row they need about 700 points, more than a window's 480 (the QA review's F58):
+            // narrower, the options and buttons take a row of their own. Laid out, not chosen by a
+            // measured width: changing the views as the bar appeared took the focus from the field
+            // just as ⌘F gave it (`findjump`'s keys went into the text).
+            FindBarLayout {
                 Button { find.replacing.toggle() } label: {
                     Image(systemName: find.replacing ? "chevron.down" : "chevron.right").frame(width: 12)
                 }
@@ -31,20 +35,7 @@ struct FindBar: View {
                     .frame(minWidth: 90, maxWidth: find.failure == nil ? 150 : 320, alignment: .leading)
                     .help(find.failure.map { _ in "The pattern isn't a regular expression Nib can read. Check the brackets and escapes, or turn off .* to find it as typed." } ?? "Matches in the text")
                     .accessibilityLabel(find.countLabel.isEmpty ? "No search" : Spoken.sentence(find.countLabel))   // F61
-                optionToggle(".*", isOn: $find.options.regex, help: "Regular expression: $1 in Replace is the first group")
-                optionToggle("Aa", isOn: $find.options.matchCase, help: "Match case")
-                optionToggle("ab", underline: true, isOn: $find.options.wholeWord, help: "Whole words only")
-                optionToggle("In Selection", isOn: $find.inSelection, help: "Only in what was selected when this was turned on")
-                Button { find.next(backwards: true) } label: { Image(systemName: "chevron.left") }
-                    .help("Previous match (⇧⌘G)")
-                    .accessibilityLabel("Previous match")
-                Button { find.next() } label: { Image(systemName: "chevron.right") }
-                    .help("Next match (⌘G)")
-                    .accessibilityLabel("Next match")
-                Button("Find All") { find.findAll() }
-                    .help("Select every match, a caret at each (⌥Return)")
-                Button("Done") { find.close() }
-                    .help("Close the find bar (Escape)")
+                controls
             }
             if find.replacing {
                 HStack(spacing: 8) {
@@ -70,11 +61,74 @@ struct FindBar: View {
         .accessibilityLabel("Find")
     }
 
+    /// The options and the buttons: in the find row, or a row of their own (`FindBarLayout`).
+    private var controls: some View {
+        HStack(spacing: 8) {
+            optionToggle(".*", isOn: $find.options.regex, help: "Regular expression: $1 in Replace is the first group")
+            optionToggle("Aa", isOn: $find.options.matchCase, help: "Match case")
+            optionToggle("ab", underline: true, isOn: $find.options.wholeWord, help: "Whole words only")
+            optionToggle("In Selection", isOn: $find.inSelection, help: "Only in what was selected when this was turned on")
+            Button { find.next(backwards: true) } label: { Image(systemName: "chevron.left") }
+                .help("Previous match (⇧⌘G)")
+                .accessibilityLabel("Previous match")
+            Button { find.next() } label: { Image(systemName: "chevron.right") }
+                .help("Next match (⌘G)")
+                .accessibilityLabel("Next match")
+            Button("Find All") { find.findAll() }
+                .help("Select every match, a caret at each (⌥Return)")
+            Button("Done") { find.close() }
+                .help("Close the find bar (Escape)")
+        }
+        .fixedSize()
+    }
+
     private func optionToggle(_ title: String, underline: Bool = false, isOn: Binding<Bool>, help: String) -> some View {
         Toggle(isOn: isOn) { Text(title).underline(underline).monospaced(title.count <= 2) }
             .toggleStyle(.button)
             .help(help)
             .accessibilityLabel(help.components(separatedBy: ":").first ?? help)
+    }
+}
+
+/// The find row: the chevron, the field, the count and the controls in one row when the field
+/// keeps at least `fieldMinimum` points; else the controls in a second row, at its right. The
+/// field takes what the others leave.
+struct FindBarLayout: Layout {
+    var spacing: CGFloat = 8
+    var rowSpacing: CGFloat = 6
+    var fieldMinimum: CGFloat = 200
+
+    private func measure(_ subviews: Subviews, width: CGFloat) -> (chevron: CGSize, field: CGSize, count: CGSize, controls: CGSize, oneRow: Bool) {
+        let chevron = subviews[0].sizeThatFits(.unspecified), count = subviews[2].sizeThatFits(.unspecified)
+        let controls = subviews[3].sizeThatFits(.unspecified), field = subviews[1].sizeThatFits(.unspecified)
+        let oneRow = chevron.width + fieldMinimum + count.width + controls.width + spacing * 3 <= width
+        return (chevron, field, count, controls, oneRow)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard subviews.count == 4 else { return .zero }
+        let width = proposal.width ?? 900
+        let m = measure(subviews, width: width)
+        let first = max(m.chevron.height, m.field.height, m.count.height, m.oneRow ? m.controls.height : 0)
+        return CGSize(width: width, height: m.oneRow ? first : first + rowSpacing + m.controls.height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 4 else { return }
+        let m = measure(subviews, width: bounds.width)
+        let first = max(m.chevron.height, m.field.height, m.count.height, m.oneRow ? m.controls.height : 0)
+        let mid = bounds.minY + first / 2
+        var x = bounds.minX
+        subviews[0].place(at: CGPoint(x: x, y: mid), anchor: .leading, proposal: ProposedViewSize(m.chevron))
+        x += m.chevron.width + spacing
+        let right = bounds.maxX - m.count.width - (m.oneRow ? m.controls.width + spacing * 2 : spacing)
+        subviews[1].place(at: CGPoint(x: x, y: mid), anchor: .leading, proposal: ProposedViewSize(width: max(0, right - x), height: m.field.height))
+        subviews[2].place(at: CGPoint(x: right + spacing, y: mid), anchor: .leading, proposal: ProposedViewSize(m.count))
+        if m.oneRow {
+            subviews[3].place(at: CGPoint(x: bounds.maxX, y: mid), anchor: .trailing, proposal: ProposedViewSize(m.controls))
+        } else {
+            subviews[3].place(at: CGPoint(x: bounds.maxX, y: bounds.minY + first + rowSpacing), anchor: .topTrailing, proposal: ProposedViewSize(m.controls))
+        }
     }
 }
 

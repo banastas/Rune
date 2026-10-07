@@ -43,6 +43,7 @@ final class MergeSession {
         editor.onChange = { [weak self] in self?.update() }
         editor.onSelection = { [weak self] in self?.updateCaret() }
         editor.textView.onEscape = { [weak self] in self?.cancel?(); return true }
+        editor.textView.onResolve = { [weak self] in self?.resolve($0) }   // VoiceOver's actions in a block (F60)
         editor.textView.setSelectedRange(NSRange(location: found.first?.first.location ?? 0, length: 0))
         update()
     }
@@ -80,18 +81,29 @@ final class MergeSession {
 
     func resolve(_ choice: ConflictBlock.Choice) {
         guard let index = caretBlock, index < blocks.count else { NSSound.beep(); return }
-        editor.resolve(blocks[index], choice)
+        let label = editor.resolve(blocks[index], choice)
         // On to the next block, as the merge view is for going through them: by the blocks as
         // they are now (the editor's change notice can come later, and the old ranges put the
         // caret between blocks, so a quick second ⌘1 only beeped).
         update()
         if !blocks.isEmpty { editor.go(forward: true, in: blocks) }
+        // Said, as the header is drawn (F60): what was kept, and what's left or how to finish.
+        Announce.sentence(blocks.isEmpty ? Document.resolvedSaid(choice, label: label, left: 0) + " All conflicts resolved. Command-Return finishes."
+                                         : Document.resolvedSaid(choice, label: label, left: blocks.count))
     }
 }
 
 struct MergeView: View {
     let document: Document
     let session: MergeSession
+
+    static let minimum = CGSize(width: 600, height: 420)
+
+    /// 900×640, or what the window has room for, 20 points in from each side.
+    private var idealSize: CGSize {
+        let room = document.editor.textView.window?.contentLayoutRect.size ?? CGSize(width: 900, height: 640)
+        return CGSize(width: max(Self.minimum.width, min(900, room.width - 40)), height: max(Self.minimum.height, min(640, room.height - 40)))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -103,9 +115,9 @@ struct MergeView: View {
                 HUDBox(title: session.first.label) { SidePane(text: session.first.text, marks: session.marks.first) }
                 HUDBox(title: session.second.label) { SidePane(text: session.second.text, marks: session.marks.second) }
             }
-            .frame(minHeight: 150, idealHeight: 210)
+            .frame(minHeight: 120, idealHeight: 210)
             HUDBox(title: "RESULT (EDITABLE)") { EditorHost(editor: session.editor) }
-                .frame(minHeight: 180, idealHeight: 240)
+                .frame(minHeight: 150, idealHeight: 240)
             HStack(spacing: 12) {
                 Text("⌥⌘↓ next conflict · ⌘1 ⌘2 use a version · ⌘3 keep both")
                     .font(.callout)
@@ -118,7 +130,9 @@ struct MergeView: View {
             }
         }
         .padding(14)
-        .frame(minWidth: 760, idealWidth: 900, minHeight: 560, idealHeight: 640)
+        // No bigger than the window it's on: its minimum was 760×560, the window's 480×320, and the
+        // sheet hung past it (the QA review's F58). Opening it grows a smaller window to fit.
+        .frame(minWidth: Self.minimum.width, idealWidth: idealSize.width, minHeight: Self.minimum.height, idealHeight: idealSize.height)
         .background(Color(nsColor: Scheme.background))
         .onAppear { session.cancel = { document.closeMerge(done: false) } }
     }

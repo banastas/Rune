@@ -30,7 +30,8 @@ fixes"); the second (2026-10-07), F22, F25, F28, F31, F37-F39 and F48, with part
 (PRD §8, "The QA review's second round"); the third (2026-10-07), the rest of §1: F10-F15, F17,
 F19-F21, F26, F27 (HTML out of Settings › Files), F32-F35, with parts of F65 and F82 (PRD §8, "The QA review's third
 round"); the fourth (2026-10-07), §2 but F48 (done), F50 (the user's call) and F58, F60 (next): F40-F47, F49,
-F51-F57, F59, F61-F63 (PRD §8, "The QA review's fourth round").
+F51-F57, F59, F61-F63 (PRD §8, "The QA review's fourth round"); the fifth, F58 and F60 (PRD §8, "The QA review's
+fifth round"). Of §1 and §2, only F50 is left, the user's call.
 
 ---
 
@@ -373,14 +374,14 @@ prompts for Documents and Desktop now that Nib opens any file have no usage desc
 2.4 MB hashed per selection change, under History's lock.
 *Fix:* load on the journal queue into state.
 
-**F58. Sizes: the find bar needs about 700 points, the merge sheet more than its window; History's list takes half** — `nib/Views/FindBar.swift:16-48`, `MergeView.swift:108`, `HistoryView.swift:28-38` · V12
+**F58. Sizes: the find bar needs about 700 points, the merge sheet more than its window; History's list takes half** — `nib/Views/FindBar.swift:16-48`, `MergeView.swift:108`, `HistoryView.swift:28-38` · V12 · **fixed 2026-10-07**
 *Fix:* `ViewThatFits` for the bar; a merge minimum about 600×420; History in a 170-300 pt sidebar.
 
 **F59. HUD grey on the editor's background is under 4.5:1** — `nib/Views/MergeView.swift:132-135`, `nib/Views/Editor.swift:1290-1297` · V2 · **fixed 2026-10-07**
 The merge panes' titles (4.1:1) and the block hints "⌘1 USE · ⌘3 BOTH" (4.2:1), both 9 pt.
 *Fix:* a grey of at least #909090.
 
-**F60. Conflict blocks' words, the gutter ✕ and resolving aren't spoken** — `nib/Views/Editor.swift:1268-1311, 1391-1404`, `nib/Model/Document.swift:883-889`, `MergeView.swift:68-88` · §5.4, AX2
+**F60. Conflict blocks' words, the gutter ✕ and resolving aren't spoken** — `nib/Views/Editor.swift:1268-1311, 1391-1404`, `nib/Model/Document.swift:883-889`, `MergeView.swift:68-88` · §5.4, AX2 · **fixed 2026-10-07**
 *Fix:* custom actions in a block ("Use Air's version, Command-1"…), and say each resolve and "All
 conflicts resolved".
 

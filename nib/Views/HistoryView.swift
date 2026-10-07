@@ -35,7 +35,7 @@ struct HistoryView: View {
                 }
                 .tag(row.id)
             }
-            .frame(minWidth: 220, idealWidth: 260)
+            .frame(minWidth: 170, idealWidth: 220, maxWidth: 300)   // a sidebar: it took half the window (F58)
             VStack(alignment: .leading, spacing: 8) {
                 VersionText(text: preview)
                     .task(id: selected?.entry.sha256) {

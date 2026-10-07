@@ -45,18 +45,23 @@ enum Untitled {
         return file
     }
 
-    /// At launch: every untitled buffer from before comes back; empty ones are let go.
+    /// At launch: every untitled buffer from before comes back (those not already back among
+    /// the last quit's tabs, `OpenTabs`); empty ones are let go.
     static func restore() {
-        for url in all() {
-            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            let journaled = Journal(directory: NibPaths.support.appendingPathComponent("Journal")).read(path: url.path) != nil
-            if size == 0, !journaled {
-                letGoEmpty(url, data: Data(), history: History(root: NibPaths.support.appendingPathComponent("History"), path: url.path))
-                remove(url)
-                continue
-            }
+        for url in all() where Documents.existing(for: url) == nil {
+            guard worthRestoring(url) else { continue }
             AppDelegate.openFile(url)
         }
+    }
+
+    /// One with text, or typing in the journal; an empty one is let go instead.
+    static func worthRestoring(_ url: URL) -> Bool {
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        let journaled = Journal(directory: NibPaths.support.appendingPathComponent("Journal")).read(path: url.path) != nil
+        guard size == 0, !journaled else { return true }
+        letGoEmpty(url, data: Data(), history: History(root: NibPaths.support.appendingPathComponent("History"), path: url.path))
+        remove(url)
+        return false
     }
 
     /// Its window closed (not a quit): its text stays in History and on the Reopen Closed

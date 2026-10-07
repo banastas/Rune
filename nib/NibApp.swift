@@ -129,10 +129,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// ⌘O, Open Recent, Finder's Open With, the Dock (ED2): the file's window, a tab beside the
     /// others. False when it wasn't opened: over 100 MB, and the question answered Cancel (ED9).
+    /// `reopening`: a tab from the last quit (`OpenTabs`): not asked about again, and Open Recent
+    /// left in the order the user made.
     @discardableResult
-    static func openFile(_ url: URL) -> Bool {
-        guard Documents.existing(for: url) != nil || Untitled.contains(url) || mayOpenLarge(url) else { return false }
-        if !Untitled.contains(url) { RecentFiles.shared.add(url) }
+    static func openFile(_ url: URL, reopening: Bool = false) -> Bool {
+        guard Documents.existing(for: url) != nil || Untitled.contains(url) || reopening || mayOpenLarge(url) else { return false }
+        if !Untitled.contains(url), !reopening { RecentFiles.shared.add(url) }
         if let document = Documents.existing(for: url) {
             if document === Documents.scratch { showScratch(); return true }
             if let window = document.editor.textView.window {
@@ -227,7 +229,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Self.launchPhases.append(("opening and holding the scratch file", Date().timeIntervalSince(launched)))
             #endif
             ClosedItems.shared.sweep()
-            Untitled.restore()   // hot exit (ED3): the untitled buffers from before
+            await OpenTabs.restore()   // the tabs open at the last quit, in their order
+            Untitled.restore()   // hot exit (ED3): any untitled buffers from before not among them (after a crash, all)
             // HTML isn't a kind Nib takes any more: given back once where it had it (2026-10-07,
             // the user's call; DefaultApps). Not the test harness's Nib, whose is a stand-in.
             if !NibPaths.isScenario, let said = await DefaultApps.shared.giveBackHTML() { document.show(said, for: 15) }
@@ -284,6 +287,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Quitting: save, upload, hand every file back to iCloud; a watchdog makes sure it ends.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         Self.terminating = true
+        OpenTabs.record()   // before anything closes: the tabs, for the next launch
         Task {
             await withTaskGroup(of: Void.self) { group in
                 for document in Documents.all { group.addTask { await document.close() } }

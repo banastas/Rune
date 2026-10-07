@@ -201,6 +201,8 @@ enum TestHarness {
             case "handback-return": await handBackReturn(document, log)
             case "untitled-return": await untitledReturn(log, marker)
             case "untitled-quit": await untitledQuit(log, marker)
+            case "reopen": await reopenScenario(log, marker)
+            case "reopen-return": await reopenReturn(log, marker)
             case "history-closed": await historyClosed(document, log, marker)
             case "two-mac": await twoMac(document, log, marker)
             case "two-mac-remote": await twoMacRemote(log, marker)
@@ -463,9 +465,12 @@ enum TestHarness {
         // in front to have a window's document for the menu.
         // (The menu brought up to date first, as when it opens: SwiftUI makes its items afresh, and
         // the item turns on once the window's document has the bar shown.)
+        // (With Nib behind, the menu has no window's document, and its find items are off: then
+        // the option is set as the bar's button sets it.)
+        var itemOn = false
         if let menu = findMenu {
-            _ = await waitFor(1) { menu.update(); return menu.items.first { $0.title == "Match Case" }?.isEnabled == true }
-            if let index = menu.items.firstIndex(where: { $0.title == "Match Case" }) { menu.performActionForItem(at: index) }
+            itemOn = await waitFor(1) { menu.update(); return menu.items.first { $0.title == "Match Case" }?.isEnabled == true }
+            if itemOn, let index = menu.items.firstIndex(where: { $0.title == "Match Case" }) { menu.performActionForItem(at: index) }
         }
         let byMenu = await waitFor(1) { find.options.matchCase }
         if !byMenu { find.options.matchCase = true }
@@ -474,7 +479,7 @@ enum TestHarness {
         let whole = await waitFor(3) { find.matches.count == 1 }
         find.options = SearchOptions()
         let back = await settle("4 OF 4")
-        log.check(cased && whole && back && (byMenu || !NSApp.isActive),
+        log.check(cased && whole && back && (byMenu || !itemOn),
                   "Match Case\(byMenu ? ", from Edit › Find," : "") 2 matches; and Whole Word: 1")
 
         // A regular expression, typed as it would be (finding as it goes), then a bad one.
@@ -536,6 +541,23 @@ enum TestHarness {
                   "In Selection: 2 matches there, and only they're replaced")
         view.undoManager?.undo(); await endOfEvent(view)
         find.inSelection = false
+
+        // In a narrow window the bar's buttons take a row of their own, and the field keeps its room
+        // (the QA review's F58: the bar needed about 700 points; at 480 the field all but went).
+        if let window = view.window {
+            let old = window.frame
+            func field(_ in: NSView) -> NSTextField? {
+                if let field = `in` as? NSTextField, field.placeholderString == "Find" { return field }
+                return `in`.subviews.lazy.compactMap(field).first
+            }
+            window.setFrame(NSRect(x: old.minX, y: old.maxY - old.height, width: 520, height: old.height), display: true)
+            try? await Task.sleep(for: .milliseconds(500))
+            let box = window.contentView.flatMap(field).map { $0.convert($0.bounds, to: nil) }
+            let width = window.contentLayoutRect.width
+            window.setFrame(old, display: true)
+            log.check(box.map { $0.width >= 180 && $0.maxX <= width } == true,
+                      "a narrow window (520 points): the find field keeps its room, \(Int(box?.width ?? 0)) points, the buttons in a row of their own")
+        }
 
         // ⌘E, then Escape in the text, then ⌘G with the bar closed.
         view.setSelectedRange(range("seedbox"))
@@ -3523,6 +3545,24 @@ enum TestHarness {
         view.setSelectedRange(NSRange(location: 0, length: 0))
         let item = rotor.flatMap { view.rotor($0, resultFor: parameters) }
         log.check(item?.customLabel == "Conflict: Air, 10:00, or Mini, 10:01", "the Conflicts rotor names the block: “\(item?.customLabel ?? "none")”")
+        // A second block: coming into one says what it is; its actions resolve it, said with what's
+        // left (the QA review's F60: the drawn words, the ✕ and resolving went unsaid).
+        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
+        view.insertText("<<<<<<< Air · 10:02\nmore ours \(marker)\n=======\nmore theirs\n>>>>>>> Mini · 10:03\n", replacementRange: view.selectedRange())
+        _ = await waitFor(5) { document.blocks.count == 2 }
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        _ = await waitFor(2) { document.activeCaretBlock == nil }
+        if let block = document.blocks.first { view.setSelectedRange(NSRange(location: block.range.location + 2, length: 0)) }
+        _ = await waitFor(2) { document.activeCaretBlock != nil }
+        let entered = Announce.said.last ?? ""
+        log.check(entered == "Conflict: Air, 10:00, or Mini, 10:01. Command-1 or Command-2 uses one, Command-3 keeps both.",
+                  "coming into a block is said: “\(entered)”")
+        let actions = (view.accessibilityCustomActions() ?? []).map(\.name)
+        log.check(actions.contains("Use Air's version, Command-1") && actions.contains("Use Mini's version, Command-2") && actions.contains("Keep both versions, Command-3"),
+                  "in it, VoiceOver's actions: \(actions.joined(separator: "; "))")
+        _ = view.accessibilityCustomActions()?.first { $0.name.hasPrefix("Keep both") }?.handler?()
+        _ = await waitFor(5) { document.blocks.count == 1 }
+        log.check(document.blocks.count == 1 && Announce.said.last == "Kept both versions. 1 conflict left.", "Keep Both, as an action, said: “\(Announce.said.last ?? "nothing")”")
         if let block = document.blocks.first { view.setSelectedRange(NSRange(location: block.range.location + 2, length: 0)) }
         _ = await waitFor(2) { document.activeCaretBlock != nil }
         document.resolveBlock(.both)
@@ -3545,6 +3585,53 @@ enum TestHarness {
         let view = document.editor.textView
         func end() { view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0)) }
         func put(_ text: String) { pasteboard.clearContents(); pasteboard.setString(text, forType: .string) }
+
+        // Copy, read by another app (`pbpaste`, its own process): the selection's text, by the text
+        // view's copy and by Edit › Copy as ⌘C sends it (the user's report, 2026-10-07: copying from
+        // Nib into another app didn't seem to work).
+        func otherApp() async -> String {
+            await Task.detached {
+                let process = Process(), out = Pipe()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/pbpaste")
+                process.standardOutput = out
+                try? process.run()
+                let data = out.fileHandleForReading.readDataToEndOfFile()
+                process.waitUntilExit()
+                return String(data: data, encoding: .utf8) ?? ""
+            }.value
+        }
+        end()
+        view.insertText("\ncopy me \(marker)\n", replacementRange: view.selectedRange())
+        await endOfEvent(view)   // its own undo step, apart from the cut's below
+        let copyRange = (view.string as NSString).range(of: "copy me \(marker)")
+        put("before the copy")
+        view.setSelectedRange(copyRange)
+        view.copy(nil)
+        let inNib = pasteboard.string(forType: .string) ?? "nothing"
+        let byView = await otherApp()
+        put("before the copy")
+        view.setSelectedRange(copyRange)
+        view.window?.makeFirstResponder(view)
+        var byMenu = "not tried"
+        // (The menu sends Copy to the window in front's text: only while Nib is in front.)
+        if NSApp.isActive, let edit = NSApp.mainMenu?.items.first(where: { $0.title == "Edit" })?.submenu, let index = edit.items.firstIndex(where: { $0.title == "Copy" }) {
+            edit.update()
+            edit.performActionForItem(at: index)
+            byMenu = await otherApp()
+        }
+        log.check(byView == "copy me \(marker)" && (byMenu == "copy me \(marker)" || byMenu == "not tried"),
+                  "copied, another app reads the selection: by the text view “\(byView)” (in Nib “\(inNib)”), by Edit › Copy “\(byMenu)” (types \(pasteboard.types?.map(\.rawValue) ?? []))")
+        // Cut too: the text in the other app, gone from Nib, and ⌘Z puts it back.
+        let textBefore = view.string
+        view.setSelectedRange(copyRange)
+        await endOfEvent(view)
+        view.cut(nil)
+        let cutRead = await otherApp()
+        let gone = !view.string.contains("copy me \(marker)")
+        view.undoManager?.undo()
+        await endOfEvent(view)
+        log.check(cutRead == "copy me \(marker)" && gone && view.string == textBefore,
+                  "cut: another app reads it (“\(cutRead)”), it's gone from the text (\(gone)), and ⌘Z puts it back (\(view.string == textBefore))")
 
         // Paste Clean.
         end()
@@ -3963,10 +4050,19 @@ enum TestHarness {
         view.insertText(sample, replacementRange: view.selectedRange())
         await endOfEvent(view)
         log.check(ours(document, marker).count == 4, "four blocks in the text")
+        // From a small window: it grows to hold the sheet, which fits in it (the QA review's F58:
+        // the sheet's 760×560 hung past a window's 480×320).
+        let frameBefore = view.window?.frame
+        if let window = view.window, let frameBefore { window.setFrame(NSRect(x: frameBefore.minX, y: frameBefore.maxY - 360, width: 500, height: 360), display: true) }
         document.resolveConflicts()
         let opened = await waitFor(5) { document.merge != nil && view.window?.attachedSheet != nil }
         guard opened, let session = document.merge else { log.line("FAIL Resolve… didn't open the merge view"); return }
         log.check(true, "Resolve… with four blocks opened the merge view")
+        try? await Task.sleep(for: .milliseconds(500))
+        if let window = view.window, let sheet = window.attachedSheet {
+            log.check(sheet.frame.width <= window.frame.width + 1 && sheet.frame.height <= window.frame.height + 1 && window.contentLayoutRect.width >= MergeView.minimum.width,
+                      "from a 500×360 window: it grew to \(Int(window.frame.width))×\(Int(window.frame.height)), the sheet \(Int(sheet.frame.width))×\(Int(sheet.frame.height)) inside it")
+        }
         // ⌥⌘R is Merge View…, always the merge view, as its ellipsis says ("Resolve…" went to the
         // next block with three or fewer: the QA review's F52).
         let conflictsMenu = NSApp.mainMenu?.items.first { $0.title == "Conflicts" }?.submenu
@@ -4017,6 +4113,7 @@ enum TestHarness {
             try? rep.representation(using: .png, properties: [:])?.write(to: url)
         }
         document.closeMerge(done: true)
+        if let frameBefore { view.window?.setFrame(frameBefore, display: true) }   // the window as it was
         let applied = await waitFor(10) {
             let disk = fileText(document)
             return disk.contains("mine 1 \(marker)") && !disk.contains("theirs 1 \(marker)")
@@ -4935,6 +5032,74 @@ enum TestHarness {
         }
         if let last { await type("left open at quit \(marker)\n", into: last) }
         log.check(last != nil, "one more left open, then an ordinary quit")
+    }
+
+    /// The files open at a quit, open again at the next launch (`OpenTabs`; the user's call,
+    /// 2026-10-07: only the scratch window came back). With -NibReopenFiles YES (a test run's Nib
+    /// doesn't otherwise): two files outside iCloud and an untitled buffer, in that order after the
+    /// scratch file, the first file's tab in front; then the ordinary quit records them.
+    static func reopenFiles(_ marker: String) -> [URL] {
+        ["a", "b"].map { ScratchLocation.localTestFolder.appendingPathComponent("reopen-\($0)-\(marker).md") }
+    }
+
+    static func reopenScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let files = reopenFiles(marker)
+        try? FileManager.default.createDirectory(at: ScratchLocation.localTestFolder, withIntermediateDirectories: true)
+        for file in files { try? Data("# \(file.lastPathComponent)\n".utf8).write(to: file) }
+        for file in files {
+            AppDelegate.openFile(file)
+            _ = await waitFor(10) { Documents.existing(for: file)?.ready == true && Documents.existing(for: file)?.editor.textView.window?.isVisible == true }
+        }
+        guard let buffer = Untitled.create(text: "# Reopen untitled \(marker)\n", name: "reopen-\(marker).md") else { log.check(false, "an untitled buffer"); return }
+        AppDelegate.openFile(buffer)
+        _ = await waitFor(10) { Documents.existing(for: buffer)?.editor.textView.window?.isVisible == true }
+        // The first file's tab in front.
+        if let window = Documents.existing(for: files[0])?.editor.textView.window {
+            window.tabGroup?.selectedWindow = window
+            window.makeKeyAndOrderFront(nil)
+        }
+        let open = (files + [buffer]).allSatisfy { Documents.existing(for: $0)?.editor.textView.window?.isVisible == true }
+        // Their order in the tabs, as it is (a new tab goes in beside the one selected), for the next launch to compare.
+        let tabs = Documents.existing(for: files[0])?.editor.textView.window?.tabGroup?.windows ?? []
+        let names = tabs.compactMap { tab in Documents.all.first { $0.editor.textView.window === tab } }.filter { $0 !== Documents.scratch }.map(\.url.lastPathComponent)
+        NibDefaults.store.set(names, forKey: "reopenScenarioOrder")
+        // Each new tab at the end, in the order they were opened (the user's call, 2026-10-07: each
+        // went in after the scratch file's, so "scratch, buffer, B, A").
+        let opened = (files + [buffer]).map(\.lastPathComponent)
+        log.check(open && names == opened, "two files and an untitled buffer open, each tab at the end, in the order opened (\(names.joined(separator: ", "))), the first file in front; quitting records them")
+    }
+
+    /// The launch after `reopen`: the three are back, in their order after the scratch file, the
+    /// first file in front; then they're closed, and what they left removed.
+    static func reopenReturn(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let files = reopenFiles(marker)
+        let buffer = Untitled.all().first { $0.lastPathComponent == "reopen-\(marker).md" }
+        let all = files + (buffer.map { [$0] } ?? [])
+        func window(_ url: URL) -> NSWindow? { Documents.existing(for: url)?.editor.textView.window }
+        let back = await waitFor(20) { all.count == 3 && all.allSatisfy { window($0)?.isVisible == true } }
+        let tabs = window(files[0])?.tabGroup?.windows ?? []
+        let names = tabs.compactMap { tab in Documents.all.first { $0.editor.textView.window === tab } }.filter { $0 !== Documents.scratch }.map(\.url.lastPathComponent)
+        let before = NibDefaults.store.stringArray(forKey: "reopenScenarioOrder") ?? []
+        NibDefaults.store.removeObject(forKey: "reopenScenarioOrder")
+        let front = window(files[0])?.tabGroup?.selectedWindow === window(files[0])
+        log.check(back && names == before && front,
+                  "the files open at the quit are back, in their tabs' order (\(names.joined(separator: ", ")); at the quit \(before.joined(separator: ", "))), the first file in front (\(front)), the untitled buffer too")
+        // Not at the launch after: the list is used once (and this run's quit records none of them).
+        log.check(NibDefaults.store.stringArray(forKey: OpenTabs.listKey) == nil, "and the list is used once")
+        for url in all {
+            if Untitled.contains(url) { Untitled.letGo(url) }
+            window(url)?.performClose(nil)
+        }
+        _ = await waitFor(15) { all.allSatisfy { Documents.existing(for: $0) == nil } }
+        for file in files {
+            try? FileManager.default.removeItem(at: file)
+            ClosedItems.removeKept(for: file.path)
+            for item in ClosedItems.shared.items where item.path == file.path { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(file)
+            for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + file.path) }
+        }
     }
 
     /// The launch after `untitled-return`'s ordinary quit: the untitled buffer left open is back.
