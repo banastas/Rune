@@ -38,11 +38,11 @@ struct DocumentView: View {
             if document.editor.find.shown { FindBar(find: document.editor.find) }
             StatusStrip(document: document)
         }
-        .background(Color(nsColor: Scheme.background))
         // The title bar shows the text's background through it; a light scheme's would put
-        // the title in white on white, and the chrome stays dark anyway (A17): Nib's own dark.
-        .toolbarBackground(Color(nsColor: Scheme.color(0x1C1D21)), for: .windowToolbar)
-        .toolbarBackgroundVisibility(Scheme.theme.isLight ? .visible : .automatic, for: .windowToolbar)
+        // the title in white on white, and the chrome stays dark anyway (A17), so a light one
+        // stops at the title bar. Not with .toolbarBackground: its view over the title bar
+        // took the title's clicks, and a drag on the title moved nothing (2026-10-08).
+        .background(Color(nsColor: Scheme.background), ignoresSafeAreaEdges: Scheme.theme.isLight ? [] : .all)
         .navigationTitle(document.url.lastPathComponent)
         .navigationSubtitle(subtitle)
         .frame(minWidth: 480, minHeight: 320)
