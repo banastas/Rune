@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Rune</title>
+    <link>https://rune.banast.as/appcast.xml</link>
+    <description>Updates for Rune</description>
+    <language>en</language>
+    <item>
+      <title>Rune 0.1</title>
+      <pubDate>Thu, 08 Oct 2026 06:35:55 +0000</pubDate>
+      <sparkle:version>202610072333</sparkle:version>
+      <sparkle:shortVersionString>0.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<p>First release.</p>]]></description>
+      <enclosure url="https://rune.banast.as/downloads/Rune-0.1-202610072333.zip" type="application/octet-stream" sparkle:edSignature="CpSq6vz6AZLLTLKxsbPknS6XDl+3T4sYs3Pgq9bx5YdLS+CKdagvrgl+fKojeSCXTrmDQ0RnDwKOcFlehdQhCA==" length="6822059" />
+    </item>
+  </channel>
+</rss>
