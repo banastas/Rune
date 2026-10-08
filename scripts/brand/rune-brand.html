@@ -62,11 +62,13 @@ h1 { font-family: var(--label); font-weight: normal; letter-spacing: 0.04em; lin
 
 /* 1600×1200: Lemon Squeezy's product image. */
 body.product { width: 1600px; height: 1200px; }
-.product .frame { width: 1600px; height: 1200px; padding: 0 80px; gap: 56px; }
+/* Everything inside the central 1200×1200, with a margin: Lemon Squeezy crops the image to a
+   square for its thumbnails (checkout, the receipt email), which cut off the window's sides. */
+.product .frame { width: 1600px; height: 1200px; padding: 0 270px; gap: 52px; }
 .product .tile { width: 168px; height: 168px; border-radius: 38px; margin-right: 40px; }
 .product h1 { font-size: 104px; margin-bottom: 18px; }
 .product .tagline { font-size: 50px; line-height: 1; margin-bottom: 18px; }
-.product .label { font-size: 13px; }
+.product .label { font-size: 13px; line-height: 1.9; }
 .product .win-bar { height: 56px; }
 .product .win-title b { font-size: 15px; }
 .product .win-title span { font-size: 12px; }
@@ -143,6 +145,8 @@ const kind = { "#card": "card", "#github": "github" }[location.hash] || "product
 document.body.className = kind;
 // The card's head is one row: the name and the tagline side by side, as Blit's card.
 if (kind === "product") {
+  // In the square it has room for, the small line in two: where the file is, what Rune promises.
+  document.querySelector(".label").innerHTML = "One scratch file · iCloud Drive · all your Macs<br>Saved as you type, merged, never overwritten";
   const titles = document.querySelector(".titles"), row = document.querySelector(".row");
   titles.insertBefore(row.querySelector("h1"), row);
   titles.insertBefore(row.querySelector(".tagline"), row);

@@ -6879,9 +6879,9 @@ final class HarnessLog: @unchecked Sendable {
         line("\(ok ? "PASS" : "FAIL") \(what)")
     }
 }
-#endif
 
 extension NSRange {
     /// nil for NSNotFound, as `range(of:)` says "not there".
     var nilIfMissing: NSRange? { location == NSNotFound ? nil : self }
 }
+#endif

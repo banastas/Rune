@@ -30,9 +30,9 @@ enum LicenseConfig {
     /// Lemon Squeezy's store (`banastas.lemonsqueezy.com`, `blit.` until 2026-10-08; Blit's and
     /// Rune's) and Rune's product (2026-10-08, test mode so far):
     /// a key from any other store or product is refused (`Licensing.mismatch`). The product's one
-    /// variant is 2_223_174; a live copy of a test-mode product gets IDs of its own.
+    /// variant is 2_223_226; a live copy of a test-mode product gets IDs of its own.
     static let storeID: Int? = 484_060
-    static let productID: Int? = 1_423_364
+    static let productID: Int? = 1_423_394
     /// Test-mode keys (bought with test cards) only unlock Debug builds.
     static var acceptsTestKeys: Bool {
         #if DEBUG
