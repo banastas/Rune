@@ -6,13 +6,13 @@
     <description>Updates for Rune</description>
     <language>en</language>
     <item>
-      <title>Rune 1.0</title>
-      <pubDate>Thu, 08 Oct 2026 23:50:55 +0000</pubDate>
-      <sparkle:version>202610081648</sparkle:version>
-      <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+      <title>Rune 1.0.1</title>
+      <pubDate>Thu, 08 Oct 2026 23:59:31 +0000</pubDate>
+      <sparkle:version>202610081657</sparkle:version>
+      <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <description><![CDATA[<p>Rune 1.0: Find in History, and licensing: a 7-day trial, then $19 once for 3 Macs.</p>]]></description>
-      <enclosure url="https://rune.banast.as/downloads/Rune-1.0-202610081648.zip" type="application/octet-stream" sparkle:edSignature="/K9t5wpXVnHJ+rS//fNM6s4niD0U3UkOL9HlsuAV4u6SwQS/iULmnBT4+TPYPfTOcDN/Dwl6sqlg4OJjGsJ+Cg==" length="6897129" />
+      <description><![CDATA[<p>The license key field is one line.</p>]]></description>
+      <enclosure url="https://rune.banast.as/downloads/Rune-1.0.1-202610081657.zip" type="application/octet-stream" sparkle:edSignature="IxphSDlf4YpjHyPt+S7YRsYDeh9hrPG4tYaOnvQFI/XRJtgUzyjxZtXLqhjbOU9rZKCfdP6rFI0JWc+W3NxdDQ==" length="6899552" />
     </item>
   </channel>
 </rss>
