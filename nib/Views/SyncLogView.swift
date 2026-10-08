@@ -117,6 +117,10 @@ struct SyncLogView: View {
     /// every draw (the QA review's F35).
     @State private var selectedExists = false
     @Environment(\.openWindow) private var openWindow
+    /// The search field, for Edit › Find… (⌘F) with this window in front: it went to the text
+    /// commands, and nothing here took it (the QA review's §5).
+    @FocusState private var searching: Bool
+    static let find = Notification.Name("NibSyncLogFind")
 
     var body: some View {
         @Bindable var model = SyncLogModel.shared
@@ -175,6 +179,8 @@ struct SyncLogView: View {
             }
         }
         .searchable(text: $model.search, prompt: "File, event, device, detail or SHA-256")
+        .searchFocused($searching)
+        .onReceive(NotificationCenter.default.publisher(for: Self.find)) { _ in searching = true }
         .toolbar {
             ToolbarItem {
                 Picker("Show", selection: $model.filter) {

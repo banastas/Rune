@@ -297,6 +297,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    /// The Dock's menu: while the ✕ is on the icon (AP8), a line for each file with conflict
+    /// blocks, opening it. The ✕ is drawn on the tile, which has no words for VoiceOver (macOS
+    /// says a Dock item's name and its system badge only): here they are (the QA review's F82).
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let conflicted = Documents.all.filter { !$0.blocks.isEmpty }
+        guard !conflicted.isEmpty else { return nil }
+        let menu = NSMenu()
+        for document in conflicted {
+            let places = document.blocks.count
+            let item = NSMenuItem(title: "Conflict in \(Alerts.quoted(document.url.lastPathComponent)), \(places) place\(places == 1 ? "" : "s")",
+                                  action: #selector(openFromDock(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = document.url
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    @objc func openFromDock(_ item: NSMenuItem) {
+        guard let url = item.representedObject as? URL else { return }
+        NSApp.activate()
+        Self.openFile(url)
+    }
+
     /// Quitting: save, upload, hand every file back to iCloud; a watchdog makes sure it ends.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         Self.terminating = true
@@ -434,7 +458,13 @@ struct NibCommands: Commands {
     private func send(_ action: Selector) { NSApp.sendAction(action, to: nil, from: nil) }
     private func find(_ command: (FindSession) -> Void, else action: Selector) {
         guard !merging, NSApp.keyWindow?.isSheet != true else { NSSound.beep(); return }
-        if let document { command(document.editor.find) } else { send(action) }
+        if let document {
+            command(document.editor.find)
+        } else if NSApp.keyWindow?.identifier?.rawValue.contains("sync-log") == true {
+            NotificationCenter.default.post(name: SyncLogView.find, object: nil)   // its search field
+        } else {
+            send(action)
+        }
     }
 
     /// One of the find bar's options, for its menu item.

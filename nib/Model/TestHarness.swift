@@ -1019,6 +1019,33 @@ enum TestHarness {
         MenuBarController.shared.panel?.cancelOperation(nil)
         log.check(MenuBarController.shared.panel?.isVisible == false, "and Escape closes it")
 
+        // The keys, as in a menu (the QA review's F82: it took none but Escape): ↓ to Clean
+        // Clipboard, ↑ back to Show Scratch, Return chooses it (the panel closes; it's harmless).
+        statusButton()?.performClick(nil)
+        _ = await waitFor(5) { MenuBarController.shared.panel?.isVisible == true }
+        try? await Task.sleep(for: .milliseconds(300))
+        func key(_ code: UInt16, _ character: Int) {
+            guard let panel = MenuBarController.shared.panel, let scalar = UnicodeScalar(character) else { return }
+            let characters = String(Character(scalar))
+            if let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: code == 36 ? [] : [.numericPad, .function],
+                                            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: panel.windowNumber, context: nil,
+                                            characters: characters, charactersIgnoringModifiers: characters, isARepeat: false, keyCode: code) {
+                panel.sendEvent(event)
+            }
+        }
+        var lit: [String] = []
+        for _ in 0..<6 where NibMenuBarPanel.litTitle != "Clean Clipboard" {
+            key(125, 0xF701)   // ↓
+            _ = await waitFor(1) { NibMenuBarPanel.litTitle != lit.last }
+            lit.append(NibMenuBarPanel.litTitle ?? "none")
+        }
+        key(126, 0xF700)   // ↑
+        let up = await waitFor(1) { NibMenuBarPanel.litTitle == "Show Scratch" }
+        key(36, 0x0D)   // Return
+        let chosen = await waitFor(3) { MenuBarController.shared.panel?.isVisible == false }
+        log.check(lit.last == "Clean Clipboard" && up && chosen,
+                  "the panel by the keys, as a menu: ↓ lit \(lit.joined(separator: ", ")), ↑ Show Scratch (\(up)), Return chose it (the panel closed: \(chosen))")
+
         // Settings › General.
         defaults.set(false, forKey: "showMenuBarExtra")
         let gone = await waitFor(5) { statusButton() == nil }
@@ -1808,11 +1835,20 @@ enum TestHarness {
         }
         let shown = await waitFor(5) { DockBadge.shared.showing && NSApp.dockTile.contentView != nil }
         try? DockBadge.shared.picture()?.write(to: folder.appendingPathComponent("dock-badge.png"))
+        // The ✕'s words, in the Dock's menu: the tile has none for VoiceOver (the QA review's F82).
+        // (Asked as the Dock asks it: of SwiftUI's delegate, which hands it on to Nib's.)
+        let delegate = NSApp.delegate
+        let menu = delegate?.applicationDockMenu?(NSApp)
+        let line = menu?.items.first
+        log.check(menu?.items.count == 1 && line?.title == "Conflict in “\(url.lastPathComponent)”, 1 place"
+                  && (line?.representedObject as? URL) == url && line?.action == #selector(AppDelegate.openFromDock(_:)),
+                  "and the Dock's menu says it: “\(line?.title ?? "nothing")”, opening the file")
         // Resolved by hand: the markers taken out, both sides kept.
         let view = buffer.editor.textView
         view.insertText("# Dock \(marker)\n\nmine\ntheirs\n", replacementRange: NSRange(location: 0, length: (view.string as NSString).length))
         let gone = await waitFor(5) { !DockBadge.shared.showing && NSApp.dockTile.contentView == nil }
-        log.check(shown && gone && buffer.blocks.isEmpty, "a conflict block puts the ✕ on Nib's icon in the Dock, and it goes once the block is resolved")
+        log.check(shown && gone && buffer.blocks.isEmpty && delegate?.applicationDockMenu?(NSApp)?.items.contains(where: { $0.title.hasPrefix("Conflict in") }) != true,
+                  "a conflict block puts the ✕ on Nib's icon in the Dock, and it goes once the block is resolved, with its line in the Dock's menu")
         Untitled.letGo(url)
         view.window?.performClose(nil)
         if !(await waitFor(15) { !FileManager.default.fileExists(atPath: url.path) }) { log.line("the buffer was still there after 15 s") }
@@ -5587,6 +5623,16 @@ enum TestHarness {
         func window() -> NSWindow? { NSApp.windows.first { $0.title == "Sync Log" && $0.isVisible } }
         let opened = await waitFor(5) { window() != nil && model.loaded }
         log.check(opened && !model.rows.isEmpty, "it opens on this Mac's log (\(model.rows.count) events)")
+        // Edit › Find… (⌘F) with it in front: its search field. It went to the text commands, and
+        // nothing here took it (the QA review's §5).
+        ScenarioFocus.take()
+        window()?.makeKeyAndOrderFront(nil)
+        let inFront = await waitFor(5) { window() != nil && NSApp.keyWindow === window() }
+        let findMenu = NSApp.mainMenu?.items.first { $0.title == "Edit" }?.submenu?.items.first { $0.title == "Find" }?.submenu
+        if let findMenu, let index = findMenu.items.firstIndex(where: { $0.title == "Find…" }) { findMenu.performActionForItem(at: index) }
+        let searching = await waitFor(3) { ((window()?.firstResponder as? NSTextView)?.delegate as? NSSearchField) != nil }
+        ScenarioFocus.giveBackNow()
+        log.check(searching || !inFront, "Edit › Find… with it in front: the caret in its search field (\(searching ? "there" : inFront ? "not there" : "Nib not in front, not checked"))")
         let wholeReads = model.wholeReads
         let shown = model.shown
         log.check(zip(shown, shown.dropFirst()).allSatisfy { $0.time >= $1.time }, "newest first")

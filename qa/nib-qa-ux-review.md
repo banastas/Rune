@@ -32,7 +32,9 @@ F19-F21, F26, F27 (HTML out of Settings › Files), F32-F35, with parts of F65 a
 round"); the fourth (2026-10-07), §2 but F48 (done), F50 (the user's call) and F58, F60 (next): F40-F47, F49,
 F51-F57, F59, F61-F63 (PRD §8, "The QA review's fourth round"); the fifth, F58 and F60 (PRD §8, "The QA review's
 fifth round"). Of §1 and §2, only F50 is left, the user's call. The sixth (2026-10-07), §3's polish: all but
-two parts of F82 (PRD §8, "The QA review's sixth round").
+two parts of F82 (PRD §8, "The QA review's sixth round"). The seventh (2026-10-07): those two, and §5's checks that the Mac
+could answer (PRD §8, "The QA review's seventh round"). Of the whole review only F50 is left, the user's call, and §5's
+three that need a person at the Mac.
 
 ---
 
@@ -436,7 +438,7 @@ conflicts resolved".
 - **F82.** Syntax names spoken "Html", "Javascript"; the gutter not hidden or labelled for VoiceOver;
   the Toast always interrupts VoiceOver; Recent rows with the same name sound the same; the panel
   isn't keyboard-navigable; the Dock ✕ has no words; About's "NIB" and "V0.1 · BUILD 3" read raw;
-  the palette's group labels at 2.3:1. **Mostly fixed 2026-10-07**: left, the menu bar panel by the keyboard, and words for the Dock ✕ (macOS gives a Dock tile no accessibility of its own but its red badge).
+  the palette's group labels at 2.3:1. **Fixed 2026-10-07**, the last two parts in the seventh round: the panel takes a menu's keys (↑ and ↓ light a row, Return or Space chooses it, the pointer lights the same row), and the Dock ✕'s words are in the Dock's menu ("Conflict in “scratch.md”, 2 places", opening the file), as macOS gives a Dock tile no accessibility of its own but its system badge.
 - **F83.** Acknowledgements cuts long names and versions in its 230-point list (**checked**,
   `acknowledgements.png`). **Fixed 2026-10-07.**
 - **F84.** Settings opens on its third tab (Editor) the first time; the Dock switch goes grey with no
@@ -471,12 +473,19 @@ conflicts resolved".
 
 Six reviewers read the code and the pictures, and each finding marked **checked** was confirmed in
 the code before it went in; the rest are consistent with what was read, and are taken as reported.
-To check on the Mac:
-- whether the merge view's menus act behind the sheet (F31);
-- the Editor tab's real height (F22);
-- how VoiceOver reads the strip, the HUD and the panel;
-- the folder prompts macOS shows for files Nib now opens anywhere (F53);
-- whether the Sync Log's selected filter really draws blank (`snapshot-synclog.png`);
-- what macOS returns when a default-app prompt is declined;
-- the Login Items pane's name on macOS 27 (F85);
-- whether ⌘F reaches the Sync Log's search field.
+To check on the Mac (answered 2026-10-07, the seventh round, but for the three marked **a person's**):
+- whether the merge view's menus act behind the sheet (F31): off under the sheet since the second
+  round, and `mergeview` checks it;
+- the Editor tab's real height (F22): every Settings tab is measured by `themes`, all under 860 points;
+- how VoiceOver reads the strip, the HUD and the panel: **a person's**, listening (SwiftUI builds its
+  accessibility tree only for an assistive app, so a scenario can't read it);
+- the folder prompts macOS shows for files Nib now opens anywhere (F53): **a person's**, on a Mac that
+  hasn't been asked yet; the usage descriptions are in `Support/Info.plist`;
+- whether the Sync Log's selected filter really draws blank (`snapshot-synclog.png`): no, it's the
+  picture: `cacheDisplay` leaves a selected segment's word out, and a stock AppKit segmented control in
+  a dark toolbar drawn the same way is blank too; on screen it's AppKit's own control;
+- what macOS returns when a default-app prompt is declined: **a person's**, clicking it away; Settings ›
+  Files says any failure in words, and shows the app the kind is with after;
+- the Login Items pane's name on macOS 27 (F85): "Login Items & Extensions", in macOS 27's own strings;
+- whether ⌘F reaches the Sync Log's search field: it didn't (Find… went to the text commands, which
+  nothing in the Sync Log takes); now it puts the caret there, and `synclog` checks it.

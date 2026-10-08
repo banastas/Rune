@@ -279,25 +279,66 @@ struct NibMenuBarPanel: View {
     /// Closes the panel: after an action that leaves it (a window, Settings).
     var close: () -> Void = {}
     @State private var message: String?
+    /// The row lit, by ↑ and ↓ or the pointer: Return or Space chooses it, as in a menu (the QA
+    /// review's F82: the panel took no key but Escape).
+    @State private var lit: Int?
+    @FocusState private var focused: Bool
+
+    /// A row of the panel: what it says, and what it does.
+    struct Row {
+        let title: String
+        var keys: String?
+        var detail: String?
+        /// What VoiceOver says, when the title and detail as written don't read well.
+        var spoken: String?
+        var failure = false
+        let action: () -> Void
+    }
+
+    /// The rows by group, in order: the other files the ✕ is lit for, the three commands, Recent,
+    /// then Settings and Quit.
+    private func groups() -> [[Row]] {
+        // The other open files the ✕ is lit for, each opening its window (F11).
+        let others = MenuBarState.othersNeedingLook().map { document in
+            let look = MenuBarState.look(document) ?? ""
+            return Row(title: document.url.lastPathComponent, detail: "✕ " + look,
+                       spoken: "\(document.url.lastPathComponent), \(Spoken.sentence(look).lowercased())", failure: true) {
+                close()
+                NSApp.activate()
+                AppDelegate.openFile(document.url)
+            }
+        }
+        let shortcuts = GlobalShortcuts.shared
+        let commands = [
+            Row(title: "Show Scratch", keys: shortcuts.shortcut(.showScratch)?.description) { close(); AppDelegate.showScratch() },
+            Row(title: "Clean Clipboard", keys: shortcuts.shortcut(.cleanClipboard)?.description) { message = Clipboard.cleanInPlace() },
+            Row(title: "Append Clipboard to Scratch", keys: shortcuts.shortcut(.appendClipboard)?.description) { message = Clipboard.appendToScratch() },
+        ]
+        // Not the scratch file (Show Scratch is above), nor files gone since.
+        let scratch = Documents.scratch.url.standardizedFileURL.path
+        let recent = RecentFiles.shared.urls.filter {
+            $0.standardizedFileURL.path != scratch && FileManager.default.fileExists(atPath: $0.path)
+        }.prefix(5).map { url in
+            Row(title: url.lastPathComponent, detail: ScratchLocation.place(of: url)) {
+                close()
+                NSApp.activate()
+                AppDelegate.openFile(url)
+            }
+        }
+        let app = [
+            Row(title: "Settings…", keys: "⌘,") { close(); AppDelegate.openSettings() },
+            Row(title: "Quit Nib", keys: "⌘Q") { NSApp.terminate(nil) },
+        ]
+        return [others, commands, Array(recent), app]
+    }
 
     var body: some View {
+        let groups = groups()
+        let rows = groups.flatMap { $0 }
+        let starts = groups.indices.map { index in groups[..<index].reduce(0) { $0 + $1.count } }
         VStack(alignment: .leading, spacing: 10) {
             ScratchCard(document: Documents.scratch)
-            // The other open files the ✕ is lit for, each opening its window (F11).
-            let others = MenuBarState.othersNeedingLook()
-            if !others.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(others, id: \.url) { document in
-                        let look = MenuBarState.look(document) ?? ""
-                        PanelRow(document.url.lastPathComponent, detail: "✕ " + look, spoken: "\(document.url.lastPathComponent), \(Spoken.sentence(look).lowercased())") {
-                            close()
-                            NSApp.activate()
-                            AppDelegate.openFile(document.url)
-                        }
-                        .foregroundStyle(HUDColor.failureText)
-                    }
-                }
-            }
+            if !groups[0].isEmpty { section(groups[0], from: starts[0]) }
             if let message {
                 hudText(message, glyphSize: 9)
                     .font(HUDFont.terminal(15))
@@ -306,44 +347,57 @@ struct NibMenuBarPanel: View {
                     .accessibilityLabel(Spoken.sentence(message))   // F61
             }
             Divider()
-            VStack(spacing: 0) {
-                let shortcuts = GlobalShortcuts.shared
-                PanelRow("Show Scratch", keys: shortcuts.shortcut(.showScratch)?.description) { close(); AppDelegate.showScratch() }
-                PanelRow("Clean Clipboard", keys: shortcuts.shortcut(.cleanClipboard)?.description) { message = Clipboard.cleanInPlace() }
-                PanelRow("Append Clipboard to Scratch", keys: shortcuts.shortcut(.appendClipboard)?.description) { message = Clipboard.appendToScratch() }
-            }
-            // Not the scratch file (Show Scratch is above), nor files gone since.
-            let scratch = Documents.scratch.url.standardizedFileURL.path
-            let recent = Array(RecentFiles.shared.urls.filter {
-                $0.standardizedFileURL.path != scratch && FileManager.default.fileExists(atPath: $0.path)
-            }.prefix(5))
-            if !recent.isEmpty {
+            section(groups[1], from: starts[1])
+            if !groups[2].isEmpty {
                 Divider()
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Recent").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8).padding(.bottom, 2)
-                    ForEach(recent, id: \.self) { url in
-                        PanelRow(url.lastPathComponent, detail: ScratchLocation.place(of: url)) {
-                            close()
-                            NSApp.activate()
-                            AppDelegate.openFile(url)
-                        }
-                    }
+                    section(groups[2], from: starts[2])
                 }
             }
             Divider()
-            VStack(spacing: 0) {
-                PanelRow("Settings…", keys: "⌘,") {
-                    close()
-                    AppDelegate.openSettings()
-                }
-                PanelRow("Quit Nib", keys: "⌘Q") { NSApp.terminate(nil) }
-            }
+            section(groups[3], from: starts[3])
         }
         .padding(12)
         .frame(width: 320)
+        // The keys, as a menu takes them: ↓ and ↑ round the rows, Return or Space the one lit.
+        .focusable()
+        .focusEffectDisabled()
+        .focused($focused)
+        .onAppear { focused = true }
+        .onKeyPress(.downArrow) { lit = lit.map { ($0 + 1) % rows.count } ?? 0; return .handled }
+        .onKeyPress(.upArrow) { lit = lit.map { ($0 + rows.count - 1) % rows.count } ?? rows.count - 1; return .handled }
+        .onKeyPress(.return) { choose(rows) }
+        .onKeyPress(.space) { choose(rows) }
         // What the clipboard commands did, said as it shows (the QA review's F62: only drawn).
         .onChange(of: message) { _, said in if let said { Announce.hud(said) } }
+        #if DEBUG
+        .onChange(of: lit) { _, row in Self.litTitle = row.flatMap { rows.indices.contains($0) ? rows[$0].title : nil } }
+        #endif
     }
+
+    private func choose(_ rows: [Row]) -> KeyPress.Result {
+        guard let lit, rows.indices.contains(lit) else { return .ignored }
+        rows[lit].action()
+        return .handled
+    }
+
+    private func section(_ rows: [Row], from first: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { offset, row in
+                PanelRow(row.title, keys: row.keys, detail: row.detail, spoken: row.spoken, lit: lit == first + offset,
+                         hover: { inside in
+                             if inside { lit = first + offset } else if lit == first + offset { lit = nil }
+                         }, action: row.action)
+                    .foregroundStyle(row.failure ? AnyShapeStyle(HUDColor.failureText) : AnyShapeStyle(.primary))
+            }
+        }
+    }
+
+    #if DEBUG
+    /// The lit row's title, for the `menubar` scenario.
+    static var litTitle: String?
+    #endif
 }
 
 /// The scratch file's HUD card: Blit's panel card, with Nib's facts.
@@ -387,18 +441,22 @@ struct ScratchCard: View {
     }
 }
 
-/// A native row in the panel: its title, and its keys or where it is on the right; lit on hover.
+/// A native row in the panel: its title, and its keys or where it is on the right; lit by the
+/// pointer or the keys, one at a time (the panel keeps which).
 struct PanelRow: View {
     let title: String
     var keys: String?
     var detail: String?
     /// What VoiceOver says, when the title and detail as written don't read well.
     var spoken: String?
+    var lit = false
+    var hover: (Bool) -> Void = { _ in }
     let action: () -> Void
-    @State private var hovering = false
 
-    init(_ title: String, keys: String? = nil, detail: String? = nil, spoken: String? = nil, action: @escaping () -> Void) {
-        self.title = title; self.keys = keys; self.detail = detail; self.spoken = spoken; self.action = action
+    init(_ title: String, keys: String? = nil, detail: String? = nil, spoken: String? = nil, lit: Bool = false,
+         hover: @escaping (Bool) -> Void = { _ in }, action: @escaping () -> Void) {
+        self.title = title; self.keys = keys; self.detail = detail; self.spoken = spoken
+        self.lit = lit; self.hover = hover; self.action = action
     }
 
     var body: some View {
@@ -413,11 +471,12 @@ struct PanelRow: View {
             .padding(.vertical, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .background(hovering ? Color.white.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 4))
+            .background(lit ? Color.white.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 4))
         }
         .buttonStyle(.plain)
-        .onHover { hovering = $0 }
+        .onHover(perform: hover)
         // The detail too: Recent rows with the same name sounded the same (F82).
         .accessibilityLabel(spoken ?? [title, detail, keys.map(Spoken.sentence)].compactMap { $0 }.joined(separator: ", "))   // keys as words (F61)
+        .accessibilityAddTraits(lit ? .isSelected : [])
     }
 }
