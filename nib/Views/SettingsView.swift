@@ -229,7 +229,22 @@ private struct LicenseSettings: View {
                     note("A key works on 3 Macs. Deactivating this one frees it for another; this Mac is then read-only until a key is entered again.")
                 } else {
                     HStack {
-                        TextField("License key", text: $key, prompt: Text("From your receipt email"))
+                        // One line: a key is one (it wrapped, in a Form, the user's report). A key pasted
+                        // from the receipt email with a line break before or after it loses it.
+                        // The row is the field and Activate, the key whole in it (36 characters): a Form
+                        // label beside it took the monospaced font and squeezed it to 23.
+                        TextField("License key", text: $key, prompt: Text("License key, from your receipt email"))
+                            .labelsHidden()
+                            .lineLimit(1)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.body.monospaced())
+                            .multilineTextAlignment(.leading)
+                            .autocorrectionDisabled()
+                            .accessibilityLabel("License key")
+                            .onChange(of: key) { _, typed in
+                                let line = typed.components(separatedBy: .newlines).joined().trimmingCharacters(in: .whitespaces)
+                                if line != typed { key = line }
+                            }
                             .onSubmit(activate)
                         Button("Activate", action: activate)
                             .disabled(key.trimmingCharacters(in: .whitespaces).isEmpty || license.isWorking)
