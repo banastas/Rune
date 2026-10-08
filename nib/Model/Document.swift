@@ -1717,6 +1717,9 @@ final class Document {
     /// and Revert To read the index from disk in their `body`, at every redraw and menu update,
     /// on the main thread (the QA review's F57).
     private(set) var historyEntries: [HistoryEntry] = []
+    /// Find in History (SY18): the version and search the History window opens on; nil once
+    /// it's closed.
+    var historyFocus: HistoryFocus?
 
     /// History changed (or the file opened): its versions read again, off the main thread and
     /// off the journal's queue (History has its own lock): on the queue, the read of every

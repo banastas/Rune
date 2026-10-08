@@ -103,6 +103,7 @@ enum TestHarness {
             case "duplicates": await duplicates(document, log, marker)
             case "conflictversions": await conflictVersions(document, log, marker)
             case "history": await historyScenario(document, log, marker)
+            case "findhistory": await findHistoryScenario(document, log, marker)
             case "files": await files(log, marker)
             case "syntax": await syntaxScenario(log, marker)
             case "themes": await themes(log, marker)
@@ -5863,6 +5864,80 @@ enum TestHarness {
     /// History (open question 22): of two saves in one span, only the newer goes in, at the
     /// span's end, with the time it was saved; the one let go still counts as seen here
     /// (receipts); Revert To goes in at once; the save Nib quits with goes in (`history-closed`).
+    /// Find in History (SY18): a paragraph kept in History, then deleted; Find comes up empty in
+    /// the text and names the version that has it; the History window opens on that version with
+    /// the match shown; Copy Paragraph puts it on the clipboard; a search that's nowhere says so.
+    static func findHistoryScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
+        TestHarness.historySpan = 5
+        await waitReady(document)
+        await waitSynced(document, 20)
+        let view = document.editor.textView, find = document.editor.find
+        let paragraph = "- packing note \(marker): the spare charger is in the blue pouch\n"
+        await type("\n" + paragraph, into: document)
+        let kept = await waitFor(15) { document.history.entries().contains { text(document, $0).contains("blue pouch") && text(document, $0).contains(marker) } }
+        log.check(kept, "the paragraph is in a version History keeps")
+        // Deleted, and saved without it.
+        let range = (view.string as NSString).range(of: paragraph)
+        view.setSelectedRange(range)
+        view.insertText("", replacementRange: range)
+        await endOfEvent(view)
+        let gone = await waitFor(10) { !fileText(document).contains("blue pouch") && !document.dirty }
+        _ = await waitFor(5) { document.historyEntries.map(\.sha256) == document.history.entries().map(\.sha256) }
+
+        find.open(replace: false)
+        find.query = "spare charger is in the blue"
+        let looked = await waitFor(8) { if case .found = find.inHistory { return true } else { return false } }
+        let label = find.countLabel
+        log.check(gone && looked && label.hasPrefix("NO MATCHES · IN HISTORY: ") && find.matches.isEmpty,
+                  "deleted, Find has no matches in the text and names the version that has it (“\(label)”)")
+        guard find.historyFocus() != nil else { find.close(); return }
+
+        // As the bar's click: the History window, on that version, the match shown.
+        let saved = savePasteboard()
+        defer { restorePasteboard(saved) }
+        find.showInHistory()   // what the bar's found line does when clicked
+        func historyWindow() -> NSWindow? { NSApp.windows.first { $0.title.hasPrefix("History") && $0.isVisible } }
+        func views<T: NSView>(_ type: T.Type, in view: NSView?) -> [T] {
+            guard let view else { return [] }
+            return (view as? T).map { [$0] } ?? [] + view.subviews.flatMap { views(type, in: $0) }
+        }
+        let opened = await waitFor(5) { historyWindow() != nil }
+        let preview = await waitFor(5) {
+            views(NSTextView.self, in: historyWindow()?.contentView).contains {
+                guard $0.string.contains("blue pouch"), let at = ($0.string as NSString).range(of: "spare charger is in the blue").nilIfMissing,
+                      let place = $0.placeRect(at: at.location) else { return false }
+                return $0.visibleRect.intersects(place)
+            }
+        }
+        let texts = views(NSTextView.self, in: historyWindow()?.contentView)
+        log.check(opened && preview, "the History window opens on that version, the match in view (window \(opened), \(texts.count) text view\(texts.count == 1 ? "" : "s"), \(texts.first.map { "\($0.string.count) characters" } ?? "none"))")
+        if let window = historyWindow(), let frame = window.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("findhistory.png"))
+        }
+        // Copy Paragraph's work, on the window's text and the match it shows (SwiftUI's buttons
+        // can't be pressed from here: it builds their accessibility only for an assistive app).
+        NSPasteboard.general.clearContents()
+        let shown = views(NSTextView.self, in: historyWindow()?.contentView).first
+        let said = shown.flatMap { view in (view.string as NSString).range(of: "spare charger is in the blue").nilIfMissing.flatMap { HistoryView.copyParagraph(in: view.string, at: $0) } }
+        let copied = NSPasteboard.general.string(forType: .string) == paragraph.trimmingCharacters(in: .newlines)
+        log.check(copied && said == "Copied the paragraph, 1 line. ⌘V puts it in the text.",
+                  "Copy Paragraph puts the paragraph round the match on the clipboard (“\(NSPasteboard.general.string(forType: .string) ?? "nothing")”; \(said ?? "nothing said"))")
+        historyWindow()?.performClose(nil)
+        let cleared = await waitFor(3) { historyWindow() == nil && document.historyFocus == nil }
+        log.check(cleared, "closing the History window lets the search go: History opened another way shows none")
+
+        // A search that's nowhere.
+        find.query = "not anywhere \(marker) at all"
+        let nowhere = await waitFor(8) { find.inHistory == .nowhere }
+        log.check(nowhere && find.countLabel == "NO MATCHES · NOT IN HISTORY EITHER", "a search that's nowhere: “\(find.countLabel)”")
+        // Short searches and the selection don't look further.
+        find.query = "zq"
+        try? await Task.sleep(for: .milliseconds(900))
+        log.check(find.inHistory == .none && find.countLabel == "NO MATCHES", "under 3 characters, History isn't searched (“\(find.countLabel)”)")
+        find.close()
+    }
+
     static func historyScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         TestHarness.historySpan = 5
         await waitReady(document)
@@ -6805,3 +6880,8 @@ final class HarnessLog: @unchecked Sendable {
     }
 }
 #endif
+
+extension NSRange {
+    /// nil for NSNotFound, as `range(of:)` says "not there".
+    var nilIfMissing: NSRange? { location == NSNotFound ? nil : self }
+}

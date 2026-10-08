@@ -10,6 +10,7 @@ import SwiftUI
 
 struct FindBar: View {
     @Bindable var find: FindSession
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(spacing: 6) {
@@ -27,14 +28,31 @@ struct FindBar: View {
                 .accessibilityLabel(find.replacing ? "Hide Replace" : "Show Replace")
                 FindField(text: $find.query, placeholder: "Find", label: "Find", focusRequests: find.focusRequests,
                           onReturn: { shift in find.next(backwards: shift) }, onEscape: { find.close() })
-                Text(find.countLabel)
-                    .font(HUDFont.terminal(16))
-                    .foregroundStyle(find.failure != nil || (find.matches.isEmpty && !find.query.isEmpty) ? HUDColor.failureText : HUDColor.dim)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(minWidth: 90, maxWidth: find.failure == nil ? 190 : 320, alignment: .leading)
-                    .help(find.failure.map { _ in "The pattern isn't a regular expression Rune can read. Check the brackets and escapes, or turn off .* to find it as typed." } ?? "Matches in the text")
-                    .accessibilityLabel(find.countLabel.isEmpty ? "No search" : Spoken.sentence(find.countLabel))   // F61
+                if let focus = find.historyFocus() {
+                    // Find in History (SY18): not in the text, in a version History keeps. A click
+                    // opens it in the History window, the search shown there.
+                    Button { find.showInHistory() } label: {
+                        Text(find.countLabel)
+                            .font(HUDFont.terminal(16))
+                            .foregroundStyle(HUDColor.bright)
+                            .underline()
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                    .fixedSize()
+                    .help("Not in the text now. Click to see the version from \(HistoryView.when(focus.time)), with the matches, in History (this Mac's, for this file)")
+                    .accessibilityLabel(find.historySaid)
+                } else {
+                    Text(find.countLabel)
+                        .font(HUDFont.terminal(16))
+                        .foregroundStyle(countColor)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(minWidth: 90, maxWidth: find.failure != nil || find.inHistory != .none ? 320 : 190, alignment: .leading)
+                        .help(find.failure.map { _ in "The pattern isn't a regular expression Rune can read. Check the brackets and escapes, or turn off .* to find it as typed." }
+                              ?? (find.inHistory == .nowhere ? "Not in the text, nor in any version History keeps of this file on this Mac" : "Matches in the text"))
+                        .accessibilityLabel(find.countLabel.isEmpty ? "No search" : Spoken.sentence(find.countLabel))   // F61
+                }
                 controls
             }
             if find.replacing {
@@ -57,6 +75,7 @@ struct FindBar: View {
         .background(HUDColor.background)
         .overlay(alignment: .top) { Rectangle().fill(HUDColor.border).frame(height: 0.5) }
         .environment(\.colorScheme, .dark)
+        .onAppear { find.openHistoryWindow = { url in openWindow(id: "history", value: url) } }   // Find in History (SY18)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Find")
     }
@@ -216,5 +235,15 @@ struct FindField: NSViewRepresentable {
                 return false
             }
         }
+    }
+}
+
+extension FindBar {
+    /// The count's color: red for a bad pattern or no matches, dim while History is looked in
+    /// (a wait, never red: V5).
+    fileprivate var countColor: Color {
+        if find.failure != nil { return HUDColor.failureText }
+        if find.inHistory == .looking { return HUDColor.dim }
+        return find.matches.isEmpty && !find.query.isEmpty ? HUDColor.failureText : HUDColor.dim
     }
 }

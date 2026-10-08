@@ -8,23 +8,39 @@ import NibSync
 import NibText
 import SwiftUI
 
+/// What Find in History (SY18) opens the History window on: the version that has the search,
+/// and the search, shown in whichever version is selected while the window's open.
+struct HistoryFocus: Equatable {
+    let sha256: String
+    let time: Date
+    let query: String
+    let options: SearchOptions
+}
+
 struct HistoryView: View {
     let document: Document
     @State private var selection: String?
     /// The selected version's text, read and checked off the main thread (F57: read and hashed in
     /// `body`, 2.4 MB a selection, under History's lock).
     @State private var preview = ""
+    /// Find in History's search in the selected version (SY18), and the one shown.
+    @State private var matches: [NSRange] = []
+    @State private var current = 0
+    @State private var copied: String?
 
     private struct Row: Identifiable {
         let entry: HistoryEntry
-        var id: String { entry.sha256 + "@" + String(entry.time.timeIntervalSince1970) }
+        var id: String { HistoryView.rowID(entry.sha256, entry.time) }
     }
+
+    nonisolated static func rowID(_ sha256: String, _ time: Date) -> String { sha256 + "@" + String(time.timeIntervalSince1970) }
 
     private var rows: [Row] { document.historyEntries.reversed().map(Row.init) }
 
     var body: some View {
         let rows = self.rows
         let selected = rows.first { $0.id == selection } ?? rows.first
+        let focus = document.historyFocus
         HSplitView {
             List(rows, selection: $selection) { row in
                 VStack(alignment: .leading, spacing: 2) {
@@ -37,15 +53,38 @@ struct HistoryView: View {
             }
             .frame(minWidth: 170, idealWidth: 220, maxWidth: 300)   // a sidebar: it took half the window (F58)
             VStack(alignment: .leading, spacing: 8) {
-                VersionText(text: preview)
-                    .task(id: selected?.entry.sha256) {
+                VersionText(text: preview, highlights: matches, current: matches.isEmpty ? nil : current)
+                    .task(id: TaskKey(sha: selected?.entry.sha256, focus: focus)) {
                         let history = document.history, sha = selected?.entry.sha256
-                        preview = await Task.detached(priority: .userInitiated) {
-                            sha.flatMap { history.data($0) }.map { TextFile.decode($0).text } ?? ""
+                        let found: (String, [NSRange]) = await Task.detached(priority: .userInitiated) {
+                            let text = sha.flatMap { history.data($0) }.map { TextFile.decode($0).text } ?? ""
+                            let hits = focus.flatMap { try? TextSearch.matches(of: $0.query, in: text, options: $0.options) } ?? []
+                            return (text, hits)
                         }.value
+                        preview = found.0
+                        matches = found.1
+                        current = 0
                     }
+                if let focus {
+                    // Find in History (SY18): the search, in this version, and how to get it back.
+                    HStack {
+                        Text(searchLine(focus))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .help("History is this Mac's, for this file: text another Mac deleted before this Mac had it isn't here.")
+                        Spacer()
+                        Button("Next Match") { current = (current + 1) % max(matches.count, 1) }
+                            .disabled(matches.count < 2)
+                            .help("Show the next match in this version")
+                        Button("Copy Paragraph") { copyParagraph() }
+                            .disabled(matches.isEmpty)
+                            .help("Copy the paragraph round this match (or its code block), to paste back into the text")
+                    }
+                    .padding(.horizontal, 8)
+                }
                 HStack {
-                    Text(selected.map { "\(Self.when($0.entry.time)) · \(Self.source($0.entry.source))" } ?? "No versions yet")
+                    Text(copied ?? selected.map { "\(Self.when($0.entry.time)) · \(Self.source($0.entry.source))" } ?? "No versions yet")
                         .foregroundStyle(.secondary)
                     Spacer()
                     // Off for the version the text is now: it did nothing (the QA review's F80).
@@ -61,7 +100,45 @@ struct HistoryView: View {
         .frame(minWidth: 640, minHeight: 360)
         .navigationTitle("History · \(document.url.lastPathComponent)")
         .navigationSubtitle(document.untitled ? "On this Mac only" : ScratchLocation.place(of: document.url))   // where it is (F80)
-        .onAppear { if selection == nil { selection = rows.first?.id } }
+        .onAppear {
+            if let focus = document.historyFocus { selection = Self.rowID(focus.sha256, focus.time) }
+            if selection == nil { selection = rows.first?.id }
+        }
+        .onChange(of: document.historyFocus) { _, focus in
+            if let focus { selection = Self.rowID(focus.sha256, focus.time) }
+        }
+        .onDisappear { document.historyFocus = nil }   // History opened another way shows no search
+    }
+
+    private struct TaskKey: Equatable { let sha: String?; let focus: HistoryFocus? }
+
+    /// "“lost line” · 2 of 3 in this version", or that it isn't in this one. That History is this
+    /// Mac's and this file's is said in its help (SY18), and in the find bar's.
+    private func searchLine(_ focus: HistoryFocus) -> String {
+        let what = "“\(focus.query)”"
+        if matches.isEmpty { return "\(what) isn't in this version" }
+        return "\(what) · \(matches.count == 1 ? "1 match" : "\(current + 1) of \(matches.count)") in this version"
+    }
+
+    /// Copy Paragraph (SY18): the paragraph round the match shown (its code block, inside one),
+    /// as Copy Block (⇧⌘C) takes one from the text.
+    private func copyParagraph() {
+        guard matches.indices.contains(current), let said = Self.copyParagraph(in: preview, at: matches[current]) else { NSSound.beep(); return }
+        copied = said
+        Announce.sentence(said)
+        Task { try? await Task.sleep(for: .seconds(4)); if copied == said { copied = nil } }
+    }
+
+    /// The paragraph (or code block) round `match` onto the clipboard as plain text; what to say,
+    /// or nil if there's none there. The button's work, which the `findhistory` scenario runs on
+    /// the window's text (SwiftUI's buttons can't be pressed from a scenario).
+    static func copyParagraph(in text: String, at match: NSRange) -> String? {
+        guard let block = TextBlocks.block(at: match.location, in: text) else { return nil }
+        let copied = (text as NSString).substring(with: block.range)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(copied, forType: .string)
+        let lines = copied.components(separatedBy: "\n").count
+        return "Copied the \(block.kind == .code ? "code block" : "paragraph"), \(lines) line\(lines == 1 ? "" : "s"). ⌘V puts it in the text."
     }
 
     /// A version's source with a capital, "Saved", "Merged from Air", "iCloud conflict version
@@ -79,9 +156,15 @@ struct HistoryView: View {
     }
 }
 
-/// A version's text, read-only, in the editor's font and colors.
+/// A version's text, read-only, in the editor's font and colors; Find in History's matches
+/// (SY18) in the find highlight, the current one selected and in view.
 struct VersionText: NSViewRepresentable {
     let text: String
+    var highlights: [NSRange] = []
+    var current: Int?
+
+    final class Coordinator { var shown: (text: Int, highlights: [NSRange], current: Int?)? }
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView()
@@ -103,9 +186,34 @@ struct VersionText: NSViewRepresentable {
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
-        guard let view = scroll.documentView as? NSTextView, view.string != text else { return }
-        view.string = text
-        view.scroll(.zero)
+        guard let view = scroll.documentView as? NSTextView else { return }
+        let key = (text: text.hashValue, highlights: highlights, current: current)
+        if let shown = context.coordinator.shown, shown.text == key.text, shown.highlights == key.highlights, shown.current == key.current { return }
+        let textChanged = context.coordinator.shown?.text != key.text
+        context.coordinator.shown = key
+        if textChanged {
+            view.string = text
+            view.scroll(.zero)
+        }
+        // Drawn as the editor draws Find's matches: TextKit 2 rendering attributes in the scheme's
+        // find colors, not the selection (AppKit's inactive grey covered them).
+        guard let layout = view.textLayoutManager, let content = layout.textContentManager else { return }
+        layout.removeRenderingAttribute(.backgroundColor, for: content.documentRange)
+        layout.removeRenderingAttribute(.foregroundColor, for: content.documentRange)
+        let length = (view.string as NSString).length, foreground = Scheme.findHighlightForeground
+        func textRange(_ range: NSRange) -> NSTextRange? {
+            guard NSMaxRange(range) <= length, let start = content.location(content.documentRange.location, offsetBy: range.location),
+                  let end = content.location(start, offsetBy: range.length) else { return nil }
+            return NSTextRange(location: start, end: end)
+        }
+        for range in highlights {
+            guard let text = textRange(range) else { continue }
+            layout.addRenderingAttribute(.backgroundColor, value: Scheme.findHighlight, for: text)
+            if let foreground { layout.addRenderingAttribute(.foregroundColor, value: foreground, for: text) }
+        }
+        if let current, highlights.indices.contains(current), NSMaxRange(highlights[current]) <= length {
+            view.reveal(highlights[current].location, linesAbove: 3)   // by geometry, never scrollRangeToVisible (Reveal.swift)
+        }
     }
 }
 

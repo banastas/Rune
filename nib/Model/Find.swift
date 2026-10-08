@@ -3,9 +3,11 @@
 // thread, and again as the text changes), the one selected, and Replace and Replace All
 // (one undo step). Typing in the field goes to the first match from where the caret was,
 // as Sublime does. ⌘E puts the selection in the system's find clipboard, which ⌘F and ⌘G
-// read, as in every Mac app.
+// read, as in every Mac app. With no matches, Find in History (SY18) looks for it in the file's
+// History and says which version has it.
 
 import AppKit
+import NibSync
 import NibText
 
 @MainActor
@@ -41,6 +43,20 @@ final class FindSession {
     /// Bumped to ask the bar to put the caret in its find field (⌘F while it's open).
     private(set) var focusRequests = 0
 
+    /// Find in History (SY18): with no matches in the text, what the file's History has.
+    enum InHistory: Equatable {
+        case none, looking
+        /// The newest version with a match, and how many it has.
+        case found(HistoryEntry, count: Int)
+        /// In no version History keeps.
+        case nowhere
+    }
+    private(set) var inHistory: InHistory = .none
+    @ObservationIgnored private var historyTask: Task<Void, Never>?
+    /// A search of 3 characters or more; the bar still that long first.
+    static let historyMinimum = 3
+    static let historyPause: Duration = .milliseconds(400)
+
     @ObservationIgnored weak var editor: Editor?
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var version = 0
@@ -52,7 +68,15 @@ final class FindSession {
     var countLabel: String {
         if let failure { return failure }
         if query.isEmpty { return "" }
-        if matches.isEmpty { return inSelection ? "NONE IN THE SELECTION" : "NO MATCHES" }   // short enough for its slot (F81)
+        if matches.isEmpty {
+            if inSelection { return "NONE IN THE SELECTION" }   // short enough for its slot (F81)
+            switch inHistory {
+            case .none: return "NO MATCHES"
+            case .looking: return "NO MATCHES · LOOKING IN HISTORY…"
+            case .found(let entry, _): return "NO MATCHES · IN HISTORY: \(Self.historyStamp(entry.time)) ›"
+            case .nowhere: return "NO MATCHES · NOT IN HISTORY EITHER"
+            }
+        }
         let total = matches.count >= TextSearch.limit ? "\(TextSearch.limit.formatted())+" : matches.count.formatted()
         if let current { return "\((current + 1).formatted()) OF \(total)" }
         return "\(total) MATCH\(matches.count == 1 ? "" : "ES")"
@@ -78,6 +102,9 @@ final class FindSession {
         shown = false
         searchTask?.cancel()
         searchTask = nil
+        historyTask?.cancel()
+        historyTask = nil
+        inHistory = .none
         matches = []
         current = nil
         editor?.findMatches = []
@@ -279,6 +306,84 @@ final class FindSession {
         }
         selectionChanged()
         editor?.findMatches = shown ? matches : []
+        lookInHistory()
+    }
+
+    // MARK: Find in History (SY18)
+
+    /// No matches in the text for 3 or more characters (not in the selection): the file's
+    /// History, newest version first, with the bar's options, once the bar's been still 0.4 s.
+    /// A change to the search or the text starts over (`version`).
+    private func lookInHistory() {
+        historyTask?.cancel()
+        historyTask = nil
+        guard shown, failure == nil, matches.isEmpty, !inSelection, query.count >= Self.historyMinimum,
+              let document = editor?.document, !document.historyEntries.isEmpty else {
+            inHistory = .none
+            return
+        }
+        inHistory = .none
+        let query = self.query, options = self.options, version = self.version
+        let entries = document.historyEntries, history = document.history
+        historyTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.historyPause)
+            guard !Task.isCancelled, let self, version == self.version else { return }
+            self.inHistory = .looking
+            let search = Task.detached(priority: .utility) {
+                HistorySearch.newest(query, options: options, in: entries,
+                                     load: { history.unverifiedData($0).map { TextFile.decode($0).text } },
+                                     isCancelled: { Task.isCancelled })
+            }
+            let outcome = await withTaskCancellationHandler { await search.value } onCancel: { search.cancel() }
+            guard !Task.isCancelled, version == self.version, self.shown else { return }
+            self.historyTask = nil
+            switch outcome {
+            case .found(let entry, let found): self.inHistory = .found(entry, count: found.count)
+            case .nowhere: self.inHistory = .nowhere
+            case .badPattern, .cancelled: self.inHistory = .none; return
+            }
+            Announce.sentence(self.historySaid)
+        }
+    }
+
+    /// What's said to VoiceOver as History answers.
+    var historySaid: String {
+        switch inHistory {
+        case .found(let entry, let count):
+            "No matches in the text. \(count == 1 ? "One match" : "\(count) matches") in History, in the version from \(HistoryView.when(entry.time)). Click to see it."
+        case .nowhere: "No matches in the text, or in its History."
+        default: Spoken.sentence(countLabel)
+        }
+    }
+
+    /// The found version, for the History window to open on (SY18): the version, and the search
+    /// to show in it.
+    func historyFocus() -> HistoryFocus? {
+        guard case .found(let entry, _) = inHistory else { return nil }
+        return HistoryFocus(sha256: entry.sha256, time: entry.time, query: query, options: options)
+    }
+
+    /// Opens a History window (the bar's, which has SwiftUI's `openWindow`).
+    @ObservationIgnored var openHistoryWindow: ((URL) -> Void)?
+
+    /// The bar's found line, clicked: the History window, on that version, the search shown.
+    func showInHistory() {
+        guard let focus = historyFocus(), let document = editor?.document else { NSSound.beep(); return }
+        document.historyFocus = focus
+        openHistoryWindow?(document.url)
+    }
+
+    /// A version's time as the bar's slot has room for: "14:02" today, "YESTERDAY 14:02",
+    /// "TUE 14:02" this week, "SEP 26 14:02" before (24-hour, as every time in Rune: F64).
+    static func historyStamp(_ date: Date, now: Date = Date()) -> String {
+        let calendar = Calendar.current
+        let time = date.formatted(Date.FormatStyle().hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(Locale(identifier: "en_GB")))
+        if calendar.isDateInToday(date) { return time }
+        if calendar.isDateInYesterday(date) { return "YESTERDAY \(time)" }
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: now)).day ?? 99
+        let english = Locale(identifier: "en_US")
+        if days < 7 { return date.formatted(Date.FormatStyle().weekday(.abbreviated).locale(english)).uppercased() + " " + time }
+        return date.formatted(Date.FormatStyle().month(.abbreviated).day().locale(english)).uppercased() + " " + time
     }
 
     private func selectedText() -> String? {

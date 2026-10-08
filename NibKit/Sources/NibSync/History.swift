@@ -127,6 +127,13 @@ public final class History: Sendable {
         FileManager.default.fileExists(atPath: versionURL(sha).path)
     }
 
+    /// The version's bytes, not checked against its SHA-256: for Find in History (SY18), which
+    /// only looks, and reads hundreds of versions in a row. Anything restored or merged reads
+    /// `data`.
+    public func unverifiedData(_ sha: String) -> Data? {
+        try? Data(contentsOf: versionURL(sha), options: .mappedIfSafe)
+    }
+
     /// The version's bytes, checked against its SHA-256.
     public func data(_ sha: String) -> Data? {
         guard let data = try? Data(contentsOf: versionURL(sha)), Digest.sha256(data) == sha else { return nil }
