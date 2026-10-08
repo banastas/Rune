@@ -6,13 +6,13 @@
     <description>Updates for Rune</description>
     <language>en</language>
     <item>
-      <title>Rune 0.2</title>
-      <pubDate>Thu, 08 Oct 2026 06:37:58 +0000</pubDate>
-      <sparkle:version>202610072336</sparkle:version>
-      <sparkle:shortVersionString>0.2</sparkle:shortVersionString>
+      <title>Rune 0.3</title>
+      <pubDate>Thu, 08 Oct 2026 07:21:25 +0000</pubDate>
+      <sparkle:version>202610080018</sparkle:version>
+      <sparkle:shortVersionString>0.3</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <description><![CDATA[<p>Test update.</p>]]></description>
-      <enclosure url="https://rune.banast.as/downloads/Rune-0.2-202610072336.zip" type="application/octet-stream" sparkle:edSignature="u1SkBkUS9jVOZhUS10YXeFa8wsvfijJXHR4AY26ukhk2n/qShDTs4cuLRFPlDH6sJvdsX6MJU5XXlxVFKLTkDQ==" length="6822079" />
+      <description><![CDATA[<p>Dragging a window by its title works again.</p>]]></description>
+      <enclosure url="https://rune.banast.as/downloads/Rune-0.3-202610080018.zip" type="application/octet-stream" sparkle:edSignature="6Q8FR0zaAfYFcVKiu5xJT5zVQJ3JhHHsZjwsTnwLRjiQbN+PX+5+z+Wz6YfZJMfdjVVQQPv5//mMS+An9H4eAQ==" length="6820039" />
     </item>
   </channel>
 </rss>
