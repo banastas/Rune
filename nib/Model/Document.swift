@@ -117,7 +117,7 @@ final class Document {
     /// The syntax picked from the strip or View › Syntax, which the file keeps; nil follows
     /// the file's name and first line, which say `detectedSyntax` (nil: plain text).
     private(set) var pickedSyntax: SyntaxPick?
-    /// How the file indents (ED6), found on open; for the strip ("TABS", "2 SPACES").
+    /// How the file indents (ED6), found on open or chosen for it; for the strip ("TABS", "2 SPACES").
     private(set) var indentation: Indentation = .tabs(width: 4)
     /// The strip's line slot is a field for Go to Line (⌃G).
     var goingToLine = false
@@ -548,7 +548,10 @@ final class Document {
         #if DEBUG
         if self === Documents.scratch { AppDelegate.mark("syntax applied") }
         #endif
-        indentation = Indentation.detect(in: text, fallback: Self.defaultIndentation)   // the text as read (the view's would be a copy)
+        // As chosen for the file (View › Indentation), else found in the text as read (the view's
+        // would be a copy).
+        indentation = NibDefaults.store.string(forKey: Self.indentationKey + url.path).flatMap(Indentation.init(stored:))
+            ?? Indentation.detect(in: text, fallback: Self.defaultIndentation)
         editor.indentation = indentation
         step("indentation")
         #if DEBUG
@@ -2965,6 +2968,61 @@ extension Document {
         pickedSyntax = pick
         NibDefaults.store.set(pick?.stored, forKey: "syntax:" + url.path)
         applySyntax()
+    }
+
+    // MARK: - Indentation and line endings (the QA review's F50)
+
+    /// A file's indentation as chosen, kept by path as its syntax is.
+    static let indentationKey = "indentation:"
+
+    /// Tabs or spaces, and how wide, chosen from View › Indentation or the strip, and kept for
+    /// the file over what's found on open. Not an edit: Indent, Tab and a tab's drawn width
+    /// follow it; Convert Indentation changes the text.
+    func setIndentation(_ new: Indentation) {
+        indentation = new
+        editor.indentation = new
+        NibDefaults.store.set(new.stored, forKey: Self.indentationKey + url.path)
+    }
+
+    /// Guess Indentation from the File: the choice forgotten, and found again in the text as it is.
+    func guessIndentation() {
+        NibDefaults.store.removeObject(forKey: Self.indentationKey + url.path)
+        indentation = Indentation.detect(in: editor.textView.string, fallback: Self.defaultIndentation)
+        editor.indentation = indentation
+    }
+
+    /// Convert Indentation to Spaces or to Tabs: every line's leading tabs and spaces at the
+    /// file's width, as one edit ⌘Z takes back; then the file indents that way.
+    func convertIndentation(toTabs: Bool) {
+        guard locked == nil, merge == nil else { NSSound.beep(); return }
+        let target: Indentation = toTabs ? .tabs(width: indentation.width) : .spaces(indentation.width)
+        let view = editor.textView
+        let edits = target.converting((view.textStorage?.string ?? view.string) as NSString)
+        setIndentation(target)
+        let label = indentationLabel
+        guard !edits.isEmpty else { show("THE INDENTATION WAS ALREADY \(label) · NOTHING CHANGED", for: 6); return }
+        view.perform(edits, then: view.currentCarets.moved(by: edits), action: "Convert Indentation")
+        show("CONVERTED THE INDENTATION TO \(label) ON \(edits.count) LINE\(edits.count == 1 ? "" : "S") · ⌘Z UNDOES", for: 6)
+    }
+
+    /// View › Line Endings, or the strip: the file's line endings from its next save (Nib's text
+    /// is "\n" whatever the file has, ED5). An edit, saved as any is, which ⌘Z takes back.
+    func setLineEnding(_ ending: LineEnding) {
+        guard ending != format.lineEnding else { return }
+        guard locked == nil, merge == nil else { NSSound.beep(); return }
+        let before = format.lineEnding
+        format.lineEnding = ending
+        editor.undo.registerUndo(withTarget: self) { document in document.setLineEnding(before) }
+        editor.undo.setActionName("Line Endings")
+        // As a keystroke marks it edited (`textDidChange`), with nothing for the journal: the
+        // text is the same.
+        editedHere = true
+        editCount += 1
+        schedule.edited()
+        uploads.edited()
+        if !awaitingDownload, !state.isProblem { state = .editing }
+        scheduleSave()
+        show("LINE ENDINGS \(ending.label) · ⌘Z UNDOES", for: 6)
     }
 
     /// The pick if there is one, else what the file's name and first line say.

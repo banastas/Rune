@@ -106,4 +106,46 @@ import Testing
         #expect(Indentation.detect(in: "a\n    b\n        c\n", fallback: .tabs(width: 4)) == .spaces(4))
         #expect(Indentation.detect(in: "plain\nlines\n", fallback: .tabs(width: 4)) == .tabs(width: 4))
     }
+
+    /// Applies edits made in order, from the end.
+    private func applied(_ edits: [Edit], to text: String) -> String {
+        let result = NSMutableString(string: text)
+        for edit in edits.reversed() { result.replaceCharacters(in: edit.range, with: edit.replacement) }
+        return result as String
+    }
+
+    /// Convert Indentation (the QA review's F50): only each line's leading run, tabs to the next
+    /// stop, what's left over in spaces.
+    @Test func indentationConverted() {
+        let spaced = "a\n  b\n    c\tafter\n   d\n\n"
+        let tabbed = Indentation.tabs(width: 2).converting(spaced as NSString)
+        #expect(applied(tabbed, to: spaced) == "a\n\tb\n\t\tc\tafter\n\t d\n\n")
+        #expect(tabbed.count == 3)   // the lines that change, only
+        let back = Indentation.spaces(2).converting(applied(tabbed, to: spaced) as NSString)
+        #expect(applied(back, to: applied(tabbed, to: spaced)) == spaced)
+        // A tab after spaces goes to the next stop: " \t" at width 4 is 4 columns.
+        #expect(applied(Indentation.spaces(4).converting(" \tx\n\t  y" as NSString), to: " \tx\n\t  y") == "    x\n      y")
+        // Nothing to do: no edits.
+        #expect(Indentation.spaces(2).converting("a\n  b\n" as NSString).isEmpty)
+        #expect(Indentation.tabs(width: 4).converting("" as NSString).isEmpty)
+    }
+
+    @Test func indentationKept() {
+        for indentation in [Indentation.tabs(width: 4), .spaces(2), .tabs(width: 8), .spaces(3)] {
+            #expect(Indentation(stored: indentation.stored) == indentation)
+        }
+        #expect(Indentation(stored: "spaces:0") == nil && Indentation(stored: "tabs") == nil && Indentation(stored: "dots:2") == nil)
+    }
+
+    /// Carets through edits made elsewhere: moved with the text before them.
+    @Test func caretsMovedByEdits() {
+        // "a\n    b\n": the leading run of line 2 (2..<6) made one tab.
+        let edits = [Edit(range: NSRange(location: 2, length: 4), replacement: "\t")]
+        // Before it; at its start; inside (as far as its text goes); at its end; after it. (One at a
+        // time: carets that land on one place are merged.)
+        let moved = [0, 2, 4, 6, 8].map { Carets([Caret($0)]).moved(by: edits).primaryCaret.head }
+        #expect(moved == [0, 2, 3, 3, 5])
+        let selection = Carets([Caret(anchor: 6, head: 8)]).moved(by: edits).primaryCaret
+        #expect(selection.anchor == 3 && selection.head == 5)
+    }
 }

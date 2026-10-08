@@ -68,9 +68,30 @@ struct StatusStrip: View {
                     .help("The syntax for this file. Click to choose another.")
                     .accessibilityLabel("Syntax, \(document.syntaxSpokenName)")
                 }
-                Text(" · \(document.indentationLabel) · \(document.format.encoding.label) · \(document.format.lineEnding.label)")
-                    .help("Indentation (found in the file), encoding and line endings")
-                    .accessibilityLabel(Self.spokenDetails(document))
+                // Indentation and line endings are menus, as the syntax is (F50); the encoding is
+                // kept as the file has it.
+                Text(" · ")
+                Menu { IndentationMenuItems(document: document) } label: {
+                    Text(document.indentationLabel).font(HUDFont.terminal(16)).foregroundStyle(HUDColor.dim)
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("How this file indents. Click to change it or convert it.")
+                .accessibilityLabel("Indentation, \(document.indentationLabel.lowercased())")
+                Text(" · \(document.format.encoding.label) · ")
+                    .help("The encoding, kept as the file has it")
+                    .accessibilityLabel("Encoding, \(document.format.encoding.label)")
+                Menu { LineEndingMenuItems(document: document) } label: {
+                    Text(document.format.lineEnding.label).font(HUDFont.terminal(16)).foregroundStyle(HUDColor.dim)
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("This file's line endings. Click to change them.")
+                .accessibilityLabel("Line endings, \(document.format.lineEnding.label)")
             }
             .font(HUDFont.terminal(16))
             .monospacedDigit()
@@ -192,6 +213,52 @@ struct StripMenu: View {
 
 /// The syntax menu (HL1), on the strip's syntax and in View › Syntax: Automatic follows the
 /// file's name and first line; a pick is kept for the file.
+/// View › Indentation and the strip's indentation slot (the QA review's F50): tabs or spaces
+/// and how wide, kept for the file; Guess Indentation from the File; and Convert Indentation,
+/// as Sublime's View › Indentation has them.
+struct IndentationMenuItems: View {
+    let document: Document?
+
+    var body: some View {
+        let now = document?.indentation
+        let tabs = if case .tabs = now { true } else { false }
+        Toggle("Indent Using Tabs", isOn: Binding(get: { document != nil && tabs },
+                                                  set: { if $0, let width = now?.width { document?.setIndentation(.tabs(width: width)) } }))
+        Toggle("Indent Using Spaces", isOn: Binding(get: { document != nil && !tabs },
+                                                    set: { if $0, let width = now?.width { document?.setIndentation(.spaces(width)) } }))
+        Divider()
+        ForEach([2, 3, 4, 8], id: \.self) { width in
+            Toggle("Indent Width: \(width)", isOn: Binding(get: { now?.width == width },
+                                                          set: { if $0 { document?.setIndentation(tabs ? .tabs(width: width) : .spaces(width)) } }))
+        }
+        Divider()
+        Button("Guess Indentation from the File") { document?.guessIndentation() }
+        Divider()
+        Button("Convert Indentation to Spaces") { document?.convertIndentation(toTabs: false) }
+        Button("Convert Indentation to Tabs") { document?.convertIndentation(toTabs: true) }
+    }
+}
+
+/// View › Line Endings and the strip's line-endings slot (F50): the file's, from its next save.
+struct LineEndingMenuItems: View {
+    let document: Document?
+
+    var body: some View {
+        ForEach(LineEnding.allCases, id: \.self) { ending in
+            Toggle(Self.title(ending), isOn: Binding(get: { document?.format.lineEnding == ending },
+                                                     set: { if $0 { document?.setLineEnding(ending) } }))
+        }
+    }
+
+    static func title(_ ending: LineEnding) -> String {
+        switch ending {
+        case .lf: "LF (Mac, Unix)"
+        case .crlf: "CRLF (Windows)"
+        case .cr: "CR (Classic Mac OS)"
+        }
+    }
+}
+
 struct SyntaxMenuItems: View {
     let document: Document?
 

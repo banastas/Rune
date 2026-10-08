@@ -298,14 +298,16 @@ final class ClosedItems {
         if item.untitled { Self.removeKept(for: item.path) }
     }
 
-    /// What Nib keeps for an untitled buffer's path, gone: its History, caret and syntax. Not
-    /// while the path is open (a deleted file's, back since and opened: its History goes on).
+    /// What Nib keeps for an untitled buffer's path, gone: its History, caret, syntax and
+    /// indentation. Not while the path is open (a deleted file's, back since and opened: its
+    /// History goes on).
     static func removeKept(for path: String) {
         guard Documents.existing(for: URL(fileURLWithPath: path)) == nil else { return }
         let history = History(root: NibPaths.support.appendingPathComponent("History"), path: path)
         try? FileManager.default.removeItem(at: history.directory)
         NibDefaults.store.removeObject(forKey: "selection:" + path)
         NibDefaults.store.removeObject(forKey: "syntax:" + path)
+        NibDefaults.store.removeObject(forKey: Document.indentationKey + path)
     }
 
     private func persist() {

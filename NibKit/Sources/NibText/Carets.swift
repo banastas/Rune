@@ -102,6 +102,23 @@ public struct Carets: Equatable, Sendable {
         return (edits, Carets(after, primary: primary))
     }
 
+    /// The carets after `edits` (in order, none overlapping) made somewhere else than at them,
+    /// as Convert Indentation's: moved with the text before them; one inside an edit stays as far
+    /// into it as its new text goes, and one at an edit's start stays there.
+    public func moved(by edits: [Edit]) -> Carets {
+        func move(_ p: Int) -> Int {
+            var shift = 0
+            for edit in edits {
+                if edit.range.location >= p { break }
+                let end = NSMaxRange(edit.range), length = (edit.replacement as NSString).length
+                if end > p { return edit.range.location + shift + min(p - edit.range.location, length) }
+                shift += length - edit.range.length
+            }
+            return p + shift
+        }
+        return Carets(all.map { Caret(anchor: move($0.anchor), head: move($0.head)) }, primary: primary)
+    }
+
     /// Typing `typed` at every caret, each closing its pair, wrapping its selection or stepping
     /// over a closer as `AutoPairs` says for it, with `pairs` (ED10); else as `replacing` does.
     /// The edits, in the text as it is, and the carets after.

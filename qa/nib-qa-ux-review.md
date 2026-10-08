@@ -33,7 +33,7 @@ round"); the fourth (2026-10-07), §2 but F48 (done), F50 (the user's call) and 
 F51-F57, F59, F61-F63 (PRD §8, "The QA review's fourth round"); the fifth, F58 and F60 (PRD §8, "The QA review's
 fifth round"). Of §1 and §2, only F50 is left, the user's call. The sixth (2026-10-07), §3's polish: all but
 two parts of F82 (PRD §8, "The QA review's sixth round"). The seventh (2026-10-07): those two, and §5's checks that the Mac
-could answer (PRD §8, "The QA review's seventh round"). F50 is dropped (the user's call, 2026-10-07; PRD §8).
+could answer (PRD §8, "The QA review's seventh round"). F50: line endings and indentation built, encoding and Hide Status Bar dropped (the user's call, 2026-10-07; PRD §8).
 The whole review is done but for §5's three that need a person at the Mac.
 
 ---
@@ -344,7 +344,7 @@ Notification Settings, and History.
 Rename…, Move To…, Revert To ›, the View toggles, the syntax picks, One Caret, Welcome to Nib.
 *Fix:* reword KB1 ("Apple's or Sublime's key where one exists") and correct §8; don't invent keys.
 
-**F50. No commands for indentation, encoding or line endings, and no Hide Status Bar** — `nib/Views/StatusStrip.swift:71-73`, `nib/NibApp.swift:438-450` · §5.2, ED5, KB4 · **dropped 2026-10-07** (the user's call; PRD ED5, §5.2 and §8)
+**F50. No commands for indentation, encoding or line endings, and no Hide Status Bar** — `nib/Views/StatusStrip.swift:71-73`, `nib/NibApp.swift:438-450` · §5.2, ED5, KB4 · **line endings and indentation fixed, encoding and Hide Status Bar dropped, 2026-10-07** (the user's call; PRD ED5, ED6, §5.2 and §8)
 The strip shows "2 SPACES · UTF-8 · LF" but nothing changes or converts them; View › Hide Status Bar
 (§5.2) isn't built.
 *Fix:* View › Indentation and Line Endings (and menus on the strip's slots), or record in §8 that

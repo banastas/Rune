@@ -289,8 +289,10 @@ enum TestHarness {
         defer {
             try? FileManager.default.removeItem(at: url)
             NibDefaults.store.removeObject(forKey: "selection:" + url.path)
+            NibDefaults.store.removeObject(forKey: Document.indentationKey + url.path)
             if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
         }
+        NibDefaults.store.removeObject(forKey: Document.indentationKey + url.path)
         AppDelegate.openFile(url)
         _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
         guard let document = Documents.existing(for: url) else { log.check(false, "the file opened"); return }
@@ -342,9 +344,44 @@ enum TestHarness {
         let field = view.window?.firstResponder is NSTextView && view.window?.firstResponder !== view
         log.check(field, "⌃G opens the field in the strip's line slot")
         document.goToLine("1")
+
+        // Convert Indentation (the QA review's F50): the leading spaces made tabs at the file's
+        // width, one undo step, the caret where it was in the text; the choice kept for the file.
+        at("const a")
+        document.convertIndentation(toTabs: true)
+        await endOfEvent(view)
+        let tabbed = original.replacingOccurrences(of: "\n  ", with: "\n\t")
+        let caretKept = (view.string as NSString).substring(from: view.selectedRange().location).hasPrefix("const a")
+        log.check(view.string == tabbed && caretKept && document.indentationLabel == "TABS"
+                  && NibDefaults.store.string(forKey: Document.indentationKey + url.path) == "tabs:2"
+                  && view.undoManager?.undoActionName == "Convert Indentation" && document.notice == "CONVERTED THE INDENTATION TO TABS ON 3 LINES · ⌘Z UNDOES",
+                  "Convert Indentation to Tabs: \(view.string.components(separatedBy: "\n")[1].debugDescription), the caret kept (\(caretKept)), \(document.indentationLabel), “\(document.notice ?? "no notice")”")
+        await undo()
+        log.check(view.string == original, "and ⌘Z takes it back")
+        // Line endings: CRLF from the next save, as an edit ⌘Z takes back.
+        document.setLineEnding(.crlf)
+        let edited = document.dirty && view.undoManager?.undoActionName == "Line Endings" && document.notice == "LINE ENDINGS CRLF · ⌘Z UNDOES"
+        await document.flush(reason: "test")
+        let crlf = (try? Data(contentsOf: url)) == Data(original.replacingOccurrences(of: "\n", with: "\r\n").utf8)
+        await undo()
+        let lfBack = document.format.lineEnding == .lf && document.dirty
+        await document.flush(reason: "test")
+        log.check(edited && crlf && lfBack && (try? Data(contentsOf: url)) == Data(original.utf8),
+                  "Line Endings › CRLF: an edit (\(edited)), saved with CRLF (\(crlf)); ⌘Z back to LF, saved so (\(lfBack))")
+        // Chosen, kept: tabs, after a close and an open.
+        document.setIndentation(.tabs(width: 2))
         await document.flush(reason: "test")
         log.check(fileText(document) == original, "and the file is as it was")
         view.window?.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        let again = Documents.existing(for: url)
+        let kept = again?.indentation == .tabs(width: 2)
+        again?.guessIndentation()
+        log.check(kept && again?.indentation == .spaces(2) && NibDefaults.store.string(forKey: Document.indentationKey + url.path) == nil,
+                  "a chosen indentation is kept for the file (\(kept)); Guess Indentation from the File finds 2 spaces again")
+        again?.editor.textView.window?.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: url) == nil }
 
         // Markdown: a block comment, <!-- -->.
@@ -359,6 +396,17 @@ enum TestHarness {
         let menu = NSApp.mainMenu?.items.first { $0.title == "Text" }?.submenu?.items.filter { !$0.isHidden && !$0.isSeparatorItem }.map(\.title) ?? []
         log.check(menu == ["Indent", "Outdent", "Toggle Comment", "Duplicate Line", "Move Line Up", "Move Line Down", "Select Line", "Join Lines", "Go to Line…", "Go to Heading…"],
                   "the Text menu: \(menu.joined(separator: ", "))")
+        // View › Indentation and View › Line Endings, as the strip's slots have them (F50).
+        func viewSubmenu(_ title: String) -> [String] {
+            guard let menu = NSApp.mainMenu?.items.first(where: { $0.title == "View" })?.submenu?.items.first(where: { $0.title == title })?.submenu else { return [] }
+            PaletteSession.refresh(menu)
+            return menu.items.filter { !$0.isSeparatorItem }.map(\.title)
+        }
+        let indentation = viewSubmenu("Indentation"), endings = viewSubmenu("Line Endings")
+        log.check(indentation == ["Indent Using Tabs", "Indent Using Spaces", "Indent Width: 2", "Indent Width: 3", "Indent Width: 4", "Indent Width: 8",
+                                  "Guess Indentation from the File", "Convert Indentation to Spaces", "Convert Indentation to Tabs"]
+                  && endings == ["LF (Mac, Unix)", "CRLF (Windows)", "CR (Classic Mac OS)"],
+                  "View › Indentation (\(indentation.count) items) and View › Line Endings (\(endings.joined(separator: ", ")))")
     }
 
     /// Find and replace (ED7, KB1): ⌘F from the menu with the selection in the field, the

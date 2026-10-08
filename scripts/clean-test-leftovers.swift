@@ -65,7 +65,7 @@ if let text = try? String(contentsOf: syncLog, encoding: .utf8) {
         }
     }
 }
-let perFile = ["selection:", "syntax:", "siblings:"]
+let perFile = ["selection:", "syntax:", "siblings:", "indentation:"]
 for name in settings.keys { for prefix in perFile where name.hasPrefix(prefix) { paths.insert(String(name.dropFirst(prefix.count))) } }
 let recent = settings["recentFiles"] as? [String] ?? []
 paths.formUnion(recent)

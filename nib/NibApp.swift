@@ -546,6 +546,11 @@ struct NibCommands: Commands {
         CommandGroup(after: .toolbar) {
             Menu("Syntax") { SyntaxMenuItems(document: document) }
                 .disabled(document == nil)
+            // A file's indentation and line endings (the QA review's F50), as on the strip.
+            Menu("Indentation") { IndentationMenuItems(document: document) }
+                .disabled(document == nil || document?.locked != nil || merging)
+            Menu("Line Endings") { LineEndingMenuItems(document: document) }
+                .disabled(document == nil || document?.locked != nil || merging)
             // Line numbers, invisibles (ED6) and the minimap (ED11), for every window; Settings › Editor too.
             Button(lineNumbers ? "Hide Line Numbers" : "Show Line Numbers") { lineNumbers.toggle() }
             Button(invisibles ? "Hide Invisibles" : "Show Invisibles") { invisibles.toggle() }

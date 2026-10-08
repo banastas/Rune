@@ -77,6 +77,61 @@ public enum Indentation: Sendable, Equatable {
         }
         return .spaces(spaced.min() ?? 4)
     }
+
+    /// A file's choice as kept ("tabs:4", "spaces:2"), over what's found on open.
+    public var stored: String {
+        switch self {
+        case .tabs(let width): "tabs:\(width)"
+        case .spaces(let n): "spaces:\(n)"
+        }
+    }
+
+    public init?(stored: String) {
+        let parts = stored.split(separator: ":")
+        guard parts.count == 2, let n = Int(parts[1]), (1...16).contains(n) else { return nil }
+        switch parts[0] {
+        case "tabs": self = .tabs(width: n)
+        case "spaces": self = .spaces(n)
+        default: return nil
+        }
+    }
+
+    /// Convert Indentation to Spaces or to Tabs (Sublime's View › Indentation, the QA review's
+    /// F50): each line's leading run of tabs and spaces, at its width in columns (a tab to the
+    /// next stop of `width`), written in this unit: all spaces, or tabs with what's left over in
+    /// spaces. Only the leading run: a tab further in, in a string or a table, stays. The edits
+    /// in order, for the lines that change.
+    public func converting(_ text: NSString) -> [Edit] {
+        let width = max(1, self.width)
+        var edits: [Edit] = []
+        var start = 0
+        let length = text.length
+        while start < length {
+            var end = start, column = 0
+            scan: while end < length {
+                switch text.character(at: end) {
+                case 0x20: column += 1
+                case 0x09: column += width - column % width
+                default: break scan
+                }
+                end += 1
+            }
+            if end > start {
+                let leading = NSRange(location: start, length: end - start)
+                let new: String
+                switch self {
+                case .spaces: new = String(repeating: " ", count: column)
+                case .tabs: new = String(repeating: "\t", count: column / width) + String(repeating: " ", count: column % width)
+                }
+                if new != text.substring(with: leading) { edits.append(Edit(range: leading, replacement: new)) }
+            }
+            // On to the next line.
+            let rest = text.range(of: "\n", options: .literal, range: NSRange(location: end, length: length - end))
+            guard rest.location != NSNotFound else { break }
+            start = NSMaxRange(rest)
+        }
+        return edits
+    }
 }
 
 /// A language's comment: per line (`//`, `#`), or around the lines (`/* */`, `<!-- -->`).

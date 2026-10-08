@@ -188,7 +188,7 @@ enum FileCommands {
     /// from its new name, as before, not from ⌘N's Markdown.
     static func carrySettings(from old: URL, to new: URL, syntax: Bool = true) {
         let defaults = NibDefaults.store
-        for prefix in ["selection:", "syntax:", "siblings:"] {
+        for prefix in ["selection:", "syntax:", "siblings:", Document.indentationKey] {
             if let value = defaults.object(forKey: prefix + old.path) {
                 if syntax || prefix != "syntax:" { defaults.set(value, forKey: prefix + new.path) }
                 defaults.removeObject(forKey: prefix + old.path)

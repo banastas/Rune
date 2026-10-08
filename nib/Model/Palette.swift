@@ -180,7 +180,7 @@ final class PaletteSession: Identifiable {
             guard item.isEnabled, item.action != nil, item.action != #selector(NSWindow.makeKeyAndOrderFront(_:)),
                   !["Go to File…", "Command Palette…"].contains(item.title) else { continue }
             let id = (path + [item.title, String(index)]).joined(separator: "\u{1F}")
-            let named = ["Revert To", "Syntax"].contains(path.last ?? "") ? "\(path.last ?? ""): \(item.title)" : item.title
+            let named = ["Revert To", "Syntax", "Line Endings"].contains(path.last ?? "") ? "\(path.last ?? ""): \(item.title)" : item.title
             entries.append(PaletteEntry(id: id, name: named, detail: path.joined(separator: " › "), symbol: "command",
                                         group: "", shortcut: Self.keys(of: item)))
             // Found again when it's done, in the menus as they are then (SwiftUI may have made
