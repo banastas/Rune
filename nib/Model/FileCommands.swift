@@ -116,7 +116,7 @@ enum FileCommands {
         guard !document.unsent else { return refuse(document, "NOT MOVED · ICLOUD HASN'T TAKEN THE LAST CHANGES YET · TRY AGAIN IN A MOMENT") }
 
         let window = document.editor.textView.window
-        document.editor.textView.isEditable = false
+        document.editor.setEditable(false)
         await Documents.close(document, keepEmpty: true)   // saved, uploaded, handed back: nothing holds it now
         if let closed = ClosedItems.shared.items.first(where: { $0.path == old.path }) { ClosedItems.shared.forget(closed) }
         window?.close()

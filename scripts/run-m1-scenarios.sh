@@ -92,6 +92,7 @@ run services  # Services › Append to Rune Scratch and Clean Text, and the Shor
 # The `nib` command-line tool (AP4), against the running scenario (it never starts or fronts Nib).
 (cd NibKit && swift build --product nib-cli 2>&1 | grep -E "error" || true)
 run cli -NibCLI "$PWD/NibKit/.build/debug/nib-cli"
+run license -NibLicensing YES -NibCLI "$PWD/NibKit/.build/debug/nib-cli"   # DS4: the trial's lock, in memory (never the Mac's trial)
 run fileops
 run access
 run full

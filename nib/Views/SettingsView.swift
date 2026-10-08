@@ -31,6 +31,11 @@ struct SettingsView: View {
             ThemeSettings()
                 .tabItem { Label("Themes", systemImage: "paintpalette") }
                 .tag("themes")
+            if LicenseManager.shared.isEnforced {   // DS4: off until launch
+                LicenseSettings()
+                    .tabItem { Label("License", systemImage: "key") }
+                    .tag("license")
+            }
         }
         .frame(width: 480)
         .fixedSize()
@@ -187,13 +192,74 @@ private struct FileSettings: View {
                     }
                 }
                 note("A double-click in Finder opens these files in Rune, and so does the open command in Terminal. Turning one off gives its files back to the app they opened in before. Shell scripts are files macOS can run, so it asks you to confirm each of .sh, .zsh and .bash: three times. For one file alone, use Finder's Get Info › Open With.")
-                note("HTML isn't here: macOS opens every page on this Mac, a link in Terminal or a build's report, with the app for .html files, so they'd open in Rune as text. Rune still edits them: Open With, ⌘O, or nib page.html.")
+                note("HTML isn't here: macOS opens every page on this Mac, a link in Terminal or a build's report, with the app for .html files, so they'd open in Rune as text. Rune still edits them: Open With, ⌘O, or rune page.html.")
             }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
         .onAppear { apps.refresh() }
         .onChange(of: apps.failure) { _, why in if let why { Announce.sentence(why) } }   // F62
+    }
+}
+
+/// Settings › License (DS4): the trial or the license, a key to activate, Deactivate This Mac
+/// to move it, Buy Rune…. From Blit's `LicenseSection` (`Blit/Views/MenuBarViews.swift`).
+private struct LicenseSettings: View {
+    @State private var license = LicenseManager.shared
+    @State private var key = ""
+    @State private var problem: String?
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("Status") {
+                    Text(license.summary)
+                        .foregroundStyle(license.state.allowsTyping ? Color.primary : Color.failureText)
+                }
+                if let stored = license.license {
+                    LabeledContent("Key", value: "…" + stored.key.suffix(8))
+                    HStack {
+                        Spacer()
+                        Button("Deactivate This Mac") { Task { problem = await license.deactivate() } }
+                            .disabled(license.isWorking)
+                            .help("Frees this Mac's activation, to use the key on another Mac")
+                    }
+                    note("A key works on 3 Macs. Deactivating this one frees it for another; this Mac is then read-only until a key is entered again.")
+                } else {
+                    HStack {
+                        TextField("License key", text: $key, prompt: Text("From your receipt email"))
+                            .onSubmit(activate)
+                        Button("Activate", action: activate)
+                            .disabled(key.trimmingCharacters(in: .whitespaces).isEmpty || license.isWorking)
+                    }
+                    HStack(alignment: .top) {
+                        note(trialNote)
+                        Spacer()
+                        Button("Buy Rune…") { license.openBuyPage() }
+                    }
+                }
+                if license.isWorking { ProgressView().controlSize(.small) }
+                if let problem {
+                    Text(problem).font(.caption).foregroundStyle(Color.failureText).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .scrollDisabled(true)
+        .onChange(of: problem) { _, why in if let why { Announce.sentence(why) } }
+    }
+
+    private var trialNote: String {
+        license.state.allowsTyping
+            ? "Everything works during the \(Licensing.trialDays)-day trial. $19, once, for 3 Macs."
+            : "Read-only until a license is entered. Saving, sync, merges, History and the journal go on, and every file still opens."
+    }
+
+    private func activate() {
+        Task {
+            problem = await license.activate(key)
+            if problem == nil { key = "" }
+        }
     }
 }
 

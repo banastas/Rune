@@ -46,8 +46,11 @@ enum CLIBridge {
             case .notOpen: reply(token, ok: false, "the scratch file isn't open (\(SyncState.midSentence(document.state.spoken)))")
             case .empty: reply(token, ok: false, "nothing on standard input to append")
             case .readOnly: reply(token, ok: false, "the scratch file is read-only")
+            case .locked: reply(token, ok: false, LicenseManager.shared.refusedSentence)
             }
         case .new:
+            // Standard input as a new buffer is new text (DS4).
+            guard !LicenseManager.shared.typingLocked else { return reply(token, ok: false, LicenseManager.shared.refusedSentence) }
             guard let url = Untitled.create(text: request.text ?? "") else {
                 reply(token, ok: false, "couldn't make an untitled buffer in \(Untitled.folder.path)")
                 return
@@ -62,6 +65,11 @@ enum CLIBridge {
     }
 
     private static func open(_ request: Bridge.Request, token: String) async {
+        // `rune -w` (git's $EDITOR) waits for typing nobody could do once the trial has ended:
+        // it exits at once, saying why (DS4), and a git commit stops instead of hanging.
+        if request.wait, LicenseManager.shared.typingLocked {
+            return reply(token, ok: false, LicenseManager.shared.refusedSentence)
+        }
         var problems: [String] = []
         var waits = 0
         var opened: [(Bridge.Request.File, URL)] = []

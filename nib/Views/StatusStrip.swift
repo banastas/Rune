@@ -19,6 +19,25 @@ struct StatusStrip: View {
                 .help(tooltip + (document.syncDetailsShown ? " Click to hide the details (⇧⌘Y)." : " Click for the details (⇧⌘Y)."))
                 .accessibilityLabel("\(document.url.lastPathComponent), \(Self.spokenState(document))")
                 .accessibilityHint(document.syncDetailsShown ? "Hides the sync details" : "Shows the sync details")
+            if LicenseManager.shared.typingLocked {
+                // DS4: read-only once the trial has ended, said where typing would show; a click
+                // goes to Settings › License.
+                Button { LicenseManager.shared.openLicenseSettings() } label: {
+                    HStack(spacing: 10) {
+                        hudText("✕", glyphSize: 9)   // the problem's tag, as the sync state's
+                            .font(HUDFont.label(9))
+                            .foregroundStyle(HUDColor.onFailure)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(HUDColor.failure)
+                        Text(LicenseManager.shared.stripLine).font(HUDFont.terminal(16)).foregroundStyle(HUDColor.failureText)
+                    }
+                }
+                .buttonStyle(.plain)
+                .fixedSize()
+                .help("Typing, pasting and new buffers are off. Saving, sync, merges, History and the journal go on. Click for Settings › License.")
+                .accessibilityLabel(Spoken.sentence(LicenseManager.shared.stripLine) + " Opens Settings, License.")
+            }
             if let offer = document.trashOffer {
                 // The disk is full (§4.9, 13): deleted files hold their space until the Trash is emptied.
                 Button { Task { await document.emptyTrashForSpace() } } label: {

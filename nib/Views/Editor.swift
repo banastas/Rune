@@ -111,6 +111,34 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
                 MainActor.assumeIsolated { self?.undoStepEnded() }
             }
         }
+        applyEditable()   // opened while the trial's lock is on (DS4)
+    }
+
+    // MARK: Editable (DS4)
+
+    /// Whether the document lets this text be changed (open, not waiting for iCloud…); the
+    /// trial's lock comes on top of it.
+    private(set) var wantsEditable = true
+
+    func setEditable(_ editable: Bool) {
+        wantsEditable = editable
+        applyEditable()
+    }
+
+    /// The text view's `isEditable`: what the document wants, unless the trial's lock is on.
+    func applyEditable() {
+        let editable = wantsEditable && !LicenseManager.shared.typingLocked
+        if textView.isEditable != editable { textView.isEditable = editable }
+    }
+
+    /// A change Rune makes itself that the trial's lock lets through (a merge, another Mac's
+    /// version, resolving a conflict, Revert To: DS4's never-locked list): the view as editable
+    /// as the document wants for its length.
+    func allowingEdits<T>(_ body: () -> T) -> T {
+        let was = textView.isEditable
+        if was != wantsEditable { textView.isEditable = wantsEditable }
+        defer { if textView.isEditable != was { textView.isEditable = was } }
+        return body()
     }
 
     func undoManager(for view: NSTextView) -> UndoManager? { undo }
@@ -154,6 +182,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
     func textDidChange(_ notification: Notification) {
         saidSinceUndoStep = true
+        LicenseManager.shared.noteTyping()   // the trial's lock waits for a minute without it (DS4)
         textView.matchedTags = []   // till the tree has the edit (`updateMatches`)
         document?.textDidChange()
         onChange?()
@@ -597,9 +626,13 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     @discardableResult
     func resolve(_ block: ConflictBlock, _ choice: ConflictBlock.Choice) -> String {
         let kept = ConflictText.resolution(of: block, choice, in: textView.string)
-        guard textView.shouldChangeText(in: block.range, replacementString: kept) else { return "" }
-        textView.textStorage?.replaceCharacters(in: block.range, with: kept)
-        textView.didChangeText()
+        // Resolving is never locked (DS4): the trial's lock lets it through.
+        guard allowingEdits({ () -> Bool in
+            guard textView.shouldChangeText(in: block.range, replacementString: kept) else { return false }
+            textView.textStorage?.replaceCharacters(in: block.range, with: kept)
+            textView.didChangeText()
+            return true
+        }) else { return "" }
         let label = choice == .first ? block.firstLabel : choice == .second ? block.secondLabel : "both"
         textView.undoManager?.setActionName(choice == .both ? "Keep Both" : "Use \(label)")
         textView.setSelectedRange(NSRange(location: block.range.location + (kept as NSString).length, length: 0))

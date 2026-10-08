@@ -396,7 +396,7 @@ final class Document {
         awaitingFirstRun = true
         // Said as a way back: the welcome window may be closed (the QA review's F21).
         state = .waiting("NO SCRATCH FILE YET · HELP › WELCOME TO RUNE SETS ONE UP")
-        editor.textView.isEditable = false
+        editor.setEditable(false)
     }
 
     func open() async {
@@ -406,12 +406,12 @@ final class Document {
         if let reason = ScratchLocation.refusal(for: url) {
             locked = reason
             state = .problem(reason)
-            editor.textView.isEditable = false
+            editor.setEditable(false)
             return
         }
         if awaitingFirstRun {
             awaitingFirstRun = false
-            editor.textView.isEditable = true
+            editor.setEditable(true)
             state = .opening
         }
         let url = self.url
@@ -470,10 +470,10 @@ final class Document {
                     shadow = copy
                 } else {
                     state = .waiting(offlineNow ? "NOT ON THIS MAC · OFFLINE · IT OPENS WHEN ICLOUD RETURNS" : "NOT ON THIS MAC · WAITING FOR ICLOUD TO BRING IT")
-                    editor.textView.isEditable = false
+                    editor.setEditable(false)
                     while !closing, !(await downloaded(within: 30)) {}
                     guard !closing else { return }
-                    editor.textView.isEditable = true
+                    editor.setEditable(true)
                     state = .notDownloaded
                 }
             }
@@ -1976,10 +1976,15 @@ final class Document {
         let current = view.textStorage?.string as NSString? ?? view.string as NSString
         let change = TextDelta.change(from: current, to: text as NSString)
         if let change {
-            if undoable, view.shouldChangeText(in: change.range, replacementString: change.replacement) {
+            // Another Mac's version, a merge, Revert To and the merge view's result are never
+            // locked (DS4): the trial's lock lets them through.
+            let applied = undoable && editor.allowingEdits { () -> Bool in
+                guard view.shouldChangeText(in: change.range, replacementString: change.replacement) else { return false }
                 view.textStorage?.replaceCharacters(in: change.range, with: change.replacement)
                 view.didChangeText()
-            } else {
+                return true
+            }
+            if !applied {
                 // Not undoable, or the view won't take an edit (read-only): the whole text, as before.
                 view.string = text
                 editor.scheduleHighlight(after: 0)
@@ -2437,7 +2442,7 @@ final class Document {
     private func follow(to newURL: URL) async {
         let old = url
         closing = true   // nothing more against the old path: holds, fetches, refreshes
-        editor.textView.isEditable = false
+        editor.setEditable(false)
         for task in [saveTask, uploadTask, journalTask, thinTask] { task?.cancel() }
         holdRetry?.cancel()
         fetchTimer?.invalidate()

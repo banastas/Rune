@@ -127,7 +127,7 @@ enum Untitled {
         // Its window closing already: it goes on Reopen Closed File as any closed buffer does.
         guard Documents.existing(for: document.url) === document else { AppDelegate.openFile(new); return }
         let window = document.editor.textView.window
-        document.editor.textView.isEditable = false   // nothing typed now that `new` wouldn't have
+        document.editor.setEditable(false)   // nothing typed now that `new` wouldn't have
         handedOver[document.url.path] = new
         await Documents.close(document)   // its last version into its History, which `discard` carries
         guard !AppDelegate.terminating else { return }   // quitting: it comes back at the next launch, as it was

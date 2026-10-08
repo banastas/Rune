@@ -19,7 +19,7 @@ Preview locally:
 python3 -m http.server 8765 --directory site
 ```
 
-Hosting: Cloudflare Pages, with this repository (banastas/Rune) as the source, no build command and `site` as the output directory; then point `rune.banast.as` at the Pages project with a CNAME record. The link preview has no card image yet (Blit's has `brand/`); add one under `brand/` and an `og:image` when there is one.
+Hosting: Cloudflare Pages, project `rune` (`rune-52e.pages.dev`), with this repository (banastas/Rune) as the source, production branch `main`, no build command and `site` as the output directory; `rune.banast.as` is its custom domain. A retry in Pages rebuilds that deployment's own commit, not the branch's newest: to deploy the newest, push or Create deployment. The link preview has no card image yet (Blit's has `brand/`); add one under `brand/` and an `og:image` when there is one.
 
 ## Downloads and updates
 
