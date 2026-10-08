@@ -164,7 +164,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.banastas.nib;
 				PRODUCT_NAME = Rune;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -191,7 +191,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.banastas.nib;
 				PRODUCT_NAME = Rune;
 				SWIFT_EMIT_LOC_STRINGS = YES;

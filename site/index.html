@@ -976,7 +976,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
   // checkout overlay. ?checkout=test turns Buy on to try a test-mode checkout, once the button has
   // a checkout link (data-checkout, Rune's Lemon Squeezy product since 2026-10-08). lemon.js
   // loads only when Buy is clicked, so a plain visit makes no third-party requests.
-  const LIVE = false;
+  const LIVE = true;   // since 1.0 (2026-10-08): Download and Buy on
   const CHECKOUT_LIVE = LIVE;
   if (LIVE) {
     for (const id of ["download-button", "trial-button"]) {

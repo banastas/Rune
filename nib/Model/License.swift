@@ -13,9 +13,9 @@
 // minute without typing. The text view's `isEditable` is the lock (`Editor.setEditable`), and
 // Rune's own changes go through it (`Editor.allowingEdits`).
 //
-// Off until launch (`LicenseConfig.enforced`): no trial clock, no Keychain, no License tab or
-// menu items, nothing locked. `-NibLicensing YES` turns it on in a Debug build, to try it; a test
-// run's Nib keeps the trial and license in memory, never the Mac's.
+// On since 1.0 (`LicenseConfig.enforced`); off, there's no trial clock, no Keychain, no License tab
+// or menu items, nothing locked. A test run's Nib keeps the trial and license in memory, never the
+// Mac's.
 
 import AppKit
 import Foundation
@@ -25,8 +25,9 @@ import Observation
 import Security
 
 enum LicenseConfig {
-    /// Off until launch. Turning it on starts each Mac's trial at its next launch.
-    static let enforced = false
+    /// On since 1.0 (2026-10-08, the user's call). Turning it on started each Mac's trial at its
+    /// first launch of 1.0; a test run's Nib keeps its trial and license in memory.
+    static let enforced = true
     /// Lemon Squeezy's store (`banastas.lemonsqueezy.com`, `blit.` until 2026-10-08; Blit's and
     /// Rune's) and Rune's product: a key from any other store or product is refused
     /// (`Licensing.mismatch`). The live product (2026-10-08) is 1_423_364, its one variant
