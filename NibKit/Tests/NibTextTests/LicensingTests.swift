@@ -41,15 +41,17 @@ import Testing
     }
 
     @Test func onlyRunesKeys() {
-        func check(store: Int? = 1, product: Int? = 2, test: Bool = false, acceptsTest: Bool = false, wantedProduct: Int? = 2) -> String? {
-            Licensing.mismatch(storeID: 1, productID: wantedProduct, store: store, product: product, testMode: test, acceptsTestKeys: acceptsTest)
+        func check(store: Int? = 1, product: Int? = 2, test: Bool = false, acceptsTest: Bool = false, wantedProducts: Set<Int> = [2]) -> String? {
+            Licensing.mismatch(storeID: 1, productIDs: wantedProducts, store: store, product: product, testMode: test, acceptsTestKeys: acceptsTest)
         }
         #expect(check() == nil, "Rune's store and product")
         #expect(check(product: 3) != nil, "another product (Blit's, say)")
         #expect(check(store: 9) != nil, "another store")
         #expect(check(test: true) != nil, "a test key in a released copy")
         #expect(check(test: true, acceptsTest: true) == nil, "a test key in a Debug build")
-        #expect(check(wantedProduct: nil) != nil, "no product yet: no key unlocks Rune")
+        #expect(check(wantedProducts: []) != nil, "no product yet: no key unlocks Rune")
+        #expect(check(product: 3, test: true, acceptsTest: true, wantedProducts: [2, 3]) == nil, "the test-mode product's key, in a Debug build")
+        #expect(check(product: nil) != nil, "no product in the answer")
     }
 
     @Test func plainWords() {

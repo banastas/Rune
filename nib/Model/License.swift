@@ -28,11 +28,14 @@ enum LicenseConfig {
     /// Off until launch. Turning it on starts each Mac's trial at its next launch.
     static let enforced = false
     /// Lemon Squeezy's store (`banastas.lemonsqueezy.com`, `blit.` until 2026-10-08; Blit's and
-    /// Rune's) and Rune's product (2026-10-08, test mode so far):
-    /// a key from any other store or product is refused (`Licensing.mismatch`). The product's one
-    /// variant is 2_223_226; a live copy of a test-mode product gets IDs of its own.
+    /// Rune's) and Rune's product: a key from any other store or product is refused
+    /// (`Licensing.mismatch`). The live product (2026-10-08) is 1_423_364, its one variant
+    /// 2_223_174; the test-mode product, which has IDs of its own, 1_423_394 (variant 2_223_226),
+    /// and only a Debug build takes its keys, as it takes test keys.
     static let storeID: Int? = 484_060
-    static let productID: Int? = 1_423_394
+    static let liveProductID = 1_423_364
+    static let testProductID = 1_423_394
+    static var productIDs: Set<Int> { acceptsTestKeys ? [liveProductID, testProductID] : [liveProductID] }
     /// Test-mode keys (bought with test cards) only unlock Debug builds.
     static var acceptsTestKeys: Bool {
         #if DEBUG
@@ -218,7 +221,7 @@ final class LicenseManager {
 
     /// Why a response isn't a usable Rune license, or nil if it is.
     static func mismatch(_ response: APIResponse) -> String? {
-        Licensing.mismatch(storeID: LicenseConfig.storeID, productID: LicenseConfig.productID,
+        Licensing.mismatch(storeID: LicenseConfig.storeID, productIDs: LicenseConfig.productIDs,
                            store: response.meta?.store_id, product: response.meta?.product_id,
                            testMode: response.license_key?.test_mode == true, acceptsTestKeys: LicenseConfig.acceptsTestKeys)
     }

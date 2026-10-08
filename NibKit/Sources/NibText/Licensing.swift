@@ -65,14 +65,15 @@ public enum Licensing {
         return max(now, lastTyping.addingTimeInterval(quietBeforeLock))
     }
 
-    /// Why a key Lemon Squeezy activated isn't Rune's, or nil if it is. With no product set yet
-    /// (before Rune is on sale) no key is: any store's key would pass otherwise.
-    public static func mismatch(storeID wantedStore: Int?, productID wantedProduct: Int?,
+    /// Why a key Lemon Squeezy activated isn't Rune's, or nil if it is: from Rune's store and one
+    /// of `wantedProducts` (the live product, and in a Debug build the test-mode one, which has IDs
+    /// of its own). With no product (before Rune is on sale) no key is: any store's would pass.
+    public static func mismatch(storeID wantedStore: Int?, productIDs wantedProducts: Set<Int>,
                                 store: Int?, product: Int?, testMode: Bool, acceptsTestKeys: Bool) -> String? {
         if testMode, !acceptsTestKeys { return "This is a test key; it can't unlock Rune." }
-        guard let wantedProduct else { return "Rune isn't on sale yet, so no key unlocks it." }
+        guard !wantedProducts.isEmpty else { return "Rune isn't on sale yet, so no key unlocks it." }
         if let wantedStore, store != wantedStore { return "This key isn't for Rune." }
-        if product != wantedProduct { return "This key isn't for Rune." }
+        guard let product, wantedProducts.contains(product) else { return "This key isn't for Rune." }
         return nil
     }
 
