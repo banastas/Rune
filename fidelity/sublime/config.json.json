@@ -1,0 +1,2870 @@
+{
+"file": "config.json",
+"syntax": "JSON",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "{\n  \"name\": \"vendor-review\",\n  \"version\": \"2.1.0\",\n  \"private\": true,\n  \"description\": \"Totals by month, and a note for the sheet\",\n  \"threshold\": 2500.75,\n  \"currency\": \"USD\",\n  \"owners\": [\"Sam\", \"Alex\"],\n  \"notify\": {\n    \"email\": \"team@example.com\",\n    \"onWarning\": true,\n    \"onError\": false,\n    \"quietHours\": { \"from\": \"22:00\", \"to\": \"07:00\" }\n  },\n  \"months\": [\n    { \"month\": \"2026-07\", \"total\": 1840.5, \"approved\": true },\n    { \"month\": \"2026-08\", \"total\": 2710, \"approved\": false, \"note\": null },\n    { \"month\": \"2026-09\", \"total\": 0, \"approved\": true, \"tags\": [] }\n  ],\n  \"escaped\": \"Quote: \\\"ship Friday\\\"\\tand a tab, é\",\n  \"exponent\": -1.5e-3\n}\n",
+"tokens": [
+[
+0,
+1,
+"source.json meta.mapping.json punctuation.section.mapping.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1,
+2,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+2,
+4,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+4,
+5,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+5,
+9,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+9,
+10,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+10,
+11,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+11,
+12,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+12,
+13,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+13,
+26,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+26,
+27,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+27,
+28,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+28,
+29,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+29,
+31,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+31,
+32,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+32,
+39,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+39,
+40,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+40,
+41,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+41,
+42,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+42,
+43,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+43,
+48,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+48,
+49,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+49,
+50,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+50,
+51,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+51,
+53,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+53,
+54,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+54,
+61,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+61,
+62,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+62,
+63,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+63,
+64,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+64,
+68,
+"source.json meta.mapping.value.json constant.language.boolean.true.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+68,
+69,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+69,
+70,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+70,
+72,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+72,
+73,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+73,
+84,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+84,
+85,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+85,
+86,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+86,
+87,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+87,
+88,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+88,
+95,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+95,
+98,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+98,
+105,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+105,
+109,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+109,
+111,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+111,
+116,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+116,
+120,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+120,
+124,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+124,
+129,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+129,
+130,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+130,
+131,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+131,
+132,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+132,
+134,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+134,
+135,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+135,
+144,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+144,
+145,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+145,
+146,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+146,
+147,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+147,
+151,
+"source.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+151,
+152,
+"source.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json punctuation.separator.decimal.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+152,
+154,
+"source.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+154,
+155,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+155,
+156,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+156,
+158,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+158,
+159,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+159,
+167,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+167,
+168,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+168,
+169,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+169,
+170,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+170,
+171,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+171,
+174,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+174,
+175,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+175,
+176,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+176,
+177,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+177,
+179,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+179,
+180,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+180,
+186,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+186,
+187,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+187,
+188,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+188,
+189,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+189,
+190,
+"source.json meta.mapping.value.json meta.sequence.json punctuation.section.sequence.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+190,
+191,
+"source.json meta.mapping.value.json meta.sequence.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+191,
+194,
+"source.json meta.mapping.value.json meta.sequence.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+194,
+195,
+"source.json meta.mapping.value.json meta.sequence.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+195,
+196,
+"source.json meta.mapping.value.json meta.sequence.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+196,
+197,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+197,
+198,
+"source.json meta.mapping.value.json meta.sequence.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+198,
+202,
+"source.json meta.mapping.value.json meta.sequence.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+202,
+203,
+"source.json meta.mapping.value.json meta.sequence.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+203,
+204,
+"source.json meta.mapping.value.json meta.sequence.json punctuation.section.sequence.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+204,
+205,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+205,
+206,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+206,
+208,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+208,
+209,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+209,
+215,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+215,
+216,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+216,
+217,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+217,
+218,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+218,
+219,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.section.mapping.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+219,
+220,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+220,
+224,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+224,
+225,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+225,
+230,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+230,
+231,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+231,
+232,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+232,
+233,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+233,
+234,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+234,
+250,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+250,
+251,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+251,
+252,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+252,
+253,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+253,
+257,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+257,
+258,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+258,
+267,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+267,
+268,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+268,
+269,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+269,
+270,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+270,
+274,
+"source.json meta.mapping.value.json meta.mapping.value.json constant.language.boolean.true.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+274,
+275,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+275,
+276,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+276,
+280,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+280,
+281,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+281,
+288,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+288,
+289,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+289,
+290,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+290,
+291,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+291,
+296,
+"source.json meta.mapping.value.json meta.mapping.value.json constant.language.boolean.false.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+296,
+297,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+297,
+298,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+298,
+302,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+302,
+303,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+303,
+313,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+313,
+314,
+"source.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+314,
+315,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+315,
+316,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+316,
+317,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json punctuation.section.mapping.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+317,
+318,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+318,
+319,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+319,
+323,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+323,
+324,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+324,
+325,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+325,
+326,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+326,
+327,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+327,
+332,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+332,
+333,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+333,
+334,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+334,
+335,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+335,
+336,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+336,
+338,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+338,
+339,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+339,
+340,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+340,
+341,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+341,
+342,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+342,
+347,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+347,
+348,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+348,
+349,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+349,
+350,
+"source.json meta.mapping.value.json meta.mapping.value.json meta.mapping.json punctuation.section.mapping.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+350,
+351,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+351,
+353,
+"source.json meta.mapping.value.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+353,
+354,
+"source.json meta.mapping.value.json meta.mapping.json punctuation.section.mapping.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+354,
+355,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+355,
+356,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+356,
+358,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+358,
+359,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+359,
+365,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+365,
+366,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+366,
+367,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+367,
+368,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+368,
+369,
+"source.json meta.mapping.value.json meta.sequence.json punctuation.section.sequence.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+369,
+370,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+370,
+374,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+374,
+375,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.section.mapping.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+375,
+376,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+376,
+377,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+377,
+382,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+382,
+383,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+383,
+384,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+384,
+385,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+385,
+386,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+386,
+393,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+393,
+394,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+394,
+395,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+395,
+396,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+396,
+397,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+397,
+402,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+402,
+403,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+403,
+404,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+404,
+405,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+405,
+409,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+409,
+410,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json punctuation.separator.decimal.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+410,
+411,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+411,
+412,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+412,
+413,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+413,
+414,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+414,
+422,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+422,
+423,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+423,
+424,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+424,
+425,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+425,
+429,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json constant.language.boolean.true.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+429,
+430,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+430,
+431,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.section.mapping.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+431,
+432,
+"source.json meta.mapping.value.json meta.sequence.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+432,
+433,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+433,
+437,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+437,
+438,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.section.mapping.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+438,
+439,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+439,
+440,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+440,
+445,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+445,
+446,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+446,
+447,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+447,
+448,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+448,
+449,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+449,
+456,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+456,
+457,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+457,
+458,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+458,
+459,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+459,
+460,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+460,
+465,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+465,
+466,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+466,
+467,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+467,
+468,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+468,
+472,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.number.integer.decimal.json constant.numeric.value.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+472,
+473,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+473,
+474,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+474,
+475,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+475,
+483,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+483,
+484,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+484,
+485,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+485,
+486,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+486,
+491,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json constant.language.boolean.false.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+491,
+492,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+492,
+493,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+493,
+494,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+494,
+498,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+498,
+499,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+499,
+500,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+500,
+501,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+501,
+505,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json constant.language.null.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+505,
+506,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+506,
+507,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.section.mapping.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+507,
+508,
+"source.json meta.mapping.value.json meta.sequence.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+508,
+509,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+509,
+513,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+513,
+514,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.section.mapping.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+514,
+515,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+515,
+516,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+516,
+521,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+521,
+522,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+522,
+523,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+523,
+524,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+524,
+525,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+525,
+532,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+532,
+533,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+533,
+534,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+534,
+535,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+535,
+536,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+536,
+541,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+541,
+542,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+542,
+543,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+543,
+544,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+544,
+545,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.number.integer.decimal.json constant.numeric.value.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+545,
+546,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+546,
+547,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+547,
+548,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+548,
+556,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+556,
+557,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+557,
+558,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+558,
+559,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+559,
+563,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json constant.language.boolean.true.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+563,
+564,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+564,
+565,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+565,
+566,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+566,
+570,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+570,
+571,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+571,
+572,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+572,
+573,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+573,
+574,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.sequence.json punctuation.section.sequence.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+574,
+575,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.value.json meta.sequence.json punctuation.section.sequence.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+575,
+576,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+576,
+577,
+"source.json meta.mapping.value.json meta.sequence.json meta.mapping.json punctuation.section.mapping.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+577,
+578,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+578,
+580,
+"source.json meta.mapping.value.json meta.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+580,
+581,
+"source.json meta.mapping.value.json meta.sequence.json punctuation.section.sequence.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+581,
+582,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+582,
+583,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+583,
+585,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+585,
+586,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+586,
+593,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+593,
+594,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+594,
+595,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+595,
+596,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+596,
+597,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+597,
+604,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+604,
+606,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json constant.character.escape.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+606,
+611,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+611,
+617,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+617,
+619,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json constant.character.escape.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+619,
+621,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json constant.character.escape.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+621,
+625,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+625,
+627,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+627,
+632,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+632,
+633,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+633,
+634,
+"source.json meta.mapping.value.json meta.string.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+634,
+635,
+"source.json meta.mapping.json punctuation.separator.sequence.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+635,
+636,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+636,
+638,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+638,
+639,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.begin.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+639,
+647,
+"source.json meta.mapping.key.json string.quoted.double.json",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+647,
+648,
+"source.json meta.mapping.key.json string.quoted.double.json punctuation.definition.string.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+648,
+649,
+"source.json meta.mapping.json punctuation.separator.key-value.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+649,
+650,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+650,
+651,
+"source.json meta.mapping.value.json meta.number.float.decimal.json keyword.operator.arithmetic.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+651,
+652,
+"source.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+652,
+653,
+"source.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json punctuation.separator.decimal.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+653,
+657,
+"source.json meta.mapping.value.json meta.number.float.decimal.json constant.numeric.value.json",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+657,
+658,
+"source.json meta.mapping.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+658,
+659,
+"source.json meta.mapping.json punctuation.section.mapping.end.json",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+659,
+660,
+"source.json",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

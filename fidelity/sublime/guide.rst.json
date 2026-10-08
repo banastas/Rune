@@ -1,0 +1,1961 @@
+{
+"file": "guide.rst",
+"syntax": "reStructuredText",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "============\nFeed Tools\n============\n\nA guide, generated for the fidelity harness. See `the website <https://example.com/feeds>`_\nand the :doc:`installation` page.\n\nGetting started\n===============\n\nInstall the tools with ``pip install feed-tools``, then run:\n\n.. code-block:: bash\n\n   feed sync --verbose\n\nOptions\n-------\n\n- ``--retries N``: how many times to try a feed (default *3*).\n- ``--verbose``: say what's happening.\n- **--dry-run**: fetch, but write nothing.\n\n1. Fetch the feeds.\n2. Filter the episodes.\n\n.. note::\n\n   Feeds are cached for an hour.\n\n.. _settings:\n\nSettings\n--------\n\n=========  =======  ===========\nName       Type     Default\n=========  =======  ===========\nretries    int      3\ntimeout    float    2.5\n=========  =======  ===========\n\n.. This is a comment, not shown.\n\nFootnotes like this one [#]_ and references like settings_ work too.\n\n.. [#] Added in version 1.4.\n",
+"tokens": [
+[
+0,
+12,
+"text.restructuredtext meta.paragraph.restructuredtext markup.heading.restructuredtext punctuation.definition.heading.restructuredtext",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+12,
+13,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+13,
+18,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+18,
+23,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+23,
+24,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+24,
+36,
+"text.restructuredtext meta.paragraph.restructuredtext markup.heading.restructuredtext punctuation.definition.heading.restructuredtext",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+36,
+37,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+37,
+38,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+38,
+40,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+40,
+47,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+47,
+57,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+57,
+61,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+61,
+65,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+65,
+74,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+74,
+83,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+83,
+87,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+87,
+88,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext punctuation.definition.link.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+88,
+92,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext string.other.link.title.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+92,
+99,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext string.other.link.title.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+99,
+100,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+100,
+101,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext punctuation.definition.location.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+101,
+120,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext markup.underline.link.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+120,
+121,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext markup.underline.link.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+121,
+126,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext markup.underline.link.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+126,
+127,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext punctuation.definition.location.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+127,
+129,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.inline.restructuredtext punctuation.definition.link.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+129,
+130,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+130,
+134,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+134,
+138,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+138,
+139,
+"text.restructuredtext meta.paragraph.restructuredtext entity.name.tag.restructuredtext punctuation.definition.field.restructuredtext",
+"#ec475d",
+null,
+false,
+false
+],
+[
+139,
+142,
+"text.restructuredtext meta.paragraph.restructuredtext entity.name.tag.restructuredtext",
+"#ec475d",
+null,
+false,
+false
+],
+[
+142,
+143,
+"text.restructuredtext meta.paragraph.restructuredtext entity.name.tag.restructuredtext punctuation.definition.field.restructuredtext",
+"#ec475d",
+null,
+false,
+false
+],
+[
+143,
+144,
+"text.restructuredtext meta.paragraph.restructuredtext markup.other.command.restructuredtext punctuation.definition.interpreted.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+144,
+156,
+"text.restructuredtext meta.paragraph.restructuredtext markup.other.command.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+156,
+157,
+"text.restructuredtext meta.paragraph.restructuredtext markup.other.command.restructuredtext punctuation.definition.interpreted.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+157,
+158,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+158,
+163,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+163,
+164,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+164,
+165,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+165,
+173,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+173,
+180,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+180,
+181,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+181,
+196,
+"text.restructuredtext meta.paragraph.restructuredtext markup.heading.restructuredtext punctuation.definition.heading.restructuredtext",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+196,
+197,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+197,
+198,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+198,
+206,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+206,
+210,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+210,
+216,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+216,
+221,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+221,
+223,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext punctuation.definition.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+223,
+227,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+227,
+235,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+235,
+245,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+245,
+247,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext punctuation.definition.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+247,
+249,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+249,
+254,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+254,
+258,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+258,
+259,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+259,
+260,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+260,
+262,
+"text.restructuredtext meta.paragraph.restructuredtext meta.other.directive.restructuredtext punctuation.definition.directive.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+262,
+263,
+"text.restructuredtext meta.paragraph.restructuredtext meta.other.directive.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+263,
+273,
+"text.restructuredtext meta.paragraph.restructuredtext meta.other.directive.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+273,
+275,
+"text.restructuredtext meta.paragraph.restructuredtext meta.other.directive.restructuredtext punctuation.separator.key-value.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+275,
+276,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+276,
+280,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+280,
+281,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+281,
+282,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+282,
+285,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+285,
+290,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+290,
+295,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+295,
+304,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+304,
+305,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+305,
+306,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+306,
+313,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+313,
+314,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+314,
+321,
+"text.restructuredtext meta.paragraph.restructuredtext markup.heading.restructuredtext punctuation.definition.heading.restructuredtext",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+321,
+322,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+322,
+323,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+323,
+325,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+325,
+327,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext punctuation.definition.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+327,
+337,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+337,
+338,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+338,
+340,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext punctuation.definition.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+340,
+342,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+342,
+346,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+346,
+351,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+351,
+357,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+357,
+360,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+360,
+364,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+364,
+366,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+366,
+371,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+371,
+372,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+372,
+380,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+380,
+385,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+385,
+386,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+386,
+388,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+388,
+390,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext punctuation.definition.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+390,
+399,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+399,
+401,
+"text.restructuredtext meta.paragraph.restructuredtext markup.raw.restructuredtext punctuation.definition.raw.restructuredtext",
+"#78bc65",
+null,
+false,
+false
+],
+[
+401,
+403,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+403,
+407,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+407,
+414,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+414,
+424,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+424,
+425,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+425,
+427,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+427,
+429,
+"text.restructuredtext meta.paragraph.restructuredtext markup.bold.restructuredtext punctuation.definition.italic.restructuredtext",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+429,
+438,
+"text.restructuredtext meta.paragraph.restructuredtext markup.bold.restructuredtext",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+438,
+440,
+"text.restructuredtext meta.paragraph.restructuredtext markup.bold.restructuredtext punctuation.definition.italic.restructuredtext",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+440,
+442,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+442,
+449,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+449,
+453,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+453,
+459,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+459,
+467,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+467,
+468,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+468,
+469,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+469,
+472,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+472,
+478,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+478,
+482,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+482,
+488,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+488,
+489,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+489,
+492,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+492,
+499,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+499,
+503,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+503,
+512,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+512,
+513,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+513,
+514,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+514,
+516,
+"text.restructuredtext meta.paragraph.restructuredtext meta.other.directive.restructuredtext punctuation.definition.directive.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+516,
+517,
+"text.restructuredtext meta.paragraph.restructuredtext meta.other.directive.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+517,
+521,
+"text.restructuredtext meta.paragraph.restructuredtext meta.other.directive.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+521,
+523,
+"text.restructuredtext meta.paragraph.restructuredtext meta.other.directive.restructuredtext punctuation.separator.key-value.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+523,
+524,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+524,
+525,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+525,
+528,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+528,
+534,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+534,
+538,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+538,
+545,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+545,
+549,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+549,
+552,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+552,
+557,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+557,
+558,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+558,
+559,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+559,
+561,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.reference.def.restructuredtext punctuation.definition.link.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+561,
+562,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.reference.def.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+562,
+563,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.reference.def.restructuredtext punctuation.definition.string.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+563,
+571,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.reference.def.restructuredtext string.other.link.title.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+571,
+572,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.reference.def.restructuredtext punctuation.separator.key-value.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+572,
+573,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.reference.def.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+573,
+574,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+574,
+582,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+582,
+583,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+583,
+591,
+"text.restructuredtext meta.paragraph.restructuredtext markup.heading.restructuredtext punctuation.definition.heading.restructuredtext",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+591,
+592,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+592,
+593,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+593,
+604,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+604,
+613,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+613,
+624,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+624,
+625,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+625,
+636,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+636,
+645,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+645,
+652,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+652,
+653,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+653,
+664,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+664,
+673,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+673,
+684,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+684,
+685,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+685,
+696,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+696,
+705,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+705,
+706,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+706,
+707,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+707,
+718,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+718,
+727,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+727,
+730,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+730,
+731,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+731,
+742,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+742,
+751,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+751,
+762,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+762,
+763,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+763,
+764,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+764,
+766,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext punctuation.definition.comment.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+766,
+767,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+767,
+772,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+772,
+775,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+775,
+777,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+777,
+786,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+786,
+790,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+790,
+796,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+796,
+797,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+797,
+798,
+"text.restructuredtext meta.paragraph.restructuredtext comment.line.double-dot.restructuredtext",
+"#848484",
+null,
+false,
+false
+],
+[
+798,
+808,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+808,
+813,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+813,
+818,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+818,
+822,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+822,
+824,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.auto.restructuredtext constant.other.footnote.link punctuation.definition.constant.restructuredtext",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+824,
+825,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.auto.restructuredtext constant.other.footnote.link punctuation.definition.constant.restructuredtext",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+825,
+826,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.auto.restructuredtext punctuation.definition.constant.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+826,
+827,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+827,
+831,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+831,
+842,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+842,
+847,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+847,
+855,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.reference string.other.link.title.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+855,
+856,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.reference punctuation.definition.link.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+856,
+857,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+857,
+862,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+862,
+866,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+866,
+867,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+867,
+868,
+"text.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+868,
+870,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext punctuation.definition.link.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+870,
+871,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+871,
+872,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext constant.other.footnote.link.restructuredtext punctuation.definition.constant.restructuredtext",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+872,
+873,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext constant.other.footnote.link.restructuredtext punctuation.definition.constant.restructuredtext",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+873,
+874,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext constant.other.footnote.link.restructuredtext punctuation.definition.constant.restructuredtext",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+874,
+875,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+875,
+881,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext string.other.footnote.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+881,
+884,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext string.other.footnote.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+884,
+892,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext string.other.footnote.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+892,
+896,
+"text.restructuredtext meta.paragraph.restructuredtext meta.link.footnote.def.restructuredtext string.other.footnote.restructuredtext",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+896,
+897,
+"text.restructuredtext meta.paragraph.restructuredtext",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

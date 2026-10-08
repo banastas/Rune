@@ -1,0 +1,46 @@
+# Project settings, generated for the fidelity harness.
+[project]
+name = "feed-tools"
+version = "1.4.2"
+description = 'Fetch, filter and publish podcast feeds'
+requires-python = ">=3.11"
+authors = [{ name = "Sam Example", email = "sam@example.com" }]
+keywords = ["podcast", "rss", "feeds"]
+dependencies = [
+    "httpx>=0.27",
+    "lxml>=5.2",
+]
+
+[project.scripts]
+feed = "feed_tools.cli:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv", "build"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = []
+
+[tool.feed]
+retries = 3
+timeout = 2.5
+verbose = false
+max_size = 1_048_576
+mask = 0o755
+color = 0xEC475D
+started = 2026-10-01T08:00:00Z
+window = { start = 08:00:00, end = 22:30:00 }
+banner = """
+Night Shift Notes
+  feed tools"""
+path = 'C:\Users\sam\feeds'
+
+[[tool.feed.sources]]
+url = "https://example.com/podcast/feed.xml"
+weight = 1.0
+
+[[tool.feed.sources]]
+url = "https://example.org/other.xml"
+weight = -0.5

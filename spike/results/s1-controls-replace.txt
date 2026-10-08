@@ -1,0 +1,19 @@
+21:41:56.447 nib-spike controls on Bill’s MacBook Air, macOS Version 27.0 (Build 26A428)
+21:41:56.453 wrote controls-200k-214156.md (204800 bytes)
+21:41:56.461   +8 ms  ubiquitous status=current - not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:41:56.681   +227 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:41:59.951   +3497 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:41:59.955 before: ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:41:59.969   pauseSync: 4 ms · NSPOSIXErrorDomain 16: The operation couldn’t be completed. Resource busy
+21:41:59.972 after pause: ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:41:59.981   replace write: inode 5314495 → 5314543
+21:42:02.995 3 s after a write while paused: ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:42:02.997   uploadLocalVersion(failOnConflict): 2 ms · NSCocoaErrorDomain 3328: The requested operation couldn’t be completed because the feature is not supported.
+21:42:02.997   uploaded: no version
+21:42:03.003 after upload: ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:42:03.005   fetchLatestRemoteVersion: 2 ms · ok
+21:42:03.009   latest: version saved 21:41:59.978 by ? at controls-200k-214156.md
+21:42:03.011 after resume: ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:42:03.012   +1 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:42:06.810   +3800 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:42:06.811 RESULT controls: see the pause, upload, fetch and resume lines above

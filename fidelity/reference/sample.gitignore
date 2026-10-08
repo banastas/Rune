@@ -1,0 +1,17 @@
+# Build output, generated for the fidelity harness
+/build/
+/dist
+*.log
+*.tmp
+!keep.log
+
+# Editors
+.DS_Store
+.vscode/
+*.swp
+
+# Dependencies, at any depth
+**/node_modules/
+packages/*/coverage/
+[Tt]emp/
+\#notes#

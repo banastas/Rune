@@ -1,0 +1,4472 @@
+{
+"file": "notes.md",
+"syntax": "Markdown",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "# Vendor review\n\nDraft for **Sam**, due *Friday*. The numbers are in [the sheet](https://example.com/q4) and `config.json`.\n\n## Open items\n\n- [x] Invoice attached\n- [ ] QA sign-off\n  - ask about the August total\n- Follow up with **Alex** on _quiet hours_\n\n1. Run the totals\n2. Paste them below\n3. Send\n\n> We can ship on Friday if QA signs off.\n> Everything else is ready.\n\n### Deploy\n\n```bash\nssh me@seedbox 'df -h ~/files'\nrsync -av --progress ./dist/ me@seedbox:~/www/ && echo \"done\"\n```\n\n```js\nconst total = invoices.reduce((sum, { amount }) => sum + amount, 0);\nconsole.log(`Total: ${total.toFixed(2)}`);\n```\n\n```xml\n<enclosure url=\"https://cdn.example.com/q4.mp3\" length=\"1840\" type=\"audio/mpeg\"/>\n```\n\n```python\ntotal = sum(len(feed.episodes) for feed in feeds)\nprint(f\"{total:,} episodes in {len(feeds)} feeds\")\n```\n\n```yaml\nretries: 3\nsources: [main, archive]\n```\n\n```go\nfmt.Printf(\"%d feeds\\n\", len(feeds))\n```\n\n```rust\nlet total: usize = feeds.iter().map(|f| f.len()).sum();\n```\n\n```sql\nSELECT COUNT(*) FROM episodes WHERE explicit = FALSE;\n```\n\n---\n\nSome ~~old~~ notes, a line with `inline code`, and a footnote.[^1]\n\n| Month | Total |\n| ----- | ----: |\n| July  | 1,840 |\n| Aug   | 2,710 |\n\n[^1]: From the Q3 review.\n",
+"tokens": [
+[
+0,
+1,
+"text.html.markdown markup.heading.1.markdown punctuation.definition.heading.begin.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+1,
+2,
+"text.html.markdown markup.heading.1.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+2,
+9,
+"text.html.markdown markup.heading.1.markdown entity.name.section.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+9,
+15,
+"text.html.markdown markup.heading.1.markdown entity.name.section.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+15,
+16,
+"text.html.markdown markup.heading.1.markdown meta.whitespace.newline.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+16,
+17,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+17,
+23,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+23,
+27,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+27,
+29,
+"text.html.markdown meta.paragraph.markdown markup.bold.markdown punctuation.definition.bold.begin.markdown",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+29,
+32,
+"text.html.markdown meta.paragraph.markdown markup.bold.markdown",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+32,
+34,
+"text.html.markdown meta.paragraph.markdown markup.bold.markdown punctuation.definition.bold.end.markdown",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+34,
+36,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+36,
+40,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+40,
+41,
+"text.html.markdown meta.paragraph.markdown markup.italic.markdown punctuation.definition.italic.begin.markdown",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+41,
+47,
+"text.html.markdown meta.paragraph.markdown markup.italic.markdown",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+47,
+48,
+"text.html.markdown meta.paragraph.markdown markup.italic.markdown punctuation.definition.italic.end.markdown",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+48,
+50,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+50,
+54,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+54,
+62,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+62,
+66,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+66,
+69,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+69,
+70,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.description.markdown punctuation.definition.link.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+70,
+74,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.description.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+74,
+79,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.description.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+79,
+80,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.description.markdown punctuation.definition.link.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+80,
+81,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.metadata.markdown punctuation.definition.metadata.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+81,
+86,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.metadata.markdown markup.underline.link.markdown",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+86,
+89,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.metadata.markdown markup.underline.link.markdown punctuation.separator.path.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+89,
+100,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.metadata.markdown markup.underline.link.markdown",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+100,
+101,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.metadata.markdown markup.underline.link.markdown punctuation.separator.path.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+101,
+103,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.metadata.markdown markup.underline.link.markdown",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+103,
+104,
+"text.html.markdown meta.paragraph.markdown meta.link.inline.metadata.markdown punctuation.definition.metadata.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+104,
+105,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+105,
+109,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+109,
+110,
+"text.html.markdown meta.paragraph.markdown markup.raw.inline.markdown punctuation.definition.raw.begin.markdown",
+"#78bc65",
+null,
+false,
+false
+],
+[
+110,
+121,
+"text.html.markdown meta.paragraph.markdown markup.raw.inline.markdown",
+"#78bc65",
+null,
+false,
+false
+],
+[
+121,
+122,
+"text.html.markdown meta.paragraph.markdown markup.raw.inline.markdown punctuation.definition.raw.end.markdown",
+"#78bc65",
+null,
+false,
+false
+],
+[
+122,
+123,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+123,
+124,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+124,
+125,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+125,
+127,
+"text.html.markdown markup.heading.2.markdown punctuation.definition.heading.begin.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+127,
+128,
+"text.html.markdown markup.heading.2.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+128,
+133,
+"text.html.markdown markup.heading.2.markdown entity.name.section.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+133,
+138,
+"text.html.markdown markup.heading.2.markdown entity.name.section.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+138,
+139,
+"text.html.markdown markup.heading.2.markdown meta.whitespace.newline.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+139,
+140,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+140,
+141,
+"text.html.markdown markup.list.unnumbered.bullet.markdown punctuation.definition.list_item.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+141,
+142,
+"text.html.markdown markup.list.unnumbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+142,
+143,
+"text.html.markdown markup.list.unnumbered.markdown markup.checkbox.begin.markdown-gfm punctuation.definition.checkbox.begin.markdown-gfm",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+143,
+144,
+"text.html.markdown markup.list.unnumbered.markdown markup.checkbox.mark.markdown-gfm",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+144,
+145,
+"text.html.markdown markup.list.unnumbered.markdown markup.checkbox.end.markdown-gfm punctuation.definition.checkbox.end.markdown-gfm",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+145,
+146,
+"text.html.markdown markup.list.unnumbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+146,
+154,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+154,
+162,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+162,
+163,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+163,
+164,
+"text.html.markdown markup.list.unnumbered.bullet.markdown punctuation.definition.list_item.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+164,
+165,
+"text.html.markdown markup.list.unnumbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+165,
+166,
+"text.html.markdown markup.list.unnumbered.markdown markup.checkbox.begin.markdown-gfm punctuation.definition.checkbox.begin.markdown-gfm",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+166,
+167,
+"text.html.markdown markup.list.unnumbered.markdown markup.checkbox.mark.markdown-gfm",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+167,
+168,
+"text.html.markdown markup.list.unnumbered.markdown markup.checkbox.end.markdown-gfm punctuation.definition.checkbox.end.markdown-gfm",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+168,
+169,
+"text.html.markdown markup.list.unnumbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+169,
+172,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+172,
+180,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+180,
+181,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+181,
+183,
+"text.html.markdown markup.list.unnumbered.markdown markup.list.unnumbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+183,
+184,
+"text.html.markdown markup.list.unnumbered.markdown markup.list.unnumbered.bullet.markdown punctuation.definition.list_item.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+184,
+185,
+"text.html.markdown markup.list.unnumbered.markdown markup.list.unnumbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+185,
+189,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+189,
+195,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+195,
+199,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+199,
+206,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+206,
+211,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+211,
+212,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+212,
+213,
+"text.html.markdown markup.list.unnumbered.bullet.markdown punctuation.definition.list_item.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+213,
+214,
+"text.html.markdown markup.list.unnumbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+214,
+221,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+221,
+224,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+224,
+229,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+229,
+231,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown markup.bold.markdown punctuation.definition.bold.begin.markdown",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+231,
+235,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown markup.bold.markdown",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+235,
+237,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown markup.bold.markdown punctuation.definition.bold.end.markdown",
+"#ef7c2b",
+null,
+true,
+false
+],
+[
+237,
+238,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+238,
+241,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+241,
+242,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown markup.italic.markdown punctuation.definition.italic.begin.markdown",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+242,
+248,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown markup.italic.markdown",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+248,
+253,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown markup.italic.markdown",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+253,
+254,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown markup.italic.markdown punctuation.definition.italic.end.markdown",
+"#f8f8f2",
+null,
+false,
+true
+],
+[
+254,
+255,
+"text.html.markdown markup.list.unnumbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+255,
+256,
+"text.html.markdown markup.list.unnumbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+256,
+257,
+"text.html.markdown markup.list.numbered.bullet.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+257,
+258,
+"text.html.markdown markup.list.numbered.bullet.markdown punctuation.definition.list_item.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+258,
+259,
+"text.html.markdown markup.list.numbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+259,
+263,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+263,
+267,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+267,
+273,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+273,
+274,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+274,
+275,
+"text.html.markdown markup.list.numbered.bullet.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+275,
+276,
+"text.html.markdown markup.list.numbered.bullet.markdown punctuation.definition.list_item.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+276,
+277,
+"text.html.markdown markup.list.numbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+277,
+283,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+283,
+288,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+288,
+293,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+293,
+294,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+294,
+295,
+"text.html.markdown markup.list.numbered.bullet.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+295,
+296,
+"text.html.markdown markup.list.numbered.bullet.markdown punctuation.definition.list_item.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+296,
+297,
+"text.html.markdown markup.list.numbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+297,
+301,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+301,
+302,
+"text.html.markdown markup.list.numbered.markdown meta.paragraph.list.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+302,
+303,
+"text.html.markdown markup.list.numbered.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+303,
+304,
+"text.html.markdown markup.quote.markdown punctuation.definition.blockquote.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+304,
+305,
+"text.html.markdown markup.quote.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+305,
+308,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+308,
+312,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+312,
+317,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+317,
+320,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+320,
+327,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+327,
+330,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+330,
+333,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+333,
+339,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+339,
+343,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+343,
+344,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+344,
+345,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown punctuation.definition.blockquote.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+345,
+346,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+346,
+357,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+357,
+362,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+362,
+365,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+365,
+371,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+371,
+372,
+"text.html.markdown markup.quote.markdown markup.paragraph.markdown",
+"#848484",
+null,
+false,
+true
+],
+[
+372,
+373,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+373,
+376,
+"text.html.markdown markup.heading.3.markdown punctuation.definition.heading.begin.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+376,
+377,
+"text.html.markdown markup.heading.3.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+377,
+383,
+"text.html.markdown markup.heading.3.markdown entity.name.section.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+383,
+384,
+"text.html.markdown markup.heading.3.markdown meta.whitespace.newline.markdown",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+384,
+385,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+385,
+388,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm punctuation.definition.raw.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+388,
+392,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm constant.other.language-name.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+392,
+393,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm meta.fold.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+393,
+396,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+396,
+397,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+397,
+407,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+407,
+408,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+408,
+409,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.quoted.single.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+409,
+412,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.quoted.single.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+412,
+415,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.quoted.single.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+415,
+422,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.quoted.single.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+422,
+423,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.quoted.single.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+423,
+424,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+424,
+429,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.identifier.shell meta.command.shell variable.function.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+429,
+430,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+430,
+431,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+431,
+433,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+433,
+434,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+434,
+436,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell punctuation.definition.parameter.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+436,
+444,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.parameter.option.shell variable.parameter.option.shell",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+444,
+445,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+445,
+452,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+452,
+453,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+453,
+463,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+463,
+464,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell punctuation.separator.sequence.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+464,
+465,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell meta.interpolation.tilde.shell variable.language.tilde.shell",
+"#78bc65",
+null,
+false,
+false
+],
+[
+465,
+466,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+466,
+470,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.unquoted.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+470,
+471,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+471,
+473,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash keyword.operator.logical.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+473,
+474,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+474,
+478,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.identifier.shell support.function.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+478,
+479,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+479,
+480,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.begin.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+480,
+484,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+484,
+485,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash meta.function-call.arguments.shell meta.string.glob.shell string.quoted.double.shell punctuation.definition.string.end.shell",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+485,
+486,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.shell.markdown-gfm source.shell.bash",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+486,
+489,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm punctuation.definition.raw.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+489,
+490,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm meta.fold.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+490,
+491,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+491,
+494,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm punctuation.definition.raw.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+494,
+496,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm constant.other.language-name.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+496,
+497,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm meta.fold.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+497,
+502,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js keyword.declaration.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+502,
+503,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+503,
+508,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.binding.name.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+508,
+509,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+509,
+510,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js keyword.operator.assignment.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+510,
+511,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+511,
+519,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+519,
+520,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js punctuation.accessor.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+520,
+526,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.js variable.function.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+526,
+527,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+527,
+528,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+528,
+531,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js meta.binding.name.js variable.parameter.function.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+531,
+532,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js punctuation.separator.parameter.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+532,
+533,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+533,
+534,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js meta.binding.destructuring.mapping.js punctuation.section.mapping.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+534,
+535,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js meta.binding.destructuring.mapping.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+535,
+541,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js meta.binding.destructuring.mapping.js meta.mapping.key.js meta.binding.name.js variable.parameter.function.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+541,
+542,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js meta.binding.destructuring.mapping.js meta.mapping.key.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+542,
+543,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js meta.binding.destructuring.mapping.js punctuation.section.mapping.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+543,
+544,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.parameters.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+544,
+545,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+545,
+547,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.js keyword.declaration.function.arrow.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+547,
+548,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+548,
+551,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+551,
+552,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+552,
+553,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js keyword.operator.arithmetic.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+553,
+554,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+554,
+560,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+560,
+561,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js punctuation.separator.comma.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+561,
+562,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+562,
+563,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.number.integer.decimal.js constant.numeric.value.js",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+563,
+564,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+564,
+565,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js punctuation.terminator.statement.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+565,
+566,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+566,
+573,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js support.type.object.console.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+573,
+574,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js punctuation.accessor.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+574,
+577,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.js support.function.console.js",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+577,
+578,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+578,
+579,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js string.quoted.other.js punctuation.definition.string.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+579,
+586,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js string.quoted.other.js",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+586,
+588,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+588,
+593,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js meta.interpolation.js source.js.embedded variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+593,
+594,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js meta.interpolation.js source.js.embedded punctuation.accessor.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+594,
+601,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js meta.interpolation.js source.js.embedded meta.function-call.js variable.function.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+601,
+602,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js meta.interpolation.js source.js.embedded meta.function-call.arguments.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+602,
+603,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js meta.interpolation.js source.js.embedded meta.function-call.arguments.js meta.group.js meta.number.integer.decimal.js constant.numeric.value.js",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+603,
+604,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js meta.interpolation.js source.js.embedded meta.function-call.arguments.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+604,
+605,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+605,
+606,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js meta.string.template.js string.quoted.other.js punctuation.definition.string.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+606,
+607,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js meta.function-call.arguments.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+607,
+608,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js punctuation.terminator.statement.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+608,
+609,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.javascript.markdown-gfm source.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+609,
+612,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm punctuation.definition.raw.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+612,
+613,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm meta.fold.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+613,
+614,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+614,
+617,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm punctuation.definition.raw.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+617,
+620,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm constant.other.language-name.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+620,
+621,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm meta.fold.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+621,
+622,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml punctuation.definition.tag.begin.opening.xml",
+"#78bc65",
+null,
+false,
+false
+],
+[
+622,
+631,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml entity.name.tag.localname.xml",
+"#ec475d",
+null,
+false,
+false
+],
+[
+631,
+632,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml",
+"#78bc65",
+null,
+false,
+false
+],
+[
+632,
+635,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml entity.other.attribute-name.localname.xml",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+635,
+636,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml punctuation.separator.key-value.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+636,
+637,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml punctuation.definition.string.begin.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+637,
+660,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+660,
+661,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+661,
+667,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+667,
+668,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml punctuation.definition.string.end.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+668,
+669,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml",
+"#78bc65",
+null,
+false,
+false
+],
+[
+669,
+675,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml entity.other.attribute-name.localname.xml",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+675,
+676,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml punctuation.separator.key-value.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+676,
+677,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml punctuation.definition.string.begin.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+677,
+681,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+681,
+682,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml punctuation.definition.string.end.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+682,
+683,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml",
+"#78bc65",
+null,
+false,
+false
+],
+[
+683,
+687,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml entity.other.attribute-name.localname.xml",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+687,
+688,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml punctuation.separator.key-value.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+688,
+689,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml punctuation.definition.string.begin.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+689,
+694,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+694,
+695,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+695,
+699,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+699,
+700,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml meta.string.xml string.quoted.double.xml punctuation.definition.string.end.xml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+700,
+702,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml meta.tag.xml punctuation.definition.tag.end.self-closing.xml",
+"#78bc65",
+null,
+false,
+false
+],
+[
+702,
+703,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.xml.markdown-gfm text.xml",
+"#78bc65",
+null,
+false,
+false
+],
+[
+703,
+706,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm punctuation.definition.raw.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+706,
+707,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm meta.fold.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+707,
+708,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+708,
+711,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm punctuation.definition.raw.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+711,
+717,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm constant.other.language-name.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+717,
+718,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm meta.fold.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+718,
+723,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python variable.other.python",
+"#78bc65",
+null,
+false,
+false
+],
+[
+723,
+724,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+724,
+725,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python keyword.operator.assignment.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+725,
+726,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+726,
+729,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.identifier.python support.function.builtin.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+729,
+730,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python punctuation.section.arguments.begin.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+730,
+733,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.function-call.identifier.python support.function.builtin.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+733,
+734,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.function-call.arguments.python punctuation.section.arguments.begin.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+734,
+738,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.function-call.arguments.python meta.path.python variable.other.python",
+"#78bc65",
+null,
+false,
+false
+],
+[
+738,
+739,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.function-call.arguments.python meta.path.python punctuation.accessor.dot.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+739,
+747,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.function-call.arguments.python meta.path.python variable.other.python",
+"#78bc65",
+null,
+false,
+false
+],
+[
+747,
+748,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.function-call.arguments.python punctuation.section.arguments.end.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+748,
+749,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+749,
+752,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.expression.generator.python keyword.control.loop.for.generator.python",
+"#ec475d",
+null,
+false,
+false
+],
+[
+752,
+753,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.expression.generator.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+753,
+757,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.expression.generator.python variable.other.python",
+"#78bc65",
+null,
+false,
+false
+],
+[
+757,
+758,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.expression.generator.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+758,
+760,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.expression.generator.python keyword.control.loop.in.python",
+"#ec475d",
+null,
+false,
+false
+],
+[
+760,
+761,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+761,
+766,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python variable.other.python",
+"#78bc65",
+null,
+false,
+false
+],
+[
+766,
+767,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python punctuation.section.arguments.end.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+767,
+768,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+768,
+773,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.identifier.python support.function.builtin.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+773,
+774,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python punctuation.section.arguments.begin.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+774,
+775,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python storage.type.string.python",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+775,
+776,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python string.quoted.double.python punctuation.definition.string.begin.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+776,
+777,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python punctuation.section.interpolation.begin.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+777,
+782,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python variable.other.python",
+"#78bc65",
+null,
+false,
+false
+],
+[
+782,
+783,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python punctuation.separator.format-spec.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+783,
+784,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python meta.format-spec.python constant.other.format-spec.python",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+784,
+785,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python punctuation.section.interpolation.end.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+785,
+786,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python string.quoted.double.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+786,
+795,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python string.quoted.double.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+795,
+798,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python string.quoted.double.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+798,
+799,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python punctuation.section.interpolation.begin.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+799,
+802,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python meta.function-call.identifier.python support.function.builtin.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+802,
+803,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python meta.function-call.arguments.python punctuation.section.arguments.begin.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+803,
+808,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python meta.function-call.arguments.python variable.other.python",
+"#78bc65",
+null,
+false,
+false
+],
+[
+808,
+809,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python meta.function-call.arguments.python punctuation.section.arguments.end.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+809,
+810,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python meta.interpolation.python punctuation.section.interpolation.end.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+810,
+811,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python string.quoted.double.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+811,
+816,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python string.quoted.double.python",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+816,
+817,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python meta.string.python string.quoted.double.python punctuation.definition.string.end.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+817,
+818,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python meta.function-call.arguments.python punctuation.section.arguments.end.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+818,
+819,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.python.markdown-gfm source.python",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+819,
+822,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm punctuation.definition.raw.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+822,
+823,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm meta.fold.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+823,
+824,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+824,
+827,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm punctuation.definition.raw.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+827,
+831,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm constant.other.language-name.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+831,
+832,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm meta.fold.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+832,
+839,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.mapping.key.yaml meta.string.yaml string.unquoted.plain.out.yaml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+839,
+840,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.mapping.yaml punctuation.separator.key-value.mapping.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+840,
+841,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+841,
+842,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.number.integer.decimal.yaml constant.numeric.value.yaml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+842,
+843,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+843,
+850,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.mapping.key.yaml meta.string.yaml string.unquoted.plain.out.yaml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+850,
+851,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.mapping.yaml punctuation.separator.key-value.mapping.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+851,
+852,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+852,
+853,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.sequence.flow.yaml punctuation.definition.sequence.begin.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+853,
+857,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.sequence.flow.yaml meta.string.yaml string.unquoted.plain.in.yaml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+857,
+858,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.sequence.flow.yaml punctuation.separator.sequence.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+858,
+859,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.sequence.flow.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+859,
+866,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.sequence.flow.yaml meta.string.yaml string.unquoted.plain.in.yaml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+866,
+867,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml meta.sequence.flow.yaml punctuation.definition.sequence.end.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+867,
+868,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.yaml.markdown-gfm source.yaml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+868,
+871,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm punctuation.definition.raw.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+871,
+872,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm meta.fold.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+872,
+873,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+873,
+876,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm punctuation.definition.raw.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+876,
+878,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm constant.other.language-name.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+878,
+879,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm meta.fold.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+879,
+882,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+882,
+883,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+883,
+889,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go variable.function.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+889,
+890,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+890,
+891,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+891,
+893,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go meta.string.go string.quoted.double.go constant.other.placeholder.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+893,
+894,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+894,
+899,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+899,
+901,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go meta.string.go string.quoted.double.go constant.character.escape.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+901,
+902,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+902,
+903,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+903,
+904,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+904,
+907,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go variable.function.go support.function.builtin.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+907,
+908,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+908,
+913,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+913,
+914,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+914,
+915,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+915,
+916,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.go.markdown-gfm source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+916,
+919,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm punctuation.definition.raw.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+919,
+920,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm meta.fold.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+920,
+921,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+921,
+924,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm punctuation.definition.raw.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+924,
+928,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm constant.other.language-name.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+928,
+929,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm meta.fold.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+929,
+932,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust keyword.declaration.variable.rust",
+"#ec475d",
+null,
+false,
+false
+],
+[
+932,
+933,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+933,
+938,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+938,
+939,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust punctuation.separator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+939,
+940,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+940,
+945,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust storage.type.rust",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+945,
+946,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+946,
+947,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust keyword.operator.assignment.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+947,
+948,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+948,
+953,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+953,
+954,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+954,
+958,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+958,
+959,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+959,
+960,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+960,
+961,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+961,
+964,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+964,
+965,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+965,
+966,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust punctuation.section.parameters.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+966,
+967,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust variable.parameter.rust",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+967,
+968,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust meta.function.parameters.rust punctuation.section.parameters.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+968,
+969,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+969,
+970,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust meta.path.rust variable.other.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+970,
+971,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust meta.path.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+971,
+974,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust meta.path.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+974,
+975,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+975,
+976,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust meta.function.closure.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+976,
+977,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+977,
+978,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.path.rust punctuation.accessor.dot.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+978,
+981,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.path.rust variable.function.rust",
+"#78bc65",
+null,
+false,
+false
+],
+[
+981,
+982,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust punctuation.section.group.begin.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+982,
+983,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust meta.group.rust punctuation.section.group.end.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+983,
+984,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust punctuation.terminator.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+984,
+985,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.rust.markdown-gfm source.rust",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+985,
+988,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm punctuation.definition.raw.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+988,
+989,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm meta.fold.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+989,
+990,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+990,
+993,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm punctuation.definition.raw.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+993,
+996,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm constant.other.language-name.markdown",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+996,
+997,
+"text.html.markdown meta.code-fence.definition.begin.markdown-gfm meta.fold.code-fence.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+997,
+1003,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql keyword.other.dml.sql",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1003,
+1004,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1004,
+1009,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql meta.function-call.sql support.function.aggregate.sql",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1009,
+1010,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql meta.function-call.sql meta.group.sql punctuation.section.arguments.begin.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1010,
+1011,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql meta.function-call.sql meta.group.sql constant.other.wildcard.asterisk.sql",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1011,
+1012,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql meta.function-call.sql meta.group.sql punctuation.section.arguments.end.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1012,
+1013,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1013,
+1017,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql keyword.other.dml.sql",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1017,
+1018,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1018,
+1026,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql meta.table-name.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1026,
+1027,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1027,
+1032,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql keyword.other.dml.sql",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1032,
+1033,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1033,
+1041,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql meta.column-name.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1041,
+1042,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1042,
+1043,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql keyword.operator.comparison.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1043,
+1044,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1044,
+1049,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql constant.language.boolean.false.sql",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1049,
+1050,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql punctuation.terminator.statement.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1050,
+1051,
+"text.html.markdown meta.code-fence.body.markdown-gfm markup.raw.code-fence.sql.markdown-gfm source.sql",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1051,
+1054,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm punctuation.definition.raw.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1054,
+1055,
+"text.html.markdown meta.code-fence.definition.end.markdown-gfm meta.fold.code-fence.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1055,
+1056,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1056,
+1059,
+"text.html.markdown meta.separator.thematic-break.markdown punctuation.definition.thematic-break.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1059,
+1060,
+"text.html.markdown meta.separator.thematic-break.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1060,
+1061,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1061,
+1066,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1066,
+1068,
+"text.html.markdown meta.paragraph.markdown markup.strikethrough.markdown-gfm punctuation.definition.strikethrough.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1068,
+1071,
+"text.html.markdown meta.paragraph.markdown markup.strikethrough.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1071,
+1073,
+"text.html.markdown meta.paragraph.markdown markup.strikethrough.markdown-gfm punctuation.definition.strikethrough.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1073,
+1074,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1074,
+1081,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1081,
+1083,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1083,
+1088,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1088,
+1093,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1093,
+1094,
+"text.html.markdown meta.paragraph.markdown markup.raw.inline.markdown punctuation.definition.raw.begin.markdown",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1094,
+1101,
+"text.html.markdown meta.paragraph.markdown markup.raw.inline.markdown",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1101,
+1105,
+"text.html.markdown meta.paragraph.markdown markup.raw.inline.markdown",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1105,
+1106,
+"text.html.markdown meta.paragraph.markdown markup.raw.inline.markdown punctuation.definition.raw.end.markdown",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1106,
+1108,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1108,
+1112,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1112,
+1114,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1114,
+1123,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1123,
+1124,
+"text.html.markdown meta.paragraph.markdown meta.link.reference.footnote.markdown-extra punctuation.definition.link.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1124,
+1126,
+"text.html.markdown meta.paragraph.markdown meta.link.reference.footnote.markdown-extra meta.link.reference.literal.footnote-id.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1126,
+1127,
+"text.html.markdown meta.paragraph.markdown meta.link.reference.footnote.markdown-extra punctuation.definition.link.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1127,
+1128,
+"text.html.markdown meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1128,
+1129,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1129,
+1130,
+"text.html.markdown meta.table.header.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1130,
+1131,
+"text.html.markdown meta.table.header.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1131,
+1137,
+"text.html.markdown meta.table.header.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1137,
+1138,
+"text.html.markdown meta.table.header.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1138,
+1139,
+"text.html.markdown meta.table.header.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1139,
+1145,
+"text.html.markdown meta.table.header.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1145,
+1146,
+"text.html.markdown meta.table.header.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1146,
+1147,
+"text.html.markdown meta.table.header.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1147,
+1148,
+"text.html.markdown meta.table.header-separator.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1148,
+1149,
+"text.html.markdown meta.table.header-separator.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1149,
+1154,
+"text.html.markdown meta.table.header-separator.markdown-gfm punctuation.section.table-header.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1154,
+1155,
+"text.html.markdown meta.table.header-separator.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1155,
+1156,
+"text.html.markdown meta.table.header-separator.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1156,
+1157,
+"text.html.markdown meta.table.header-separator.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1157,
+1161,
+"text.html.markdown meta.table.header-separator.markdown-gfm punctuation.section.table-header.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1161,
+1162,
+"text.html.markdown meta.table.header-separator.markdown-gfm punctuation.definition.table-cell-alignment.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1162,
+1163,
+"text.html.markdown meta.table.header-separator.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1163,
+1164,
+"text.html.markdown meta.table.header-separator.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1164,
+1165,
+"text.html.markdown meta.table.header-separator.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1165,
+1166,
+"text.html.markdown meta.table.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1166,
+1167,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1167,
+1173,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1173,
+1174,
+"text.html.markdown meta.table.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1174,
+1175,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1175,
+1181,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1181,
+1182,
+"text.html.markdown meta.table.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1182,
+1183,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1183,
+1184,
+"text.html.markdown meta.table.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1184,
+1185,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1185,
+1191,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1191,
+1192,
+"text.html.markdown meta.table.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1192,
+1193,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1193,
+1199,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1199,
+1200,
+"text.html.markdown meta.table.markdown-gfm punctuation.separator.table-cell.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1200,
+1201,
+"text.html.markdown meta.table.markdown-gfm",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1201,
+1202,
+"text.html.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1202,
+1203,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra punctuation.definition.reference.begin.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1203,
+1205,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra entity.name.reference.link.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1205,
+1206,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra punctuation.definition.reference.end.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1206,
+1207,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra punctuation.separator.key-value.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1207,
+1208,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1208,
+1213,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1213,
+1217,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1217,
+1220,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1220,
+1227,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1227,
+1228,
+"text.html.markdown meta.link.reference.def.footnote.markdown-extra meta.paragraph.markdown",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

@@ -1,0 +1,34 @@
+diff --git a/src/feed.js b/src/feed.js
+index 3b18e51..a9c4f02 100644
+--- a/src/feed.js
++++ b/src/feed.js
+@@ -12,9 +12,11 @@ export function parseFeed(xml) {
+   const doc = new DOMParser().parseFromString(xml, "text/xml");
+   const items = [...doc.querySelectorAll("item")];
+-  return items.map((item) => ({
+-    title: item.querySelector("title").textContent,
+-  }));
++  return items
++    .filter((item) => item.querySelector("enclosure"))
++    .map((item) => ({
++      title: item.querySelector("title")?.textContent ?? "Untitled",
++      url: item.querySelector("enclosure").getAttribute("url"),
++    }));
+ }
+
+ export function newest(items) {
+@@ -40,7 +42,7 @@ export function newest(items) {
+ export const VERSION = "1.4.2";
+-export const USER_AGENT = "nsn-feed/1.4";
++export const USER_AGENT = `nsn-feed/${VERSION}`;
+
+ // eof
+\ No newline at end of file
+diff --git a/README.md b/README.md
+deleted file mode 100644
+index 7e2a1b0..0000000
+--- a/README.md
++++ /dev/null
+@@ -1,2 +0,0 @@
+-# Feed tools
+-Old notes.

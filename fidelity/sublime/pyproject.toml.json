@@ -1,0 +1,3419 @@
+{
+"file": "pyproject.toml",
+"syntax": "TOML",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "# Project settings, generated for the fidelity harness.\n[project]\nname = \"feed-tools\"\nversion = \"1.4.2\"\ndescription = 'Fetch, filter and publish podcast feeds'\nrequires-python = \">=3.11\"\nauthors = [{ name = \"Sam Example\", email = \"sam@example.com\" }]\nkeywords = [\"podcast\", \"rss\", \"feeds\"]\ndependencies = [\n    \"httpx>=0.27\",\n    \"lxml>=5.2\",\n]\n\n[project.scripts]\nfeed = \"feed_tools.cli:main\"\n\n[tool.ruff]\nline-length = 100\ntarget-version = \"py311\"\nexclude = [\".venv\", \"build\"]\n\n[tool.ruff.lint]\nselect = [\"E\", \"F\", \"I\"]\nignore = []\n\n[tool.feed]\nretries = 3\ntimeout = 2.5\nverbose = false\nmax_size = 1_048_576\nmask = 0o755\ncolor = 0xEC475D\nstarted = 2026-10-01T08:00:00Z\nwindow = { start = 08:00:00, end = 22:30:00 }\nbanner = \"\"\"\nNight Shift Notes\n  feed tools\"\"\"\npath = 'C:\\Users\\sam\\feeds'\n\n[[tool.feed.sources]]\nurl = \"https://example.com/podcast/feed.xml\"\nweight = 1.0\n\n[[tool.feed.sources]]\nurl = \"https://example.org/other.xml\"\nweight = -0.5\n",
+"tokens": [
+[
+0,
+1,
+"source.toml meta.mapping.toml comment.line.number-sign.toml punctuation.definition.comment.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1,
+2,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+2,
+10,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+10,
+20,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+20,
+30,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+30,
+34,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+34,
+38,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+38,
+47,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+47,
+55,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+55,
+56,
+"source.toml meta.mapping.toml comment.line.number-sign.toml",
+"#848484",
+null,
+false,
+false
+],
+[
+56,
+57,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+57,
+64,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+64,
+65,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+65,
+66,
+"source.toml meta.section.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+66,
+70,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+70,
+71,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+71,
+72,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+72,
+73,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+73,
+74,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+74,
+84,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+84,
+85,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+85,
+86,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+86,
+93,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+93,
+94,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+94,
+95,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+95,
+96,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+96,
+97,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+97,
+102,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+102,
+103,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+103,
+104,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+104,
+115,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+115,
+116,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+116,
+117,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+117,
+118,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+118,
+119,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+119,
+126,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+126,
+133,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+133,
+137,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+137,
+145,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+145,
+153,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+153,
+158,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+158,
+159,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+159,
+160,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+160,
+175,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+175,
+176,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+176,
+177,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+177,
+178,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+178,
+179,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+179,
+185,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+185,
+186,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+186,
+187,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+187,
+194,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+194,
+195,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+195,
+196,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+196,
+197,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+197,
+198,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+198,
+199,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml punctuation.section.mapping.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+199,
+200,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+200,
+204,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+204,
+205,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+205,
+206,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+206,
+207,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+207,
+208,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+208,
+212,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+212,
+219,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+219,
+220,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+220,
+221,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+221,
+222,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+222,
+227,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+227,
+228,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+228,
+229,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+229,
+230,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+230,
+231,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+231,
+246,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+246,
+247,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+247,
+248,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+248,
+249,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.mapping.toml punctuation.section.mapping.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+249,
+250,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+250,
+251,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+251,
+259,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+259,
+260,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+260,
+261,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+261,
+262,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+262,
+263,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+263,
+264,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+264,
+271,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+271,
+272,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+272,
+273,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+273,
+274,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+274,
+275,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+275,
+278,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+278,
+279,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+279,
+280,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+280,
+281,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+281,
+282,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+282,
+287,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+287,
+288,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+288,
+289,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+289,
+290,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+290,
+302,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+302,
+303,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+303,
+304,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+304,
+305,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+305,
+306,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+306,
+307,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+307,
+311,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+311,
+312,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+312,
+323,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+323,
+324,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+324,
+325,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+325,
+326,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+326,
+330,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+330,
+331,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+331,
+340,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+340,
+341,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+341,
+342,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+342,
+343,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+343,
+344,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+344,
+345,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+345,
+346,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+346,
+347,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+347,
+354,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+354,
+355,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+355,
+362,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+362,
+363,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+363,
+364,
+"source.toml meta.section.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+364,
+368,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+368,
+369,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+369,
+370,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+370,
+371,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+371,
+372,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+372,
+391,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+391,
+392,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+392,
+393,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+393,
+394,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+394,
+395,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+395,
+399,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+399,
+400,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+400,
+404,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+404,
+405,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+405,
+406,
+"source.toml meta.section.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+406,
+417,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+417,
+418,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+418,
+419,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+419,
+420,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+420,
+423,
+"source.toml meta.mapping.value.toml meta.number.integer.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+423,
+424,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+424,
+438,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+438,
+439,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+439,
+440,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+440,
+441,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+441,
+442,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+442,
+447,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+447,
+448,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+448,
+449,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+449,
+456,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+456,
+457,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+457,
+458,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+458,
+459,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+459,
+460,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+460,
+461,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+461,
+466,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+466,
+467,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+467,
+468,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+468,
+469,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+469,
+470,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+470,
+475,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+475,
+476,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+476,
+477,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+477,
+478,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+478,
+479,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+479,
+480,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+480,
+484,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+484,
+485,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+485,
+489,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+489,
+490,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+490,
+494,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+494,
+495,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+495,
+496,
+"source.toml meta.section.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+496,
+502,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+502,
+503,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+503,
+504,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+504,
+505,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+505,
+506,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+506,
+507,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+507,
+508,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+508,
+509,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+509,
+510,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+510,
+511,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+511,
+512,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+512,
+513,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+513,
+514,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+514,
+515,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+515,
+516,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+516,
+517,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+517,
+518,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+518,
+519,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+519,
+520,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+520,
+521,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+521,
+527,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+527,
+528,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+528,
+529,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+529,
+530,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+530,
+531,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+531,
+532,
+"source.toml meta.mapping.value.toml meta.sequence.array.toml punctuation.section.sequence.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+532,
+533,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+533,
+534,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+534,
+535,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+535,
+539,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+539,
+540,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+540,
+544,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+544,
+545,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+545,
+546,
+"source.toml meta.section.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+546,
+553,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+553,
+554,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+554,
+555,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+555,
+556,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+556,
+557,
+"source.toml meta.mapping.value.toml meta.number.integer.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+557,
+558,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+558,
+565,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+565,
+566,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+566,
+567,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+567,
+568,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+568,
+569,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+569,
+570,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml punctuation.separator.decimal.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+570,
+571,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+571,
+572,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+572,
+579,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+579,
+580,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+580,
+581,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+581,
+582,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+582,
+587,
+"source.toml meta.mapping.value.toml constant.language.boolean.false.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+587,
+588,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+588,
+596,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+596,
+597,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+597,
+598,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+598,
+599,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+599,
+608,
+"source.toml meta.mapping.value.toml meta.number.integer.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+608,
+609,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+609,
+613,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+613,
+614,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+614,
+615,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+615,
+616,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+616,
+618,
+"source.toml meta.mapping.value.toml meta.number.integer.octal.toml constant.numeric.base.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+618,
+621,
+"source.toml meta.mapping.value.toml meta.number.integer.octal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+621,
+622,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+622,
+627,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+627,
+628,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+628,
+629,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+629,
+630,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+630,
+632,
+"source.toml meta.mapping.value.toml meta.number.integer.hexadecimal.toml constant.numeric.base.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+632,
+638,
+"source.toml meta.mapping.value.toml meta.number.integer.hexadecimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+638,
+639,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+639,
+646,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+646,
+647,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+647,
+648,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+648,
+649,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+649,
+653,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+653,
+654,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml punctuation.separator.date.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+654,
+656,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+656,
+657,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml punctuation.separator.date.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+657,
+659,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+659,
+660,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml punctuation.separator.datetime.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+660,
+662,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+662,
+663,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml punctuation.separator.time.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+663,
+665,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+665,
+666,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml punctuation.separator.time.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+666,
+668,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+668,
+669,
+"source.toml meta.mapping.value.toml constant.other.datetime.toml storage.modifier.timezone.toml",
+"#ec475d",
+null,
+false,
+false
+],
+[
+669,
+670,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+670,
+676,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+676,
+677,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+677,
+678,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+678,
+679,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+679,
+680,
+"source.toml meta.mapping.value.toml meta.mapping.toml punctuation.section.mapping.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+680,
+681,
+"source.toml meta.mapping.value.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+681,
+686,
+"source.toml meta.mapping.value.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+686,
+687,
+"source.toml meta.mapping.value.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+687,
+688,
+"source.toml meta.mapping.value.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+688,
+689,
+"source.toml meta.mapping.value.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+689,
+691,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+691,
+692,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml punctuation.separator.time.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+692,
+694,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+694,
+695,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml punctuation.separator.time.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+695,
+697,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+697,
+698,
+"source.toml meta.mapping.value.toml meta.mapping.toml punctuation.separator.sequence.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+698,
+699,
+"source.toml meta.mapping.value.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+699,
+702,
+"source.toml meta.mapping.value.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+702,
+703,
+"source.toml meta.mapping.value.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+703,
+704,
+"source.toml meta.mapping.value.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+704,
+705,
+"source.toml meta.mapping.value.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+705,
+707,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+707,
+708,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml punctuation.separator.time.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+708,
+710,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+710,
+711,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml punctuation.separator.time.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+711,
+713,
+"source.toml meta.mapping.value.toml meta.mapping.value.toml constant.other.time.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+713,
+714,
+"source.toml meta.mapping.value.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+714,
+715,
+"source.toml meta.mapping.value.toml meta.mapping.toml punctuation.section.mapping.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+715,
+716,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+716,
+722,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+722,
+723,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+723,
+724,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+724,
+725,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+725,
+728,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+728,
+729,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+729,
+735,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+735,
+741,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+741,
+746,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+746,
+747,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+747,
+749,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+749,
+754,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+754,
+759,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+759,
+762,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.block.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+762,
+763,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+763,
+767,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+767,
+768,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+768,
+769,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+769,
+770,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+770,
+771,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+771,
+789,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+789,
+790,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.single.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+790,
+791,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+791,
+792,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+792,
+794,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+794,
+798,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+798,
+799,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+799,
+803,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+803,
+804,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+804,
+811,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+811,
+813,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+813,
+814,
+"source.toml meta.section.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+814,
+817,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+817,
+818,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+818,
+819,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+819,
+820,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+820,
+821,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+821,
+840,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+840,
+841,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+841,
+848,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+848,
+849,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+849,
+857,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+857,
+858,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+858,
+859,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+859,
+865,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+865,
+866,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+866,
+867,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+867,
+868,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+868,
+869,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+869,
+870,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml punctuation.separator.decimal.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+870,
+871,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+871,
+872,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+872,
+873,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+873,
+875,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+875,
+879,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+879,
+880,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+880,
+884,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+884,
+885,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml punctuation.accessor.dot.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+885,
+892,
+"source.toml meta.section.toml meta.brackets.toml entity.name.section.toml",
+"#e7ce57",
+null,
+true,
+false
+],
+[
+892,
+894,
+"source.toml meta.section.toml meta.brackets.toml punctuation.section.brackets.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+894,
+895,
+"source.toml meta.section.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+895,
+898,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+898,
+899,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+899,
+900,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+900,
+901,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+901,
+902,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.begin.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+902,
+921,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+921,
+922,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+922,
+931,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+931,
+932,
+"source.toml meta.mapping.value.toml meta.string.toml string.quoted.double.toml punctuation.definition.string.end.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+932,
+933,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+933,
+939,
+"source.toml meta.mapping.key.toml meta.string.toml string.unquoted.toml",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+939,
+940,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+940,
+941,
+"source.toml meta.mapping.toml punctuation.separator.key-value.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+941,
+942,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+942,
+943,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml keyword.operator.arithmetic.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+943,
+944,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+944,
+945,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml punctuation.separator.decimal.toml",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+945,
+946,
+"source.toml meta.mapping.value.toml meta.number.float.decimal.toml constant.numeric.value.toml",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+946,
+947,
+"source.toml meta.mapping.toml",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

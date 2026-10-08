@@ -1,0 +1,21 @@
+{
+  "fill" : {
+    "solid" : "extended-srgb:0.04500,0.04500,0.04500,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "glass" : false,
+          "image-name" : "rune.png",
+          "name" : "rune"
+        }
+      ]
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
+}

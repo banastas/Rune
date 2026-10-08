@@ -1,0 +1,8 @@
+2026-10-02 17:24:01.123 INFO  [sync] opened scratch.md (2,431 bytes) from iCloud Drive
+2026-10-02 17:24:03.456 DEBUG [hold] pause requested for "scratch.md" after its upload, took 112ms
+2026-10-02 17:24:09.002 WARN  [upload] iCloud slow to answer, retrying in 15s (attempt 2 of 5)
+2026-10-02 17:24:24.871 ERROR [upload] failed: storage full, the file kept in Application Support/nib/Recovery
+2026-10-02T17:25:00Z level=info msg="merged 3 changes" device=Air id=550e8400-e29b-41d4-a716-446655440000 ok=true
+Oct  2 17:25:12 studio Nib[4211]: notice: receipt written, version 0x1f3a, retry=false
+127.0.0.1 - - [02/Oct/2026:17:25:30 +0000] "GET /feed.xml HTTP/1.1" 200 5120 "https://example.com/podcast" "curl/8.4"
+17:25:41.500 [error] the fetch timed out after 20.0s; see https://example.com/status?id=42.

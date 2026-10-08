@@ -1,0 +1,16 @@
+21:44:28.029 nib-spike push-typing on Bill’s MacBook Air, macOS Version 27.0 (Build 26A428)
+21:44:28.035 wrote push-200k-214428.md (204800 bytes)
+21:44:28.041   +6 ms  ubiquitous status=current - not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:44:28.360   +325 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:44:30.972   +2936 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:44:31.500   pauseSync: 528 ms · ok
+21:44:34.416   upload of save 1: 2912 ms · ok
+21:44:36.753   upload of save 4: 2237 ms · ok
+21:44:39.693   upload of save 7: 2166 ms · ok
+21:44:42.790   upload of save 10: 2252 ms · ok
+21:44:45.786   upload of save 13: 2233 ms · ok
+21:44:48.893   upload of save 16: 2333 ms · ok
+21:44:51.763   upload of save 19: 2197 ms · ok
+21:44:54.033   uploadLocalVersion(failOnConflict): 2248 ms · ok
+21:44:54.427   resumeSync: 394 ms · ok
+21:44:54.427 RESULT push-typing 200k · save every 1.0 s × 20 (22923 ms) · upload at most every 3.0 s: 7 uploads during typing, final upload ok

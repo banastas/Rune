@@ -1,0 +1,11 @@
+# Line endings and diffs, generated for the fidelity harness
+* text=auto
+*.sh text eol=lf
+*.bat text eol=crlf
+*.png binary
+*.mp3 -text -diff
+*.svg linguist-generated=true
+docs/** linguist-documentation
+*.lock merge=ours -crlf
+[attr]audio binary -diff
+*.wav audio

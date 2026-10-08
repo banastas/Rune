@@ -1,0 +1,6083 @@
+{
+"file": "feeds.go",
+"syntax": "Go",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "// Package feeds fetches podcast feeds. Generated for the fidelity harness.\npackage feeds\n\nimport (\n\t\"context\"\n\t\"encoding/xml\"\n\t\"errors\"\n\t\"fmt\"\n\t\"net/http\"\n\t\"time\"\n)\n\nconst DefaultTimeout = 2500 * time.Millisecond\n\nvar ErrNoItems = errors.New(\"feeds: no items\")\n\n// Episode is one item of a feed.\ntype Episode struct {\n\tTitle    string        `xml:\"title\"`\n\tURL      string        `xml:\"enclosure>url,attr\"`\n\tDuration time.Duration `xml:\"-\"`\n}\n\ntype Fetcher interface {\n\tFetch(ctx context.Context, url string) ([]Episode, error)\n}\n\ntype client struct {\n\thttp    *http.Client\n\tretries int\n}\n\nfunc New(retries int) Fetcher {\n\treturn &client{http: &http.Client{Timeout: DefaultTimeout}, retries: retries}\n}\n\nfunc (c *client) Fetch(ctx context.Context, url string) ([]Episode, error) {\n\tvar lastErr error\n\tfor attempt := 0; attempt < c.retries; attempt++ {\n\t\treq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"feeds: %w\", err)\n\t\t}\n\t\tresp, err := c.http.Do(req)\n\t\tif err != nil {\n\t\t\tlastErr = err\n\t\t\tcontinue\n\t\t}\n\t\tdefer resp.Body.Close()\n\t\tvar doc struct {\n\t\t\tItems []Episode `xml:\"channel>item\"`\n\t\t}\n\t\tif err := xml.NewDecoder(resp.Body).Decode(&doc); err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\tif len(doc.Items) == 0 {\n\t\t\treturn nil, ErrNoItems\n\t\t}\n\t\treturn doc.Items, nil\n\t}\n\treturn nil, lastErr\n}\n\nfunc Newest(items []Episode, count int) []Episode {\n\tif count > len(items) {\n\t\tcount = len(items)\n\t}\n\tout := make([]Episode, 0, count)\n\tfor i, item := range items[:count] {\n\t\t_ = i\n\t\tout = append(out, item)\n\t}\n\treturn out\n}\n",
+"tokens": [
+[
+0,
+2,
+"source.go comment.line.double-slash.go punctuation.definition.comment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+2,
+3,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+3,
+11,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+11,
+17,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+17,
+25,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+25,
+33,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+33,
+40,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+40,
+50,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+50,
+54,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+54,
+58,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+58,
+67,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+67,
+75,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+75,
+76,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+76,
+83,
+"source.go meta.namespace.go keyword.declaration.namespace.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+83,
+84,
+"source.go meta.namespace.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+84,
+89,
+"source.go meta.namespace.go entity.name.namespace.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+89,
+90,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+90,
+91,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+91,
+97,
+"source.go keyword.other.import.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+97,
+98,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+98,
+99,
+"source.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+99,
+100,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+100,
+101,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+101,
+102,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+102,
+109,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+109,
+110,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+110,
+111,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+111,
+112,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+112,
+113,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+113,
+121,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+121,
+122,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+122,
+125,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+125,
+126,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+126,
+127,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+127,
+128,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+128,
+129,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+129,
+135,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+135,
+136,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+136,
+137,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+137,
+138,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+138,
+139,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+139,
+142,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+142,
+143,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+143,
+144,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+144,
+145,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+145,
+146,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+146,
+149,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+149,
+150,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+150,
+154,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+154,
+155,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+155,
+156,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+156,
+157,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+157,
+158,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+158,
+162,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+162,
+163,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+163,
+164,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+164,
+165,
+"source.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+165,
+166,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+166,
+167,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+167,
+172,
+"source.go keyword.declaration.const.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+172,
+173,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+173,
+187,
+"source.go variable.other.constant.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+187,
+188,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+188,
+189,
+"source.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+189,
+190,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+190,
+194,
+"source.go meta.number.integer.decimal.go constant.numeric.value.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+194,
+195,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+195,
+196,
+"source.go keyword.operator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+196,
+197,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+197,
+201,
+"source.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+201,
+202,
+"source.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+202,
+213,
+"source.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+213,
+214,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+214,
+215,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+215,
+218,
+"source.go keyword.declaration.var.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+218,
+219,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+219,
+229,
+"source.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+229,
+230,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+230,
+231,
+"source.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+231,
+232,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+232,
+238,
+"source.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+238,
+239,
+"source.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+239,
+242,
+"source.go variable.function.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+242,
+243,
+"source.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+243,
+244,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+244,
+251,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+251,
+254,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+254,
+259,
+"source.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+259,
+260,
+"source.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+260,
+261,
+"source.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+261,
+262,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+262,
+263,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+263,
+265,
+"source.go comment.line.double-slash.go punctuation.definition.comment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+265,
+266,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+266,
+274,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+274,
+277,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+277,
+281,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+281,
+286,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+286,
+289,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+289,
+291,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+291,
+296,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+296,
+297,
+"source.go comment.line.double-slash.go",
+"#848484",
+null,
+false,
+false
+],
+[
+297,
+301,
+"source.go keyword.declaration.type.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+301,
+302,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+302,
+309,
+"source.go entity.name.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+309,
+310,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+310,
+316,
+"source.go keyword.declaration.struct.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+316,
+317,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+317,
+318,
+"source.go meta.type.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+318,
+319,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+319,
+320,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+320,
+325,
+"source.go meta.type.go variable.other.member.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+325,
+329,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+329,
+335,
+"source.go meta.type.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+335,
+343,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+343,
+344,
+"source.go meta.type.go meta.annotation.go punctuation.definition.annotation.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+344,
+347,
+"source.go meta.type.go meta.annotation.identifier.go variable.annotation.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+347,
+348,
+"source.go meta.type.go meta.annotation.go punctuation.separator.key-value.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+348,
+349,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+349,
+354,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+354,
+355,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+355,
+356,
+"source.go meta.type.go meta.annotation.go punctuation.definition.annotation.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+356,
+357,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+357,
+358,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+358,
+361,
+"source.go meta.type.go variable.other.member.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+361,
+367,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+367,
+373,
+"source.go meta.type.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+373,
+381,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+381,
+382,
+"source.go meta.type.go meta.annotation.go punctuation.definition.annotation.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+382,
+385,
+"source.go meta.type.go meta.annotation.identifier.go variable.annotation.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+385,
+386,
+"source.go meta.type.go meta.annotation.go punctuation.separator.key-value.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+386,
+387,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+387,
+396,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+396,
+397,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+397,
+400,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+400,
+401,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.separator.sequence.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+401,
+405,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+405,
+406,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+406,
+407,
+"source.go meta.type.go meta.annotation.go punctuation.definition.annotation.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+407,
+408,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+408,
+409,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+409,
+417,
+"source.go meta.type.go variable.other.member.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+417,
+418,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+418,
+422,
+"source.go meta.type.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+422,
+423,
+"source.go meta.type.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+423,
+431,
+"source.go meta.type.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+431,
+432,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+432,
+433,
+"source.go meta.type.go meta.annotation.go punctuation.definition.annotation.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+433,
+436,
+"source.go meta.type.go meta.annotation.identifier.go variable.annotation.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+436,
+437,
+"source.go meta.type.go meta.annotation.go punctuation.separator.key-value.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+437,
+438,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+438,
+439,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+439,
+440,
+"source.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+440,
+441,
+"source.go meta.type.go meta.annotation.go punctuation.definition.annotation.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+441,
+442,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+442,
+443,
+"source.go meta.type.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+443,
+444,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+444,
+445,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+445,
+449,
+"source.go keyword.declaration.type.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+449,
+450,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+450,
+457,
+"source.go entity.name.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+457,
+458,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+458,
+467,
+"source.go meta.type.go keyword.declaration.interface.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+467,
+468,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+468,
+469,
+"source.go meta.type.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+469,
+470,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+470,
+471,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+471,
+476,
+"source.go meta.type.go entity.name.function.go",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+476,
+477,
+"source.go meta.type.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+477,
+480,
+"source.go meta.type.go variable.parameter.go",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+480,
+481,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+481,
+488,
+"source.go meta.type.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+488,
+489,
+"source.go meta.type.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+489,
+496,
+"source.go meta.type.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+496,
+497,
+"source.go meta.type.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+497,
+498,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+498,
+501,
+"source.go meta.type.go variable.parameter.go",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+501,
+502,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+502,
+508,
+"source.go meta.type.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+508,
+509,
+"source.go meta.type.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+509,
+510,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+510,
+511,
+"source.go meta.type.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+511,
+512,
+"source.go meta.type.go punctuation.section.brackets.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+512,
+513,
+"source.go meta.type.go punctuation.section.brackets.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+513,
+520,
+"source.go meta.type.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+520,
+521,
+"source.go meta.type.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+521,
+522,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+522,
+527,
+"source.go meta.type.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+527,
+528,
+"source.go meta.type.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+528,
+529,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+529,
+530,
+"source.go meta.type.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+530,
+531,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+531,
+532,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+532,
+536,
+"source.go keyword.declaration.type.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+536,
+537,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+537,
+543,
+"source.go entity.name.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+543,
+544,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+544,
+550,
+"source.go keyword.declaration.struct.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+550,
+551,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+551,
+552,
+"source.go meta.type.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+552,
+553,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+553,
+554,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+554,
+558,
+"source.go meta.type.go variable.other.member.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+558,
+562,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+562,
+563,
+"source.go meta.type.go keyword.operator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+563,
+567,
+"source.go meta.type.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+567,
+568,
+"source.go meta.type.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+568,
+574,
+"source.go meta.type.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+574,
+575,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+575,
+576,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+576,
+583,
+"source.go meta.type.go variable.other.member.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+583,
+584,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+584,
+587,
+"source.go meta.type.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+587,
+588,
+"source.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+588,
+589,
+"source.go meta.type.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+589,
+590,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+590,
+591,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+591,
+595,
+"source.go meta.function.declaration.go keyword.declaration.function.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+595,
+596,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+596,
+599,
+"source.go meta.function.declaration.go entity.name.function.go",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+599,
+600,
+"source.go meta.function.declaration.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+600,
+607,
+"source.go meta.function.declaration.go variable.parameter.go",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+607,
+608,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+608,
+611,
+"source.go meta.function.declaration.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+611,
+612,
+"source.go meta.function.declaration.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+612,
+613,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+613,
+620,
+"source.go meta.function.declaration.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+620,
+621,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+621,
+622,
+"source.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+622,
+623,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+623,
+624,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+624,
+630,
+"source.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+630,
+631,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+631,
+632,
+"source.go meta.block.go keyword.operator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+632,
+638,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+638,
+639,
+"source.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+639,
+643,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+643,
+644,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+644,
+645,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+645,
+646,
+"source.go meta.block.go meta.block.go keyword.operator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+646,
+650,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+650,
+651,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+651,
+657,
+"source.go meta.block.go meta.block.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+657,
+658,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+658,
+665,
+"source.go meta.block.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+665,
+666,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+666,
+667,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+667,
+681,
+"source.go meta.block.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+681,
+682,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+682,
+683,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+683,
+684,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+684,
+691,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+691,
+692,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+692,
+693,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+693,
+700,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+700,
+701,
+"source.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+701,
+702,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+702,
+703,
+"source.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+703,
+704,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+704,
+705,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+705,
+709,
+"source.go meta.function.declaration.go keyword.declaration.function.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+709,
+710,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+710,
+711,
+"source.go meta.function.declaration.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+711,
+712,
+"source.go meta.function.declaration.go variable.parameter.go",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+712,
+713,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+713,
+714,
+"source.go meta.function.declaration.go keyword.operator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+714,
+720,
+"source.go meta.function.declaration.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+720,
+721,
+"source.go meta.function.declaration.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+721,
+722,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+722,
+727,
+"source.go meta.function.declaration.go entity.name.function.go",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+727,
+728,
+"source.go meta.function.declaration.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+728,
+731,
+"source.go meta.function.declaration.go variable.parameter.go",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+731,
+732,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+732,
+739,
+"source.go meta.function.declaration.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+739,
+740,
+"source.go meta.function.declaration.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+740,
+747,
+"source.go meta.function.declaration.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+747,
+748,
+"source.go meta.function.declaration.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+748,
+749,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+749,
+752,
+"source.go meta.function.declaration.go variable.parameter.go",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+752,
+753,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+753,
+759,
+"source.go meta.function.declaration.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+759,
+760,
+"source.go meta.function.declaration.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+760,
+761,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+761,
+762,
+"source.go meta.function.declaration.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+762,
+763,
+"source.go meta.function.declaration.go punctuation.section.brackets.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+763,
+764,
+"source.go meta.function.declaration.go punctuation.section.brackets.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+764,
+771,
+"source.go meta.function.declaration.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+771,
+772,
+"source.go meta.function.declaration.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+772,
+773,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+773,
+778,
+"source.go meta.function.declaration.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+778,
+779,
+"source.go meta.function.declaration.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+779,
+780,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+780,
+781,
+"source.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+781,
+782,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+782,
+783,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+783,
+786,
+"source.go meta.block.go keyword.declaration.var.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+786,
+787,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+787,
+794,
+"source.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+794,
+795,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+795,
+800,
+"source.go meta.block.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+800,
+801,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+801,
+802,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+802,
+805,
+"source.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+805,
+806,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+806,
+813,
+"source.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+813,
+814,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+814,
+816,
+"source.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+816,
+817,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+817,
+818,
+"source.go meta.block.go meta.number.integer.decimal.go constant.numeric.value.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+818,
+819,
+"source.go meta.block.go punctuation.terminator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+819,
+820,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+820,
+827,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+827,
+828,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+828,
+829,
+"source.go meta.block.go keyword.operator.comparison.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+829,
+830,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+830,
+831,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+831,
+832,
+"source.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+832,
+839,
+"source.go meta.block.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+839,
+840,
+"source.go meta.block.go punctuation.terminator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+840,
+841,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+841,
+848,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+848,
+850,
+"source.go meta.block.go keyword.operator.assignment.augmented.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+850,
+851,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+851,
+852,
+"source.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+852,
+853,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+853,
+855,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+855,
+858,
+"source.go meta.block.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+858,
+859,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+859,
+860,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+860,
+863,
+"source.go meta.block.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+863,
+864,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+864,
+866,
+"source.go meta.block.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+866,
+867,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+867,
+871,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+871,
+872,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+872,
+893,
+"source.go meta.block.go meta.block.go variable.function.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+893,
+894,
+"source.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+894,
+897,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+897,
+898,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+898,
+899,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+899,
+903,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+903,
+904,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+904,
+913,
+"source.go meta.block.go meta.block.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+913,
+914,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+914,
+915,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+915,
+918,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+918,
+919,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+919,
+920,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+920,
+923,
+"source.go meta.block.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+923,
+924,
+"source.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+924,
+925,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+925,
+927,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+927,
+929,
+"source.go meta.block.go meta.block.go keyword.control.conditional.if.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+929,
+930,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+930,
+933,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+933,
+934,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+934,
+936,
+"source.go meta.block.go meta.block.go keyword.operator.comparison.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+936,
+937,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+937,
+940,
+"source.go meta.block.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+940,
+941,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+941,
+942,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+942,
+943,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+943,
+946,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+946,
+952,
+"source.go meta.block.go meta.block.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+952,
+953,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+953,
+956,
+"source.go meta.block.go meta.block.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+956,
+957,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+957,
+958,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+958,
+961,
+"source.go meta.block.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+961,
+962,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+962,
+968,
+"source.go meta.block.go meta.block.go meta.block.go variable.function.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+968,
+969,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+969,
+970,
+"source.go meta.block.go meta.block.go meta.block.go meta.string.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+970,
+977,
+"source.go meta.block.go meta.block.go meta.block.go meta.string.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+977,
+979,
+"source.go meta.block.go meta.block.go meta.block.go meta.string.go string.quoted.double.go constant.other.placeholder.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+979,
+980,
+"source.go meta.block.go meta.block.go meta.block.go meta.string.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+980,
+981,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+981,
+982,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+982,
+985,
+"source.go meta.block.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+985,
+986,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+986,
+987,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+987,
+989,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+989,
+990,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+990,
+991,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+991,
+993,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+993,
+997,
+"source.go meta.block.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+997,
+998,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+998,
+999,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+999,
+1002,
+"source.go meta.block.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1002,
+1003,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1003,
+1005,
+"source.go meta.block.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1005,
+1006,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1006,
+1007,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1007,
+1008,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1008,
+1012,
+"source.go meta.block.go meta.block.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1012,
+1013,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1013,
+1015,
+"source.go meta.block.go meta.block.go variable.function.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1015,
+1016,
+"source.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1016,
+1019,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1019,
+1020,
+"source.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1020,
+1021,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1021,
+1023,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1023,
+1025,
+"source.go meta.block.go meta.block.go keyword.control.conditional.if.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1025,
+1026,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1026,
+1029,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1029,
+1030,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1030,
+1032,
+"source.go meta.block.go meta.block.go keyword.operator.comparison.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1032,
+1033,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1033,
+1036,
+"source.go meta.block.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1036,
+1037,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1037,
+1038,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1038,
+1039,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1039,
+1042,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1042,
+1049,
+"source.go meta.block.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1049,
+1050,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1050,
+1051,
+"source.go meta.block.go meta.block.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1051,
+1052,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1052,
+1055,
+"source.go meta.block.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1055,
+1056,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1056,
+1059,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1059,
+1067,
+"source.go meta.block.go meta.block.go meta.block.go keyword.control.flow.continue.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1067,
+1068,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1068,
+1070,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1070,
+1071,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1071,
+1072,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1072,
+1074,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1074,
+1079,
+"source.go meta.block.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1079,
+1080,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1080,
+1084,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1084,
+1085,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1085,
+1089,
+"source.go meta.block.go meta.block.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1089,
+1090,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1090,
+1095,
+"source.go meta.block.go meta.block.go variable.function.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1095,
+1096,
+"source.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1096,
+1097,
+"source.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1097,
+1098,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1098,
+1100,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1100,
+1103,
+"source.go meta.block.go meta.block.go keyword.declaration.var.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1103,
+1104,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1104,
+1107,
+"source.go meta.block.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1107,
+1108,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1108,
+1114,
+"source.go meta.block.go meta.block.go keyword.declaration.struct.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1114,
+1115,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1115,
+1116,
+"source.go meta.block.go meta.block.go meta.type.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1116,
+1117,
+"source.go meta.block.go meta.block.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1117,
+1120,
+"source.go meta.block.go meta.block.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1120,
+1125,
+"source.go meta.block.go meta.block.go meta.type.go variable.other.member.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1125,
+1126,
+"source.go meta.block.go meta.block.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1126,
+1127,
+"source.go meta.block.go meta.block.go meta.type.go punctuation.section.brackets.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1127,
+1128,
+"source.go meta.block.go meta.block.go meta.type.go punctuation.section.brackets.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1128,
+1135,
+"source.go meta.block.go meta.block.go meta.type.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1135,
+1136,
+"source.go meta.block.go meta.block.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1136,
+1137,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.go punctuation.definition.annotation.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1137,
+1140,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.identifier.go variable.annotation.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1140,
+1141,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.go punctuation.separator.key-value.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1141,
+1142,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.definition.string.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1142,
+1149,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1149,
+1150,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1150,
+1154,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.parameters.go string.quoted.double.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1154,
+1155,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.parameters.go string.quoted.double.go punctuation.definition.string.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1155,
+1156,
+"source.go meta.block.go meta.block.go meta.type.go meta.annotation.go punctuation.definition.annotation.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1156,
+1157,
+"source.go meta.block.go meta.block.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1157,
+1159,
+"source.go meta.block.go meta.block.go meta.type.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1159,
+1160,
+"source.go meta.block.go meta.block.go meta.type.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1160,
+1161,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1161,
+1163,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1163,
+1165,
+"source.go meta.block.go meta.block.go keyword.control.conditional.if.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1165,
+1166,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1166,
+1169,
+"source.go meta.block.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1169,
+1170,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1170,
+1172,
+"source.go meta.block.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1172,
+1173,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1173,
+1176,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1176,
+1177,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1177,
+1187,
+"source.go meta.block.go meta.block.go variable.function.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1187,
+1188,
+"source.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1188,
+1192,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1192,
+1193,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1193,
+1197,
+"source.go meta.block.go meta.block.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1197,
+1198,
+"source.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1198,
+1199,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1199,
+1205,
+"source.go meta.block.go meta.block.go variable.function.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1205,
+1206,
+"source.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1206,
+1207,
+"source.go meta.block.go meta.block.go keyword.operator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1207,
+1210,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1210,
+1211,
+"source.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1211,
+1212,
+"source.go meta.block.go meta.block.go punctuation.terminator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1212,
+1213,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1213,
+1216,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1216,
+1217,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1217,
+1219,
+"source.go meta.block.go meta.block.go keyword.operator.comparison.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1219,
+1220,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1220,
+1223,
+"source.go meta.block.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1223,
+1224,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1224,
+1225,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1225,
+1226,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1226,
+1229,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1229,
+1235,
+"source.go meta.block.go meta.block.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1235,
+1236,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1236,
+1239,
+"source.go meta.block.go meta.block.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1239,
+1240,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1240,
+1241,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1241,
+1244,
+"source.go meta.block.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1244,
+1245,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1245,
+1247,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1247,
+1248,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1248,
+1249,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1249,
+1251,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1251,
+1253,
+"source.go meta.block.go meta.block.go keyword.control.conditional.if.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1253,
+1254,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1254,
+1257,
+"source.go meta.block.go meta.block.go variable.function.go support.function.builtin.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1257,
+1258,
+"source.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1258,
+1261,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1261,
+1262,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1262,
+1267,
+"source.go meta.block.go meta.block.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1267,
+1268,
+"source.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1268,
+1269,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1269,
+1271,
+"source.go meta.block.go meta.block.go keyword.operator.comparison.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1271,
+1272,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1272,
+1273,
+"source.go meta.block.go meta.block.go meta.number.integer.decimal.go constant.numeric.value.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1273,
+1274,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1274,
+1275,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1275,
+1276,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1276,
+1279,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1279,
+1285,
+"source.go meta.block.go meta.block.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1285,
+1286,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1286,
+1289,
+"source.go meta.block.go meta.block.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1289,
+1290,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1290,
+1291,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1291,
+1301,
+"source.go meta.block.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1301,
+1302,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1302,
+1304,
+"source.go meta.block.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1304,
+1305,
+"source.go meta.block.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1305,
+1306,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1306,
+1308,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1308,
+1314,
+"source.go meta.block.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1314,
+1315,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1315,
+1318,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1318,
+1319,
+"source.go meta.block.go meta.block.go punctuation.accessor.dot.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1319,
+1324,
+"source.go meta.block.go meta.block.go variable.other.member.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1324,
+1325,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1325,
+1326,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1326,
+1329,
+"source.go meta.block.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1329,
+1330,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1330,
+1331,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1331,
+1332,
+"source.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1332,
+1333,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1333,
+1334,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1334,
+1340,
+"source.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1340,
+1341,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1341,
+1344,
+"source.go meta.block.go constant.language.null.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1344,
+1345,
+"source.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1345,
+1346,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1346,
+1353,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1353,
+1354,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1354,
+1355,
+"source.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1355,
+1356,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1356,
+1357,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1357,
+1361,
+"source.go meta.function.declaration.go keyword.declaration.function.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1361,
+1362,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1362,
+1368,
+"source.go meta.function.declaration.go entity.name.function.go",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+1368,
+1369,
+"source.go meta.function.declaration.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1369,
+1374,
+"source.go meta.function.declaration.go variable.parameter.go",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1374,
+1375,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1375,
+1376,
+"source.go meta.function.declaration.go punctuation.section.brackets.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1376,
+1377,
+"source.go meta.function.declaration.go punctuation.section.brackets.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1377,
+1384,
+"source.go meta.function.declaration.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1384,
+1385,
+"source.go meta.function.declaration.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1385,
+1386,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1386,
+1391,
+"source.go meta.function.declaration.go variable.parameter.go",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1391,
+1392,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1392,
+1395,
+"source.go meta.function.declaration.go storage.type.go support.type.builtin.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1395,
+1396,
+"source.go meta.function.declaration.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1396,
+1397,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1397,
+1398,
+"source.go meta.function.declaration.go punctuation.section.brackets.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1398,
+1399,
+"source.go meta.function.declaration.go punctuation.section.brackets.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1399,
+1406,
+"source.go meta.function.declaration.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1406,
+1407,
+"source.go meta.function.declaration.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1407,
+1408,
+"source.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1408,
+1409,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1409,
+1410,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1410,
+1412,
+"source.go meta.block.go keyword.control.conditional.if.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1412,
+1413,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1413,
+1418,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1418,
+1419,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1419,
+1420,
+"source.go meta.block.go keyword.operator.comparison.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1420,
+1421,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1421,
+1424,
+"source.go meta.block.go variable.function.go support.function.builtin.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1424,
+1425,
+"source.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1425,
+1430,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1430,
+1431,
+"source.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1431,
+1432,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1432,
+1433,
+"source.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1433,
+1434,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1434,
+1436,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1436,
+1441,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1441,
+1442,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1442,
+1443,
+"source.go meta.block.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1443,
+1444,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1444,
+1447,
+"source.go meta.block.go meta.block.go variable.function.go support.function.builtin.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1447,
+1448,
+"source.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1448,
+1453,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1453,
+1454,
+"source.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1454,
+1455,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1455,
+1456,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1456,
+1457,
+"source.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1457,
+1458,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1458,
+1459,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1459,
+1462,
+"source.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1462,
+1463,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1463,
+1465,
+"source.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1465,
+1466,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1466,
+1470,
+"source.go meta.block.go variable.function.go support.function.builtin.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1470,
+1471,
+"source.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1471,
+1472,
+"source.go meta.block.go punctuation.section.brackets.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1472,
+1473,
+"source.go meta.block.go punctuation.section.brackets.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1473,
+1480,
+"source.go meta.block.go storage.type.go",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1480,
+1481,
+"source.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1481,
+1482,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1482,
+1483,
+"source.go meta.block.go meta.number.integer.decimal.go constant.numeric.value.go",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1483,
+1484,
+"source.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1484,
+1485,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1485,
+1490,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1490,
+1491,
+"source.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1491,
+1492,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1492,
+1493,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1493,
+1496,
+"source.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1496,
+1497,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1497,
+1498,
+"source.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1498,
+1499,
+"source.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1499,
+1500,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1500,
+1504,
+"source.go meta.block.go variable.other.readwrite.declaration.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1504,
+1505,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1505,
+1507,
+"source.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1507,
+1508,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1508,
+1513,
+"source.go meta.block.go keyword.other.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1513,
+1514,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1514,
+1519,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1519,
+1520,
+"source.go meta.block.go punctuation.section.brackets.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1520,
+1521,
+"source.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1521,
+1526,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1526,
+1527,
+"source.go meta.block.go punctuation.section.brackets.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1527,
+1528,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1528,
+1529,
+"source.go meta.block.go meta.block.go punctuation.section.braces.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1529,
+1530,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1530,
+1532,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1532,
+1533,
+"source.go meta.block.go meta.block.go variable.language.anonymous.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1533,
+1534,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1534,
+1535,
+"source.go meta.block.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1535,
+1536,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1536,
+1537,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1537,
+1538,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1538,
+1540,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1540,
+1543,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1543,
+1544,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1544,
+1545,
+"source.go meta.block.go meta.block.go keyword.operator.assignment.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1545,
+1546,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1546,
+1552,
+"source.go meta.block.go meta.block.go variable.function.go support.function.builtin.go",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1552,
+1553,
+"source.go meta.block.go meta.block.go punctuation.section.parens.begin.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1553,
+1556,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1556,
+1557,
+"source.go meta.block.go meta.block.go punctuation.separator.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1557,
+1558,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1558,
+1562,
+"source.go meta.block.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1562,
+1563,
+"source.go meta.block.go meta.block.go punctuation.section.parens.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1563,
+1564,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1564,
+1565,
+"source.go meta.block.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1565,
+1566,
+"source.go meta.block.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1566,
+1567,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1567,
+1568,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1568,
+1574,
+"source.go meta.block.go keyword.control.go",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1574,
+1575,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1575,
+1578,
+"source.go meta.block.go variable.other.go",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1578,
+1579,
+"source.go meta.block.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1579,
+1580,
+"source.go meta.block.go punctuation.section.braces.end.go",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1580,
+1581,
+"source.go",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

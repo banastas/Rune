@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Q4 vendor review · notes</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root { --accent: #50b4d8; --gap: 12px; }
+    body { margin: 0; font: 15px/1.5 -apple-system, sans-serif; }
+    .card > h2, #summary { color: var(--accent); padding: calc(var(--gap) * 2); }
+    @media (max-width: 600px) { .card { display: none !important; } }
+  </style>
+</head>
+<body class="dark" data-theme="an-old-hope">
+  <!-- The summary is filled in by the script below. -->
+  <header id="summary" hidden>
+    <h1>Vendor review</h1>
+    <p>Draft for <strong>Sam</strong>, due <em>Friday</em>. See <a href="https://example.com/q4?view=all&amp;sort=date">the sheet</a>.</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Open items</h2>
+      <ul>
+        <li><input type="checkbox" checked disabled> Invoice attached</li>
+        <li><input type="checkbox"> QA sign-off</li>
+      </ul>
+      <img src="chart.png" alt="Spend by month" width="480" height="240">
+    </section>
+    <form action="/notes" method="post">
+      <label for="note">Note</label>
+      <textarea id="note" name="note" rows="4">We can ship on Friday if QA signs off.</textarea>
+      <button type="submit" disabled>Save</button>
+    </form>
+  </main>
+  <script type="module">
+    const summary = document.getElementById("summary");
+    const items = [...document.querySelectorAll(".card li")];
+    let done = 0;
+    for (const item of items) {
+      if (item.querySelector("input").checked) done += 1;
+    }
+    summary.hidden = false;
+    summary.dataset.progress = `${done}/${items.length}`;
+    window.addEventListener("load", () => console.log("ready", done));
+  </script>
+</body>
+</html>

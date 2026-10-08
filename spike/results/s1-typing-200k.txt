@@ -1,0 +1,23 @@
+21:42:29.999 nib-spike typing on Bill’s MacBook Air, macOS Version 27.0 (Build 26A428)
+21:42:30.007 wrote typing-200k-214230.md (204800 bytes)
+21:42:30.030   +23 ms  ubiquitous status=current - not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:42:30.463   +457 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:42:33.184   +3178 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:42:34.201 save 1: uploaded 8 ms
+21:42:35.214 save 2: uploaded not before next save
+21:42:36.234 save 3: uploaded not before next save
+21:42:37.243 save 4: uploaded not before next save
+21:42:38.265 save 5: uploaded not before next save
+21:42:39.285 save 6: uploaded not before next save
+21:42:40.307 save 7: uploaded not before next save
+21:42:41.345 save 8: uploaded not before next save
+21:42:42.369 save 9: uploaded not before next save
+21:42:43.401 save 10: uploaded not before next save
+21:42:44.431 save 11: uploaded not before next save
+21:42:45.461 save 12: uploaded not before next save
+21:42:46.514 save 13: uploaded not before next save
+21:42:47.540 save 14: uploaded not before next save
+21:42:48.546 save 15: uploaded not before next save
+21:42:48.553   +7 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+21:42:54.681   +6134 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+21:42:54.681 RESULT typing 200k every 1.0 s × 15: per save [8 ms, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save, not before next save]; last save uploaded 6134 ms after the loop ended

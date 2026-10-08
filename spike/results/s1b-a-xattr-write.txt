@@ -1,0 +1,5 @@
+08:05:00.268 nib-spike xattr-write on Bill’s MacBook Air, macOS Version 27.0 (Build 26A428)
+08:05:00.283   +8 ms  ubiquitous status=current - not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+08:05:00.813   +539 ms  ubiquitous status=current UPLOADING not-uploaded sync-running controls=pauseSync+failUploadOnConflict upload-error=NSCocoaErrorDomain 4355: Couldn’t access your iCloud account. The iCloud servers might be unreachable or your settings might be incorrect.
+08:05:03.732   +3458 ms  ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict
+08:05:03.732 RESULT xattr-write: com.apple.provenance, com.banastas.nib.lineage#S, com.banastas.nib.local

@@ -1,0 +1,5984 @@
+{
+"file": "FeedParser.java",
+"syntax": "Java",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "// Parses podcast feeds. Generated for the fidelity harness.\npackage com.example.feeds;\n\nimport java.time.Duration;\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.Optional;\n\n/**\n * Turns a feed's items into episodes.\n *\n * @author Sam Example\n */\npublic final class FeedParser implements Parser<Episode> {\n    private static final int MAX_ITEMS = 500;\n    private final boolean strict;\n    protected long parsed = 0L;\n\n    public enum Mode { STRICT, LENIENT }\n\n    public FeedParser(boolean strict) {\n        this.strict = strict;\n    }\n\n    @Override\n    public List<Episode> parse(String xml) throws FeedException {\n        if (xml == null || xml.isBlank()) {\n            throw new FeedException(\"empty feed\");\n        }\n        List<Episode> episodes = new ArrayList<>();\n        for (String item : xml.split(\"<item>\")) {\n            if (episodes.size() >= MAX_ITEMS) {\n                break;\n            }\n            Optional<Episode> episode = parseItem(item);\n            episode.ifPresent(episodes::add);\n            parsed++;\n        }\n        return episodes;\n    }\n\n    private Optional<Episode> parseItem(final String item) {\n        String title = between(item, \"<title>\", \"</title>\");\n        double minutes = 42.5;\n        char separator = ':';\n        Duration length = Duration.ofSeconds((long) (minutes * 60));\n        return title.isEmpty() && strict\n            ? Optional.empty()\n            : Optional.of(new Episode(title, length, separator));\n    }\n\n    static String between(String text, String start, String end) {\n        int from = text.indexOf(start);\n        int to = text.indexOf(end, from);\n        return from < 0 || to < 0 ? \"\" : text.substring(from + start.length(), to);\n    }\n\n    public static void main(String[] args) {\n        var parser = new FeedParser(true);\n        System.out.println(\"Parsed \" + parser.parsed + \" items\");\n    }\n}\n",
+"tokens": [
+[
+0,
+2,
+"source.java comment.line.double-slash.java punctuation.definition.comment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+2,
+3,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+3,
+10,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+10,
+18,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+18,
+25,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+25,
+35,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+35,
+39,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+39,
+43,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+43,
+52,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+52,
+60,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+60,
+61,
+"source.java comment.line.double-slash.java",
+"#848484",
+null,
+false,
+false
+],
+[
+61,
+68,
+"source.java meta.namespace.package.java keyword.declaration.namespace.package.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+68,
+69,
+"source.java meta.namespace.package.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+69,
+72,
+"source.java meta.namespace.package.identifier.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+72,
+73,
+"source.java meta.namespace.package.identifier.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+73,
+80,
+"source.java meta.namespace.package.identifier.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+80,
+81,
+"source.java meta.namespace.package.identifier.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+81,
+86,
+"source.java meta.namespace.package.identifier.java meta.path.java entity.name.namespace.package.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+86,
+87,
+"source.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+87,
+88,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+88,
+89,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+89,
+95,
+"source.java meta.import.java keyword.declaration.import.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+95,
+96,
+"source.java meta.import.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+96,
+100,
+"source.java meta.import.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+100,
+101,
+"source.java meta.import.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+101,
+105,
+"source.java meta.import.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+105,
+106,
+"source.java meta.import.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+106,
+114,
+"source.java meta.import.java meta.path.java entity.name.class.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+114,
+115,
+"source.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+115,
+116,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+116,
+122,
+"source.java meta.import.java keyword.declaration.import.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+122,
+123,
+"source.java meta.import.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+123,
+127,
+"source.java meta.import.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+127,
+128,
+"source.java meta.import.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+128,
+132,
+"source.java meta.import.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+132,
+133,
+"source.java meta.import.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+133,
+142,
+"source.java meta.import.java meta.path.java entity.name.class.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+142,
+143,
+"source.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+143,
+144,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+144,
+150,
+"source.java meta.import.java keyword.declaration.import.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+150,
+151,
+"source.java meta.import.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+151,
+155,
+"source.java meta.import.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+155,
+156,
+"source.java meta.import.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+156,
+160,
+"source.java meta.import.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+160,
+161,
+"source.java meta.import.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+161,
+165,
+"source.java meta.import.java meta.path.java entity.name.class.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+165,
+166,
+"source.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+166,
+167,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+167,
+173,
+"source.java meta.import.java keyword.declaration.import.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+173,
+174,
+"source.java meta.import.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+174,
+178,
+"source.java meta.import.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+178,
+179,
+"source.java meta.import.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+179,
+183,
+"source.java meta.import.java meta.path.java variable.namespace.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+183,
+184,
+"source.java meta.import.java meta.path.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+184,
+192,
+"source.java meta.import.java meta.path.java entity.name.class.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+192,
+193,
+"source.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+193,
+194,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+194,
+195,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+195,
+198,
+"source.java comment.block.documentation.java punctuation.definition.comment.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+198,
+199,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+199,
+200,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+200,
+201,
+"source.java comment.block.documentation.java punctuation.definition.comment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+201,
+202,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+202,
+208,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+208,
+210,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+210,
+217,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+217,
+223,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+223,
+228,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+228,
+237,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+237,
+238,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+238,
+239,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+239,
+240,
+"source.java comment.block.documentation.java punctuation.definition.comment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+240,
+241,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+241,
+242,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+242,
+243,
+"source.java comment.block.documentation.java punctuation.definition.comment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+243,
+244,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+244,
+251,
+"source.java comment.block.documentation.java meta.tag.block.javadoc entity.name.tag.documentation.javadoc",
+"#ec475d",
+null,
+false,
+false
+],
+[
+251,
+252,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+252,
+256,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+256,
+263,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+263,
+264,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+264,
+265,
+"source.java comment.block.documentation.java",
+"#848484",
+null,
+false,
+false
+],
+[
+265,
+267,
+"source.java comment.block.documentation.java punctuation.definition.comment.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+267,
+268,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+268,
+274,
+"source.java meta.class.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+274,
+275,
+"source.java meta.class.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+275,
+280,
+"source.java meta.class.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+280,
+281,
+"source.java meta.class.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+281,
+286,
+"source.java meta.class.java keyword.declaration.class.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+286,
+287,
+"source.java meta.class.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+287,
+297,
+"source.java meta.class.identifier.java entity.name.class.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+297,
+298,
+"source.java meta.class.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+298,
+308,
+"source.java meta.class.implements.java storage.modifier.implements.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+308,
+309,
+"source.java meta.class.implements.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+309,
+315,
+"source.java meta.class.implements.java entity.other.inherited-class.java",
+"#e7ce57",
+null,
+false,
+true
+],
+[
+315,
+316,
+"source.java meta.class.implements.java meta.generic.java punctuation.definition.generic.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+316,
+323,
+"source.java meta.class.implements.java meta.generic.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+323,
+324,
+"source.java meta.class.implements.java meta.generic.java punctuation.definition.generic.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+324,
+325,
+"source.java meta.class.implements.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+325,
+326,
+"source.java meta.class.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+326,
+327,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+327,
+331,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+331,
+338,
+"source.java meta.class.java meta.block.java meta.field.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+338,
+339,
+"source.java meta.class.java meta.block.java meta.field.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+339,
+345,
+"source.java meta.class.java meta.block.java meta.field.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+345,
+346,
+"source.java meta.class.java meta.block.java meta.field.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+346,
+351,
+"source.java meta.class.java meta.block.java meta.field.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+351,
+352,
+"source.java meta.class.java meta.block.java meta.field.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+352,
+355,
+"source.java meta.class.java meta.block.java meta.field.type.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+355,
+356,
+"source.java meta.class.java meta.block.java meta.field.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+356,
+365,
+"source.java meta.class.java meta.block.java meta.field.identifier.java entity.name.constant.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+365,
+366,
+"source.java meta.class.java meta.block.java meta.field.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+366,
+367,
+"source.java meta.class.java meta.block.java meta.field.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+367,
+368,
+"source.java meta.class.java meta.block.java meta.field.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+368,
+371,
+"source.java meta.class.java meta.block.java meta.field.value.java meta.number.integer.decimal.java constant.numeric.value.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+371,
+372,
+"source.java meta.class.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+372,
+373,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+373,
+377,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+377,
+384,
+"source.java meta.class.java meta.block.java meta.field.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+384,
+385,
+"source.java meta.class.java meta.block.java meta.field.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+385,
+390,
+"source.java meta.class.java meta.block.java meta.field.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+390,
+391,
+"source.java meta.class.java meta.block.java meta.field.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+391,
+398,
+"source.java meta.class.java meta.block.java meta.field.type.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+398,
+399,
+"source.java meta.class.java meta.block.java meta.field.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+399,
+405,
+"source.java meta.class.java meta.block.java meta.field.identifier.java variable.other.member.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+405,
+406,
+"source.java meta.class.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+406,
+407,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+407,
+411,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+411,
+420,
+"source.java meta.class.java meta.block.java meta.field.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+420,
+421,
+"source.java meta.class.java meta.block.java meta.field.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+421,
+425,
+"source.java meta.class.java meta.block.java meta.field.type.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+425,
+426,
+"source.java meta.class.java meta.block.java meta.field.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+426,
+432,
+"source.java meta.class.java meta.block.java meta.field.identifier.java variable.other.member.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+432,
+433,
+"source.java meta.class.java meta.block.java meta.field.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+433,
+434,
+"source.java meta.class.java meta.block.java meta.field.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+434,
+435,
+"source.java meta.class.java meta.block.java meta.field.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+435,
+436,
+"source.java meta.class.java meta.block.java meta.field.value.java meta.number.integer.decimal.java constant.numeric.value.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+436,
+437,
+"source.java meta.class.java meta.block.java meta.field.value.java meta.number.integer.decimal.java constant.numeric.suffix.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+437,
+438,
+"source.java meta.class.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+438,
+439,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+439,
+440,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+440,
+444,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+444,
+450,
+"source.java meta.class.java meta.block.java meta.enum.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+450,
+451,
+"source.java meta.class.java meta.block.java meta.enum.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+451,
+455,
+"source.java meta.class.java meta.block.java meta.enum.java keyword.declaration.enum.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+455,
+456,
+"source.java meta.class.java meta.block.java meta.enum.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+456,
+460,
+"source.java meta.class.java meta.block.java meta.enum.identifier.java entity.name.enum.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+460,
+461,
+"source.java meta.class.java meta.block.java meta.enum.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+461,
+462,
+"source.java meta.class.java meta.block.java meta.enum.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+462,
+463,
+"source.java meta.class.java meta.block.java meta.enum.java meta.block.java meta.sequence.constants.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+463,
+469,
+"source.java meta.class.java meta.block.java meta.enum.java meta.block.java meta.sequence.constants.java meta.constant.identifier.java entity.name.constant.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+469,
+470,
+"source.java meta.class.java meta.block.java meta.enum.java meta.block.java meta.sequence.constants.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+470,
+471,
+"source.java meta.class.java meta.block.java meta.enum.java meta.block.java meta.sequence.constants.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+471,
+478,
+"source.java meta.class.java meta.block.java meta.enum.java meta.block.java meta.sequence.constants.java meta.constant.identifier.java entity.name.constant.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+478,
+479,
+"source.java meta.class.java meta.block.java meta.enum.java meta.block.java meta.sequence.constants.java meta.constant.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+479,
+480,
+"source.java meta.class.java meta.block.java meta.enum.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+480,
+481,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+481,
+482,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+482,
+486,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+486,
+492,
+"source.java meta.class.java meta.block.java meta.function.identifier.java meta.function.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+492,
+493,
+"source.java meta.class.java meta.block.java meta.function.identifier.java meta.function.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+493,
+503,
+"source.java meta.class.java meta.block.java meta.function.identifier.java entity.name.function.constructor.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+503,
+504,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+504,
+511,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+511,
+512,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+512,
+518,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java variable.parameter.java",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+518,
+519,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+519,
+520,
+"source.java meta.class.java meta.block.java meta.function.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+520,
+521,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+521,
+522,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+522,
+530,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+530,
+534,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java variable.language.this.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+534,
+535,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+535,
+541,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+541,
+542,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+542,
+543,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+543,
+544,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+544,
+550,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+550,
+551,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+551,
+552,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+552,
+556,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+556,
+557,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+557,
+558,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+558,
+559,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+559,
+563,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+563,
+564,
+"source.java meta.class.java meta.block.java meta.annotation.identifier.java punctuation.definition.annotation.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+564,
+572,
+"source.java meta.class.java meta.block.java meta.annotation.identifier.java variable.annotation.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+572,
+573,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+573,
+577,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+577,
+583,
+"source.java meta.class.java meta.block.java meta.function.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+583,
+584,
+"source.java meta.class.java meta.block.java meta.function.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+584,
+588,
+"source.java meta.class.java meta.block.java meta.function.return-type.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+588,
+589,
+"source.java meta.class.java meta.block.java meta.function.return-type.java meta.generic.java punctuation.definition.generic.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+589,
+596,
+"source.java meta.class.java meta.block.java meta.function.return-type.java meta.generic.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+596,
+597,
+"source.java meta.class.java meta.block.java meta.function.return-type.java meta.generic.java punctuation.definition.generic.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+597,
+598,
+"source.java meta.class.java meta.block.java meta.function.return-type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+598,
+603,
+"source.java meta.class.java meta.block.java meta.function.identifier.java entity.name.function.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+603,
+604,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+604,
+610,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+610,
+611,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+611,
+614,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java variable.parameter.java",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+614,
+615,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+615,
+616,
+"source.java meta.class.java meta.block.java meta.function.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+616,
+622,
+"source.java meta.class.java meta.block.java meta.function.throws.java storage.modifier.throws.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+622,
+623,
+"source.java meta.class.java meta.block.java meta.function.throws.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+623,
+636,
+"source.java meta.class.java meta.block.java meta.function.throws.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+636,
+637,
+"source.java meta.class.java meta.block.java meta.function.throws.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+637,
+638,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+638,
+639,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+639,
+647,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+647,
+649,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java keyword.control.conditional.if.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+649,
+650,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+650,
+651,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+651,
+654,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+654,
+655,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+655,
+657,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java keyword.operator.comparison.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+657,
+658,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+658,
+662,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java constant.language.null.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+662,
+663,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+663,
+665,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java keyword.operator.logical.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+665,
+666,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+666,
+669,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+669,
+670,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+670,
+677,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+677,
+678,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+678,
+679,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+679,
+680,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+680,
+681,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+681,
+682,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+682,
+683,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+683,
+695,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+695,
+700,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java keyword.control.flow.throw.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+700,
+701,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+701,
+704,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java keyword.other.storage.new.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+704,
+705,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java meta.function-call.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+705,
+718,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java meta.function-call.identifier.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+718,
+719,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+719,
+720,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+720,
+726,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+726,
+730,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+730,
+731,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+731,
+732,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.throw.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+732,
+733,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+733,
+734,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+734,
+742,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+742,
+743,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.conditional.if.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+743,
+744,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+744,
+752,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+752,
+756,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+756,
+757,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java meta.generic.java punctuation.definition.generic.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+757,
+764,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java meta.generic.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+764,
+765,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java meta.generic.java punctuation.definition.generic.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+765,
+766,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+766,
+774,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+774,
+775,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+775,
+776,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+776,
+777,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+777,
+780,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java keyword.other.storage.new.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+780,
+781,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+781,
+790,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.identifier.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+790,
+792,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.identifier.java meta.generic.java punctuation.definition.generic.diamond.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+792,
+793,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+793,
+794,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+794,
+795,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+795,
+796,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+796,
+804,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+804,
+807,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java keyword.control.loop.for.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+807,
+808,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+808,
+809,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+809,
+815,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.declaration.type.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+815,
+816,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+816,
+820,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+820,
+821,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+821,
+822,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+822,
+823,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+823,
+826,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+826,
+827,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+827,
+832,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+832,
+833,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+833,
+834,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+834,
+835,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+835,
+840,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+840,
+841,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+841,
+842,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+842,
+843,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+843,
+844,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+844,
+845,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+845,
+846,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+846,
+858,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+858,
+860,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java keyword.control.conditional.if.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+860,
+861,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+861,
+862,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+862,
+870,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+870,
+871,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+871,
+875,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+875,
+876,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+876,
+877,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+877,
+878,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+878,
+880,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java keyword.operator.comparison.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+880,
+881,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+881,
+890,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java constant.other.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+890,
+891,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+891,
+892,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+892,
+893,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+893,
+894,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+894,
+910,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+910,
+915,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.block.java meta.statement.flow.break.java keyword.control.flow.break.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+915,
+916,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+916,
+917,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+917,
+929,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+929,
+930,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.statement.conditional.if.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+930,
+931,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+931,
+943,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+943,
+951,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.type.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+951,
+952,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.type.java meta.generic.java punctuation.definition.generic.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+952,
+959,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.type.java meta.generic.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+959,
+960,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.type.java meta.generic.java punctuation.definition.generic.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+960,
+961,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+961,
+968,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+968,
+969,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+969,
+970,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+970,
+971,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+971,
+980,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.value.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+980,
+981,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+981,
+985,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+985,
+986,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+986,
+987,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+987,
+988,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+988,
+1000,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1000,
+1007,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1007,
+1008,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1008,
+1017,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1017,
+1018,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1018,
+1026,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1026,
+1028,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.function-call.arguments.java meta.group.java punctuation.accessor.double-colon.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1028,
+1031,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.function-call.arguments.java meta.group.java variable.function.reference.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1031,
+1032,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1032,
+1033,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1033,
+1034,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1034,
+1046,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1046,
+1052,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1052,
+1054,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java keyword.operator.arithmetic.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1054,
+1055,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1055,
+1056,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1056,
+1064,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1064,
+1065,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.loop.for.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1065,
+1066,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1066,
+1074,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1074,
+1080,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.control.flow.return.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1080,
+1081,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1081,
+1089,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1089,
+1090,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1090,
+1091,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1091,
+1095,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1095,
+1096,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1096,
+1097,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1097,
+1098,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1098,
+1102,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1102,
+1109,
+"source.java meta.class.java meta.block.java meta.function.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1109,
+1110,
+"source.java meta.class.java meta.block.java meta.function.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1110,
+1118,
+"source.java meta.class.java meta.block.java meta.function.return-type.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1118,
+1119,
+"source.java meta.class.java meta.block.java meta.function.return-type.java meta.generic.java punctuation.definition.generic.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1119,
+1126,
+"source.java meta.class.java meta.block.java meta.function.return-type.java meta.generic.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1126,
+1127,
+"source.java meta.class.java meta.block.java meta.function.return-type.java meta.generic.java punctuation.definition.generic.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1127,
+1128,
+"source.java meta.class.java meta.block.java meta.function.return-type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1128,
+1137,
+"source.java meta.class.java meta.block.java meta.function.identifier.java entity.name.function.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+1137,
+1138,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1138,
+1143,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1143,
+1144,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1144,
+1150,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1150,
+1151,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1151,
+1155,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java variable.parameter.java",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1155,
+1156,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1156,
+1157,
+"source.java meta.class.java meta.block.java meta.function.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1157,
+1158,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1158,
+1159,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1159,
+1167,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1167,
+1173,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1173,
+1174,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1174,
+1179,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1179,
+1180,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1180,
+1181,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1181,
+1182,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1182,
+1189,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1189,
+1190,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1190,
+1194,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1194,
+1195,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1195,
+1196,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1196,
+1197,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1197,
+1198,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1198,
+1204,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1204,
+1205,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1205,
+1206,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1206,
+1207,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1207,
+1208,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1208,
+1216,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1216,
+1217,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1217,
+1218,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1218,
+1219,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1219,
+1220,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1220,
+1228,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1228,
+1234,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1234,
+1235,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1235,
+1242,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1242,
+1243,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1243,
+1244,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1244,
+1245,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1245,
+1247,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.number.float.decimal.java constant.numeric.value.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1247,
+1248,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.number.float.decimal.java constant.numeric.value.java punctuation.separator.decimal.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1248,
+1249,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.number.float.decimal.java constant.numeric.value.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1249,
+1250,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1250,
+1251,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1251,
+1259,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1259,
+1263,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1263,
+1264,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1264,
+1273,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1273,
+1274,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1274,
+1275,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1275,
+1276,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1276,
+1277,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.string.java string.quoted.single.java punctuation.definition.string.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1277,
+1278,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.string.java string.quoted.single.java constant.character.literal.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1278,
+1279,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.string.java string.quoted.single.java punctuation.definition.string.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1279,
+1280,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1280,
+1281,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1281,
+1289,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1289,
+1297,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1297,
+1298,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1298,
+1304,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1304,
+1305,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1305,
+1306,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1306,
+1307,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1307,
+1315,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1315,
+1316,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1316,
+1325,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1325,
+1326,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1326,
+1327,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.cast.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1327,
+1331,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.cast.java meta.group.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1331,
+1332,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.cast.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1332,
+1333,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1333,
+1334,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1334,
+1341,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1341,
+1342,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1342,
+1343,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.group.java keyword.operator.arithmetic.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1343,
+1344,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1344,
+1346,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.group.java meta.number.integer.decimal.java constant.numeric.value.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1346,
+1347,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1347,
+1348,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1348,
+1349,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1349,
+1350,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1350,
+1358,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1358,
+1364,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.control.flow.return.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1364,
+1365,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1365,
+1370,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1370,
+1371,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1371,
+1378,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1378,
+1379,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1379,
+1380,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1380,
+1381,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1381,
+1383,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.operator.logical.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1383,
+1384,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1384,
+1390,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1390,
+1391,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.variable.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1391,
+1403,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1403,
+1404,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.operator.ternary.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1404,
+1405,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1405,
+1413,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1413,
+1414,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1414,
+1419,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1419,
+1420,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1420,
+1421,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1421,
+1422,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1422,
+1434,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1434,
+1435,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.operator.ternary.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1435,
+1436,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1436,
+1444,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1444,
+1445,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1445,
+1447,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1447,
+1448,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1448,
+1451,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java keyword.other.storage.new.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1451,
+1452,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1452,
+1459,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.identifier.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1459,
+1460,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1460,
+1465,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1465,
+1466,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1466,
+1467,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1467,
+1473,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1473,
+1474,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1474,
+1475,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1475,
+1484,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1484,
+1485,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1485,
+1486,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1486,
+1487,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1487,
+1488,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1488,
+1492,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1492,
+1493,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1493,
+1494,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1494,
+1495,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1495,
+1499,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1499,
+1505,
+"source.java meta.class.java meta.block.java meta.function.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1505,
+1506,
+"source.java meta.class.java meta.block.java meta.function.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1506,
+1512,
+"source.java meta.class.java meta.block.java meta.function.return-type.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1512,
+1513,
+"source.java meta.class.java meta.block.java meta.function.return-type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1513,
+1520,
+"source.java meta.class.java meta.block.java meta.function.identifier.java entity.name.function.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+1520,
+1521,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1521,
+1527,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1527,
+1528,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1528,
+1532,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java variable.parameter.java",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1532,
+1533,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1533,
+1534,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1534,
+1540,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1540,
+1541,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1541,
+1546,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java variable.parameter.java",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1546,
+1547,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1547,
+1548,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1548,
+1554,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1554,
+1555,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1555,
+1558,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java variable.parameter.java",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1558,
+1559,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1559,
+1560,
+"source.java meta.class.java meta.block.java meta.function.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1560,
+1561,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1561,
+1562,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1562,
+1570,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1570,
+1573,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1573,
+1574,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1574,
+1578,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1578,
+1579,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1579,
+1580,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1580,
+1581,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1581,
+1585,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1585,
+1586,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1586,
+1593,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1593,
+1594,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1594,
+1599,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1599,
+1600,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1600,
+1601,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1601,
+1602,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1602,
+1610,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1610,
+1613,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java storage.type.primitive.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1613,
+1614,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1614,
+1616,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1616,
+1617,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1617,
+1618,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1618,
+1619,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1619,
+1623,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1623,
+1624,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1624,
+1631,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1631,
+1632,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1632,
+1635,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1635,
+1636,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1636,
+1637,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1637,
+1641,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1641,
+1642,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1642,
+1643,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1643,
+1644,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1644,
+1652,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1652,
+1658,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.control.flow.return.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1658,
+1659,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1659,
+1663,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1663,
+1664,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1664,
+1665,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.operator.comparison.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1665,
+1666,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1666,
+1667,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.number.integer.decimal.java constant.numeric.value.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1667,
+1668,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1668,
+1670,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.operator.logical.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1670,
+1671,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1671,
+1673,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1673,
+1674,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1674,
+1675,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.operator.comparison.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1675,
+1676,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1676,
+1677,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.number.integer.decimal.java constant.numeric.value.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1677,
+1678,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1678,
+1679,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.operator.ternary.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1679,
+1680,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1680,
+1681,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.string.java string.quoted.double.java punctuation.definition.string.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1681,
+1682,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.string.java string.quoted.double.java punctuation.definition.string.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1682,
+1683,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1683,
+1684,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java keyword.operator.ternary.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1684,
+1685,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1685,
+1689,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1689,
+1690,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1690,
+1699,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1699,
+1700,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1700,
+1704,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1704,
+1705,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1705,
+1706,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java keyword.operator.arithmetic.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1706,
+1707,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1707,
+1712,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1712,
+1713,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1713,
+1719,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1719,
+1720,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1720,
+1721,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1721,
+1722,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.separator.comma.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1722,
+1723,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1723,
+1725,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1725,
+1726,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.statement.flow.return.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1726,
+1727,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1727,
+1728,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1728,
+1732,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1732,
+1733,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1733,
+1734,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1734,
+1735,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1735,
+1739,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1739,
+1745,
+"source.java meta.class.java meta.block.java meta.function.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1745,
+1746,
+"source.java meta.class.java meta.block.java meta.function.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1746,
+1752,
+"source.java meta.class.java meta.block.java meta.function.modifier.java storage.modifier.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1752,
+1753,
+"source.java meta.class.java meta.block.java meta.function.modifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1753,
+1757,
+"source.java meta.class.java meta.block.java meta.function.return-type.java storage.type.void.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1757,
+1758,
+"source.java meta.class.java meta.block.java meta.function.return-type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1758,
+1762,
+"source.java meta.class.java meta.block.java meta.function.identifier.java entity.name.function.java",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+1762,
+1763,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1763,
+1769,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1769,
+1771,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java storage.modifier.array.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1771,
+1772,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1772,
+1776,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java variable.parameter.java",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+1776,
+1777,
+"source.java meta.class.java meta.block.java meta.function.parameters.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1777,
+1778,
+"source.java meta.class.java meta.block.java meta.function.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1778,
+1779,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1779,
+1780,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1780,
+1788,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1788,
+1791,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java storage.type.variant.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1791,
+1792,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.type.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1792,
+1798,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1798,
+1799,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1799,
+1800,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.java keyword.operator.assignment.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1800,
+1801,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1801,
+1804,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java keyword.other.storage.new.java",
+"#ec475d",
+null,
+false,
+false
+],
+[
+1804,
+1805,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.identifier.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1805,
+1815,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.identifier.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1815,
+1816,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1816,
+1820,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.arguments.java meta.group.java constant.language.boolean.true.java",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1820,
+1821,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.declaration.value.java meta.instantiation.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1821,
+1822,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1822,
+1823,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1823,
+1831,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1831,
+1837,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java support.class.java",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+1837,
+1838,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1838,
+1841,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1841,
+1842,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1842,
+1849,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.identifier.java variable.function.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1849,
+1850,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java punctuation.section.group.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1850,
+1851,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1851,
+1858,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1858,
+1859,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1859,
+1860,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1860,
+1861,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java keyword.operator.arithmetic.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1861,
+1862,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1862,
+1868,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1868,
+1869,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java punctuation.accessor.dot.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1869,
+1875,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.variable.identifier.java variable.other.java",
+"#78bc65",
+null,
+false,
+false
+],
+[
+1875,
+1876,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1876,
+1877,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java keyword.operator.arithmetic.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1877,
+1878,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1878,
+1879,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.begin.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1879,
+1880,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1880,
+1885,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+1885,
+1886,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java meta.string.java string.quoted.double.java punctuation.definition.string.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1886,
+1887,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java meta.function-call.arguments.java meta.group.java punctuation.section.group.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1887,
+1888,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.terminator.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1888,
+1889,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1889,
+1893,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1893,
+1894,
+"source.java meta.class.java meta.block.java meta.function.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1894,
+1895,
+"source.java meta.class.java meta.block.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1895,
+1896,
+"source.java meta.class.java meta.block.java punctuation.section.block.end.java",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1896,
+1897,
+"source.java",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

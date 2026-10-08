@@ -1,0 +1,872 @@
+{
+"file": "sample.gitattributes",
+"syntax": "Git Attributes",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "# Line endings and diffs, generated for the fidelity harness\n* text=auto\n*.sh text eol=lf\n*.bat text eol=crlf\n*.png binary\n*.mp3 -text -diff\n*.svg linguist-generated=true\ndocs/** linguist-documentation\n*.lock merge=ours -crlf\n[attr]audio binary -diff\n*.wav audio\n",
+"tokens": [
+[
+0,
+1,
+"text.git.attributes comment.line.git punctuation.definition.comment.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1,
+2,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+2,
+7,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+7,
+15,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+15,
+19,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+19,
+26,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+26,
+36,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+36,
+40,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+40,
+44,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+44,
+53,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+53,
+60,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+60,
+61,
+"text.git.attributes comment.line.git",
+"#848484",
+null,
+false,
+false
+],
+[
+61,
+62,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+62,
+63,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+63,
+67,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+67,
+68,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.git.attributes punctuation.separator.key-value.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+68,
+72,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.value.git.attributes meta.string.git.attributes string.unquoted.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+72,
+73,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+73,
+74,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+74,
+75,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes punctuation.separator.path.glob.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+75,
+77,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+77,
+78,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+78,
+82,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+82,
+83,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+83,
+86,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.eol.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+86,
+87,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.eol.git.attributes meta.mapping.git.attributes punctuation.separator.key-value.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+87,
+89,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.eol.git.attributes meta.mapping.value.git.attributes meta.string.git.attributes string.unquoted.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+89,
+90,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.eol.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+90,
+91,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+91,
+92,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes punctuation.separator.path.glob.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+92,
+95,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+95,
+96,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+96,
+100,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+100,
+101,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+101,
+104,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.eol.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+104,
+105,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.eol.git.attributes meta.mapping.git.attributes punctuation.separator.key-value.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+105,
+109,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.eol.git.attributes meta.mapping.value.git.attributes meta.string.git.attributes string.unquoted.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+109,
+110,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.eol.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+110,
+111,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+111,
+112,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes punctuation.separator.path.glob.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+112,
+115,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+115,
+116,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+116,
+122,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+122,
+123,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+123,
+124,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+124,
+125,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes punctuation.separator.path.glob.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+125,
+128,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+128,
+129,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+129,
+130,
+"text.git.attributes meta.attributes-list.git.attributes keyword.operator.logical.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+130,
+134,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+134,
+135,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.text.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+135,
+136,
+"text.git.attributes meta.attributes-list.git.attributes keyword.operator.logical.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+136,
+140,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.diff.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+140,
+141,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.diff.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+141,
+142,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+142,
+143,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes punctuation.separator.path.glob.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+143,
+146,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+146,
+147,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+147,
+165,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.linguist.linguist-generated.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+165,
+166,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.linguist.linguist-generated.git.attributes meta.mapping.git.attributes punctuation.separator.key-value.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+166,
+170,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.linguist.linguist-generated.git.attributes meta.mapping.value.git.attributes meta.string.git.attributes string.unquoted.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+170,
+171,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.linguist.linguist-generated.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+171,
+175,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+175,
+176,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes punctuation.separator.path.glob.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+176,
+177,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+177,
+178,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+178,
+179,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+179,
+201,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.linguist.linguist-documentation.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+201,
+202,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.linguist.linguist-documentation.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+202,
+203,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+203,
+204,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes punctuation.separator.path.glob.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+204,
+208,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+208,
+209,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+209,
+214,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.merge.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+214,
+215,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.merge.git.attributes meta.mapping.git.attributes punctuation.separator.key-value.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+215,
+219,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.merge.git.attributes meta.mapping.value.git.attributes meta.string.git.attributes string.unquoted.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+219,
+220,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.merge.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+220,
+221,
+"text.git.attributes meta.attributes-list.git.attributes keyword.operator.logical.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+221,
+225,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+225,
+226,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+226,
+227,
+"text.git.attributes meta.brackets.git.attributes punctuation.definition.brackets.begin.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+227,
+231,
+"text.git.attributes meta.brackets.git.attributes string.unquoted.git.attributes entity.name.macro.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+231,
+232,
+"text.git.attributes meta.brackets.git.attributes punctuation.definition.brackets.end.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+232,
+237,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+237,
+238,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+238,
+244,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+244,
+245,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+245,
+246,
+"text.git.attributes meta.attributes-list.git.attributes keyword.operator.logical.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+246,
+250,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.diff.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+250,
+251,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.builtin.diff.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+251,
+252,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes constant.other.wildcard.asterisk.glob.git",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+252,
+253,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes punctuation.separator.path.glob.git",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+253,
+256,
+"text.git.attributes string.unquoted.git.attributes entity.name.pattern.git.attributes",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+256,
+257,
+"text.git.attributes meta.attributes-list.git.attributes meta.mapping.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+257,
+262,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.key.git.attributes variable.language.attribute.git.attributes",
+"#78bc65",
+null,
+false,
+false
+],
+[
+262,
+263,
+"text.git.attributes meta.attributes-list.git.attributes meta.attribute.other.git.attributes meta.mapping.git.attributes punctuation.separator.sequence.git.attributes",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

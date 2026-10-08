@@ -1,0 +1,10 @@
+RESULT tk1 · 197k (201728 bytes, 3198 lines) · highlight window
+  open (set text + first display): 26.5 ms
+  tokenize whole document (regex stand-in): 6.8 ms · 5108 tokens
+  apply whole-document highlight + display: 23.9 ms
+  lay out the whole document: not asked
+  keys at end: p50 3.1 · p95 15.1 · p99 16.2 · max 17.0 ms
+  keys at middle: p50 6.8 · p95 14.4 · p99 23.2 · max 39.0 ms
+  scroll jumps: p50 10.4 · p95 15.7 · p99 15.8 · max 15.8 ms · document height took 25 values, spread 12692 pt
+  memory (phys footprint): start 7.3 MB · empty window 19.7 · after open 126.1 · after typing 199.2
+  engine at the end: tk1

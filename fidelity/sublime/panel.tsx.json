@@ -1,0 +1,3653 @@
+{
+"file": "panel.tsx",
+"syntax": "TSX",
+"scheme": "Packages/User/an-old-hope-nib.tmTheme",
+"text": "// A typed React panel, generated for the fidelity harness.\nimport { useState, type ReactNode } from \"react\";\n\ninterface PanelProps<T> {\n  title: string;\n  items: T[];\n  render: (item: T) => ReactNode;\n  footer?: ReactNode;\n}\n\nexport function Panel<T extends { id: string }>({ title, items, render, footer }: PanelProps<T>) {\n  const [open, setOpen] = useState<boolean>(true);\n  const count: number = items.length;\n\n  return (\n    <section className=\"panel\" aria-expanded={open}>\n      <header onClick={() => setOpen(!open)}>\n        <h3>{title}</h3>\n        <span className=\"count\">{count} items</span>\n      </header>\n      {open && (\n        <div className=\"body\">\n          {items.map((item) => (\n            <div key={item.id} className=\"row\">\n              {render(item)}\n            </div>\n          ))}\n        </div>\n      )}\n      {footer ?? <footer>Nothing more.</footer>}\n    </section>\n  );\n}\n\nexport const EmptyPanel = (): JSX.Element => <Panel title=\"Empty\" items={[]} render={() => null} />;\n",
+"tokens": [
+[
+0,
+2,
+"source.tsx comment.line.double-slash.js punctuation.definition.comment.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+2,
+3,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+3,
+5,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+5,
+11,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+11,
+17,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+17,
+24,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+24,
+34,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+34,
+38,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+38,
+42,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+42,
+51,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+51,
+59,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+59,
+60,
+"source.tsx comment.line.double-slash.js",
+"#848484",
+null,
+false,
+false
+],
+[
+60,
+66,
+"source.tsx meta.import.js keyword.control.import-export.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+66,
+67,
+"source.tsx meta.import.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+67,
+68,
+"source.tsx meta.import.js meta.block.js punctuation.section.block.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+68,
+69,
+"source.tsx meta.import.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+69,
+77,
+"source.tsx meta.import.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+77,
+78,
+"source.tsx meta.import.js meta.block.js punctuation.separator.comma.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+78,
+79,
+"source.tsx meta.import.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+79,
+83,
+"source.tsx meta.import.js meta.block.js keyword.control.import-export.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+83,
+84,
+"source.tsx meta.import.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+84,
+93,
+"source.tsx meta.import.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+93,
+94,
+"source.tsx meta.import.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+94,
+95,
+"source.tsx meta.import.js meta.block.js punctuation.section.block.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+95,
+96,
+"source.tsx meta.import.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+96,
+100,
+"source.tsx meta.import.js keyword.control.import-export.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+100,
+101,
+"source.tsx meta.import.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+101,
+102,
+"source.tsx meta.import.js meta.string.js string.quoted.double.js punctuation.definition.string.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+102,
+107,
+"source.tsx meta.import.js meta.string.js string.quoted.double.js",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+107,
+108,
+"source.tsx meta.import.js meta.string.js string.quoted.double.js punctuation.definition.string.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+108,
+109,
+"source.tsx meta.import.js punctuation.terminator.statement.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+109,
+110,
+"source.tsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+110,
+111,
+"source.tsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+111,
+120,
+"source.tsx meta.interface.js keyword.declaration.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+120,
+121,
+"source.tsx meta.interface.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+121,
+131,
+"source.tsx meta.interface.js entity.name.interface.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+131,
+132,
+"source.tsx meta.interface.js meta.generic.js punctuation.definition.generic.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+132,
+133,
+"source.tsx meta.interface.js meta.generic.js variable.parameter.type.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+133,
+134,
+"source.tsx meta.interface.js meta.generic.js punctuation.definition.generic.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+134,
+135,
+"source.tsx meta.interface.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+135,
+136,
+"source.tsx meta.interface.js meta.block.js punctuation.section.block.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+136,
+137,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+137,
+139,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+139,
+144,
+"source.tsx meta.interface.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+144,
+145,
+"source.tsx meta.interface.js meta.block.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+145,
+146,
+"source.tsx meta.interface.js meta.block.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+146,
+152,
+"source.tsx meta.interface.js meta.block.js meta.type.js support.type.primitive.string.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+152,
+153,
+"source.tsx meta.interface.js meta.block.js punctuation.separator.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+153,
+154,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+154,
+156,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+156,
+161,
+"source.tsx meta.interface.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+161,
+162,
+"source.tsx meta.interface.js meta.block.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+162,
+163,
+"source.tsx meta.interface.js meta.block.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+163,
+164,
+"source.tsx meta.interface.js meta.block.js meta.type.js support.class.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+164,
+165,
+"source.tsx meta.interface.js meta.block.js meta.type.js storage.modifier.array.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+165,
+166,
+"source.tsx meta.interface.js meta.block.js meta.type.js storage.modifier.array.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+166,
+167,
+"source.tsx meta.interface.js meta.block.js punctuation.separator.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+167,
+168,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+168,
+170,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+170,
+176,
+"source.tsx meta.interface.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+176,
+177,
+"source.tsx meta.interface.js meta.block.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+177,
+178,
+"source.tsx meta.interface.js meta.block.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+178,
+179,
+"source.tsx meta.interface.js meta.block.js meta.type.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+179,
+183,
+"source.tsx meta.interface.js meta.block.js meta.type.js meta.group.js meta.binding.name.js variable.parameter.function.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+183,
+184,
+"source.tsx meta.interface.js meta.block.js meta.type.js meta.group.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+184,
+185,
+"source.tsx meta.interface.js meta.block.js meta.type.js meta.group.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+185,
+186,
+"source.tsx meta.interface.js meta.block.js meta.type.js meta.group.js meta.type.js support.class.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+186,
+187,
+"source.tsx meta.interface.js meta.block.js meta.type.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+187,
+188,
+"source.tsx meta.interface.js meta.block.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+188,
+190,
+"source.tsx meta.interface.js meta.block.js meta.type.js keyword.declaration.function.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+190,
+191,
+"source.tsx meta.interface.js meta.block.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+191,
+200,
+"source.tsx meta.interface.js meta.block.js meta.type.js support.class.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+200,
+201,
+"source.tsx meta.interface.js meta.block.js punctuation.separator.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+201,
+202,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+202,
+204,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+204,
+210,
+"source.tsx meta.interface.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+210,
+211,
+"source.tsx meta.interface.js meta.block.js storage.modifier.optional.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+211,
+212,
+"source.tsx meta.interface.js meta.block.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+212,
+213,
+"source.tsx meta.interface.js meta.block.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+213,
+222,
+"source.tsx meta.interface.js meta.block.js meta.type.js support.class.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+222,
+223,
+"source.tsx meta.interface.js meta.block.js punctuation.separator.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+223,
+224,
+"source.tsx meta.interface.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+224,
+225,
+"source.tsx meta.interface.js meta.block.js punctuation.section.block.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+225,
+226,
+"source.tsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+226,
+227,
+"source.tsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+227,
+233,
+"source.tsx meta.export.js keyword.control.import-export.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+233,
+234,
+"source.tsx meta.export.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+234,
+242,
+"source.tsx meta.export.js meta.function.js keyword.declaration.function.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+242,
+243,
+"source.tsx meta.export.js meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+243,
+248,
+"source.tsx meta.export.js meta.function.js entity.name.function.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+248,
+249,
+"source.tsx meta.export.js meta.function.js meta.generic.js punctuation.definition.generic.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+249,
+250,
+"source.tsx meta.export.js meta.function.js meta.generic.js variable.parameter.type.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+250,
+251,
+"source.tsx meta.export.js meta.function.js meta.generic.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+251,
+258,
+"source.tsx meta.export.js meta.function.js meta.generic.js storage.modifier.extends.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+258,
+259,
+"source.tsx meta.export.js meta.function.js meta.generic.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+259,
+260,
+"source.tsx meta.export.js meta.function.js meta.generic.js meta.mapping.js punctuation.section.mapping.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+260,
+261,
+"source.tsx meta.export.js meta.function.js meta.generic.js meta.mapping.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+261,
+263,
+"source.tsx meta.export.js meta.function.js meta.generic.js meta.mapping.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+263,
+264,
+"source.tsx meta.export.js meta.function.js meta.generic.js meta.mapping.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+264,
+265,
+"source.tsx meta.export.js meta.function.js meta.generic.js meta.mapping.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+265,
+271,
+"source.tsx meta.export.js meta.function.js meta.generic.js meta.mapping.js meta.type.js support.type.primitive.string.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+271,
+272,
+"source.tsx meta.export.js meta.function.js meta.generic.js meta.mapping.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+272,
+273,
+"source.tsx meta.export.js meta.function.js meta.generic.js meta.mapping.js punctuation.section.mapping.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+273,
+274,
+"source.tsx meta.export.js meta.function.js meta.generic.js punctuation.definition.generic.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+274,
+275,
+"source.tsx meta.export.js meta.function.parameters.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+275,
+276,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js punctuation.section.mapping.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+276,
+277,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+277,
+282,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js meta.mapping.key.js meta.binding.name.js variable.parameter.function.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+282,
+283,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js punctuation.separator.parameter.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+283,
+284,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+284,
+289,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js meta.mapping.key.js meta.binding.name.js variable.parameter.function.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+289,
+290,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js punctuation.separator.parameter.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+290,
+291,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+291,
+297,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js meta.mapping.key.js meta.binding.name.js variable.parameter.function.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+297,
+298,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js punctuation.separator.parameter.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+298,
+299,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+299,
+305,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js meta.mapping.key.js meta.binding.name.js variable.parameter.function.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+305,
+306,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js meta.mapping.key.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+306,
+307,
+"source.tsx meta.export.js meta.function.parameters.js meta.binding.destructuring.mapping.js punctuation.section.mapping.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+307,
+308,
+"source.tsx meta.export.js meta.function.parameters.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+308,
+309,
+"source.tsx meta.export.js meta.function.parameters.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+309,
+319,
+"source.tsx meta.export.js meta.function.parameters.js meta.type.js support.class.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+319,
+320,
+"source.tsx meta.export.js meta.function.parameters.js meta.type.js meta.generic.js punctuation.definition.generic.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+320,
+321,
+"source.tsx meta.export.js meta.function.parameters.js meta.type.js meta.generic.js support.class.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+321,
+322,
+"source.tsx meta.export.js meta.function.parameters.js meta.type.js meta.generic.js punctuation.definition.generic.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+322,
+323,
+"source.tsx meta.export.js meta.function.parameters.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+323,
+324,
+"source.tsx meta.export.js meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+324,
+325,
+"source.tsx meta.export.js meta.function.js meta.block.js punctuation.section.block.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+325,
+326,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+326,
+328,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+328,
+333,
+"source.tsx meta.export.js meta.function.js meta.block.js keyword.declaration.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+333,
+334,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+334,
+335,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.binding.destructuring.sequence.js punctuation.section.sequence.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+335,
+339,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.binding.destructuring.sequence.js meta.binding.name.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+339,
+340,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.binding.destructuring.sequence.js punctuation.separator.comma.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+340,
+341,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.binding.destructuring.sequence.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+341,
+348,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.binding.destructuring.sequence.js meta.binding.name.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+348,
+349,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.binding.destructuring.sequence.js punctuation.section.sequence.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+349,
+350,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+350,
+351,
+"source.tsx meta.export.js meta.function.js meta.block.js keyword.operator.assignment.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+351,
+352,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+352,
+360,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.function-call.js variable.function.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+360,
+361,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.generic.js punctuation.definition.generic.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+361,
+368,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.generic.js support.type.primitive.boolean.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+368,
+369,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.generic.js punctuation.definition.generic.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+369,
+370,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.function-call.arguments.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+370,
+374,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.function-call.arguments.js meta.group.js constant.language.boolean.true.js",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+374,
+375,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.function-call.arguments.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+375,
+376,
+"source.tsx meta.export.js meta.function.js meta.block.js punctuation.terminator.statement.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+376,
+377,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+377,
+379,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+379,
+384,
+"source.tsx meta.export.js meta.function.js meta.block.js keyword.declaration.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+384,
+385,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+385,
+390,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.binding.name.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+390,
+391,
+"source.tsx meta.export.js meta.function.js meta.block.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+391,
+392,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+392,
+398,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.type.js support.type.primitive.number.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+398,
+399,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+399,
+400,
+"source.tsx meta.export.js meta.function.js meta.block.js keyword.operator.assignment.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+400,
+401,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+401,
+406,
+"source.tsx meta.export.js meta.function.js meta.block.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+406,
+407,
+"source.tsx meta.export.js meta.function.js meta.block.js punctuation.accessor.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+407,
+413,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.property.object.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+413,
+414,
+"source.tsx meta.export.js meta.function.js meta.block.js punctuation.terminator.statement.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+414,
+415,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+415,
+416,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+416,
+418,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+418,
+424,
+"source.tsx meta.export.js meta.function.js meta.block.js keyword.control.flow.return.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+424,
+425,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+425,
+426,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+426,
+427,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+427,
+431,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+431,
+432,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+432,
+439,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+439,
+440,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+440,
+449,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+449,
+450,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+450,
+451,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+451,
+456,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+456,
+457,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+457,
+458,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+458,
+471,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+471,
+472,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+472,
+473,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+473,
+477,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+477,
+478,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+478,
+479,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+479,
+480,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+480,
+486,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+486,
+487,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+487,
+493,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+493,
+494,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+494,
+501,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+501,
+502,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+502,
+503,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+503,
+504,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.parameters.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+504,
+505,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.parameters.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+505,
+506,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+506,
+508,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js keyword.declaration.function.arrow.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+508,
+509,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+509,
+516,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js meta.block.js meta.function-call.js variable.function.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+516,
+517,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js meta.block.js meta.function-call.arguments.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+517,
+518,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js meta.block.js meta.function-call.arguments.js meta.group.js keyword.operator.logical.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+518,
+522,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js meta.block.js meta.function-call.arguments.js meta.group.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+522,
+523,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js meta.block.js meta.function-call.arguments.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+523,
+524,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+524,
+525,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+525,
+526,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+526,
+534,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+534,
+535,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+535,
+537,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+537,
+538,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+538,
+539,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+539,
+544,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+544,
+545,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+545,
+546,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+546,
+547,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+547,
+549,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+549,
+550,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+550,
+551,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+551,
+559,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+559,
+560,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+560,
+564,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+564,
+565,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+565,
+574,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+574,
+575,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+575,
+576,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+576,
+581,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+581,
+582,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+582,
+583,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+583,
+584,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+584,
+589,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+589,
+590,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+590,
+591,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+591,
+596,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+596,
+597,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+597,
+598,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+598,
+602,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+602,
+603,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+603,
+604,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+604,
+610,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+610,
+611,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+611,
+612,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+612,
+618,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+618,
+619,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+619,
+620,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+620,
+626,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+626,
+627,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+627,
+631,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+631,
+632,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+632,
+634,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx keyword.operator.logical.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+634,
+635,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+635,
+636,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+636,
+637,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+637,
+645,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+645,
+646,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+646,
+649,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+649,
+650,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.name.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+650,
+659,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+659,
+660,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+660,
+661,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+661,
+665,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+665,
+666,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+666,
+667,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+667,
+668,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+668,
+678,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+678,
+679,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+679,
+684,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+684,
+685,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx punctuation.accessor.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+685,
+688,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.js variable.function.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+688,
+689,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+689,
+690,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.parameters.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+690,
+694,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.parameters.js meta.binding.name.js variable.parameter.function.js",
+"#ef7c2b",
+null,
+false,
+true
+],
+[
+694,
+695,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.parameters.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+695,
+696,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+696,
+698,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js keyword.declaration.function.arrow.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+698,
+699,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+699,
+700,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+700,
+701,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+701,
+713,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+713,
+714,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+714,
+717,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+717,
+718,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+718,
+721,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+721,
+722,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+722,
+723,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+723,
+727,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+727,
+728,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx punctuation.accessor.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+728,
+730,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.property.object.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+730,
+731,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+731,
+732,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+732,
+741,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+741,
+742,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+742,
+743,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+743,
+746,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+746,
+747,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+747,
+748,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+748,
+749,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+749,
+763,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+763,
+764,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+764,
+770,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.js variable.function.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+770,
+771,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+771,
+775,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+775,
+776,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+776,
+777,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+777,
+778,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+778,
+790,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+790,
+791,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+791,
+792,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+792,
+795,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+795,
+796,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+796,
+797,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+797,
+807,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+807,
+808,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js meta.function.js meta.block.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+808,
+809,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.function-call.arguments.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+809,
+810,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+810,
+811,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+811,
+819,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+819,
+820,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+820,
+821,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+821,
+824,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+824,
+825,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+825,
+826,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+826,
+832,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+832,
+833,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+833,
+834,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+834,
+835,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+835,
+841,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+841,
+842,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+842,
+848,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx variable.other.readwrite.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+848,
+849,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+849,
+851,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx keyword.operator.null-coalescing.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+851,
+852,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+852,
+853,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+853,
+859,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+859,
+860,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+860,
+868,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+868,
+873,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+873,
+874,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+874,
+875,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+875,
+881,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+881,
+882,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js source.js.embedded.jsx meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+882,
+883,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+883,
+884,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+884,
+888,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+888,
+889,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+889,
+890,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+890,
+897,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.name.js entity.name.tag.native.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+897,
+898,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+898,
+899,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+899,
+901,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+901,
+902,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.group.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+902,
+903,
+"source.tsx meta.export.js meta.function.js meta.block.js punctuation.terminator.statement.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+903,
+904,
+"source.tsx meta.export.js meta.function.js meta.block.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+904,
+905,
+"source.tsx meta.export.js meta.function.js meta.block.js punctuation.section.block.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+905,
+906,
+"source.tsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+906,
+907,
+"source.tsx",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+907,
+913,
+"source.tsx meta.export.js keyword.control.import-export.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+913,
+914,
+"source.tsx meta.export.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+914,
+919,
+"source.tsx meta.export.js keyword.declaration.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+919,
+920,
+"source.tsx meta.export.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+920,
+930,
+"source.tsx meta.export.js meta.binding.name.js entity.name.function.js variable.other.constant.js",
+"#78bc65",
+null,
+false,
+false
+],
+[
+930,
+931,
+"source.tsx meta.export.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+931,
+932,
+"source.tsx meta.export.js keyword.operator.assignment.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+932,
+933,
+"source.tsx meta.export.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+933,
+934,
+"source.tsx meta.export.js meta.function.parameters.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+934,
+935,
+"source.tsx meta.export.js meta.function.parameters.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+935,
+936,
+"source.tsx meta.export.js meta.function.js punctuation.separator.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+936,
+937,
+"source.tsx meta.export.js meta.function.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+937,
+940,
+"source.tsx meta.export.js meta.function.js meta.type.js support.class.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+940,
+941,
+"source.tsx meta.export.js meta.function.js meta.type.js punctuation.accessor.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+941,
+948,
+"source.tsx meta.export.js meta.function.js meta.type.js support.class.js",
+"#50b4d8",
+null,
+false,
+true
+],
+[
+948,
+949,
+"source.tsx meta.export.js meta.function.js meta.type.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+949,
+951,
+"source.tsx meta.export.js meta.function.js keyword.declaration.function.arrow.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+951,
+952,
+"source.tsx meta.export.js meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+952,
+953,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.js punctuation.definition.tag.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+953,
+958,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.name.js entity.name.tag.component.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+958,
+959,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.name.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+959,
+964,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+964,
+965,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+965,
+966,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+966,
+971,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js",
+"#50b4d8",
+null,
+false,
+false
+],
+[
+971,
+972,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.string.js string.quoted.double.js punctuation.definition.string.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+972,
+973,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+973,
+978,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+978,
+979,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+979,
+980,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+980,
+981,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.sequence.js punctuation.section.sequence.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+981,
+982,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.sequence.js punctuation.section.sequence.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+982,
+983,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+983,
+984,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+984,
+990,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js entity.other.attribute-name.js",
+"#e7ce57",
+null,
+false,
+false
+],
+[
+990,
+991,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js punctuation.separator.key-value.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+991,
+992,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+992,
+993,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.parameters.js punctuation.section.group.begin.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+993,
+994,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.parameters.js punctuation.section.group.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+994,
+995,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+995,
+997,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js keyword.declaration.function.arrow.js",
+"#ec475d",
+null,
+false,
+false
+],
+[
+997,
+998,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+998,
+1002,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js source.js.embedded.jsx meta.function.js meta.block.js constant.language.null.js",
+"#ef7c2b",
+null,
+false,
+false
+],
+[
+1002,
+1003,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js meta.interpolation.js punctuation.section.interpolation.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1003,
+1004,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.attributes.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1004,
+1006,
+"source.tsx meta.export.js meta.function.js meta.block.js meta.jsx.js meta.tag.js punctuation.definition.tag.end.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1006,
+1007,
+"source.tsx meta.export.js punctuation.terminator.statement.js",
+"#f8f8f2",
+null,
+false,
+false
+],
+[
+1007,
+1008,
+"source.tsx",
+"#f8f8f2",
+null,
+false,
+false
+]
+]
+}

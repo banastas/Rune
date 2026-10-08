@@ -1,0 +1,4 @@
+08:08:35.064 nib-spike xattr-check on Bill’s Mac mini, macOS Version 27.0 (Build 26A428)
+08:08:35.077   xattr-0928-0805.md appeared after 11 ms: ubiquitous status=notDownloaded - UPLOADED sync-running controls=pauseSync+failUploadOnConflict · size 35 · blocks 0 · DATALESS
+08:08:36.063   read it after 990 ms: ubiquitous status=current - UPLOADED sync-running controls=pauseSync+failUploadOnConflict · size 35 · blocks 8
+08:08:36.063 RESULT xattr-check: lineage#S ARRIVED (lineage-from-Bill’s MacBook Air) · plain missing · all: com.banastas.nib.lineage#S
