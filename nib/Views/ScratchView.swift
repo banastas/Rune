@@ -119,7 +119,7 @@ struct FileWindow: View {
                         // Closing it saves, uploads and hands the file back (`Documents.watchClosing`).
                         window.tabbingIdentifier = "nib.file"
                         window.tabbingMode = .preferred
-                        Self.joinTabs(window)
+                        Self.joinTabs(window, order: Self.asked[url.path])
                     })
             } else {
                 Color(nsColor: Scheme.background)   // a moment, till its document is got (empty, it never appeared)
@@ -140,22 +140,25 @@ struct FileWindow: View {
     /// at the end of the tabs (the user's call, 2026-10-07): macOS tabs a new window in beside the
     /// selected tab, and the hand-made join went beside the host, so opening A and then B gave
     /// "scratch, B, A".
-    /// The end as it was when the window was made: after the tabs made before it, not after one
-    /// made since. A look 0.2 s on found A joined but not last, B opened meanwhile, and moved it
-    /// behind B ("B, A" again: the suite's `reopen`, 2026-10-07; `nib a b` opens them as fast).
-    static func joinTabs(_ window: NSWindow, attempts: Int = 10) {
-        guard attempts > 0 else { return }
-        if made[ObjectIdentifier(window)] == nil {
-            madeCount += 1
+    /// The end as it was when the file was asked for: after the tabs asked for before it, not
+    /// after one asked for since. A look 0.2 s on found A joined but not last, B opened meanwhile,
+    /// and moved it behind B ("B, A" again: the suite's `reopen`, 2026-10-07; `nib a b` opens
+    /// them as fast). Not the order the windows came in either: a window is got with its file's
+    /// document, and asked for together their documents came in any order (the launch's tabs).
+    static func joinTabs(_ window: NSWindow, order: Int? = nil, attempts: Int = 10) {
+        let id = ObjectIdentifier(window)
+        guard attempts > 0 else { joining.remove(id); return }
+        if made[id] == nil {
             made = made.filter { id, _ in NSApp.windows.contains { ObjectIdentifier($0) == id } }   // gone ones forgotten
-            made[ObjectIdentifier(window)] = madeCount
+            made[id] = order ?? nextOrder()
+            joining.insert(id)
         }
         let chosen = tabHost.flatMap { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible ? $0 : nil }
         let host = chosen ?? NSApp.windows.first { $0 !== window && $0.tabbingIdentifier == "nib.file" && $0.isVisible }
         if window.isVisible {
-            guard let host else { return }                                   // the first file window
+            guard let host else { joining.remove(id); return }               // the first file window
             if let group = host.tabGroup, group.windows.contains(window) {   // joined: after the older tabs
-                let mine = made[ObjectIdentifier(window)] ?? 0
+                let mine = made[id] ?? 0
                 let others = group.windows.filter { $0 !== window }
                 let at = (others.lastIndex { (made[ObjectIdentifier($0)] ?? 0) < mine } ?? -1) + 1
                 if group.windows.firstIndex(of: window) != at {
@@ -163,17 +166,32 @@ struct FileWindow: View {
                     group.insertWindow(window, at: min(at, group.windows.count))
                     window.makeKeyAndOrderFront(nil)
                 }
+                joining.remove(id)
                 return
             }
             (host.tabGroup?.windows.last ?? host).addTabbedWindow(window, ordered: .above)
             window.makeKeyAndOrderFront(nil)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { joinTabs(window, attempts: attempts - 1) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { joinTabs(window, order: order, attempts: attempts - 1) }
     }
 
-    /// The order file windows were made in (`joinTabs`), while they're open.
+    /// A file asked for (`AppDelegate.openFile`): its place among the tabs.
+    static func noteAsked(_ url: URL) {
+        asked[url.path] = nextOrder()
+    }
+
+    /// Windows `joinTabs` isn't done with yet (`OpenTabs` waits for them).
+    private(set) static var joining = Set<ObjectIdentifier>()
+
+    private static func nextOrder() -> Int {
+        orders += 1
+        return orders
+    }
+
+    /// The order file windows were asked for (`joinTabs`), while they're open, and files' too.
     private static var made: [ObjectIdentifier: Int] = [:]
-    private static var madeCount = 0
+    private static var asked: [String: Int] = [:]
+    private static var orders = 0
 }
 
 /// Runs once with the hosting NSWindow, when the view first lands in it (a tick after it's

@@ -88,6 +88,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// and when the scratch window came up and when its text was in it and editable.
     static var launchPhases: [(name: String, seconds: Double)] = []
     static var launchMoments: (window: Date?, text: Date?) = (nil, nil)
+    /// The scratch file's open done: held, and iCloud asked about it (`reopen-return`).
+    static var scratchOpenedAt: Date?
     /// Moments before "launched", from the process's start.
     nonisolated(unsafe) static var launchMarks: [(name: String, time: Date)] = []
     nonisolated static func mark(_ name: String) { launchMarks.append((name, Date())) }
@@ -147,6 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return true
             }
         }
+        FileWindow.noteAsked(url)   // its tab after the ones asked for before it
         if let open = openFileWindow { open(url) } else { pendingFiles.append(url) }
         return true
     }
@@ -227,13 +230,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Self.mark("the launch task starting")
             #endif
             await Document.settlePausedFiles(except: document.url)
-            if !waitForChoice { await document.open() }
-            #if DEBUG
-            Self.launchPhases.append(("opening and holding the scratch file", Date().timeIntervalSince(launched)))
-            #endif
             ClosedItems.shared.sweep()
+            // The tabs open at the last quit come with the scratch file, not after its open: that
+            // goes on past its text, through its hold and iCloud's questions about it, and they
+            // came 1-2 s after it (the user, 2026-10-07).
+            let scratch = Task {
+                if !waitForChoice { await document.open() }
+                #if DEBUG
+                Self.launchPhases.append(("opening and holding the scratch file", Date().timeIntervalSince(launched)))
+                Self.scratchOpenedAt = Date()
+                #endif
+            }
             await OpenTabs.restore()   // the tabs open at the last quit, in their order
             Untitled.restore()   // hot exit (ED3): any untitled buffers from before not among them (after a crash, all)
+            await scratch.value
             // HTML isn't a kind Nib takes any more: given back once where it had it (2026-10-07,
             // the user's call; DefaultApps). Not the test harness's Nib, whose is a stand-in.
             if !NibPaths.isScenario, let said = await DefaultApps.shared.giveBackHTML() { document.show(said, for: 15) }

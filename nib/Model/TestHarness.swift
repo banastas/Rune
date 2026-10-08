@@ -5166,6 +5166,12 @@ enum TestHarness {
         let front = window(files[0])?.tabGroup?.selectedWindow === window(files[0])
         log.check(back && names == before && front,
                   "the files open at the quit are back, in their tabs' order (\(names.joined(separator: ", ")); at the quit \(before.joined(separator: ", "))), the first file in front (\(front)), the untitled buffer too")
+        // With the scratch file, not after its hold and iCloud's questions (the user, 2026-10-07:
+        // they came 1-2 s after its text).
+        func ms(_ date: Date?) -> Int? { date.flatMap { d in AppDelegate.launchMoments.text.map { Int(d.timeIntervalSince($0) * 1000) } } }
+        let tabsAt = ms(OpenTabs.restoredAt), openedAt = ms(AppDelegate.scratchOpenedAt)
+        log.check(tabsAt.map { $0 <= 1000 } == true,
+                  "and with the scratch file: all in \(tabsAt.map { "\($0) ms" } ?? "never") after its text, its open done (held, iCloud asked) at \(openedAt.map { "\($0) ms" } ?? "not yet")")
         // Not at the launch after: the list is used once (and this run's quit records none of them).
         log.check(NibDefaults.store.stringArray(forKey: OpenTabs.listKey) == nil, "and the list is used once")
         for url in all {
