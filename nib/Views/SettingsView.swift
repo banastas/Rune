@@ -1,6 +1,6 @@
 // Settings (PRD §5.8, V12, W7): tabs, grouped forms that size to fit, 480 pt wide, and a
 // plain note under each control saying what it does and doesn't do. General (open at login,
-// the global shortcuts and Paste Clean, the menu bar extra and the Dock), Scratch & Sync (the
+// the global shortcuts and Paste Clean, the menu bar extra and the Dock), Sync (the
 // scratch file, saving, this Mac's name, notifications, History), Files (the kinds of file a
 // double-click opens in Nib), Editor (the font and size, indentation, what's drawn beside the
 // text, ⌘S tidying) and Themes (the scheme, Import from Sublime Text, Import File…, and the last
@@ -19,8 +19,10 @@ struct SettingsView: View {
             GeneralSettings()
                 .tabItem { Label("General", systemImage: "gearshape") }
                 .tag("general")
+            // "Scratch & Sync" until 2026-10-08: twice the others' width, and a toolbar label can't
+            // wrap (the user's call).
             SyncSettings()
-                .tabItem { Label("Scratch & Sync", systemImage: "icloud") }
+                .tabItem { Label("Sync", systemImage: "icloud") }
                 .tag("sync")
             FileSettings()
                 .tabItem { Label("Files", systemImage: "doc.on.doc") }
@@ -101,7 +103,7 @@ private struct UpdatesRow: View {
     }
 }
 
-/// Settings › Scratch & Sync (§5.8): the scratch file (SC1), how Nib saves, this Mac's name as
+/// Settings › Sync (§5.8; Scratch & Sync until 2026-10-08): the scratch file (SC1), how Nib saves, this Mac's name as
 /// the other Macs see it, notifications (SY15) and History (the QA review's F48).
 private struct SyncSettings: View {
     @State private var refusal: String?
@@ -353,7 +355,7 @@ struct ThemeSettings: View {
                     Button("Import from Sublime Text") { schemes.importFromSublime() }
                     Button("Import File…") { chooseFile() }
                 }
-                note("Import from Sublime Text takes Sublime's color scheme (with its override in Packages/User), its font and size, and its editor settings: tab width and spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs and ⌘S tidying, and sets Rune's to match. Sublime's files are only read, never changed. You can also drop a .tmTheme or .sublime-color-scheme file here.")
+                note("Import from Sublime Text reads Sublime Text's color scheme (your changes to it included), its font and size, and its editor settings (tabs, line numbers, invisibles, indent guides, matching brackets, closing pairs, and tidying on save), and sets Rune to match. Sublime Text's files are only read, never changed. You can also drop a .tmTheme or .sublime-color-scheme file here.")
             }
             if let report = schemes.report {
                 Section("Last import") {

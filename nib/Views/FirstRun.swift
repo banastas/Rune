@@ -206,7 +206,7 @@ final class FirstRun: NSObject, NSWindowDelegate {
     }
 }
 
-/// Another scratch file (SC1), from the first run or Settings › Scratch & Sync: Nib reopens with it,
+/// Another scratch file (SC1), from the first run or Settings › Sync: Nib reopens with it,
 /// having handed the old one back to iCloud. The old file stays where it is.
 @MainActor
 enum ScratchChoice {

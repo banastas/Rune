@@ -1,8 +1,12 @@
-NIB — ACKNOWLEDGEMENTS
+RUNE — ACKNOWLEDGEMENTS
 
 Rune is built with the open-source software below. Each is listed with its
 copyright notice and license, as its license asks. Thank you to everyone
 who made them.
+
+Sublime Text is a trademark of Sublime HQ Pty Ltd. Rune isn't affiliated
+with or endorsed by Sublime HQ; it reads Sublime Text's settings and color
+schemes, and colors text as Sublime Text does.
 
 Written by scripts/acknowledgements.py from what Rune is built with;
 don't edit it by hand.

@@ -2350,7 +2350,7 @@ enum TestHarness {
         // and General was 967 points tall (the QA review's F22). A picture of each.
         var heights: [String] = []
         var tooTall = false
-        for (tag, title) in [("general", "General"), ("sync", "Scratch & Sync"), ("files", "Files"), ("editor", "Editor"), ("themes", "Themes")] {
+        for (tag, title) in [("general", "General"), ("sync", "Sync"), ("files", "Files"), ("editor", "Editor"), ("themes", "Themes")] {
             NibDefaults.store.set(tag, forKey: "settingsTab")
             AppDelegate.openSettings()
             _ = await waitFor(5) { NSApp.windows.contains { $0.isVisible && $0.title == title } }

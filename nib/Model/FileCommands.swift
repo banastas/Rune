@@ -5,7 +5,7 @@
 // move, the file's History, caret, syntax and known duplicates carried to the new path, and
 // the file opened again there. An untitled buffer is renamed as a new buffer of the same text,
 // its caret and History carried as a file's are; Move To… on one is Save…. The scratch file
-// isn't renamed or moved (Settings › Scratch & Sync picks another). Under the safety rule (§8),
+// isn't renamed or moved (Settings › Sync picks another). Under the safety rule (§8),
 // nothing goes outside the test folders.
 
 import AppKit
@@ -94,7 +94,7 @@ enum FileCommands {
     @discardableResult
     static func move(_ document: Document, to target: URL) async -> String? {
         let old = document.url
-        guard canMove(document) else { return refuse(document, "THE SCRATCH FILE STAYS WHERE IT IS · SETTINGS › SCRATCH & SYNC PICKS ANOTHER") }
+        guard canMove(document) else { return refuse(document, "THE SCRATCH FILE STAYS WHERE IT IS · SETTINGS › SYNC PICKS ANOTHER") }
         guard target.standardizedFileURL.path != old.standardizedFileURL.path else { return nil }
         // "Notes.md" to "notes.md" is the same file on a Mac's disk: a new name, not a clash.
         let caseOnly = target.path.lowercased() == old.path.lowercased()
