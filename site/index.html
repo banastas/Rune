@@ -6,15 +6,20 @@
 <title>Rune — a small, fast text editor for macOS</title>
 <meta name="description" content="A small, fast text editor for the Mac, with one scratch file in iCloud Drive that all your Macs share. It saves as you type, and edits from two Macs are merged, never overwritten.">
 <meta name="theme-color" content="#0a0a0a">
-<!-- The link preview on X, Hacker News, Slack, Messages and the rest. No card image yet. -->
+<!-- The link preview on X, Hacker News, Slack, Messages and the rest: brand/, made by scripts/make-brand.sh. -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://rune.banast.as/">
 <meta property="og:site_name" content="Rune">
 <meta property="og:title" content="Rune — write it down, lose nothing">
 <meta property="og:description" content="A small, fast Mac text editor. Every edit is on disk within 300 ms, and edits made on two Macs are merged, never overwritten.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://rune.banast.as/brand/rune-card-1200x630.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Rune's scratch window: a packing list in Markdown, its status line saying synced, and on the other Mac, Air.">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Rune — write it down, lose nothing">
 <meta name="twitter:description" content="A small, fast Mac text editor. Every edit is on disk within 300 ms, and edits made on two Macs are merged, never overwritten.">
+<meta name="twitter:image" content="https://rune.banast.as/brand/rune-card-1200x630.png">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 @font-face { font-family: "Silkscreen"; src: url("fonts/Silkscreen-Regular.ttf") format("truetype"); font-display: swap; }
@@ -642,9 +647,10 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
         </ul>
         <div class="price-cta">
           <a class="btn is-soon" id="trial-button" aria-disabled="true" data-href="downloads/Rune.zip">Download free trial</a>
-          <!-- PLACEHOLDER: there's no Rune product in Lemon Squeezy yet. Put its checkout overlay link
-               here (with ?embed=1&desc=0, as Blit's), then set LIVE = true below (site/README.md). -->
-          <a class="btn is-soon" id="buy-button" aria-disabled="true" data-checkout="">Buy Rune · $19</a>
+          <!-- Rune's Lemon Squeezy checkout, as an overlay (?embed=1&desc=0, as Blit's). Off for
+               visitors until LIVE = true below; ?checkout=test turns it on to try (site/README.md). -->
+          <a class="btn is-soon" id="buy-button" aria-disabled="true"
+             data-checkout="https://banastas.lemonsqueezy.com/checkout/buy/ff20f57a-cce0-455f-85b4-afd7eaa6f89f?embed=1&desc=0">Buy Rune · $19</a>
           <span class="label dim" id="buy-note">Checkout opens soon · secure payment by Lemon Squeezy</span>
         </div>
       </div>
@@ -968,7 +974,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
   // Off for visitors until launch (LIVE). Then the Download buttons fetch the current release
   // (scripts/release.sh's PUBLISH step writes downloads/Rune.zip) and Buy opens Lemon Squeezy's
   // checkout overlay. ?checkout=test turns Buy on to try a test-mode checkout, once the button has
-  // a checkout link (data-checkout is empty until Rune has a product: site/README.md). lemon.js
+  // a checkout link (data-checkout, Rune's Lemon Squeezy product since 2026-10-08). lemon.js
   // loads only when Buy is clicked, so a plain visit makes no third-party requests.
   const LIVE = false;
   const CHECKOUT_LIVE = LIVE;

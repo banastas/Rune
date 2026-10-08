@@ -1,0 +1,223 @@
+<!doctype html>
+<!-- Rune's brand images, drawn as the site draws Rune (site/index.html: its palette, fonts, pixel
+     art and simulated window), at a fixed size, for scripts/make-brand.sh to render with a
+     headless Chromium: #product, 1600×1200, Lemon Squeezy's product image (checkout, the receipt
+     email, sharing); #card, 1200×630, the site's link preview (og:image); #github, 1280×640, the
+     repository's social preview, everything inside GitHub's 80-pixel border. As Blit's
+     site/brand/blit-product-1600x1200.png and blit-card-1200x630.png: icon, name, tagline, then
+     the app as it looks, here the scratch window and its status strip. Generated text only. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "Silkscreen"; src: url("../../site/fonts/Silkscreen-Regular.ttf") format("truetype"); }
+@font-face { font-family: "VT323"; src: url("../../site/fonts/VT323-Regular.ttf") format("truetype"); }
+:root {
+  --bg: #0a0a0a; --border: #2b2b2b; --bright: #f0f0f0; --dim: #7d7d7d;
+  --page: #1c1d21; --page-line: #272b34; --page-text: #f8f8f2;
+  --label: "Silkscreen", monospace; --term: "VT323", monospace;
+  --code: ui-monospace, "SF Mono", Menlo, monospace;
+  --system: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--bright); overflow: hidden; }
+body { font-family: var(--term); -webkit-font-smoothing: none; }
+.px { shape-rendering: crispEdges; }
+
+.frame { position: relative; display: flex; flex-direction: column; justify-content: center; }
+.head { display: flex; align-items: center; }
+.tile { flex: none; background: #121212; box-shadow: inset 0 0 0 1px var(--border); display: grid; place-items: center; }
+.tile svg { width: 66%; height: 66%; }
+h1 { font-family: var(--label); font-weight: normal; letter-spacing: 0.04em; line-height: 0.9; }
+.tagline { color: var(--bright); }
+.tagline .cursor { color: var(--bright); }
+.label { font-family: var(--label); text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
+
+.win { border: 1px solid #3a3a3c; border-radius: 14px; overflow: hidden; background: var(--page); box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.win-bar { display: flex; align-items: center; gap: 18px; padding: 0 18px; background: #2a2a2d; border-bottom: 1px solid #111;
+           font-family: var(--system); -webkit-font-smoothing: antialiased; }
+.lights { display: flex; gap: 9px; }
+.lights i { width: 13px; height: 13px; border-radius: 50%; background: #4a4a4d; display: block; }
+.win-title { display: flex; flex-direction: column; line-height: 1.25; }
+.win-title b { font-weight: 600; color: #e6e6e6; }
+.win-title span { color: #9a9a9a; }
+.editor { position: relative; display: flex; font-family: var(--code); color: var(--page-text); -webkit-font-smoothing: antialiased; }
+.gutter { color: #5c616d; text-align: right; flex: none; }
+.lines { flex: 1; min-width: 0; }
+.ln { white-space: pre; }
+.ln.cur, .gutter .cur { background: var(--page-line); }
+.gutter .cur { color: #c9ccd4; }
+.h { color: #e7ce57; font-weight: bold; }
+.l { color: #ef7c2b; }
+.b { color: #ef7c2b; font-weight: bold; }
+.c { color: #78bc65; }
+.caret { display: inline-block; width: 2px; background: #f8f8f0; }
+.minimap { position: absolute; top: 10px; right: 14px; width: 64px; }
+.minimap i { position: absolute; height: 2px; display: block; opacity: 0.85; }
+.minimap .view { position: absolute; left: -5px; right: -5px; top: -4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); }
+.strip { display: flex; align-items: center; gap: 12px; background: var(--bg); border-top: 1px solid var(--border); font-family: var(--term); }
+.strip .state { color: var(--bright); display: flex; align-items: center; gap: 10px; }
+.strip .slots { margin-left: auto; color: var(--dim); }
+.glyph { fill: currentColor; }
+
+/* 1600×1200: Lemon Squeezy's product image. */
+body.product { width: 1600px; height: 1200px; }
+.product .frame { width: 1600px; height: 1200px; padding: 0 80px; gap: 56px; }
+.product .tile { width: 168px; height: 168px; border-radius: 38px; margin-right: 40px; }
+.product h1 { font-size: 104px; margin-bottom: 18px; }
+.product .tagline { font-size: 50px; line-height: 1; margin-bottom: 18px; }
+.product .label { font-size: 13px; }
+.product .win-bar { height: 56px; }
+.product .win-title b { font-size: 15px; }
+.product .win-title span { font-size: 12px; }
+.product .editor { font-size: 17px; line-height: 27px; padding: 12px 96px 12px 0; }
+.product .gutter { width: 58px; padding-right: 16px; }
+.product .lines { padding-left: 4px; }
+.product .caret { height: 21px; vertical-align: -4px; }
+.product .strip { height: 40px; padding: 0 16px; font-size: 24px; }
+
+/* 1200×630: the link preview. */
+body.card { width: 1200px; height: 630px; }
+.card .frame { width: 1200px; height: 630px; padding: 0 56px; gap: 34px; }
+.card .tile { width: 104px; height: 104px; border-radius: 24px; margin-right: 28px; }
+.card .titles { display: flex; flex-direction: column; }
+.card .row { display: flex; align-items: baseline; gap: 26px; margin-bottom: 14px; }
+.card h1 { font-size: 68px; }
+.card .tagline { font-size: 38px; }
+.card .label { font-size: 11px; }
+.card .win-bar { height: 44px; }
+.card .win-title b { font-size: 13px; }
+.card .win-title span { font-size: 11px; }
+.card .editor { font-size: 15px; line-height: 23px; padding: 8px 84px 8px 0; }
+.card .gutter { width: 50px; padding-right: 14px; }
+.card .lines { padding-left: 4px; }
+.card .caret { height: 18px; vertical-align: -3px; }
+.card .strip { height: 34px; padding: 0 14px; font-size: 21px; }
+
+/* 1280×640: GitHub's social preview. Its template keeps what matters 80 px in from each edge
+   (40 pt at 2×): everything here is inside 1120×480, centred. */
+body.github { width: 1280px; height: 640px; }
+.github .frame { width: 1280px; height: 640px; padding: 80px; gap: 30px; }
+.github .tile { width: 100px; height: 100px; border-radius: 23px; margin-right: 26px; }
+.github .titles { display: flex; flex-direction: column; }
+.github .row { display: flex; align-items: baseline; gap: 24px; margin-bottom: 14px; }
+.github h1 { font-size: 66px; }
+.github .tagline { font-size: 37px; }
+.github .label { font-size: 11px; }
+.github .win-bar { height: 42px; }
+.github .win-title b { font-size: 13px; }
+.github .win-title span { font-size: 11px; }
+.github .editor { font-size: 15px; line-height: 23px; padding: 8px 84px 8px 0; }
+.github .gutter { width: 50px; padding-right: 14px; }
+.github .lines { padding-left: 4px; }
+.github .caret { height: 18px; vertical-align: -3px; }
+.github .strip { height: 34px; padding: 0 14px; font-size: 21px; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="head">
+    <div class="tile"><svg class="px" viewBox="0 0 14 14" data-art="icon"></svg></div>
+    <div class="titles">
+      <div class="row">
+        <h1>RUNE</h1>
+        <p class="tagline">WRITE IT DOWN. LOSE NOTHING<span class="cursor">_</span></p>
+      </div>
+      <p class="label">One scratch file · iCloud Drive · all your Macs &nbsp;—&nbsp; saved as you type, merged, never overwritten</p>
+    </div>
+  </div>
+  <div class="win">
+    <div class="win-bar">
+      <span class="lights"><i></i><i></i><i></i></span>
+      <span class="win-title"><b>scratch.md</b><span>iCloud Drive › Rune</span></span>
+    </div>
+    <div class="editor"><div class="gutter" id="gutter"></div><div class="lines" id="lines"></div><div class="minimap" id="minimap"></div></div>
+    <div class="strip">
+      <span class="state"><svg class="glyph px" viewBox="0 0 7 7" data-glyph="check"></svg><span id="state">SYNCED · ON AIR 10:42:31</span></span>
+      <span class="slots" id="slots"></span>
+    </div>
+  </div>
+</div>
+<script>
+const kind = { "#card": "card", "#github": "github" }[location.hash] || "product";
+document.body.className = kind;
+// The card's head is one row: the name and the tagline side by side, as Blit's card.
+if (kind === "product") {
+  const titles = document.querySelector(".titles"), row = document.querySelector(".row");
+  titles.insertBefore(row.querySelector("h1"), row);
+  titles.insertBefore(row.querySelector(".tagline"), row);
+  row.remove();
+}
+const NS = "http://www.w3.org/2000/svg";
+function rects(svg, rows, colors, dy = 0) {
+  rows.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === ".") return;
+    const r = document.createElementNS(NS, "rect");
+    r.setAttribute("x", x); r.setAttribute("y", y + dy); r.setAttribute("width", 1); r.setAttribute("height", 1);
+    r.setAttribute("fill", colors[ch] || "currentColor");
+    svg.appendChild(r);
+  }));
+}
+// The app icon's grid (scripts/make-icon.swift): the rune ᚱ over Blit's family mark.
+rects(document.querySelector('[data-art="icon"]'), [
+  "...##.........", "...####.......", "...##.##......", "...##..##.....",
+  "...##.##......", "...####.......", "...##.##......", "...##..##.....",
+  "...##...##....", "...##....##...", "..............", "##.##.##.##.::",
+], { "#": "#f0f0f0", ":": "#4a4a4a" }, 1);
+const check = document.querySelector('[data-glyph="check"]');
+rects(check, [".......", "......#", ".....#.", "#...#..", ".#.#...", "..#....", "......."], {});
+const glyphSize = kind === "product" ? 15 : 13;
+check.setAttribute("width", glyphSize); check.setAttribute("height", glyphSize);
+
+// Generated text: the site's packing list (no real files or names).
+const all = [
+  "# Packing · weekend",
+  "Train at **08:10** from `platform 4`.",
+  "",
+  "## Bag",
+  "- [x] charger and cable",
+  "- [ ] two shirts",
+  "- [ ] rain jacket",
+  "- [ ] passport",
+  "",
+  "## Before leaving",
+  "1. water the plants",
+  "2. take out the bins",
+  "3. charge the camera",
+];
+const lines = kind === "card" ? all.slice(0, 8) : kind === "github" ? all.slice(0, 7) : all;
+const caretLine = kind === "card" || kind === "github" ? 6 : 12;
+function classes(s) {
+  if (/^#{1,6} /.test(s)) return [...s].map(() => "h");
+  if (/^(- |\d+\. )/.test(s)) return [...s].map(() => "l");
+  const out = [...s].map(() => "");
+  for (const [re, cls] of [[/\*\*[^*]+\*\*/g, "b"], [/`[^`]+`/g, "c"]]) {
+    for (const m of s.matchAll(re)) for (let i = m.index; i < m.index + m[0].length; i++) out[i] = cls;
+  }
+  return out;
+}
+const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+const COLORS = { h: "#e7ce57", l: "#ef7c2b", b: "#ef7c2b", c: "#78bc65", "": "#f8f8f2" };
+let text = "", gutter = "", mini = `<span class="view" style="height:${lines.length * 3 + 6}px"></span>`;
+lines.forEach((s, i) => {
+  const cls = classes(s);
+  let html = "", run = "", runCls = null;
+  const flush = () => { if (run) html += runCls ? `<span class="${runCls}">${esc(run)}</span>` : esc(run); run = ""; };
+  for (let k = 0; k < s.length; k++) { if (cls[k] !== runCls) { flush(); runCls = cls[k]; } run += s[k]; }
+  flush();
+  const cur = i === caretLine;
+  if (cur) html += '<span class="caret"></span>';
+  text += `<div class="ln${cur ? " cur" : ""}">${html || " "}</div>`;
+  gutter += `<div${cur ? ' class="cur"' : ""}>${i + 1}</div>`;
+  for (const m of s.matchAll(/\S+/g)) {
+    mini += `<i style="left:${(m.index * 1.4).toFixed(1)}px;top:${i * 3}px;width:${Math.max(1, m[0].length * 1.4).toFixed(1)}px;background:${COLORS[cls[m.index]]}"></i>`;
+  }
+});
+document.getElementById("lines").innerHTML = text;
+document.getElementById("gutter").innerHTML = gutter;
+document.getElementById("minimap").innerHTML = mini;
+const col = lines[caretLine].length + 1;
+document.getElementById("slots").textContent = `LN ${caretLine + 1}, COL ${col} · MARKDOWN · 2 SPACES · UTF-8 · LF`;
+</script>
+</body>
+</html>

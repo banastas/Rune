@@ -2028,6 +2028,25 @@ enum TestHarness {
         log.check(graced && license.typingLocked && !view.isEditable, "unchecked 36 days: still licensed; 38 days: read-only (\(license.summary))")
         license.testSet(trialStartedDaysAgo: 0, license: .some(nil))
         log.check(!license.typingLocked && view.isEditable, "the trial back (day 1), as the test leaves it")
+
+        // With a real key (`-NibLicenseTestKey`, a test-mode purchase): Lemon Squeezy's own answers.
+        // Activate, the weekly check, Deactivate (the activation freed again); and a made-up key.
+        if let key = NibDefaults.store.string(forKey: "NibLicenseTestKey"), !key.isEmpty {
+            let madeUp = await license.activate("RUNE-TEST-0000-0000-NOT-A-REAL-KEY", instanceName: "Rune test")
+            log.check(madeUp?.hasPrefix("That license key wasn't found") == true && license.license == nil,
+                      "a made-up key: “\(madeUp ?? "activated?!")”")
+            let problem = await license.activate(key, instanceName: "Rune test")
+            log.check(problem == nil && license.license != nil && !license.typingLocked, "a real key activates: \(problem ?? license.summary)")
+            if var stored = license.license {
+                stored.lastValidated = Date().addingTimeInterval(-8 * 86_400)
+                license.testSet(license: stored)
+                await license.revalidateIfDue()
+                let checked = license.license.map { Date().timeIntervalSince($0.lastValidated) < 60 } ?? false
+                log.check(checked && license.state == .licensed(email: license.license?.email), "the weekly check: still valid, checked now (\(license.summary))")
+            }
+            let freed = await license.deactivate()
+            log.check(freed == nil && license.license == nil, "Deactivate This Mac frees the activation: \(freed ?? license.summary)")
+        }
         await document.flush(reason: "test")
     }
 

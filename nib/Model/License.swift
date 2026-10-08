@@ -27,10 +27,12 @@ import Security
 enum LicenseConfig {
     /// Off until launch. Turning it on starts each Mac's trial at its next launch.
     static let enforced = false
-    /// Lemon Squeezy's store and Rune's product. With no product, no key unlocks Rune
-    /// (`Licensing.mismatch`): set both once the product exists (Blit's store is 484_060).
-    static let storeID: Int? = nil
-    static let productID: Int? = nil
+    /// Lemon Squeezy's store (`banastas.lemonsqueezy.com`, `blit.` until 2026-10-08; Blit's and
+    /// Rune's) and Rune's product (2026-10-08, test mode so far):
+    /// a key from any other store or product is refused (`Licensing.mismatch`). The product's one
+    /// variant is 2_223_174; a live copy of a test-mode product gets IDs of its own.
+    static let storeID: Int? = 484_060
+    static let productID: Int? = 1_423_364
     /// Test-mode keys (bought with test cards) only unlock Debug builds.
     static var acceptsTestKeys: Bool {
         #if DEBUG
@@ -39,8 +41,8 @@ enum LicenseConfig {
         false
         #endif
     }
-    /// Where Buy Rune… goes: the site's price, until the product has a checkout link of its own.
-    static let buyURL = URL(string: "https://rune.banast.as/#buy")!
+    /// Where Buy Rune… goes: the product's Lemon Squeezy checkout.
+    static let buyURL = URL(string: "https://banastas.lemonsqueezy.com/checkout/buy/ff20f57a-cce0-455f-85b4-afd7eaa6f89f")!
     static let api = URL(string: "https://api.lemonsqueezy.com/v1/licenses/")!
 }
 
