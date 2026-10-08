@@ -5,7 +5,7 @@
 # (Application Support/nib-scenarios, com.banastas.nib.scenarios), so rebuilding and testing
 # never touch this copy. Its build number is the time it was built, higher than the Debug
 # build's, so that macOS opens files with this copy and not a Debug one it also knows.
-# Not Developer ID signed or notarized: that's DS1, with the user's certificates.
+# Not Developer ID signed or notarized: scripts/release.sh INSTALL=1 makes and installs that copy (DS1).
 #   scripts/install-nib.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
