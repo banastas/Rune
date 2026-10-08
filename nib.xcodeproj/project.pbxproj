@@ -10,6 +10,7 @@
 		A1B0C0DE00000000000000A1 /* NibSync in Frameworks */ = {isa = PBXBuildFile; productRef = A1B0C0DE00000000000000B1 /* NibSync */; };
 		A1B0C0DE00000000000000A2 /* NibText in Frameworks */ = {isa = PBXBuildFile; productRef = A1B0C0DE00000000000000B2 /* NibText */; };
 		A1B0C0DE00000000000000A3 /* NibSyntax in Frameworks */ = {isa = PBXBuildFile; productRef = A1B0C0DE00000000000000B3 /* NibSyntax */; };
+		A1B0C0DE0000000000000A01 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = A1B0C0DE0000000000000A02 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,7 @@
 				A1B0C0DE00000000000000A1 /* NibSync in Frameworks */,
 				A1B0C0DE00000000000000A2 /* NibText in Frameworks */,
 				A1B0C0DE00000000000000A3 /* NibSyntax in Frameworks */,
+				A1B0C0DE0000000000000A01 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +79,7 @@
 				A1B0C0DE00000000000000B1 /* NibSync */,
 				A1B0C0DE00000000000000B2 /* NibText */,
 				A1B0C0DE00000000000000B3 /* NibSyntax */,
+				A1B0C0DE0000000000000A02 /* Sparkle */,
 			);
 			productName = nib;
 			productReference = A1B0C0DE00000000000000C1 /* Nib.app */;
@@ -108,6 +111,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A1B0C0DE0000000000000401 /* XCLocalSwiftPackageReference "NibKit" */,
+				A1B0C0DE0000000000000A03 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A1B0C0DE00000000000000F1 /* Products */;
@@ -146,14 +150,14 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = F87BNUZAVJ;
 				CODE_SIGN_ENTITLEMENTS = Support/nib.entitlements;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Support/Info.plist;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				INFOPLIST_KEY_CFBundleDisplayName = Nib;
+				INFOPLIST_KEY_CFBundleDisplayName = Rune;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -162,7 +166,7 @@
 				);
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.banastas.nib;
-				PRODUCT_NAME = Nib;
+				PRODUCT_NAME = Rune;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Debug;
@@ -173,14 +177,14 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = F87BNUZAVJ;
 				CODE_SIGN_ENTITLEMENTS = Support/nib.entitlements;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Support/Info.plist;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				INFOPLIST_KEY_CFBundleDisplayName = Nib;
+				INFOPLIST_KEY_CFBundleDisplayName = Rune;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -189,7 +193,7 @@
 				);
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.banastas.nib;
-				PRODUCT_NAME = Nib;
+				PRODUCT_NAME = Rune;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
@@ -265,6 +269,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		A1B0C0DE0000000000000A03 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		A1B0C0DE00000000000000B1 /* NibSync */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -277,6 +292,11 @@
 		A1B0C0DE00000000000000B3 /* NibSyntax */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = NibSyntax;
+		};
+		A1B0C0DE0000000000000A02 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1B0C0DE0000000000000A03 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -11,7 +11,7 @@ public enum Spoken {
     private static let keys: [Character: String] = ["↩": "Return", "⎋": "Escape", "⌫": "Delete", "⇥": "Tab", "↑": "Up Arrow", "↓": "Down Arrow",
                                                     "←": "Left Arrow", "→": "Right Arrow"]
     /// Names that keep their capitals, as whole words.
-    private static let names = ["iCloud Drive", "iCloud", "Nib", "Sublime Text", "Finder", "Mac", "M1", "PRD", "UTF-8", "LF", "CRLF"]
+    private static let names = ["iCloud Drive", "iCloud", "Rune", "Sublime Text", "Finder", "Mac", "M1", "PRD", "UTF-8", "LF", "CRLF"]
 
     public static func sentence(_ hud: String) -> String {
         let words = hud.split(separator: " ").map(String.init).filter { !glyphs.contains($0) }

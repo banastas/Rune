@@ -53,7 +53,7 @@ struct NibApp: App {
         .defaultSize(width: 1080, height: 560)
         .commandsRemoved()   // listed in the Window menu by NibCommands, with its shortcut
         Settings { SettingsView() }
-        Window("About Nib", id: "about") {
+        Window("About Rune", id: "about") {
             AboutView()
         }
         .windowResizability(.contentSize)
@@ -100,7 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// 2026-10-02).
     static func newUntitled() {
         guard let url = Untitled.create() else {   // said, not only a beep (F72)
-            Toast.show("✕ COULDN'T MAKE A NEW BUFFER · \(Untitled.lastError.map(ErrorWords.hud) ?? "NIB'S UNTITLED FOLDER")", for: 4)
+            Toast.show("✕ COULDN'T MAKE A NEW BUFFER · \(Untitled.lastError.map(ErrorWords.hud) ?? "RUNE'S UNTITLED FOLDER")", for: 4)
             return
         }
         NibDefaults.store.set(SyntaxPick.language(.markdown).stored, forKey: "syntax:" + url.path)
@@ -171,7 +171,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.messageText = "“\(url.lastPathComponent)” is \(shown). Open it?"
         // Saves write only what differs from the file since 2026-10-02 (the QA review's F18).
-        alert.informativeText = "Nib opens files this big without highlighting, and History keeps only the versions it opened and closed with. They're slower to open and to save, and in iCloud Drive each save is uploaded whole."
+        alert.informativeText = "Rune opens files this big without highlighting, and History keeps only the versions it opened and closed with. They're slower to open and to save, and in iCloud Drive each save is uploaded whole."
         alert.addButton(withTitle: "Open")
         alert.addButton(withTitle: "Cancel").keyEquivalent = "\u{1b}"
         NSApp.activate()
@@ -210,6 +210,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Documents.watchClosing()
+        _ = Updates.shared   // the daily update check (DS2), in released copies only
         // Services › Append to Nib Scratch and Clean Text (SC8, PT7). Not a test run's Nib: it
         // would answer the user's.
         if !NibPaths.isScenario {
@@ -365,7 +366,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             try task.run()
         } catch {
-            NSLog("Nib: couldn't set up the relaunch: \(error)")
+            NSLog("Rune: couldn't set up the relaunch: \(error)")
         }
         NSApp.terminate(nil)
     }
@@ -486,7 +487,10 @@ struct NibCommands: Commands {
     var body: some Commands {
         // Blit's About, not the standard panel (§5.10).
         CommandGroup(replacing: .appInfo) {
-            Button("About Nib") { openWindow(id: "about") }
+            Button("About Rune") { openWindow(id: "about") }
+            // Sparkle (DS2): released copies only; a Debug build or a test run's has it off.
+            Button("Check for Updates…") { Updates.shared.checkNow() }
+                .disabled(!Updates.shared.isAvailable || !Updates.shared.canCheck)
         }
         CommandGroup(replacing: .newItem) {
             Button("New") { AppDelegate.newUntitled() }
@@ -651,7 +655,7 @@ struct NibCommands: Commands {
         CommandMenu("Conflicts") { ConflictMenuItems(document: document) }
         // The first run again (AP5), in place of the Help Book Nib doesn't have.
         CommandGroup(replacing: .help) {
-            Button("Welcome to Nib") { FirstRun.shared.show() }
+            Button("Welcome to Rune") { FirstRun.shared.show() }
         }
         CommandGroup(before: .windowArrangement) {
             // Show Scratch (SC2, P0) with its global keys, as Settings › General has them, so it's

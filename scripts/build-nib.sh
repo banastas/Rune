@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}
 SIGN=${1:-team}
-BINARY=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib.debug.dylib
+BINARY=build/DerivedData/Build/Products/Debug/Rune.app/Contents/MacOS/Rune.debug.dylib
 
 build() {
   if [[ $SIGN == adhoc ]]; then

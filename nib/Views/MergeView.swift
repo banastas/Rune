@@ -141,8 +141,8 @@ struct MergeView: View {
     private var header: String {
         let name = document.url.lastPathComponent.uppercased()
         let left = session.blocks.count
-        if left == 0 { return "NIB://MERGE · \(name) · ALL CONFLICTS RESOLVED · ⌘↩ TO FINISH" }
-        return "NIB://MERGE · \(name) · \(left) CONFLICT\(left == 1 ? "" : "S") · \(session.total - min(left, session.total)) RESOLVED"
+        if left == 0 { return "RUNE://MERGE · \(name) · ALL CONFLICTS RESOLVED · ⌘↩ TO FINISH" }
+        return "RUNE://MERGE · \(name) · \(left) CONFLICT\(left == 1 ? "" : "S") · \(session.total - min(left, session.total)) RESOLVED"
     }
 }
 

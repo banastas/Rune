@@ -74,7 +74,7 @@ struct SyncHUD: View {
             .help("Hide the sync details (Escape)")
             .accessibilityLabel("Hide the sync details")
             Spacer(minLength: 8)
-            Text("NIB://SYNC").font(HUDFont.label()).foregroundStyle(HUDColor.dim)
+            Text("RUNE://SYNC").font(HUDFont.label()).foregroundStyle(HUDColor.dim)
                 .accessibilityHidden(true)
         }
     }
@@ -256,7 +256,7 @@ struct SyncHUD: View {
         if why.hasPrefix("COULDN'T WRITE THE RECOVERY JOURNAL") { return "NO JOURNAL" }
         if why.hasPrefix("COULDN'T SAVE") || why.hasPrefix("COULDN'T RESTORE") { return "NOT SAVED" }
         if why.hasPrefix("COULDN'T READ") || why.hasPrefix("COULDN'T CREATE") { return "NOT OPENED" }
-        if why.hasPrefix("NIB'S ICLOUD FOLDER ISN'T AVAILABLE") { return "NO ICLOUD FOLDER" }
+        if why.hasPrefix("RUNE'S ICLOUD FOLDER ISN'T AVAILABLE") { return "NO ICLOUD FOLDER" }
         if why.contains(" MOVED ") { return "MOVED" }
         return fact(why)
     }

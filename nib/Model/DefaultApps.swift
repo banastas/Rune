@@ -127,11 +127,11 @@ final class DefaultApps {
         } else {
             back = previous(for: html)
         }
-        guard let back else { return "HTML FILES STAY WITH NIB · NO OTHER APP ON THIS MAC OPENS THEM" }
+        guard let back else { return "HTML FILES STAY WITH RUNE · NO OTHER APP ON THIS MAC OPENS THEM" }
         let name = Self.name(back).uppercased()
         do {
             try await setOpener(back, for: html)
-            return "HTML FILES OPEN IN \(name) AGAIN · NIB STILL EDITS THEM: OPEN WITH, ⌘O OR NIB PAGE.HTML"
+            return "HTML FILES OPEN IN \(name) AGAIN · RUNE STILL EDITS THEM: OPEN WITH, ⌘O OR RUNE PAGE.HTML"
         } catch {
             return "COULDN'T GIVE HTML FILES BACK TO \(name) · \(ErrorWords.hud(error)) · FINDER'S GET INFO › OPEN WITH CAN"
         }
@@ -151,7 +151,7 @@ final class DefaultApps {
             let partly = !isNib && elsewhere.count < apps.count
                 ? elsewhere.map { "." + ($0.0.preferredFilenameExtension ?? "?") }.joined(separator: " and ") + " still with \(other.map(Self.name) ?? "no app")"
                 : nil
-            next[kind] = Opener(name: isNib ? "Nib" : other.map(Self.name) ?? "no app", isNib: isNib, partly: partly)
+            next[kind] = Opener(name: isNib ? "Rune" : other.map(Self.name) ?? "no app", isNib: isNib, partly: partly)
         }
         openers = next
     }
@@ -173,7 +173,7 @@ final class DefaultApps {
             } else {
                 guard now.map(Self.isNib) == true else { continue }
                 guard let back = previous(for: type) else {
-                    failure = "No other app on this Mac opens \(kind.inSentence), so they stay with Nib."
+                    failure = "No other app on this Mac opens \(kind.inSentence), so they stay with Rune."
                     return
                 }
                 app = back

@@ -1,22 +1,23 @@
-// The menu bar extra (PRD §5.7, AP3, V11, A10): Nib's pixel nib over a line, still when idle;
+// The menu bar extra (PRD §5.7, AP3, V11, A10): Rune's pixel ᚱ over a line, still when idle;
 // the line's dashes march once an upload has been pending for more than 3 s (V7: 0.16 s a
 // step), and the muted-red ✕ sits beside it while a conflict or a problem needs a look. The
 // panel is Blit's 320 pt column: a HUD card for the scratch file (its state, when it was saved
 // and uploaded, the other Mac's last version), then native rows: Show Scratch, Clean
-// Clipboard, Append Clipboard to Scratch, recent files, Settings…, Quit Nib. Optional
+// Clipboard, Append Clipboard to Scratch, recent files, Settings…, Quit Rune. Optional
 // (Settings › General), on by default, as in Blit (T10).
 //
 // AppKit's own status item and a panel of Nib's, not SwiftUI's MenuBarExtra: on macOS 27 that
 // never took the item out when turned off (its `isInserted` going false did nothing), and
-// showed only the first of its label's images (the ✕ beside the nib never appeared).
+// showed only the first of its label's images (the ✕ beside the mark never appeared).
 
 import NibSync
 import NibText
 import SwiftUI
 
 enum NibMark {
-    /// The nib, 9 cells wide, over a blank row (§5.7's first draft).
-    static let nib = ["#########", "#########", "###...###", "###...###", ".###.###.", "..##.##..", "...#.#...", "....#....", "........."]
+    /// The rune ᚱ, 9 cells wide, over a blank row: its stave, bow and leg in two-cell strokes (a
+    /// pen nib until 2026-10-07, as Nib).
+    static let rune = [".##......", ".####....", ".##.##...", ".####....", ".##.##...", ".##..##..", ".##...##.", ".##....##", "........."]
 
     /// The line under it: solid, or dashes one step further right each frame.
     static func line(frame: Int?) -> String {
@@ -24,12 +25,12 @@ enum NibMark {
         return String((0..<9).map { x in (x - frame % 3 + 3) % 3 == 2 ? Character(".") : Character("#") })
     }
 
-    static func rows(frame: Int?) -> [String] { nib + [line(frame: frame)] }
+    static func rows(frame: Int?) -> [String] { rune + [line(frame: frame)] }
     @MainActor static var width: CGFloat { 9 * MenuBarMark.cell }
 
     /// The item's one image. The menu bar takes only a label's first image (macOS 27: a ✕
-    /// beside the nib as a second image never showed), so with the ✕ it's one picture: not a
-    /// template, since the ✕ keeps its red, and the nib in the label color, which takes the
+    /// beside the mark as a second image never showed), so with the ✕ it's one picture: not a
+    /// template, since the ✕ keeps its red, and the ᚱ in the label color, which takes the
     /// menu bar's own appearance when it's drawn. Without it, a template, as Blit's is.
     @MainActor static func image(frame: Int?, failure: Bool) -> NSImage {
         let rows = rows(frame: frame)
@@ -203,9 +204,9 @@ final class MenuBarController: NSObject {
         button.image = NibMark.image(frame: marching ? (Self.reduceMotion ? 0 : frame) : nil, failure: look)
         // The scratch file's line says its own problem; the others are named (F11).
         let others = MenuBarState.othersLine(MenuBarState.othersNeedingLook())
-        let spoken = "Nib, " + SyncState.midSentence(Documents.scratch.statusSpoken) + (others.map { "; " + SyncState.midSentence(Spoken.sentence($0)) } ?? "")
+        let spoken = "Rune, " + SyncState.midSentence(Documents.scratch.statusSpoken) + (others.map { "; " + SyncState.midSentence(Spoken.sentence($0)) } ?? "")
         button.setAccessibilityLabel(spoken)
-        button.toolTip = "Nib · " + Documents.scratch.statusLine + (others.map { " · " + $0 } ?? "")
+        button.toolTip = "Rune · " + Documents.scratch.statusLine + (others.map { " · " + $0 } ?? "")
         if pending, ticker == nil {
             ticker = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated {
@@ -327,7 +328,7 @@ struct NibMenuBarPanel: View {
         }
         let app = [
             Row(title: "Settings…", keys: "⌘,") { close(); AppDelegate.openSettings() },
-            Row(title: "Quit Nib", keys: "⌘Q") { NSApp.terminate(nil) },
+            Row(title: "Quit Rune", keys: "⌘Q") { NSApp.terminate(nil) },
         ]
         return [others, commands, Array(recent), app]
     }

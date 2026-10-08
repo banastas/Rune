@@ -25,13 +25,13 @@ struct DeletedBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 if document.iCloudOff {
                     Text("iCloud Drive is off on this Mac, and \(document.url.lastPathComponent) went with it.")
-                    Text("Your text is saved in Nib's Recovery folder, and goes back into the file when iCloud Drive is on again.")
+                    Text("Your text is saved in Rune's Recovery folder, and goes back into the file when iCloud Drive is on again.")
                         .foregroundStyle(.secondary)
                 } else {
                     // A move to this Mac's Trash is this Mac's; a deletion may be another Mac's too, which
                     // arrives as a deletion, its Trash being its own (the two-Mac probe, 2026-10-01).
                     Text("\(document.url.lastPathComponent) was \(document.deletedToTrash ? "moved to the Trash by another app." : "deleted, by another app or on another Mac.")")
-                    Text("Your text is still here, and in Nib's journal. Nothing makes the file again until you restore it.")
+                    Text("Your text is still here, and in Rune's journal. Nothing makes the file again until you restore it.")
                         .foregroundStyle(.secondary)
                 }
             }
@@ -47,7 +47,7 @@ struct DeletedBanner: View {
                     let copy = document.recoveryURL
                     NSWorkspace.shared.activateFileViewerSelecting([FileManager.default.fileExists(atPath: copy.path) ? copy : copy.deletingLastPathComponent()])
                 }
-                .help("Show the text's copy in Nib's Recovery folder")
+                .help("Show the text's copy in Rune's Recovery folder")
             } else {
                 Button("Restore") { Task { await document.restoreDeleted() } }
                     .help("Write the text back where the file was")

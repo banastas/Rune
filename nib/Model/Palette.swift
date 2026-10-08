@@ -97,7 +97,7 @@ final class PaletteSession: Identifiable {
         let root = ScratchLocation.hasContainer ? ScratchLocation.folder : ScratchLocation.unsignedTestFolder
         Task { [weak self] in
             let found = await Task.detached(priority: .userInitiated) { Self.textFiles(in: root) }.value
-            for url in found { self?.add(url, group: "Nib Folder", symbol: "doc.text") }   // a file, not a folder (F76)
+            for url in found { self?.add(url, group: "Rune Folder", symbol: "doc.text") }   // a file, not a folder (F76)
         }
     }
 
@@ -163,7 +163,7 @@ final class PaletteSession: Identifiable {
         // The app menu (About, Hide, Quit) last: the list starts with File and Edit.
         for top in main.items.dropFirst() + main.items.prefix(1) {
             guard let menu = top.submenu else { continue }
-            walk(menu, path: [top.title.isEmpty ? "Nib" : top.title])
+            walk(menu, path: [top.title.isEmpty ? "Rune" : top.title])
         }
     }
 
@@ -192,7 +192,7 @@ final class PaletteSession: Identifiable {
     private static func perform(path: [String], title: String) {
         var menu = NSApp.mainMenu
         for name in path {
-            menu = menu?.items.first { ($0.title.isEmpty ? "Nib" : $0.title) == name }?.submenu
+            menu = menu?.items.first { ($0.title.isEmpty ? "Rune" : $0.title) == name }?.submenu
         }
         guard let menu else { NSSound.beep(); return }
         refresh(menu)

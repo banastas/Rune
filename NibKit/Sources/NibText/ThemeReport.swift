@@ -35,7 +35,7 @@ public enum ThemeReport {
             }
             facts.append("\(low.count) COLOR\(low.count == 1 ? "" : "S") UNDER 4.5:1: \(list.joined(separator: ", "))")
         }
-        if theme.isLight { facts.append("LIGHT BACKGROUND · NIB'S WINDOWS STAY DARK") }
+        if theme.isLight { facts.append("LIGHT BACKGROUND · RUNE'S WINDOWS STAY DARK") }
         if !theme.approximations.isEmpty { facts.append("APPROXIMATED: \(theme.approximations.joined(separator: ", "))") }
         if !theme.unread.isEmpty { facts.append("\(theme.unread.count) COLOR\(theme.unread.count == 1 ? "" : "S") NOT READ: \(theme.unread.prefix(3).joined(separator: ", "))\(theme.unread.count > 3 ? ", …" : "")") }
         return facts

@@ -176,7 +176,7 @@ enum Untitled {
             return false
         }
         if Documents.existing(for: target) != nil {
-            document.show("✕ “\(target.lastPathComponent.uppercased())” IS OPEN IN NIB · CLOSE IT FIRST, OR PICK ANOTHER NAME", for: 12)
+            document.show("✕ “\(target.lastPathComponent.uppercased())” IS OPEN IN RUNE · CLOSE IT FIRST, OR PICK ANOTHER NAME", for: 12)
             return false
         }
         let data = TextFile.encode(document.editor.textView.string, as: document.format)

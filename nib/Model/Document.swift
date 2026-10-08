@@ -395,7 +395,7 @@ final class Document {
     func awaitFirstRun() {
         awaitingFirstRun = true
         // Said as a way back: the welcome window may be closed (the QA review's F21).
-        state = .waiting("NO SCRATCH FILE YET · HELP › WELCOME TO NIB SETS ONE UP")
+        state = .waiting("NO SCRATCH FILE YET · HELP › WELCOME TO RUNE SETS ONE UP")
         editor.textView.isEditable = false
     }
 
@@ -431,9 +431,9 @@ final class Document {
             // answer at all: then, with the file already here, open it anyway.
             let container = await CloudControl.containerAvailable(ScratchLocation.containerID, within: 10)
             step("iCloud's folder")
-            if container == nil { record("open", detail: "iCloud didn't answer about Nib's folder in 10 s: opening the file anyway") }
+            if container == nil { record("open", detail: "iCloud didn't answer about Rune's folder in 10 s: opening the file anyway") }
             guard container != false, container == true || FileManager.default.fileExists(atPath: url.path) else {
-                state = .problem("NIB'S ICLOUD FOLDER ISN'T AVAILABLE · IS ICLOUD DRIVE ON? · NOTHING WAS OPENED")
+                state = .problem("RUNE'S ICLOUD FOLDER ISN'T AVAILABLE · IS ICLOUD DRIVE ON? · NOTHING WAS OPENED")
                 record("problem", detail: "url(forUbiquityContainerIdentifier:) returned nil")
                 return
             }
@@ -488,7 +488,7 @@ final class Document {
             baseFingerprint = Fingerprint(size: Int64(shadow.data.count), modified: 0, fileID: 0, sha256: shadow.entry.sha256)
             uploadedSHA = shadow.entry.sha256   // a version this Mac had: a note naming it as the parent proves a merge's base (§4.6)
             remember(text, sha: shadow.entry.sha256)
-            step("the copy Nib saw last")
+            step("the copy Rune saw last")
         } else {
             do {
                 let (data, fingerprint) = try await io.run { try FileAccess.read(url, presenter: presenter) }
@@ -532,7 +532,7 @@ final class Document {
         }
         step("watching")
         record("open", size: text.utf8.count, sha: baseFingerprint?.sha256,
-               detail: (shadow.map { "not on this Mac and \(offlineNow ? "offline" : "iCloud slow to bring it"): the copy Nib saw last (\($0.entry.source), \(SyncState.clock.string(from: $0.entry.time))), typing to merge when the file comes · " } ?? "") + steps.joined(separator: " · "))
+               detail: (shadow.map { "not on this Mac and \(offlineNow ? "offline" : "iCloud slow to bring it"): the copy Rune saw last (\($0.entry.source), \(SyncState.clock.string(from: $0.entry.time))), typing to merge when the file comes · " } ?? "") + steps.joined(separator: " · "))
         #if DEBUG
         if self === Documents.scratch { AppDelegate.mark("text shown") }
         #endif
@@ -705,7 +705,7 @@ final class Document {
             // Nib crashed or hung at every launch while that journal waited (the suite, 2026-09-29).
             updateBlocks()
             editCount += 1
-            show("RECOVERED TYPING FROM BEFORE NIB QUIT UNEXPECTEDLY · SAVING IT NOW", for: 20)
+            show("RECOVERED TYPING FROM BEFORE RUNE QUIT UNEXPECTEDLY · SAVING IT NOW", for: 20)
             record("recover", size: entry.text.utf8.count, detail: "journal from \(entry.written)")
         } else {
             // The file changed too: both versions between markers, and typing goes on (§4.8 B).
@@ -716,7 +716,7 @@ final class Document {
             editor.textView.string = both
             applying = false
             updateBlocks()
-            show("✕ TYPING FROM BEFORE NIB QUIT, AND A NEWER FILE · BOTH ARE IN THE TEXT, BETWEEN MARKERS", for: 20)
+            show("✕ TYPING FROM BEFORE RUNE QUIT, AND A NEWER FILE · BOTH ARE IN THE TEXT, BETWEEN MARKERS", for: 20)
             record("conflict", detail: "journal and file both changed: both written between markers")
         }
     }
@@ -1276,7 +1276,7 @@ final class Document {
             return
         } catch {
             state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
-                             : "COULDN'T SAVE “\(url.lastPathComponent.uppercased())” · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
+                             : "COULDN'T SAVE “\(url.lastPathComponent.uppercased())” · \(short(error)) · YOUR TEXT IS IN RUNE'S RECOVERY JOURNAL")
             Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
                                   : Alerts.saveFailed(url.lastPathComponent, why: short(error)), for: url)
             if CloudControl.isOutOfSpace(error) { diskIsFull(at: url) }
@@ -2282,7 +2282,7 @@ final class Document {
         held = false   // nothing there to hold, or to hand back
         pausedFiles.remove(url.path)
         if iCloudOff {
-            state = .problem("ICLOUD DRIVE IS OFF ON THIS MAC · SAVING TO NIB'S RECOVERY FOLDER")
+            state = .problem("ICLOUD DRIVE IS OFF ON THIS MAC · SAVING TO RUNE'S RECOVERY FOLDER")
             Notifier.shared.began(Alerts.iCloudOff(url.lastPathComponent), for: url)
             record("problem", detail: "the file went with iCloud Drive (no iCloud account on this Mac): saving to the Recovery folder")
             recoveryPending = true
@@ -2371,7 +2371,7 @@ final class Document {
             record("save", size: data.count, detail: "to the Recovery folder (iCloud Drive is off): \(target.path)")
         } catch {
             state = .problem(CloudControl.isOutOfSpace(error) ? Self.diskFull
-                             : "COULDN'T SAVE TO THE RECOVERY FOLDER · \(short(error)) · YOUR TEXT IS IN NIB'S RECOVERY JOURNAL")
+                             : "COULDN'T SAVE TO THE RECOVERY FOLDER · \(short(error)) · YOUR TEXT IS IN RUNE'S RECOVERY JOURNAL")
             Notifier.shared.began(CloudControl.isOutOfSpace(error) ? Alerts.diskFull(url.lastPathComponent)
                                   : Alerts.saveFailed(url.lastPathComponent, why: short(error), toRecovery: true), for: url)
             if CloudControl.isOutOfSpace(error) { diskIsFull(at: recoveryURL) }
@@ -2696,7 +2696,7 @@ final class Document {
             // answer, said apart (F72: any failure read as not allowed).
             let finder = await TrashService.finderTrashCount()
             guard let count = finder.count else {
-                show(finder.denied ? "✕ NIB ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION"
+                show(finder.denied ? "✕ RUNE ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION"
                                    : "✕ FINDER DIDN'T SAY WHAT'S IN THE TRASH · EMPTY IT IN FINDER", for: 10)
                 return
             }
@@ -2711,7 +2711,7 @@ final class Document {
         guard TrashService.confirm(what, contents, items: items) else { return }   // the count said once (F72)
         if mac {
             if let problem = await TrashService.emptyFinderTrash() {
-                show(problem.hasPrefix("Nib isn't allowed") ? "✕ NIB ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION"
+                show(problem.hasPrefix("Rune isn't allowed") ? "✕ RUNE ISN'T ALLOWED TO CONTROL FINDER · SYSTEM SETTINGS › PRIVACY & SECURITY › AUTOMATION"
                                                           : "✕ COULDN'T EMPTY THE TRASH", for: 10)
                 record("problem", detail: "emptying the Trash for space: \(problem)")
                 return
@@ -3154,7 +3154,7 @@ enum ScratchLocation {
     /// folder), "iCloud Drive › nib-spike", or the path from ~.
     static func place(of url: URL) -> String {
         let folder = url.deletingLastPathComponent().path
-        for (root, name) in [(Self.folder.path, "iCloud Drive › Nib"), (NibPaths.iCloudDrive.path, "iCloud Drive")]
+        for (root, name) in [(Self.folder.path, "iCloud Drive › Rune"), (NibPaths.iCloudDrive.path, "iCloud Drive")]
         where folder == root || folder.hasPrefix(root + "/") {
             let rest = folder.dropFirst(root.count).split(separator: "/")
             return ([name] + rest.map(String.init)).joined(separator: " › ")
@@ -3168,7 +3168,7 @@ enum ScratchLocation {
         let path = url.standardizedFileURL.path
         guard path.hasPrefix(testFolder.path + "/") || path.hasPrefix(unsignedTestFolder.path + "/")
                 || path.hasPrefix(localTestFolder.standardizedFileURL.path + "/") else {
-            return "NIB OPENS ONLY TEST FILES IN A TEST RUN (ICLOUD DRIVE › NIB › TEST)"
+            return "RUNE OPENS ONLY TEST FILES IN A TEST RUN (ICLOUD DRIVE › RUNE › TEST)"
         }
         return nil
     }

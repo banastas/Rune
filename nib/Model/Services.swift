@@ -22,10 +22,10 @@ final class ServiceProvider: NSObject {
             return
         }
         if Documents.scratch.ready {
-            let appended = Clipboard.append(text, action: "Append to Nib Scratch", from: "THE SELECTION")
+            let appended = Clipboard.append(text, action: "Append to Rune Scratch", from: "THE SELECTION")
             if case .lines = appended { Self.confirm(appended) } else { error.pointee = Spoken.sentence(appended.hud) as NSString }
         } else {
-            Task { Self.confirm(await Self.appendWhenOpen(text, action: "Append to Nib Scratch", from: "THE SELECTION")) }   // just launched for it
+            Task { Self.confirm(await Self.appendWhenOpen(text, action: "Append to Rune Scratch", from: "THE SELECTION")) }   // just launched for it
         }
     }
 
@@ -56,7 +56,7 @@ final class ServiceProvider: NSObject {
 /// Shortcuts › Nib › Append to Scratch.
 struct AppendToScratchIntent: AppIntent {
     static let title: LocalizedStringResource = "Append to Scratch"
-    static let description = IntentDescription("Adds text to the end of Nib's scratch file, after a blank line, cleaned as Paste Clean cleans it.")
+    static let description = IntentDescription("Adds text to the end of Rune's scratch file, after a blank line, cleaned as Paste Clean cleans it.")
 
     @Parameter(title: "Text")
     var text: String
@@ -76,7 +76,7 @@ struct AppendToScratchIntent: AppIntent {
 /// Shortcuts › Nib › Get Scratch.
 struct GetScratchIntent: AppIntent {
     static let title: LocalizedStringResource = "Get Scratch"
-    static let description = IntentDescription("Gets the scratch file's text as it is in Nib, including typing not yet saved.")   // a sentence (F75)
+    static let description = IntentDescription("Gets the scratch file's text as it is in Rune, including typing not yet saved.")   // a sentence (F75)
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
@@ -88,7 +88,7 @@ struct GetScratchIntent: AppIntent {
         let document = Documents.scratch
         for _ in 0..<150 where !document.ready && document.locked == nil { try? await Task.sleep(for: .milliseconds(100)) }
         // Why, as the strip says it (F75: it failed saying only that it wasn't open).
-        guard document.ready else { throw NibIntentError.message("The scratch file isn't open in Nib: \(SyncState.midSentence(document.locked.map(Spoken.sentence) ?? document.state.spoken)).") }
+        guard document.ready else { throw NibIntentError.message("The scratch file isn't open in Rune: \(SyncState.midSentence(document.locked.map(Spoken.sentence) ?? document.state.spoken)).") }
         return document.editor.textView.string
     }
 }

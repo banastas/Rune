@@ -199,12 +199,12 @@ final class Schemes {
             }
             if let tab = found.tabSize { parts.append("TAB SIZE \(tab)") }
             if let spaces = found.translateTabsToSpaces { parts.append(spaces ? "SPACES" : "TABS") }
-            parts.append(found.scheme.isOriginalAnOldHope ? "\(found.scheme.name.uppercased()) (NIB KEEPS ITS OWN EDITION)" : found.scheme.name.uppercased())
+            parts.append(found.scheme.isOriginalAnOldHope ? "\(found.scheme.name.uppercased()) (RUNE KEEPS ITS OWN EDITION)" : found.scheme.name.uppercased())
             return (parts.joined(separator: " · "), nil)
         } catch let failure as SublimeImport.Failure {
             return (nil, failure.sentence)
         } catch {
-            return (nil, "Nib couldn't read Sublime Text's settings: \(Alerts.sentence(ErrorWords.hud(error)))")
+            return (nil, "Rune couldn't read Sublime Text's settings: \(Alerts.sentence(ErrorWords.hud(error)))")
         }
     }
 
@@ -218,7 +218,7 @@ final class Schemes {
             setReport(ThemeReport.facts(for: theme))
             return true
         } catch {
-            setReport(["COULDN'T READ “\(url.lastPathComponent.uppercased())” · NOT A COLOR SCHEME NIB CAN READ · NOTHING IMPORTED"])
+            setReport(["COULDN'T READ “\(url.lastPathComponent.uppercased())” · NOT A COLOR SCHEME RUNE CAN READ · NOTHING IMPORTED"])
             return false
         }
     }

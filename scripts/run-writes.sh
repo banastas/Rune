@@ -7,7 +7,7 @@
 # Six to eleven minutes (a save after one of 2.4 MB waits 30 s). It uses the test folder and
 # Application Support/nib-scenarios as the suite does: not while a suite or the two-Mac test runs.
 #   scripts/run-writes.sh [bytes]
-#   NIB_APP=build/DerivedData-before/Build/Products/Debug/Nib.app/Contents/MacOS/Nib scripts/run-writes.sh
+#   NIB_APP=build/DerivedData-before/Build/Products/Debug/Rune.app/Contents/MacOS/Rune scripts/run-writes.sh
 #     (an app built elsewhere, as it is: to compare two builds)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -18,7 +18,7 @@ if [[ -n ${NIB_APP:-} ]]; then
 else
   echo "==> Building nib (Debug, team signing)"
   scripts/build-nib.sh team
-  APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
+  APP=build/DerivedData/Build/Products/Debug/Rune.app/Contents/MacOS/Rune
 fi
 LOGS=build/scenarios
 mkdir -p "$LOGS"

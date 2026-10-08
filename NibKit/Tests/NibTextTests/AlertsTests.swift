@@ -59,11 +59,11 @@ import Testing
         // ⌘3 keeps both, not one (the QA review's F8).
         #expect(conflict.body.hasSuffix("⌘1 or ⌘2 in the block keeps one version, ⌘3 keeps both.") && !conflict.body.contains("⌘3 keeps one"))
         let failed = Alerts.saveFailed("notes.md", why: "NO PERMISSION")
-        #expect(failed.kind == .saveFailed && failed.body == "No permission. Your text is in Nib's recovery journal, and Nib keeps trying.")
+        #expect(failed.kind == .saveFailed && failed.body == "No permission. Your text is in Rune's recovery journal, and Rune keeps trying.")
         #expect(Alerts.saveFailed("notes.md", why: "The volume is read-only.").body.hasPrefix("The volume is read-only. Your text"))
         #expect(Alerts.diskFull("scratch.md").body.contains("only in memory") && Alerts.diskFull("scratch.md").kind == .saveFailed)
         #expect(Alerts.deleted("a.md", trash: true).title == "“a.md” was moved to the Trash" && Alerts.deleted("a.md", trash: false).title == "“a.md” was deleted")
         #expect(Alerts.iCloudOff("a.md").body.hasPrefix("“a.md” went with it.") && Alerts.storageFull("a.md").body.hasPrefix("“a.md” is saved on this Mac only"))
-        #expect(Alerts.journalFailed("a.md", why: "I/O ERROR").title == "Couldn't write Nib's recovery journal")
+        #expect(Alerts.journalFailed("a.md", why: "I/O ERROR").title == "Couldn't write Rune's recovery journal")
     }
 }

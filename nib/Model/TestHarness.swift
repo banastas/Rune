@@ -466,7 +466,7 @@ enum TestHarness {
         _ = await waitFor(2) { (view.window?.firstResponder as? NSTextView)?.delegate is NSTextField }
         let fieldFocused = (view.window?.firstResponder as? NSTextView)?.delegate is NSTextField
         log.check(opened && find.shown && find.query == "deploy" && fieldFocused,
-                  "⌘F \(front ? "from the menu" : "(the text view's action: macOS didn't let Nib come forward)"): the bar, the selection in its field, the caret there, \(find.countLabel) (shown \(find.shown), query \(find.query.debugDescription), caret in the field \(fieldFocused), first responder \(view.window?.firstResponder.map { String(describing: Swift.type(of: $0)) } ?? "none"))")
+                  "⌘F \(front ? "from the menu" : "(the text view's action: macOS didn't let Rune come forward)"): the bar, the selection in its field, the caret there, \(find.countLabel) (shown \(find.shown), query \(find.query.debugDescription), caret in the field \(fieldFocused), first responder \(view.window?.firstResponder.map { String(describing: Swift.type(of: $0)) } ?? "none"))")
         // Each jump said, the focus staying in the field (the QA review's F38: VoiceOver heard nothing).
         find.next()
         let jumpSaid = Announce.said.last ?? ""
@@ -662,7 +662,7 @@ enum TestHarness {
         // A file of its own for the Nib Folder group (the test folder held earlier runs' files,
         // until they were cleared away and the group came up empty: the suite, 2026-10-01).
         let other = url.deletingLastPathComponent().appendingPathComponent("palette-folder-\(marker).md")
-        try? Data("# In the Nib folder \(marker)\n".utf8).write(to: other)
+        try? Data("# In the Rune folder \(marker)\n".utf8).write(to: other)
         defer {
             try? FileManager.default.removeItem(at: url)
             try? FileManager.default.removeItem(at: other)
@@ -695,7 +695,7 @@ enum TestHarness {
         }
         AppDelegate.showPalette(.files, in: document)
         guard let session = document.palette, await sheet(true) else { log.check(false, "Go to File opened, a sheet on the window"); return }
-        let folder = await waitFor(5) { session.entries.contains { $0.group == "Nib Folder" } }
+        let folder = await waitFor(5) { session.entries.contains { $0.group == "Rune Folder" } }
         await picture("files")
         let groups = session.entries.map(\.group).reduce(into: [String]()) { if $0.last != $1 { $0.append($1) } }
         let ids = session.entries.map(\.id)
@@ -760,7 +760,7 @@ enum TestHarness {
         let windowCommands = entry("Show in Finder") != nil
         log.check(entry("One Caret") != nil && entry("One Caret (⎋)") == nil && !bare && (!windowCommands || (entry("Go to Heading…") != nil && named)),
                   "Go to Heading… is there, the syntaxes as “\(palette.entries.first { $0.name.hasPrefix("Syntax: ") }?.name ?? "none")”, One Caret named plainly"
-                  + (windowCommands ? "" : " (Nib behind: the window's commands off, so only the names checked)"))
+                  + (windowCommands ? "" : " (Rune behind: the window's commands off, so only the names checked)"))
         log.check(added.first == "Show Scratch" && (added.count == 3 || !inFront) && entry("Show Scratch")?.shortcut != nil && entry("Restore") == nil,
                   "and the strip's commands (Restore only while deleted), and Show Scratch with its keys (\(entry("Show Scratch")?.shortcut ?? "no keys")): \(added.joined(separator: ", "))")
         let front = NSApp.isActive && view.window?.isKeyWindow == true
@@ -778,7 +778,7 @@ enum TestHarness {
             document.palette = nil
             _ = await sheet(false)
             let ran = await waitFor(3) { NSApp.windows.contains { $0.identifier?.rawValue.contains("sync-log") == true && $0.isVisible } }
-            log.check(ran, "Sync Log, chosen: its window opens once the palette has gone (Nib not in front, so not a text command)")
+            log.check(ran, "Sync Log, chosen: its window opens once the palette has gone (Rune not in front, so not a text command)")
             NSApp.windows.first { $0.identifier?.rawValue.contains("sync-log") == true }?.performClose(nil)
         }
 
@@ -939,7 +939,7 @@ enum TestHarness {
         await type(" line ", into: document)
         let typed = original + " line "
         let autosaved = await waitFor(8) { fileText(document) == typed && !document.dirty }
-        log.check(autosaved && view.string == typed, "Nib's own save after typing keeps the space just typed at the end")
+        log.check(autosaved && view.string == typed, "Rune's own save after typing keeps the space just typed at the end")
 
         // ⌘S.
         await endOfEvent(view)
@@ -990,7 +990,7 @@ enum TestHarness {
         let widths = Set([nil, 0, 1, 2].map { MenuBarMark.image(NibMark.rows(frame: $0), width: NibMark.width).size.width })
         log.check(NibMark.rows(frame: nil).count == 10 && widths.count == 1 && NibMark.line(frame: nil) == "#########"
                   && NibMark.line(frame: 0) == "##.##.##." && NibMark.line(frame: 1) == ".##.##.##",
-                  "the nib, a fixed width, its line solid or in dashes a step further right each frame")
+                  "the ᚱ, a fixed width, its line solid or in dashes a step further right each frame")
 
         // Still when synced; marching once an upload has waited more than 3 s.
         let still = picture()
@@ -1048,7 +1048,7 @@ enum TestHarness {
         // The ✕ makes the image wider, and it's no longer a template (it keeps its red).
         let marked = await waitFor(5) { (statusButton()?.image?.size.width ?? 0) > plainWidth && statusButton()?.image?.isTemplate == false }
         _ = picture(saving: "menubar-item-conflict")
-        log.check(marked, "a conflict block in an open file: the red ✕ beside the nib (\(plainWidth) pt, then \(statusButton()?.image?.size.width ?? 0))")
+        log.check(marked, "a conflict block in an open file: the red ✕ beside the ᚱ (\(plainWidth) pt, then \(statusButton()?.image?.size.width ?? 0))")
         Documents.existing(for: url)?.editor.textView.window?.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: url) == nil }
         document.editor.textView.undoManager?.undo()
@@ -1144,7 +1144,7 @@ enum TestHarness {
         log.check(saidRefusal, "and the refusal is said to VoiceOver as it shows")
         let other = document.url.deletingLastPathComponent().appendingPathComponent("firstrun-\(marker).md")
         model.use(other)
-        log.check(model.chosen == other && model.message == nil, "another test file is taken, for when Nib reopens")
+        log.check(model.chosen == other && model.message == nil, "another test file is taken, for when Rune reopens")
         await picture("firstrun-1-chosen")
         model.keepCurrent()
         model.use(document.url)
@@ -1169,10 +1169,10 @@ enum TestHarness {
             }
         }
         for action in GlobalShortcuts.Action.allCases { shortcuts.reset(action) }
-        let beside = otherNib ? "; the Nib in daily use holds \(GlobalShortcuts.Action.allCases.filter { shortcuts.warnings[$0] != nil }.map(\.title))" : ""
+        let beside = otherNib ? "; the Rune in daily use holds \(GlobalShortcuts.Action.allCases.filter { shortcuts.warnings[$0] != nil }.map(\.title))" : ""
         log.check(shortcuts.shortcut(.showScratch)?.description == "⌥Space" && shortcuts.shortcut(.cleanClipboard)?.description == "⌃⌥⌘V"
                   && shortcuts.shortcut(.appendClipboard) == nil && registered([1, 2]),
-                  "Nib's own keys: ⌥Space and ⌃⌥⌘V, none for Append, and both registered (\(HotKey.registered.sorted())\(beside))")
+                  "Rune's own keys: ⌥Space and ⌃⌥⌘V, none for Append, and both registered (\(HotKey.registered.sorted())\(beside))")
         func recorder(_ action: GlobalShortcuts.Action) -> ShortcutRecorder? {
             func find(_ view: NSView) -> ShortcutRecorder? {
                 if let field = view as? ShortcutRecorder, field.shortcutAction == action { return field }
@@ -1187,7 +1187,7 @@ enum TestHarness {
         let controlOptionShiftK = Shortcut(keyCode: UInt32(kVK_ANSI_K), modifiers: UInt32(controlKey | optionKey | shiftKey))
         if let field = recorder(.showScratch) {
             field.performClick(nil)
-            log.check(field.recording && field.title == "Type the keys…" && HotKey.registered.isEmpty, "a click on Show Scratch's field listens, with Nib's shortcuts off meanwhile")
+            log.check(field.recording && field.title == "Type the keys…" && HotKey.registered.isEmpty, "a click on Show Scratch's field listens, with Rune's shortcuts off meanwhile")
             field.keyDown(with: key(kVK_ANSI_K, .shift, "K"))
             log.check(field.recording && shortcuts.shortcut(.showScratch)?.description == "⌥Space", "⇧K alone isn't taken: it would take a capital K from every app")
             field.keyDown(with: key(kVK_ANSI_K, [.control, .option, .shift], "K"))
@@ -1263,7 +1263,7 @@ enum TestHarness {
             log.line("skipped: macOS doesn't keep ⌘Space on this Mac")
         }
         log.check(shortcuts.warnings.values.allSatisfy { otherNib && $0.hasPrefix("Another app holds") } && registered([1, 2]),
-                  "back to Nib's own keys, with nothing in their way\(otherNib ? " but the Nib in daily use" : "")")
+                  "back to Rune's own keys, with nothing in their way\(otherNib ? " but the Rune in daily use" : "")")
 
         // The Edit menu shows Clean Clipboard's keys, whatever they are.
         func editItem(_ title: String) -> NSMenuItem? {
@@ -1283,7 +1283,7 @@ enum TestHarness {
         login.set(true)
         let on = login.enabled
         login.set(false)
-        log.check(on && !login.enabled && login.failure == nil, "Open Nib when you log in turns on and off (a stand-in; macOS says this build's login item is \(["not registered", "on", "waiting for approval", "not found"][min(3, SMAppService.mainApp.status.rawValue)]))")
+        log.check(on && !login.enabled && login.failure == nil, "Open Rune when you log in turns on and off (a stand-in; macOS says this build's login item is \(["not registered", "on", "waiting for approval", "not found"][min(3, SMAppService.mainApp.status.rawValue)]))")
 
         // Done.
         model.finish()
@@ -1292,7 +1292,7 @@ enum TestHarness {
         model.show()
         let again = await waitFor(3) { model.window?.isVisible == true }
         model.window?.close()
-        log.check(again && model.window == nil, "Help › Welcome to Nib shows it again")
+        log.check(again && model.window == nil, "Help › Welcome to Rune shows it again")
 
         // Not there yet: looked for again while the window's open, for another Mac's may be on its
         // way (the QA review's F26: it looked once and offered Create).
@@ -1346,7 +1346,7 @@ enum TestHarness {
         try? FileManager.default.removeItem(at: other)
     }
 
-    /// The `nib` command-line tool (AP4), the real binary (-NibCLI) against this Nib: a file at a
+    /// The `rune` command-line tool (AP4), the real binary (-NibCLI) against this Rune: a file at a
     /// line; `-w` waiting until the window closes, the typing in the file by then; standard
     /// input as an untitled buffer, and at the end of the scratch file (undone after);
     /// `--scratch`; a file outside the test folder refused and a folder refused, with exit 1;
@@ -1354,7 +1354,7 @@ enum TestHarness {
     static func cliScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
         guard let tool = NibDefaults.store.string(forKey: "NibCLI"), FileManager.default.isExecutableFile(atPath: tool) else {
-            log.check(false, "the nib tool to run (-NibCLI)")
+            log.check(false, "the rune tool to run (-NibCLI)")
             return
         }
         let folder = document.url.deletingLastPathComponent()
@@ -1408,7 +1408,7 @@ enum TestHarness {
         let atLine = await run([made[0].lastPathComponent + ":4"])
         _ = await waitFor(10) { caretLine(made[0]) == 4 }
         log.check(atLine?.status == 0 && Documents.existing(for: made[0])?.ready == true && caretLine(made[0]) == 4,
-                  "nib file:4 opens it with the caret on line 4 (exit \(atLine.map { "\($0.status)" } ?? "none"), line \(caretLine(made[0]) ?? 0))")
+                  "rune file:4 opens it with the caret on line 4 (exit \(atLine.map { "\($0.status)" } ?? "none"), line \(caretLine(made[0]) ?? 0))")
         await close(made[0])
 
         // -w: waits until the window closes, and the typing is in the file by then.
@@ -1416,41 +1416,41 @@ enum TestHarness {
         _ = await waitFor(10) { Documents.existing(for: made[1])?.ready == true && CLIBridge.waiters(for: made[1]) == 1 }
         let opened = Documents.existing(for: made[1])
         try? await Task.sleep(for: .milliseconds(1_500))
-        log.check(opened?.ready == true && waiter.isRunning, "nib -w opens the file and waits")
-        if let opened { await type("typed while nib -w waits \(marker)\n", into: opened) }
+        log.check(opened?.ready == true && waiter.isRunning, "rune -w opens the file and waits")
+        if let opened { await type("typed while rune -w waits \(marker)\n", into: opened) }
         await close(made[1])
         let waited = await finish(waiter, 10)
         let saved = (try? String(contentsOf: made[1], encoding: .utf8)) ?? ""
-        log.check(waited?.status == 0 && saved.contains("typed while nib -w waits \(marker)"),
+        log.check(waited?.status == 0 && saved.contains("typed while rune -w waits \(marker)"),
                   "and returns when its window closes (exit \(waited.map { "\($0.status)" } ?? "none")), the typing in the file")
 
         // Standard input as an untitled buffer.
         let before = Set(Documents.all.map(\.url))
-        let piped = await run([], input: "piped into nib \(marker)\nsecond line\n")
+        let piped = await run([], input: "piped into rune \(marker)\nsecond line\n")
         _ = await waitFor(10) { Documents.all.contains { !before.contains($0.url) && $0.untitled && $0.ready && !$0.editor.textView.string.isEmpty } }
         let buffer = Documents.all.first { !before.contains($0.url) && $0.untitled }
         untitled = buffer?.url
-        log.check(piped?.status == 0 && buffer?.editor.textView.string == "piped into nib \(marker)\nsecond line\n",
-                  "cmd | nib: an untitled buffer with its text (\(buffer?.url.lastPathComponent ?? "none"): exit \(piped.map { "\($0.status) \($0.error)" } ?? "none"), \(buffer?.editor.textView.string.debugDescription ?? "no text"))")
+        log.check(piped?.status == 0 && buffer?.editor.textView.string == "piped into rune \(marker)\nsecond line\n",
+                  "cmd | rune: an untitled buffer with its text (\(buffer?.url.lastPathComponent ?? "none"): exit \(piped.map { "\($0.status) \($0.error)" } ?? "none"), \(buffer?.editor.textView.string.debugDescription ?? "no text"))")
         if let url = buffer?.url { await close(url) }
 
         // Standard input at the end of the scratch file, then undone.
         let length = (document.editor.textView.string as NSString).length
-        let appended = await run(["-a"], input: "appended by nib -a \(marker)\n")
-        _ = await waitFor(5) { document.editor.textView.string.hasSuffix("appended by nib -a \(marker)\n") }
-        log.check(appended?.status == 0 && document.editor.textView.string.hasSuffix("appended by nib -a \(marker)\n")
+        let appended = await run(["-a"], input: "appended by rune -a \(marker)\n")
+        _ = await waitFor(5) { document.editor.textView.string.hasSuffix("appended by rune -a \(marker)\n") }
+        log.check(appended?.status == 0 && document.editor.textView.string.hasSuffix("appended by rune -a \(marker)\n")
                   && document.editor.textView.selectedRange().location <= length,
-                  "cmd | nib -a: at the end of the scratch file, the caret where it was")
-        if document.editor.textView.string.hasSuffix("appended by nib -a \(marker)\n") { document.editor.textView.undoManager?.undo() }
+                  "cmd | rune -a: at the end of the scratch file, the caret where it was")
+        if document.editor.textView.string.hasSuffix("appended by rune -a \(marker)\n") { document.editor.textView.undoManager?.undo() }
         log.check((document.editor.textView.string as NSString).length == length, "and ⌘Z takes it out again")
         let nothing = await run(["-a"], input: "")
-        log.check(nothing?.status == 1 && nothing?.error == "nib: nothing on standard input to append", "nib -a with nothing piped in: \(nothing?.error ?? "no answer")")
+        log.check(nothing?.status == 1 && nothing?.error == "rune: nothing on standard input to append", "rune -a with nothing piped in: \(nothing?.error ?? "no answer")")
 
         // --scratch.
         AppDelegate.scratchWindow?.orderOut(nil)
         let shown = await run(["--scratch"])
         _ = await waitFor(5) { AppDelegate.scratchWindow?.isVisible == true }
-        log.check(shown?.status == 0 && AppDelegate.scratchWindow?.isVisible == true, "nib --scratch shows the scratch window")
+        log.check(shown?.status == 0 && AppDelegate.scratchWindow?.isVisible == true, "rune --scratch shows the scratch window")
 
         // Refused: a file outside the test folders (a path only: never read), and a folder.
         let outside = NSHomeDirectory() + "/Documents/cli-\(marker).txt"
@@ -1476,10 +1476,10 @@ enum TestHarness {
         try? await Task.sleep(for: .milliseconds(500))
         let notAgain = Documents.existing(for: typo) == nil && !FileManager.default.fileExists(atPath: typo.path)
         log.check(typed?.status == 0 && typoOpened && left && !kept && notAgain,
-                  "nib on a path with no file: made empty to open (\(typoOpened)), gone when closed still empty (\(left)), nothing kept for it (\(!kept)), and not made again from a list (\(notAgain))")
+                  "rune on a path with no file: made empty to open (\(typoOpened)), gone when closed still empty (\(left)), nothing kept for it (\(!kept)), and not made again from a list (\(notAgain))")
         try? FileManager.default.removeItem(at: typo)
         let wrong = await run(["-x"])
-        log.check(wrong?.status == 2 && wrong?.error.hasPrefix("nib: unknown option -x") == true && wrong?.error.contains("show this help") == true
+        log.check(wrong?.status == 2 && wrong?.error.hasPrefix("rune: unknown option -x") == true && wrong?.error.contains("show this help") == true
                   && wrong?.error.contains("Exits 0 when done") == true,
                   "an unknown option: exit 2 and the usage, with --scratch and the exit statuses (the QA review's F73)")
         let both = await run(["-w", "-a"])
@@ -1490,7 +1490,7 @@ enum TestHarness {
         _ = await waitFor(10) { CLIBridge.waiters(for: made[2]) == 1 && Documents.existing(for: made[2])?.ready == true }
         CLIBridge.quitting()
         let letGo = await finish(quitWaiter, 10)
-        log.check(letGo?.status == 0, "nib -w returns when Nib quits (exit \(letGo.map { "\($0.status)" } ?? "none"))")
+        log.check(letGo?.status == 0, "rune -w returns when Rune quits (exit \(letGo.map { "\($0.status)" } ?? "none"))")
         await close(made[2])
         log.check(Bridge.waiting().isEmpty, "no request left in the folder")
     }
@@ -1632,7 +1632,7 @@ enum TestHarness {
         if let a = Documents.existing(for: urls[0]) {
             let outside = URL(fileURLWithPath: NSHomeDirectory() + "/Documents/\(names[0])")   // a path only: nothing is written there
             let refused = await FileCommands.move(a, to: outside)
-            log.check(refused?.hasPrefix("✕ NOT MOVED · NIB OPENS ONLY TEST FILES") == true && Documents.existing(for: urls[0]) === a && !fm.fileExists(atPath: outside.path),
+            log.check(refused?.hasPrefix("✕ NOT MOVED · RUNE OPENS ONLY TEST FILES") == true && Documents.existing(for: urls[0]) === a && !fm.fileExists(atPath: outside.path),
                       "Move To… outside the test folder: refused (\(refused ?? "no answer"))")
             let why = await FileCommands.move(a, to: moved)
             _ = await opened(moved)
@@ -1843,7 +1843,7 @@ enum TestHarness {
             try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent(name))
         }
         let appMenu = NSApp.mainMenu?.items.first?.submenu
-        let index = appMenu?.items.firstIndex { $0.title == "About Nib" }
+        let index = appMenu?.items.firstIndex { $0.title == "About Rune" }
         openAcknowledgements = true
         defer { openAcknowledgements = false }
         if let appMenu, let index { appMenu.performActionForItem(at: index) }
@@ -1854,7 +1854,7 @@ enum TestHarness {
         picture(window("about"), "about.png")
         picture(window("acknowledgements"), "acknowledgements.png")
         log.check(index != nil && about && abs(width - 360) < 2 && AboutView.version.hasPrefix("V") && AboutView.version.contains(" · BUILD "),
-                  "Nib › About Nib: Blit's About, \(Int(width)) points wide, \(AboutView.version)")
+                  "Rune › About Rune: Blit's About, \(Int(width)) points wide, \(AboutView.version)")
         let items = Acknowledgements.load()
         let names = items.map(\.title)
         let wanted = ["SwiftTreeSitter", "tree-sitter 0.", "tree-sitter-gitcommit", "tree-sitter-ini", "An Old Hope", "Silkscreen (font)", "VT323 (font)"]
@@ -1896,7 +1896,7 @@ enum TestHarness {
         view.insertText("# Dock \(marker)\n\nmine\ntheirs\n", replacementRange: NSRange(location: 0, length: (view.string as NSString).length))
         let gone = await waitFor(5) { !DockBadge.shared.showing && NSApp.dockTile.contentView == nil }
         log.check(shown && gone && buffer.blocks.isEmpty && delegate?.applicationDockMenu?(NSApp)?.items.contains(where: { $0.title.hasPrefix("Conflict in") }) != true,
-                  "a conflict block puts the ✕ on Nib's icon in the Dock, and it goes once the block is resolved, with its line in the Dock's menu")
+                  "a conflict block puts the ✕ on Rune's icon in the Dock, and it goes once the block is resolved, with its line in the Dock's menu")
         Untitled.letGo(url)
         view.window?.performClose(nil)
         if !(await waitFor(15) { !FileManager.default.fileExists(atPath: url.path) }) { log.line("the buffer was still there after 15 s") }
@@ -1917,7 +1917,7 @@ enum TestHarness {
         let back = await waitFor(3) { NSApp.activationPolicy() == .regular }
         defaults.set(false, forKey: "showMenuBarExtra")
         log.check(kept && hidden && back,
-                  "Show Nib in the Dock off: kept while the nib in the menu bar is off (\(kept)), hidden with it on (\(hidden)), back when on again (\(back))")
+                  "Show Rune in the Dock off: kept while Rune in the menu bar is off (\(kept)), hidden with it on (\(hidden)), back when on again (\(back))")
     }
 
     /// Services and Shortcuts (SC8, PT7): Append to Nib Scratch and Clean Text as the system sends
@@ -1934,9 +1934,9 @@ enum TestHarness {
         ServiceProvider.shared.appendToScratch(board, userData: nil, error: &error)
         // Confirmed where it can be seen, with the scratch window behind (the QA review's F63).
         let confirmed = NSApp.isActive && AppDelegate.scratchWindow?.isKeyWindow == true || Announce.said.last == "Appended 1 line to scratch"
-        log.check(confirmed, "Services › Append to Nib Scratch says what it did, with Nib behind (“\(Announce.said.last ?? "nothing")”)")
+        log.check(confirmed, "Services › Append to Rune Scratch says what it did, with Rune behind (“\(Announce.said.last ?? "nothing")”)")
         log.check(error == nil && view.string.hasSuffix("\n\nappended by the service \(marker)\n"),
-                  "Services › Append to Nib Scratch: the selection at the end of the scratch file after a blank line, cleaned (\((view.string.components(separatedBy: "\n").suffix(2).first ?? "").debugDescription))")
+                  "Services › Append to Rune Scratch: the selection at the end of the scratch file after a blank line, cleaned (\((view.string.components(separatedBy: "\n").suffix(2).first ?? "").debugDescription))")
 
         let dirty = "  Text\u{00A0}with a no-break space\u{200B} and a zero-width one  \nsecond line   \n"
         board.clearContents()
@@ -1951,7 +1951,7 @@ enum TestHarness {
         let ran = (try? await append.perform()) != nil
         let got = try? await GetScratchIntent.text()
         log.check(ran && view.string.hasSuffix("\n\nappended by Shortcuts \(marker)\n") && got == view.string,
-                  "Shortcuts: Append to Scratch adds to its end, and Get Scratch gives its text as it is in Nib (\(got.map { "\(($0 as NSString).length) characters" } ?? "nothing"))")
+                  "Shortcuts: Append to Scratch adds to its end, and Get Scratch gives its text as it is in Rune (\(got.map { "\(($0 as NSString).length) characters" } ?? "nothing"))")
         log.check(CleanTextIntent.clean("a\u{200B}b   \n") == "ab\n", "Shortcuts: Clean Text (\(CleanTextIntent.clean("a\u{200B}b   \n").debugDescription))")
 
         // Nothing left once cleaned: said of where the text came from (the QA review's F19: "the
@@ -2064,7 +2064,7 @@ enum TestHarness {
         let shown = share(picture(view, "synchud.png"), view, hudBlack)
         log.check(item != nil && document.syncDetailsShown && keys?.0.lowercased() == "y" && keys?.1.contains([.command, .shift]) == true
                   && before < 0.05 && shown > 0.4,
-                  "View › Show Sync Details (⇧⌘Y)\(byMenu ? "" : ", by its action (Nib not let in front, the item off)") opens it over the text's foot: \(Int(shown * 100))% of it HUD black, \(Int(before * 100))% before")
+                  "View › Show Sync Details (⇧⌘Y)\(byMenu ? "" : ", by its action (Rune not let in front, the item off)") opens it over the text's foot: \(Int(shown * 100))% of it HUD black, \(Int(before * 100))% before")
 
         // Escape closes it; the menu opens it and closes it again.
         view.window?.makeFirstResponder(view)
@@ -2119,7 +2119,7 @@ enum TestHarness {
         let sayings = [said(["This Mac · 10:42", "Test Mac · 10:43"]), said(["\(me) · 10:42", "The file · now"]),
                        said(["\(me) · 10:42", "scratch-test 2.md · 10:40"]), said(["Studio · 10:42", "Studio 2 · 10:43"], device: "Studio"),
                        said(["\(me) · 10:42", "Air · 10:41", "\(me) · 10:44", "iCloud · 10:43"])]
-        log.check(sayings[0].hasPrefix("Test Mac and this Mac both changed") && sayings[1].hasPrefix("The file changed while Nib was closed")
+        log.check(sayings[0].hasPrefix("Test Mac and this Mac both changed") && sayings[1].hasPrefix("The file changed while Rune was closed")
                   && sayings[2].hasPrefix("“scratch-test 2.md” is a copy of this file") && sayings[3].hasPrefix("Studio 2 and this Mac")
                   && sayings[4].hasPrefix("Several versions changed this file"),
                   "the banner names the other side by its whole name: \(sayings.map { "“\($0.prefix(40))…”" }.joined(separator: ", "))")
@@ -2152,7 +2152,7 @@ enum TestHarness {
         await apps.set(.markdown, true)
         log.check(apps.openers[.markdown]?.isNib == true && apps.opener(of: markdown).map(DefaultApps.isNib) == true
                   && NibDefaults.store.string(forKey: DefaultApps.beforeKey(markdown)) == textEdit.path && apps.openers[.text]?.isNib == false,
-                  "Markdown on: .md files open in Nib, TextEdit remembered, and plain text still TextEdit's")
+                  "Markdown on: .md files open in Rune, TextEdit remembered, and plain text still TextEdit's")
         await apps.set(.markdown, false)
         log.check(apps.openers[.markdown] == .init(name: "TextEdit", isNib: false) && apps.failure == nil, "Markdown off: back to TextEdit")
 
@@ -2160,7 +2160,7 @@ enum TestHarness {
         let shell = DefaultApps.Kind.shell.types
         await apps.set(.shell, true)
         log.check(shell.allSatisfy { apps.opener(of: $0).map(DefaultApps.isNib) == true } && apps.openers[.shell]?.isNib == true,
-                  "Shell scripts on: .sh, .zsh and .bash files all open in Nib")
+                  "Shell scripts on: .sh, .zsh and .bash files all open in Rune")
         // One of them declined (macOS asks for each): the row says which are still elsewhere, not
         // "now Xcode" as if none were (the QA review's F69).
         apps.pretend(textEdit, opensType: "public.zsh-script")
@@ -2195,7 +2195,7 @@ enum TestHarness {
                 let on = ["Indent", "Toggle Comment", "Select Line"].filter { title in text.items.first { $0.title == title }?.isEnabled == true }
                 log.check(on.isEmpty, "with Settings in front, Text's commands are off\(on.isEmpty ? "" : ": \(on.joined(separator: ", ")) on")")
             } else {
-                log.line("skipped: Text's commands with Settings in front (Nib isn't in front)")
+                log.line("skipped: Text's commands with Settings in front (Rune isn't in front)")
             }
             if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
                 view.cacheDisplay(in: view.bounds, to: rep)
@@ -2215,7 +2215,7 @@ enum TestHarness {
         let again = await apps.giveBackHTML()
         NibDefaults.store.removeObject(forKey: DefaultApps.beforeKey(html))
         log.check(backTo == "TextEdit" && said.hasPrefix("HTML FILES OPEN IN TEXTEDIT AGAIN") && again == nil,
-                  "where Nib had HTML, it's given back once, to the app it took it from (\(backTo)): \(said)")
+                  "where Rune had HTML, it's given back once, to the app it took it from (\(backTo)): \(said)")
 
         // Every tab on the Air's screen (about 900 points under its menu bar): Settings can't scroll,
         // and General was 967 points tall (the QA review's F22). A picture of each.
@@ -2566,7 +2566,7 @@ enum TestHarness {
         await document.flush(reason: "test")
         let copy = (try? String(contentsOf: recovery, encoding: .utf8)) ?? ""
         log.check(copy.contains("typed while iCloud was off \(marker)") && !FileManager.default.fileExists(atPath: url.path),
-                  "saved to Nib's Recovery folder, and nothing made at the file's place")
+                  "saved to Rune's Recovery folder, and nothing made at the file's place")
         log.check(SyncHUD.stateWord(document.state) == "✕ ICLOUD DRIVE OFF" && SyncHUD.onDisk(document) == "IN THE RECOVERY FOLDER",
                   "the sync HUD: STATE \(SyncHUD.stateWord(document.state)), ON DISK \(SyncHUD.onDisk(document)) (F12: “SAVING” for good)")
 
@@ -2788,7 +2788,7 @@ enum TestHarness {
         let view = third.editor.textView
         let copy = await waitFor(10) { third.state.line.hasPrefix("◐ OFFLINE · SHOWING THE COPY FROM") }
         log.check(copy && third.awaitingDownload && view.string == synced && view.alphaValue < 1 && view.isEditable,
-                  "offline: the copy Nib saw last, dimmed, and typing allowed (\(third.state.line))")
+                  "offline: the copy Rune saw last, dimmed, and typing allowed (\(third.state.line))")
         let events = SyncLog(url: NibPaths.support.appendingPathComponent("sync.jsonl"))
         let before = events.read().count
         view.setSelectedRange(NSRange(location: 0, length: 0))
@@ -2799,7 +2799,7 @@ enum TestHarness {
         // after a hand-back: the suite, 2026-10-01).
         let touched = events.read().dropFirst(before).filter { $0.path == url.path && ["save", "reload", "pause", "upload", "merge"].contains($0.event) }.map(\.event)
         log.check(third.dirty && third.awaitingDownload && touched.isEmpty && third.state.line.hasPrefix("◐ OFFLINE"),
-                  "the typing goes into the journal, the strip still says so, and Nib neither reads nor writes the file (\(touched.isEmpty ? "nothing in the Sync Log" : touched.joined(separator: ", ")); iCloud: \(CloudControl.status(url).downloadStatus))")
+                  "the typing goes into the journal, the strip still says so, and Rune neither reads nor writes the file (\(touched.isEmpty ? "nothing in the Sync Log" : touched.joined(separator: ", ")); iCloud: \(CloudControl.status(url).downloadStatus))")
 
         // Meanwhile another Mac's version: the copy and a line at its end, with its note. Writing
         // it here brings the file back as a download would; Nib leaves it until iCloud's back.
@@ -2836,13 +2836,13 @@ enum TestHarness {
             if (try? FileManager.default.evictUbiquitousItem(at: never)) != nil, await waitFor(5, { CloudControl.status(never).downloadStatus == "notDownloaded" }) { evicted = true }
             else { try? await Task.sleep(for: .seconds(2)) }
         }
-        guard evicted else { log.check(false, "a file Nib never opened, taken off this Mac (uploaded \(uploaded))"); return }
+        guard evicted else { log.check(false, "a file Rune never opened, taken off this Mac (uploaded \(uploaded))"); return }
         TestHarness.offline = true
         AppDelegate.openFile(never)
         let waiting = await waitFor(30) { Documents.existing(for: never)?.state.line == "‖ NOT ON THIS MAC · OFFLINE · IT OPENS WHEN ICLOUD RETURNS" }
         let unopened = Documents.existing(for: never)
         log.check(waiting && unopened?.editor.textView.isEditable == false && unopened?.ready == false,
-                  "offline, a file Nib never saw here: no copy, so the window waits, saying so (\(unopened?.state.line ?? "no window"))")
+                  "offline, a file Rune never saw here: no copy, so the window waits, saying so (\(unopened?.state.line ?? "no window"))")
         TestHarness.offline = false
         let opened = await waitFor(40) { Documents.existing(for: never)?.ready == true && Documents.existing(for: never)?.editor.textView.string == "# Never opened \(marker)\n" }
         log.check(opened && Documents.existing(for: never)?.editor.textView.isEditable == true, "iCloud back: it opens (\(Documents.existing(for: never)?.state.line ?? "no window"))")
@@ -3053,7 +3053,7 @@ enum TestHarness {
         log.check(view.carets == nil && view.selectedRange() == NSRange(location: 6, length: 0), "Escape: one caret, the primary")
         view.setCarets(Carets([Caret(0), Caret(6)]))
         view.setSelectedRange(NSRange(location: 3, length: 0))
-        log.check(view.carets == nil, "a selection Nib didn't make (a click): one caret")
+        log.check(view.carets == nil, "a selection Rune didn't make (a click): one caret")
 
         // ⌘-click adds one, ⌘-click on it takes it away.
         func click(at location: Int, _ flags: NSEvent.ModifierFlags, dragTo: Int? = nil) {
@@ -3760,7 +3760,7 @@ enum TestHarness {
             byMenu = await otherApp()
         }
         log.check(byView == "copy me \(marker)" && (byMenu == "copy me \(marker)" || byMenu == "not tried"),
-                  "copied, another app reads the selection: by the text view “\(byView)” (in Nib “\(inNib)”), by Edit › Copy “\(byMenu)” (types \(pasteboard.types?.map(\.rawValue) ?? []))")
+                  "copied, another app reads the selection: by the text view “\(byView)” (in Rune “\(inNib)”), by Edit › Copy “\(byMenu)” (types \(pasteboard.types?.map(\.rawValue) ?? []))")
         // Cut too: the text in the other app, gone from Nib, and ⌘Z puts it back.
         let textBefore = view.string
         view.setSelectedRange(copyRange)
@@ -4429,7 +4429,7 @@ enum TestHarness {
             if let index = file?.items.firstIndex(where: { $0.title == closeTitle }) { file?.performActionForItem(at: index) }
             log.check((closeTitle == "Close Tab" || !inFront) && file?.items.contains { $0.title == "Close Window" && $0.keyEquivalent.lowercased() == "w" } == true,
                       "in a window of tabs, File says Close Tab (⌘W) and Close Window (⇧⌘W): “\(closeTitle)”"
-                      + (closeTitle == "Close Tab" ? "" : " (Nib active \(NSApp.isActive), the tab key \(NSApp.keyWindow === tab), its tabs \(tab.tabbedWindows?.count ?? 0), tabbed \(KeyWindowTabs.shared.tabbed))"))
+                      + (closeTitle == "Close Tab" ? "" : " (Rune active \(NSApp.isActive), the tab key \(NSApp.keyWindow === tab), its tabs \(tab.tabbedWindows?.count ?? 0), tabbed \(KeyWindowTabs.shared.tabbed))"))
             let closed = await waitFor(10) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
             // (Its document not made again as its window went: `FileWindow.document`.)
             var detail = closed ? "closed" : "still open"
@@ -4655,7 +4655,7 @@ enum TestHarness {
         let scolored = await waitFor(5) { sdrawn("final") == "#EC475D" }
         let scolors = [sdrawn("final"), sdrawn("Store"), sdrawn("load"), sdrawn("url:"), sdrawn("URL"), sdrawn("print"), sdrawn("loading"), sdrawn("Generated")]
         log.check(swiftDocument.syntaxName == "SWIFT" && scolored && scolors == ["#EC475D", "#E7CE57", "#E7CE57", "#EF7C2B", "#50B4D8", "#50B4D8", "#50B4D8", "#848484"],
-                  "a .swift file is Swift (\(swiftDocument.syntaxName)): keyword, class, function, parameter, type, builtin, string and comment in Nib's own colors (\(scolors.joined(separator: " ")))")
+                  "a .swift file is Swift (\(swiftDocument.syntaxName)): keyword, class, function, parameter, type, builtin, string and comment in Rune's own colors (\(scolors.joined(separator: " ")))")
         sview.window?.performClose(nil)
         _ = await waitFor(15) { Documents.existing(for: swiftURL) == nil }
 
@@ -4693,7 +4693,7 @@ enum TestHarness {
             let colored = await waitFor(5) { drawn(words[1]) == expected[1] }
             let colors = words.map(drawn)
             log.check(document.syntaxName == name && colored && colors == expected,
-                      "a .\(url.pathExtension) file is \(name) (\(document.syntaxName)), in Nib's own colors: \(zip(words, colors).map { "\($0) \($1)" }.joined(separator: ", "))")
+                      "a .\(url.pathExtension) file is \(name) (\(document.syntaxName)), in Rune's own colors: \(zip(words, colors).map { "\($0) \($1)" }.joined(separator: ", "))")
             snapshot(view, "snapshot-syntax-\(url.pathExtension).png")
             view.window?.performClose(nil)
             _ = await waitFor(15) { Documents.existing(for: url) == nil }
@@ -4915,7 +4915,7 @@ enum TestHarness {
         func drawn(at location: Int) -> String { drawnColor(view, at: location) }
         let heading = 2   // "Generated", in the heading
         _ = await waitFor(5) { drawn(at: heading) == "#E7CE57" }
-        log.check(schemes.currentID == before && drawn(at: heading) == "#E7CE57", "the heading in An Old Hope · Nib's yellow (\(drawn(at: heading)))")
+        log.check(schemes.currentID == before && drawn(at: heading) == "#E7CE57", "the heading in An Old Hope · Rune's yellow (\(drawn(at: heading)))")
 
         // A scheme file: a light .sublime-color-scheme with variables and color().
         try? FileManager.default.createDirectory(at: scratch.appendingPathComponent("Packages/User"), withIntermediateDirectories: true)
@@ -4935,8 +4935,8 @@ enum TestHarness {
                   "Import File: the scheme is used, background \(hex(view.backgroundColor)), heading \(drawn(at: heading))")
         let report = schemes.report ?? ""
         log.check(report.contains("IMPORTED SCENARIO PAPER") && report.contains("1 RULE · 6 GLOBALS USED") && !report.contains("NOT DRAWN")
-                  && report.contains("LIGHT BACKGROUND · NIB'S WINDOWS STAY DARK"), "and reported: \(report)")
-        log.check(NSApp.effectiveAppearance.name == .darkAqua && view.window?.effectiveAppearance.name == .darkAqua, "Nib's windows stay dark")
+                  && report.contains("LIGHT BACKGROUND · RUNE'S WINDOWS STAY DARK"), "and reported: \(report)")
+        log.check(NSApp.effectiveAppearance.name == .darkAqua && view.window?.effectiveAppearance.name == .darkAqua, "Rune's windows stay dark")
         try? await Task.sleep(for: .seconds(1))
         log.check(!document.dirty && !document.editor.undo.canUndo && ((try? String(contentsOf: url, encoding: .utf8)) ?? "") == text,
                   "a new scheme isn't an edit: nothing to save or undo, the file unchanged")
@@ -5000,8 +5000,8 @@ enum TestHarness {
             .write(to: scratch.appendingPathComponent("Packages/User/Preferences.sublime-settings"))
         schemes.importFromSublime()
         let back = await waitFor(5) { drawn(at: heading) == "#E7CE57" }
-        log.check(schemes.currentID == Schemes.builtIn && back && (schemes.report ?? "").contains("KEPT AN OLD HOPE · NIB"),
-                  "the original An Old Hope keeps the Nib edition (\(schemes.report ?? "no report"))")
+        log.check(schemes.currentID == Schemes.builtIn && back && (schemes.report ?? "").contains("KEPT AN OLD HOPE · RUNE"),
+                  "the original An Old Hope keeps the Rune edition (\(schemes.report ?? "no report"))")
 
         // Put back what the scenario changed.
         for id in Set((try? FileManager.default.contentsOfDirectory(atPath: Schemes.folder.path)) ?? []).subtracting(beforeFiles) { schemes.remove(id) }
@@ -5052,7 +5052,7 @@ enum TestHarness {
         log.check(journaled, "its typing is in the journal within a moment")
         await one.flush(reason: "test")
         log.check(onDisk(one.url).contains("untitled one \(marker)") && one.state.line.hasPrefix("= ON THIS MAC ONLY"),
-                  "and saved in Nib's own folder, on this Mac only (\(one.state.line))")
+                  "and saved in Rune's own folder, on this Mac only (\(one.state.line))")
         let syncLog = (try? String(contentsOf: NibPaths.support.appendingPathComponent("sync.jsonl"), encoding: .utf8)) ?? ""
         log.check(!syncLog.contains(Untitled.folder.path), "nothing about it in the Sync Log: it never syncs")
         // Save…'s name for it: the extension of the syntax picked for it (the QA review's F71: ".txt" for JavaScript).
@@ -5119,7 +5119,7 @@ enum TestHarness {
         await type("saved as a file \(marker)\n", into: four)
         let outside = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("nib-untitled-\(marker).txt")
         let refused = await Untitled.save(four, to: outside)
-        log.check(!refused && !FileManager.default.fileExists(atPath: outside.path) && four.notice?.contains("NIB OPENS ONLY TEST FILES") == true,
+        log.check(!refused && !FileManager.default.fileExists(atPath: outside.path) && four.notice?.contains("RUNE OPENS ONLY TEST FILES") == true,
                   "Save… outside the test folders: refused, nothing written (\(four.notice ?? "no notice"))")
         let target = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("untitled-saved-\(marker).txt")
         let caret = four.editor.textView.selectedRange().location
@@ -5345,7 +5345,7 @@ enum TestHarness {
         let refreshed = await waitFor(30) { events.read().dropFirst(before).contains { $0.event == "refresh" } }
         let lines = events.read().dropFirst(before).filter { ["upload", "fetch", "refresh", "merge", "update"].contains($0.event) }
         log.check(refreshed && lines.contains { $0.detail?.hasPrefix("iCloud says there's nothing newer") == true },
-                  "refused, and iCloud says nothing's newer: Nib refreshes anyway (\(lines.map { $0.word }.joined(separator: ", ")))")
+                  "refused, and iCloud says nothing's newer: Rune refreshes anyway (\(lines.map { $0.word }.joined(separator: ", ")))")
         let kept = await waitFor(30) {
             fileText(document).contains("typed before a refused upload \(marker)") && isSynced(document)
                 && document.editor.textView.string.contains("typed before a refused upload \(marker)")
@@ -5551,7 +5551,7 @@ enum TestHarness {
             let nib = tallies.values.reduce(UInt64(0)) { $0 + $1.logical }
             let each = tallies.sorted { $0.value.logical > $1.value.logical }
                 .map { "\($0.key) \($0.value.writes)× \(size(UInt64($0.value.bytes))) (\(size($0.value.logical)))" }
-            log.line("MEASURED writes · \(phase), \(Int(Date().timeIntervalSince(started).rounded())) s: \(size(logical)) logical (as the disk-writes report counts), \(size(disk)) to disk · Nib's writers \(size(nib)): \(each.isEmpty ? "none" : each.joined(separator: ", "))"
+            log.line("MEASURED writes · \(phase), \(Int(Date().timeIntervalSince(started).rounded())) s: \(size(logical)) logical (as the disk-writes report counts), \(size(disk)) to disk · Rune's writers \(size(nib)): \(each.isEmpty ? "none" : each.joined(separator: ", "))"
                      + (own.logical > 0 ? " · the test's own \(size(own.logical)), not counted" : "") + " · footprint \(size(now.footprint)), highest \(size(now.peak))")
             phases.append((phase, tallies, logical))
             last = now
@@ -5616,7 +5616,7 @@ enum TestHarness {
         var reads = document.noteReads
         try? await Task.sleep(for: .seconds(60))
         log.line("idle: \(document.noteReads.fresh - reads.fresh) fresh note reads, \(document.noteReads.local - reads.local) local")
-        measured("idle a minute after typing (in the background, as Nib mostly is)")
+        measured("idle a minute after typing (in the background, as Rune mostly is)")
 
         // As Nib comes forward: the note read fresh from the server (evicted, downloaded again),
         // with its upload long done. That eviction set off another, and so on for good (2026-10-02).
@@ -5680,7 +5680,7 @@ enum TestHarness {
         if let findMenu, let index = findMenu.items.firstIndex(where: { $0.title == "Find…" }) { findMenu.performActionForItem(at: index) }
         let searching = await waitFor(3) { ((window()?.firstResponder as? NSTextView)?.delegate as? NSSearchField) != nil }
         ScenarioFocus.giveBackNow()
-        log.check(searching || !inFront, "Edit › Find… with it in front: the caret in its search field (\(searching ? "there" : inFront ? "not there" : "Nib not in front, not checked"))")
+        log.check(searching || !inFront, "Edit › Find… with it in front: the caret in its search field (\(searching ? "there" : inFront ? "not there" : "Rune not in front, not checked"))")
         let wholeReads = model.wholeReads
         let shown = model.shown
         log.check(zip(shown, shown.dropFirst()).allSatisfy { $0.time >= $1.time }, "newest first")
@@ -5790,7 +5790,7 @@ enum TestHarness {
         await waitReady(document)
         let entries = document.history.entries()
         let closed = entries.last { ["saved", "closed"].contains($0.source) && text(document, $0).contains("history closed \(marker)") }
-        log.check(closed != nil, "the save Nib quit with is in History, as saved (\(entries.suffix(3).map(\.source).joined(separator: ", ")))")
+        log.check(closed != nil, "the save Rune quit with is in History, as saved (\(entries.suffix(3).map(\.source).joined(separator: ", ")))")
     }
 
     static func text(_ document: Document, _ entry: HistoryEntry) -> String {
@@ -5870,11 +5870,11 @@ enum TestHarness {
             }
             func nib(_ c: (name: String, url: URL, moved: URL?)) -> String {
                 if let moved = c.moved, let follower = Documents.existing(for: moved) {
-                    return "Nib has it open at its new place (\(follower.state.line.components(separatedBy: " · ").first ?? ""))"
+                    return "Rune has it open at its new place (\(follower.state.line.components(separatedBy: " · ").first ?? ""))"
                 }
-                guard let document = Documents.existing(for: c.url) else { return "Nib: no window for it" }
-                if document.deleted { return "Nib: the deleted banner, \(document.iCloudOff ? "ICLOUD OFF" : document.deletedToTrash ? "IN THE TRASH" : "DELETED")" }
-                return "Nib: \(document.state.line.components(separatedBy: " · ").first ?? "")"
+                guard let document = Documents.existing(for: c.url) else { return "Rune: no window for it" }
+                if document.deleted { return "Rune: the deleted banner, \(document.iCloudOff ? "ICLOUD OFF" : document.deletedToTrash ? "IN THE TRASH" : "DELETED")" }
+                return "Rune: \(document.state.line.components(separatedBy: " · ").first ?? "")"
             }
             await until(60)
             var cameForward = false
@@ -5887,15 +5887,15 @@ enum TestHarness {
                 for c in cases {
                     note(c.name, FileManager.default.fileExists(atPath: c.url.path) ? "in its place on this Mac" : "gone from its place on this Mac")
                     if let moved = c.moved, FileManager.default.fileExists(atPath: moved.path) { note(c.name + ", new place", "at its new place on this Mac") }
-                    note(c.name + ", Nib", nib(c))
+                    note(c.name + ", Rune", nib(c))
                 }
                 try? await Task.sleep(for: .seconds(1))
             }
             // What §4.8 E and SY12 ask (a probe: a FAIL is what isn't handled yet).
-            log.check(Documents.existing(for: cases[0].url)?.deleted == true, "a: moved to the Trash on b: Nib shows the deleted banner (\(nib(cases[0])))")
-            log.check(Documents.existing(for: cases[1].url)?.deleted == true, "a: deleted on b: Nib shows the deleted banner (\(nib(cases[1])))")
-            log.check(cases[2].moved.flatMap { Documents.existing(for: $0) } != nil, "a: renamed on b: Nib follows it to its new name (\(nib(cases[2])))")
-            log.check(cases[3].moved.flatMap { Documents.existing(for: $0) } != nil, "a: its folder renamed on b: Nib follows it (\(nib(cases[3])))")
+            log.check(Documents.existing(for: cases[0].url)?.deleted == true, "a: moved to the Trash on b: Rune shows the deleted banner (\(nib(cases[0])))")
+            log.check(Documents.existing(for: cases[1].url)?.deleted == true, "a: deleted on b: Rune shows the deleted banner (\(nib(cases[1])))")
+            log.check(cases[2].moved.flatMap { Documents.existing(for: $0) } != nil, "a: renamed on b: Rune follows it to its new name (\(nib(cases[2])))")
+            log.check(cases[3].moved.flatMap { Documents.existing(for: $0) } != nil, "a: its folder renamed on b: Rune follows it (\(nib(cases[3])))")
             // This Mac's Sync Log for those files, in order.
             let paths = Set(cases.flatMap { [$0.url.path] + ($0.moved.map { [$0.path] } ?? []) })
             for event in events.read().dropFirst(before) where paths.contains(event.path) && !["receipt", "save", "upload"].contains(event.event) {
@@ -6237,7 +6237,7 @@ enum TestHarness {
         ScenarioFocus.giveBackNow()
         if shows.isEmpty { missing.append("Show Scratch") } else {
             let p = percentiles(Array(shows.dropFirst(2)))   // the first two warm up
-            measured("Show Scratch to caret ready, the window side (Nib in front; macOS's activation not included)",
+            measured("Show Scratch to caret ready, the window side (Rune in front; macOS's activation not included)",
                      "p50 \(ms(p.p50)), p95 \(ms(p.p95)), max \(ms(p.max)) (\(shows.count - 2) shows)", target: "≤ 50 ms p95", met: p.p95 <= 0.05)
         }
 
@@ -6301,7 +6301,7 @@ enum TestHarness {
             }
             let k = percentiles(keys)
             let p99 = keys.sorted()[min(keys.count - 1, Int(Double(keys.count) * 0.99))]
-            measured("a keystroke on the main thread, small file (Nib's share; glass to glass needs Typometer)",
+            measured("a keystroke on the main thread, small file (Rune's share; glass to glass needs Typometer)",
                      "p50 \(ms(k.p50)), p99 \(ms(p99)), max \(ms(k.max))", target: "≤ 8.3 ms, p99 ≤ 16 ms", met: p99 <= 0.016)
             await file.flush(reason: "test")
         } else {
@@ -6616,7 +6616,7 @@ enum ScenarioFocus {
         // five times as long (`nap`, 2026-10-02), and the suite runs out of sight.
         if !NibDefaults.store.bool(forKey: "NibAllowNap") {   // -NibAllowNap YES: as before, for `nap` to show the difference
             noNap = ProcessInfo.processInfo.beginActivity(options: [.userInitiatedAllowingIdleSystemSleep, .latencyCritical],
-                                                          reason: "Nib's scenario tests keep their own time")
+                                                          reason: "Rune's scenario tests keep their own time")
         }
         let front = NSWorkspace.shared.frontmostApplication
         other = front == .current ? nil : front

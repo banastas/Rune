@@ -120,7 +120,7 @@ enum TrashService {
         let result = await runFinder("tell application \"Finder\" to empty trash")
         guard let error = result.error else { return nil }
         if error.code == -1743 {
-            return "Nib isn't allowed to control Finder. Allow it in System Settings › Privacy & Security › Automation, then try again."
+            return "Rune isn't allowed to control Finder. Allow it in System Settings › Privacy & Security › Automation, then try again."
         }
         return "Couldn't empty the Trash: \(error.message)"
     }

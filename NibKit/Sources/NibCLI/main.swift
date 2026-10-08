@@ -1,14 +1,15 @@
-// nib: the command line's way into Nib (PRD AP4), like Sublime's `subl`. It asks the running
-// app, launching it if needed (NibSync's Bridge); it never writes a synced file itself.
+// rune (the product nib-cli): the command line's way into Rune (PRD AP4), like Sublime's
+// `subl`. It asks the running app, launching it if needed (NibSync's Bridge); it never writes a
+// synced file itself.
 //
-//   nib file…              open files (file:12 and file:12:5 go to a line)
-//   nib -w file…           wait until they're closed ($EDITOR, git commit messages)
-//   cmd | nib              standard input as an untitled buffer (-w waits for it to close)
-//   cmd | nib -a           standard input at the end of the scratch file
-//   nib --scratch          the scratch window (as does `nib` alone)
+//   rune file…              open files (file:12 and file:12:5 go to a line)
+//   rune -w file…           wait until they're closed ($EDITOR, git commit messages)
+//   cmd | rune              standard input as an untitled buffer (-w waits for it to close)
+//   cmd | rune -a           standard input at the end of the scratch file
+//   rune --scratch          the scratch window (as does `rune` alone)
 //
-// Exits 0 when done, 1 when Nib says no (or quits before a file waited on is closed), 2 for
-// a mistake in the arguments. The scenarios set NIB_NO_LAUNCH (never start Nib) and
+// Exits 0 when done, 1 when Rune says no (or quits before a file waited on is closed), 2 for
+// a mistake in the arguments. The scenarios set NIB_NO_LAUNCH (never start Rune) and
 // NIB_NO_ACTIVATE (never bring it forward).
 
 import AppKit
@@ -18,10 +19,10 @@ import NibText
 // The whole of it, as `man` would say it (the QA review's F73: "-h, --help this", no --scratch
 // and no exit statuses).
 let usage = """
-    usage: nib [-w] [file[:line[:column]] …]
-           cmd | nib [-w]      standard input as an untitled buffer
-           cmd | nib -a        standard input at the end of the scratch file
-           nib --scratch       the scratch window (as nib alone does)
+    usage: rune [-w] [file[:line[:column]] …]
+           cmd | rune [-w]      standard input as an untitled buffer
+           cmd | rune -a        standard input at the end of the scratch file
+           rune --scratch       the scratch window (as rune alone does)
 
       -w, --wait      wait until the files are closed (for $EDITOR and git)
       -a, --append    append standard input to the scratch file
@@ -29,12 +30,12 @@ let usage = """
       -               read standard input
       -h, --help      show this help
 
-    Exits 0 when done, 1 when Nib refuses or quits before a file it waits on is closed,
+    Exits 0 when done, 1 when Rune refuses or quits before a file it waits on is closed,
     and 2 for a mistake in the arguments.
     """
 
 func fail(_ message: String, code: Int32 = 1) -> Never {
-    FileHandle.standardError.write(Data("nib: \(message)\n".utf8))
+    FileHandle.standardError.write(Data("rune: \(message)\n".utf8))
     exit(code)
 }
 
@@ -80,9 +81,9 @@ if scratch {
     guard arguments.isEmpty, !append else { fail("--scratch takes nothing else", code: 2) }
     request = Bridge.Request(command: .scratch)
 } else if append {
-    guard arguments.isEmpty else { fail("-a appends standard input, not files: cat file | nib -a", code: 2) }
+    guard arguments.isEmpty else { fail("-a appends standard input, not files: cat file | rune -a", code: 2) }
     guard !wait else { fail("-w waits for files to close, and -a opens none: use one or the other", code: 2) }   // it was ignored (F73)
-    guard piped || readInput else { fail("-a appends standard input, and nothing is piped in: cmd | nib -a", code: 2) }
+    guard piped || readInput else { fail("-a appends standard input, and nothing is piped in: cmd | rune -a", code: 2) }
     let text = input()
     guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { fail("nothing on standard input to append") }
     request = Bridge.Request(command: .append, text: text)
@@ -126,22 +127,22 @@ func installed() -> URL? {
 do {
     try Bridge.post(request, token: token)
 } catch {
-    fail("couldn't leave the request for Nib: \(error.localizedDescription)")
+    fail("couldn't leave the request for Rune: \(error.localizedDescription)")
 }
 // Appending doesn't bring Nib forward (SC6); everything else does.
 let forward = request.forward
 if let app = running() {
     if forward { app.activate() }
 } else if ProcessInfo.processInfo.environment["NIB_NO_LAUNCH"] != nil {
-    fail("Nib isn't running")
+    fail("Rune isn't running")
 } else {
     let open = Process()
     open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
     open.arguments = (forward ? [] : ["-g"]) + (installed().map { ["-a", $0.path] } ?? ["-b", Bridge.bundleID])
     open.standardError = FileHandle.nullDevice
-    do { try open.run() } catch { fail("couldn't start Nib: \(error.localizedDescription)") }
+    do { try open.run() } catch { fail("couldn't start Rune: \(error.localizedDescription)") }
     open.waitUntilExit()
-    if open.terminationStatus != 0 { fail("couldn't start Nib: macOS doesn't know an app with the ID \(Bridge.bundleID)") }
+    if open.terminationStatus != 0 { fail("couldn't start Rune: macOS doesn't know an app with the ID \(Bridge.bundleID)") }
 }
 
 // Said again each second until Nib answers: a Nib just starting takes the request from the
@@ -153,10 +154,10 @@ while reply == nil, Date() < deadline {
 }
 guard let reply else {
     try? FileManager.default.removeItem(at: Bridge.folder.appendingPathComponent("\(token).json"))
-    fail("Nib didn't answer in 30 s")
+    fail("Rune didn't answer in 30 s")
 }
 if !reply.message.isEmpty {
-    FileHandle.standardError.write(Data("nib: \(reply.message)\n".utf8))
+    FileHandle.standardError.write(Data("rune: \(reply.message)\n".utf8))
 }
 guard reply.ok else { exit(1) }
 
@@ -166,7 +167,7 @@ while closed.count < reply.waiting {
     RunLoop.main.run(until: Date().addingTimeInterval(1))
     if closed.count < reply.waiting, running() == nil {
         RunLoop.main.run(until: Date().addingTimeInterval(1))   // a quit's last notifications
-        if closed.count < reply.waiting { fail("Nib quit before the file was closed") }
+        if closed.count < reply.waiting { fail("Rune quit before the file was closed") }
     }
 }
 exit(0)

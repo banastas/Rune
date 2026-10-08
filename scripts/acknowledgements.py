@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""acknowledgements.py — writes nib/Resources/Acknowledgements.txt, the third-party notices Nib
-ships with, shown from Nib › About Nib › Acknowledgements (PRD DS3).
+"""acknowledgements.py — writes nib/Resources/Acknowledgements.txt, the third-party notices Rune
+ships with, shown from Rune › About Rune › Acknowledgements (PRD DS3).
 
 Adapted from Blit's scripts/acknowledgements.py at de24207 (no shared code, PRD §7). Built from
-what Nib is built with, each from its own source at the version in use:
+what Rune is built with, each from its own source at the version in use:
   - the packages the app resolves (nib.xcodeproj's Package.resolved, NibKit's among them), each
     from its checkout at the pinned revision (Xcode's, in build/DerivedData/SourcePackages):
     its LICENSE, its NOTICE (Apache 2.0 §4(d) asks for it to be passed on), and the license
     files of code it includes that its own LICENSE doesn't already contain;
   - the grammars copied into NibKit/Vendor (NibKit/Vendor/README.md), the same from each folder;
-  - An Old Hope, the scheme An Old Hope · Nib is made from (themes/An-Old-Hope-LICENSE.md);
+  - An Old Hope, the scheme An Old Hope · Rune is made from (themes/An-Old-Hope-LICENSE.md);
   - the fonts' OFL texts (nib/Resources/Fonts).
-Nothing in the file is written by hand, so it follows what Nib ships.
+Nothing in the file is written by hand, so it follows what Rune ships.
 
 Usage:
   scripts/acknowledgements.py                 # write the file
@@ -38,7 +38,7 @@ FONTS = os.path.join(ROOT, "nib/Resources/Fonts")
 OUTPUT = os.path.join(ROOT, "nib/Resources/Acknowledgements.txt")
 
 # How each package calls itself, by Package.resolved identity.
-NAMES = {"swift-tree-sitter": "SwiftTreeSitter"}
+NAMES = {"swift-tree-sitter": "SwiftTreeSitter", "sparkle": "Sparkle"}
 # The grammars in NibKit/Vendor, as NibKit/Vendor/README.md lists them: folder → (repository,
 # version). A folder there that isn't here stops the script.
 VENDORED = {
@@ -178,7 +178,7 @@ def package_entries(checkouts):
         identity, location, state = pin["identity"], pin["location"], pin.get("state", {})
         folder = os.path.join(checkouts, os.path.basename(location).removesuffix(".git"))
         if not os.path.isdir(folder):
-            fail(f"no checkout of {identity} at {folder} (build Nib once, or pass --checkouts)")
+            fail(f"no checkout of {identity} at {folder} (build Rune once, or pass --checkouts)")
         head = run(["git", "-C", folder, "rev-parse", "HEAD"]).stdout.strip()
         if state.get("revision") and head != state["revision"]:
             fail(f"{identity}'s checkout is at {head[:10]}, not the pinned {state['revision'][:10]}")
@@ -201,7 +201,7 @@ def vendored_entries():
 def scheme_entry():
     text = read(SCHEME_LICENSE)
     return {
-        "name": "An Old Hope (the color scheme An Old Hope · Nib is made from)",
+        "name": "An Old Hope (the color scheme An Old Hope · Rune is made from)",
         "version": None,
         "url": "https://github.com/jesseleite/an-old-hope-syntax-atom",
         "copyright": copyright_line([text]),
@@ -231,11 +231,11 @@ def render(entries):
     lines = [
         "NIB — ACKNOWLEDGEMENTS",
         "",
-        "Nib is built with the open-source software below. Each is listed with its",
+        "Rune is built with the open-source software below. Each is listed with its",
         "copyright notice and license, as its license asks. Thank you to everyone",
         "who made them.",
         "",
-        "Written by scripts/acknowledgements.py from what Nib is built with;",
+        "Written by scripts/acknowledgements.py from what Rune is built with;",
         "don't edit it by hand.",
     ]
     for entry in entries:

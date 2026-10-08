@@ -50,6 +50,7 @@ private struct GeneralSettings: View {
         Form {
             Section {
                 LoginToggle()
+                UpdatesRow()   // with the login item, under no header of its own: General's room (F22)
             }
             Section("Global shortcuts") {
                 ForEach(GlobalShortcuts.Action.allCases) { ShortcutRow(action: $0) }
@@ -57,19 +58,41 @@ private struct GeneralSettings: View {
             }
             Section {
                 Toggle("Paste Clean straightens quotes and dashes", isOn: $straightenQuotes)
-                note("Paste Clean (⌥⇧⌘V), Clean Clipboard, Append Clipboard to Scratch, the Services and nib -a always remove invisible characters, make odd spaces plain and trim trailing spaces. With this on they also straighten “curly” quotes, dashes and …. ⌘V pastes text as it is.")
+                note("Paste Clean (⌥⇧⌘V), Clean Clipboard, Append Clipboard to Scratch, the Services and rune -a always remove invisible characters, make odd spaces plain and trim trailing spaces. With this on they also straighten “curly” quotes, dashes and …. ⌘V pastes text as it is.")
             }
             Section {
-                Toggle("Show Nib in the menu bar", isOn: $showMenuBarExtra)
+                Toggle("Show Rune in the menu bar", isOn: $showMenuBarExtra)
                     .disabled(hideDockIcon && showMenuBarExtra)   // with no Dock icon, the way to Nib
-                note("It shows how your open files sync: still when all's well, its line marching while an upload waits, a red ✕ when one needs a look. Click it for the scratch file, the clipboard commands and recent files." + (hideDockIcon ? " It stays on while Nib isn't in the Dock: it's the way to Nib then." : ""))   // why it's grey (F84)
-                Toggle("Show Nib in the Dock", isOn: Binding(get: { !hideDockIcon }, set: { hideDockIcon = !$0 }))
+                note("It shows how your open files sync: still when all's well, its line marching while an upload waits, a red ✕ when one needs a look. Click it for the scratch file, the clipboard commands and recent files." + (hideDockIcon ? " It stays on while Rune isn't in the Dock: it's the way to Rune then." : ""))   // why it's grey (F84)
+                Toggle("Show Rune in the Dock", isOn: Binding(get: { !hideDockIcon }, set: { hideDockIcon = !$0 }))
                     .disabled(!showMenuBarExtra && !hideDockIcon)
-                note("Off, Nib is only in the menu bar: not in the Dock or ⌘Tab, and with no menu bar of its own. It can be off only while the nib in the menu bar is shown.")
+                note("Off, Rune is only in the menu bar: not in the Dock or ⌘Tab, and with no menu bar of its own. It can be off only while Rune is shown in the menu bar.")
             }
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
+    }
+}
+
+/// Settings › General's updates row (DS2): Sparkle's daily check and Check Now, as Blit's Settings
+/// has them (`Blit/Views/MenuBarViews.swift`, `UpdatesSection`), in one row beside the login item:
+/// a section of its own made General 870 points, over the Air's 860 (F22; the suite, 2026-10-07).
+private struct UpdatesRow: View {
+    @State private var updates = Updates.shared
+    @State private var automatic = Updates.shared.checksAutomatically
+
+    var body: some View {
+        HStack {
+            Toggle("Check for updates once a day", isOn: $automatic)
+                .onChange(of: automatic) { _, on in updates.checksAutomatically = on }
+                .disabled(!updates.isAvailable)
+            Spacer()
+            Button("Check Now") { updates.checkNow() }
+                .disabled(!updates.canCheck)
+        }
+        .help(updates.isAvailable
+              ? "Rune \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"). Updates come from rune.banast.as and are signed."
+              : "Updates run in released copies of Rune, not in a build from Xcode.")
     }
 }
 
@@ -95,10 +118,10 @@ private struct SyncSettings: View {
                 note((ScratchLocation.place(of: url).hasPrefix("iCloud Drive")
                       ? "It's in iCloud Drive, so every Mac signed in to your Apple Account opens the same file. "
                       : "It's on this Mac only, so your other Macs won't see it: choose one in iCloud Drive to have it on every Mac. ")
-                     + "Changing it reopens Nib with the new file; the old one stays where it is, with its History.")
+                     + "Changing it reopens Rune with the new file; the old one stays where it is, with its History.")
             }
             Section("Saving") {
-                note("Nib saves a second after you stop typing, and whenever you switch away. There is no unsaved state to lose: everything you type is in its journal first.")
+                note("Rune saves a second after you stop typing, and whenever you switch away. There is no unsaved state to lose: everything you type is in its journal first.")
             }
             Section("This Mac") {
                 LabeledContent("Name", value: ReceiptBook.shared.device)
@@ -108,10 +131,10 @@ private struct SyncSettings: View {
                 Button("Open Notification Settings") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=com.banastas.nib") { NSWorkspace.shared.open(url) }
                 }
-                note("Only for a conflict, a file Nib can't save or sync, or one deleted or moved to the Trash, and only while Nib isn't in front. Saves and syncs never notify.")
+                note("Only for a conflict, a file Rune can't save or sync, or one deleted or moved to the Trash, and only while Rune isn't in front. Saves and syncs never notify.")
             }
             Section("History") {
-                note("Nib keeps each file's versions for 30 days, on this Mac only, as it does its journal. The files themselves are in iCloud Drive, which is end-to-end encrypted only with Advanced Data Protection.")
+                note("Rune keeps each file's versions for 30 days, on this Mac only, as it does its journal. The files themselves are in iCloud Drive, which is end-to-end encrypted only with Advanced Data Protection.")
             }
         }
         .formStyle(.grouped)
@@ -125,8 +148,8 @@ private struct SyncSettings: View {
         if let why = ScratchChoice.refusal(url) { refusal = why; return }
         let alert = NSAlert()
         alert.messageText = "Use “\(url.lastPathComponent)” as the scratch file?"
-        alert.informativeText = "It's in \(ScratchLocation.place(of: url)). Nib quits and opens again with it; “\(Documents.scratch.url.lastPathComponent)” stays where it is, with its History."
-        alert.addButton(withTitle: "Reopen Nib")
+        alert.informativeText = "It's in \(ScratchLocation.place(of: url)). Rune quits and opens again with it; “\(Documents.scratch.url.lastPathComponent)” stays where it is, with its History."
+        alert.addButton(withTitle: "Reopen Rune")
         alert.addButton(withTitle: "Cancel")
         // A sheet on Settings, not the whole app held up (the QA review's F74).
         if let window = NSApp.keyWindow {
@@ -147,10 +170,10 @@ private struct FileSettings: View {
         Form {
             Section {
                 // The files open at a quit, open again (the user's call, 2026-10-07; `OpenTabs`).
-                Toggle("Reopen the files that were open when Nib quit", isOn: $reopenFiles)
+                Toggle("Reopen the files that were open when Rune quit", isOn: $reopenFiles)
                 note("In their tabs, in the same order, the one in front in front again. Untitled buffers come back either way, and a file deleted since isn't made again.")
             }
-            Section("Open with Nib") {
+            Section("Open with Rune") {
                 ForEach(DefaultApps.Kind.allCases) { kind in
                     Toggle(isOn: Binding(get: { apps.openers[kind]?.isNib == true }, set: { on in Task { await apps.set(kind, on) } })) {
                         Text(kind.name)
@@ -163,8 +186,8 @@ private struct FileSettings: View {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
                     }
                 }
-                note("A double-click in Finder opens these files in Nib, and so does the open command in Terminal. Turning one off gives its files back to the app they opened in before. Shell scripts are files macOS can run, so it asks you to confirm each of .sh, .zsh and .bash: three times. For one file alone, use Finder's Get Info › Open With.")
-                note("HTML isn't here: macOS opens every page on this Mac, a link in Terminal or a build's report, with the app for .html files, so they'd open in Nib as text. Nib still edits them: Open With, ⌘O, or nib page.html.")
+                note("A double-click in Finder opens these files in Rune, and so does the open command in Terminal. Turning one off gives its files back to the app they opened in before. Shell scripts are files macOS can run, so it asks you to confirm each of .sh, .zsh and .bash: three times. For one file alone, use Finder's Get Info › Open With.")
+                note("HTML isn't here: macOS opens every page on this Mac, a link in Terminal or a build's report, with the app for .html files, so they'd open in Rune as text. Rune still edits them: Open With, ⌘O, or nib page.html.")
             }
         }
         .formStyle(.grouped)
@@ -233,7 +256,7 @@ struct EditorSettings: View {
             Section {
                 Toggle("⌘S trims trailing whitespace", isOn: $trimOnSave)
                 Toggle("⌘S ends the file with a newline", isOn: $newlineOnSave)
-                note("Only on ⌘S, and only in files you've edited: Nib's own saves never change the text. ⌘Z undoes it.")
+                note("Only on ⌘S, and only in files you've edited: Rune's own saves never change the text. ⌘Z undoes it.")
             }
         }
         .formStyle(.grouped)
@@ -255,16 +278,16 @@ struct ThemeSettings: View {
                 }
                 if schemes.currentID != Schemes.builtIn {
                     Button("Move “\(schemes.current.name)” to the Trash") { schemes.remove(schemes.currentID) }
-                        .help("Nib's copy goes to the Trash, where you can put it back; the file you imported it from isn't touched")
+                        .help("Rune's copy goes to the Trash, where you can put it back; the file you imported it from isn't touched")
                 }
-                note("Colors the page: the text, its background, the caret, the selection and the line numbers. Nib's windows, menus and status strip stay dark whatever the scheme.")
+                note("Colors the page: the text, its background, the caret, the selection and the line numbers. Rune's windows, menus and status strip stay dark whatever the scheme.")
             }
             Section {
                 HStack {
                     Button("Import from Sublime Text") { schemes.importFromSublime() }
                     Button("Import File…") { chooseFile() }
                 }
-                note("Import from Sublime Text takes Sublime's color scheme (with its override in Packages/User), its font and size, and its editor settings: tab width and spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs and ⌘S tidying, and sets Nib's to match. Sublime's files are only read, never changed. You can also drop a .tmTheme or .sublime-color-scheme file here.")
+                note("Import from Sublime Text takes Sublime's color scheme (with its override in Packages/User), its font and size, and its editor settings: tab width and spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs and ⌘S tidying, and sets Rune's to match. Sublime's files are only read, never changed. You can also drop a .tmTheme or .sublime-color-scheme file here.")
             }
             if let report = schemes.report {
                 Section("Last import") {

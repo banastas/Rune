@@ -49,7 +49,7 @@ struct ConflictBanner: View {
         guard let other = others.first else { return between }
         if others.count > 1 { return "Several versions changed this file. \(between.prefix(1).uppercased() + between.dropFirst())" }
         if other == "The file" {
-            return "The file changed while Nib was closed. It and the typing Nib recovered are both in the text, between markers."
+            return "The file changed while Rune was closed. It and the typing Rune recovered are both in the text, between markers."
         }
         if other == "Merge view" {
             return "The merge view's choices and the typing since both changed this file. Both versions are in the text, between markers."

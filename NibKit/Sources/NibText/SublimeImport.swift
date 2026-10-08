@@ -56,7 +56,7 @@ public struct SublimeImport: Sendable {
             switch self {
             case .noSublime: "Sublime Text isn't on this Mac, so there's nothing to import."
             case .noScheme(let name): "Sublime Text's settings name the color scheme “\(name)”, which isn't in its packages, so nothing was imported."
-            case .unreadable(let name, let why): "Nib couldn't read “\(name)” (\(why)), so nothing was imported."
+            case .unreadable(let name, let why): "Rune couldn't read “\(name)” (\(why)), so nothing was imported."
             }
         }
     }

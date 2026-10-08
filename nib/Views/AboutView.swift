@@ -30,8 +30,8 @@ struct AboutView: View {
                 .interpolation(.none)
                 .frame(width: 96, height: 96)
                 .accessibilityHidden(true)
-            Text("NIB").font(HUDFont.label(34))
-                .accessibilityLabel("Nib")   // not spelled out (F82)
+            Text("RUNE").font(HUDFont.label(34))
+                .accessibilityLabel("Rune")   // not spelled out (F82)
             HStack(spacing: 0) {
                 Text("WRITE IT DOWN. LOSE NOTHING")
                 if reduceMotion {
@@ -63,7 +63,7 @@ struct AboutView: View {
             }
             .buttonStyle(.plain)
             .onHover { hovering = $0 }
-            .help("The open-source software in Nib, with its copyright notices and licenses")
+            .help("The open-source software in Rune, with its copyright notices and licenses")
         }
         .foregroundStyle(HUDColor.bright)
         .padding(.horizontal, 28)

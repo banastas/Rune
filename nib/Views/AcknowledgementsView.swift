@@ -61,7 +61,7 @@ struct AcknowledgementsView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("ACKNOWLEDGEMENTS").font(HUDFont.label(22))
-                Text("NIB IS BUILT WITH THE OPEN-SOURCE SOFTWARE BELOW. THANK YOU TO EVERYONE WHO MADE IT.")
+                Text("RUNE IS BUILT WITH THE OPEN-SOURCE SOFTWARE BELOW. THANK YOU TO EVERYONE WHO MADE IT.")
                     .font(HUDFont.terminal(17))
                     .foregroundStyle(HUDColor.dim)
                     .fixedSize(horizontal: false, vertical: true)
@@ -71,7 +71,7 @@ struct AcknowledgementsView: View {
             .padding(.bottom, 14)
             Rectangle().fill(HUDColor.border).frame(height: 1)
             if items.isEmpty {
-                Text("THE ACKNOWLEDGEMENTS FILE IS MISSING FROM THIS COPY OF NIB.")
+                Text("THE ACKNOWLEDGEMENTS FILE IS MISSING FROM THIS COPY OF RUNE.")
                     .font(HUDFont.terminal(17))
                     .foregroundStyle(HUDColor.failureText)
                     .padding(22)

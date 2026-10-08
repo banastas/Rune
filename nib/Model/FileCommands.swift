@@ -17,7 +17,7 @@ enum FileCommands {
     /// File › Duplicate (⇧⌘S).
     static func duplicate(_ document: Document) {
         guard let url = Untitled.create(text: document.editor.textView.string, name: copyName(document.url.lastPathComponent)) else {
-            document.show("✕ COULDN'T MAKE A COPY · \(Untitled.lastError.map(ErrorWords.hud) ?? "NIB'S UNTITLED FOLDER")", for: 8)   // why, not a guess (F72)
+            document.show("✕ COULDN'T MAKE A COPY · \(Untitled.lastError.map(ErrorWords.hud) ?? "RUNE'S UNTITLED FOLDER")", for: 8)   // why, not a guess (F72)
             return
         }
         AppDelegate.openFile(url)
@@ -100,13 +100,13 @@ enum FileCommands {
         let caseOnly = target.path.lowercased() == old.path.lowercased()
         if document.untitled { return await renameUntitled(document, to: target.lastPathComponent) }
         if ScratchLocation.refusal(for: target) != nil {
-            return refuse(document, "NOT MOVED · NIB OPENS ONLY TEST FILES IN A TEST RUN (ICLOUD DRIVE › NIB › TEST)")
+            return refuse(document, "NOT MOVED · RUNE OPENS ONLY TEST FILES IN A TEST RUN (ICLOUD DRIVE › RUNE › TEST)")
         }
         if !caseOnly, FileManager.default.fileExists(atPath: target.path) {
             return refuse(document, "“\(target.lastPathComponent.uppercased())” IS ALREADY THERE · NOTHING MOVED")
         }
         if let open = Documents.existing(for: target), open !== document {   // (by case alone, it finds this one)
-            return refuse(document, "“\(target.lastPathComponent.uppercased())” IS OPEN IN NIB · NOTHING MOVED")
+            return refuse(document, "“\(target.lastPathComponent.uppercased())” IS OPEN IN RUNE · NOTHING MOVED")
         }
 
         // Everything in the file and in iCloud first: then the move leaves nothing behind in the
@@ -152,7 +152,7 @@ enum FileCommands {
             return refuse(document, "AN UNTITLED BUFFER IS ALREADY CALLED “\(name.uppercased())” · NOTHING RENAMED")
         }
         guard let url = Untitled.create(text: document.editor.textView.string, name: name) else {
-            return refuse(document, "COULDN'T RENAME IT · \(Untitled.lastError.map(ErrorWords.hud) ?? "NIB'S UNTITLED FOLDER")")
+            return refuse(document, "COULDN'T RENAME IT · \(Untitled.lastError.map(ErrorWords.hud) ?? "RUNE'S UNTITLED FOLDER")")
         }
         await Untitled.handOver(document, to: url)
         return nil

@@ -227,7 +227,7 @@ import Testing
         { "name": "Paper", "globals": { "background": "#FAFAFA", "foreground": "#222222" }, "rules": [] }
         """.utf8))
         let facts = ThemeReport.facts(for: theme)
-        #expect(facts.contains("LIGHT BACKGROUND · NIB'S WINDOWS STAY DARK") && facts.contains("0 RULES") && facts.contains("2 GLOBALS USED"))
+        #expect(facts.contains("LIGHT BACKGROUND · RUNE'S WINDOWS STAY DARK") && facts.contains("0 RULES") && facts.contains("2 GLOBALS USED"))
         #expect(!facts.contains { $0.contains("NOT DRAWN") })
     }
 }

@@ -111,8 +111,8 @@ struct Shortcut: Hashable, Sendable {
         let command = modifiers & UInt32(cmdKey) != 0, option = modifiers & UInt32(optionKey) != 0
         if modifiers & UInt32(controlKey) != 0 || (command && option) || Self.functionKeys[Int(keyCode)] != nil { return nil }
         if option, !command, keyCode == UInt32(kVK_Space), modifiers & UInt32(shiftKey) == 0 { return nil }
-        if command { return "\(description) is a key apps use for their own commands, so Nib would take it from every one of them. Add ⌃ or ⌥." }
-        if option { return "\(description) types or moves something in every app, so Nib would take it from all of them. Add ⌃ or ⌘." }
+        if command { return "\(description) is a key apps use for their own commands, so Rune would take it from every one of them. Add ⌃ or ⌥." }
+        if option { return "\(description) types or moves something in every app, so Rune would take it from all of them. Add ⌃ or ⌘." }
         return nil
     }
 
@@ -303,15 +303,15 @@ final class GlobalShortcuts {
         let keys = shortcut.description
         let status = HotKey.register(id: action.hotKeyID, keyCode: shortcut.keyCode, modifiers: shortcut.modifiers) { action.perform() }
         if status == eventHotKeyExistsErr {
-            warnings[action] = "Another app holds \(keys), so Nib can't use it. Choose other keys, or free them in that app."
+            warnings[action] = "Another app holds \(keys), so Rune can't use it. Choose other keys, or free them in that app."
         } else if status != noErr {
-            warnings[action] = "Nib couldn't use \(keys) (Carbon error \(status)). Choose other keys."
+            warnings[action] = "Rune couldn't use \(keys) (Carbon error \(status)). Choose other keys."
         } else if HotKey.usedByMacOS(shortcut) {
-            warnings[action] = "macOS uses \(keys) itself (System Settings › Keyboard › Keyboard Shortcuts), so it won't reach Nib. Choose other keys, or turn that one off there."
+            warnings[action] = "macOS uses \(keys) itself (System Settings › Keyboard › Keyboard Shortcuts), so it won't reach Rune. Choose other keys, or turn that one off there."
         } else if shortcut == Action.showScratch.standard,
                   let (_, name) = Self.launchers.first(where: { launcher in NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == launcher.0 } }) {
             warnings[action] = "\(name) is running, and \(keys) is its usual key. If \(name) still uses it, the two clash: change the keys here or in \(name)."
         }
-        if let warning = warnings[action] { NSLog("Nib: \(action.title): \(warning)") }
+        if let warning = warnings[action] { NSLog("Rune: \(action.title): \(warning)") }
     }
 }

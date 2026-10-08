@@ -1,15 +1,15 @@
-# Nib
+# Rune
 
 **A small, fast macOS text editor that never loses a keystroke between Macs.**
 
-Nib does four jobs and nothing else:
+Rune does four jobs and nothing else:
 
 - **Plain-text paste:** anything in, clean unstyled text out
 - **Quick edits** to HTML, CSS, JavaScript, JSON, Markdown and shell files, with syntax highlighting
-- **The user's Sublime color scheme,** An Old Hope, built in as a corrected edition (An Old Hope · Nib) so highlighting looks as it does today, minus the purple
+- **The user's Sublime color scheme,** An Old Hope, built in as a corrected edition (An Old Hope · Rune) so highlighting looks as it does today, minus the purple
 - **One persistent `scratch.md`** in iCloud Drive, used as a working clipboard on every Mac
 
-The name is the tip of a pen: the smallest part, and the one that does the writing. Nib is the second app in a family with [Blit](#0-family-dna).
+The name is Plan 9's word for a single character: Rob Pike and Ken Thompson made UTF-8 for Plan 9, where a character is a rune, as it still is in Go; and Blit was Pike's terminal at Bell Labs. Text at its smallest, cut to last. Rune is the second app in a family with [Blit](#0-family-dna). *Named Nib until 2026-10-07 (§10, question 14): inside, the code, its folders and the bundle ID keep that name.*
 
 > **Status:** Draft 1, 2026-09-27. Nothing built yet. This document is the PRD. It follows Blit's convention (Blit's README is its living PRD), so milestone results, measurements and decisions get written back into it as they happen.
 
@@ -51,12 +51,12 @@ Blit is a native macOS utility that moves big files between SFTP servers, drives
 | **V4** | **Glyph and word, never color alone.** Every state has a glyph or a word; VoiceOver speaks glyphs as words ("done", "failed", "transferring"). | `PixelGlyph.spoken`, `Blit/Views/PixelGlyphs.swift:25` |
 | **V5** | **Pixel type for labels and readouts only.** Silkscreen for uppercase labels (11 pt default), VT323 for terminal numerals and log lines (14-40 pt). Both SIL OFL, bundled, with system-monospaced fallbacks. The browser keeps SF Pro and SF Mono. | `HUDFont`, `Blit/Views/TransferStrip.swift:9` |
 | **V6** | **A strict pixel grid.** 7×7 glyph bitmaps (✓ ✕ ▲ ▼ → ‖ ▶ ◐), 1.5 pt per pixel (3 device pixels on Retina), progress as discrete 4×10 pt cells with 2 pt gaps, never a smooth bar. Bitmaps are drawn as template images from ASCII art (`#` on, `+` dim). | `PixelGlyph`, `PixelArt`, `PixelCells` |
-| **V7** | **Motion means something is happening.** Marching ants on drop targets (0.12 s steps), a pixel dot chasing a 3×3 ring (0.09 s), signal bars filling while connecting (0.18 s), the menu bar arrow's stem marching the way data goes (0.16 s), a CRT switch-on for the HUD (a bright line sweeps out, then opens vertically; curve `0.2, 0.7, 0.2, 1`, 0.36 s), a blinking `_` in About (0.55 s). Nothing moves when nothing is happening. | `PixelArt.swift`, `CRTEffect` in `TransferHUD.swift:415` (`:426` at `ea8b893`; Nib's copy in `nib/Vendor/FromBlit/HUDPanels.swift`), `AboutView.swift` |
+| **V7** | **Motion means something is happening.** Marching ants on drop targets (0.12 s steps), a pixel dot chasing a 3×3 ring (0.09 s), signal bars filling while connecting (0.18 s), the menu bar arrow's stem marching the way data goes (0.16 s), a CRT switch-on for the HUD (a bright line sweeps out, then opens vertically; curve `0.2, 0.7, 0.2, 1`, 0.36 s), a blinking `_` in About (0.55 s). Nothing moves when nothing is happening. | `PixelArt.swift`, `CRTEffect` in `TransferHUD.swift:415` (`:426` at `ea8b893`; Rune's copy in `nib/Vendor/FromBlit/HUDPanels.swift`), `AboutView.swift` |
 | **V8** | **Quiet status.** "A checkmark means verified." No popups unless a decision is needed. Only three things are modal in Blit: permanent delete, trusting a host key, entering a password. | README › Principles, R2.12 |
 | **V9** | **Problems go in the strip, not in alerts.** A failure is a ✕ line: what was tried, then the reason, full text in the tooltip, and it stays until dismissed. | README R2.12; QA review "Replace OK-only error alerts" |
 | **V10** | **Fixed geometry.** Readouts never nudge their neighbours: the menu bar item has a fixed width measured from its widest possible string, counts are zero-padded ("▲ 07/26"), the expanded HUD holds a fixed height, panels keep the same rows with "—" where one doesn't apply. | `MenuBarIcon.swift:26`, `TransferHUD.swift` |
 | **V11** | **Pixel accents at the edges of the system.** Menu bar item (template image, 18 pt tall, a muted-red ✕ beside it until the panel is opened after a failure), Dock tile (pixel progress cells, a ✓ or ✕ badge that stays until you come back), sidebar signal bars, a pixel-art app icon (Icon Composer `.icon`, solid near-black fill, one 14×12 pixel layer at 56% of the canvas, glass off, rendered by `scripts/make-icon.swift`). | `MenuBarIcon.swift`, `DockProgress.swift`, `scripts/make-icon.swift` |
-| **V12** | **Chrome and spacing.** Unified toolbar, `NavigationSplitView` sidebar 170-300 pt, minimum window 760×440. HUD strip: corner radius 10, 0.5 pt border, padding 12/8/7, a dashed `off` divider between its two lines. Expanded HUD: radius 12, padding 14, 10 pt between boxed panels with 1 pt borders and pixel titles; log lines 18 pt high, six of them (Blit's own went to two on 2026-09-28, `1318824`, its HUD 285 pt from ~460; Nib's keeps §5.3's six). Settings: tabs, grouped forms that size to fit (no scrolling), 480 pt wide, a plain-language caption note under each control. Command palette: 520 pt wide, 300 pt list. About: 360 pt, 96 pt icon, name in Silkscreen 34. | `ContentView.swift`, `TransferStrip.swift`, `TransferHUD.swift`, `MenuBarViews.swift:251`, `CommandPalette.swift` |
+| **V12** | **Chrome and spacing.** Unified toolbar, `NavigationSplitView` sidebar 170-300 pt, minimum window 760×440. HUD strip: corner radius 10, 0.5 pt border, padding 12/8/7, a dashed `off` divider between its two lines. Expanded HUD: radius 12, padding 14, 10 pt between boxed panels with 1 pt borders and pixel titles; log lines 18 pt high, six of them (Blit's own went to two on 2026-09-28, `1318824`, its HUD 285 pt from ~460; Rune's keeps §5.3's six). Settings: tabs, grouped forms that size to fit (no scrolling), 480 pt wide, a plain-language caption note under each control. Command palette: 520 pt wide, 300 pt list. About: 360 pt, 96 pt icon, name in Silkscreen 34. | `ContentView.swift`, `TransferStrip.swift`, `TransferHUD.swift`, `MenuBarViews.swift:251`, `CommandPalette.swift` |
 | **V13** | **Sound only for problems.** Notifications with problems play the default sound; clean ones are silent. Empty Trash borrows Finder's own sound. No custom sounds. | `TransferNotifications.swift:51`, `TrashService.swift:75` |
 | **V14** | **The references are late-'70s sci-fi instruments,** used with restraint: "1-bit pixel art, pixel icon sets, the *Alien* Nostromo interface". The user's Obsidian port of An Old Hope (a *Star Wars* palette) states the same restraint in its own words: telemetry-style status text and a CRT vignette only where they help, while "document surfaces remain quiet and readable instead of turning every note into a cockpit prop." | README › Transfer HUD; `an-old-hope-obsidian-theme/README.md` |
 
@@ -92,38 +92,38 @@ Blit is a native macOS utility that moves big files between SFTP servers, drives
 
 The review (`qa/blit-qa-ux-review.md`) found problems whose shape recurs in an editor that syncs:
 
-- **L1 (F1, path traversal):** names from untrusted sources were used as paths. Nib reads untrusted zip archives (Sublime packages) and themes; it never extracts by entry name and never executes anything from them.
-- **L2 (F2, F5, silent downgrade):** error paths quietly weakened verification. Nib must never show "synced" on an assumption, and an interrupted save is a failed save.
-- **L3 (F6, ordering):** state was recorded before bytes were flushed. Nib's recovery journal fsyncs before it counts as durable.
-- **L4 (F7, rename without re-check):** a final rename replaced a file that appeared mid-job. Nib's save checks the file on disk inside the same coordinated write (compare-and-swap, §4.3).
-- **L5 (F9, stale badge):** a ✓ outlived the bytes it described. Nib ties "synced" to a content hash, not to a path.
+- **L1 (F1, path traversal):** names from untrusted sources were used as paths. Rune reads untrusted zip archives (Sublime packages) and themes; it never extracts by entry name and never executes anything from them.
+- **L2 (F2, F5, silent downgrade):** error paths quietly weakened verification. Rune must never show "synced" on an assumption, and an interrupted save is a failed save.
+- **L3 (F6, ordering):** state was recorded before bytes were flushed. Rune's recovery journal fsyncs before it counts as durable.
+- **L4 (F7, rename without re-check):** a final rename replaced a file that appeared mid-job. Rune's save checks the file on disk inside the same coordinated write (compare-and-swap, §4.3).
+- **L5 (F9, stale badge):** a ✓ outlived the bytes it described. Rune ties "synced" to a content hash, not to a path.
 - **L6 (F10, advisory treated as failure):** a warning made a good copy fail. "iCloud hasn't uploaded yet" is a waiting state, not a red one.
 
 ### Reusable pieces (from Blit)
 
-Tokens (`HUDColor`, `Color.failure`/`failureText`, plus literals the QA review and this read found inline: panel border `Color(white: 0.23)` at `TransferHUD.swift:389` and `:520`, row highlight 0.12 at `:557`, histogram 0.6 at `TransferStrip.swift:361`, Dock tile colors in `DockProgress.swift`, the HUD timing curve repeated three times in `ContentView.swift:78-85`), `HUDFont` and the two bundled fonts, `PixelGlyph` and `hudText`, `PixelArt`, `PixelSpinner`, `PixelMarchingAnts`, `PixelSignal`, `PixelCells`, `PixelHistogram`, `HUDPanel`, `HUDRow`, `HUDButton`, `CRTEffect`/`.crt`, the dashed divider (copied twice), the fixed-width menu bar image composer, the Dock badge renderer, the About window, the ⌘K `CommandPalette` and its scoring, `Updates` (Sparkle), `LicenseManager` (Lemon Squeezy), the Settings `pane`/`note` helpers, `release.sh`, `make-icon.swift`, and the site's CSS tokens and fonts. Nib copies what it needs ([§7](#7-code-shared-with-blit)).
+Tokens (`HUDColor`, `Color.failure`/`failureText`, plus literals the QA review and this read found inline: panel border `Color(white: 0.23)` at `TransferHUD.swift:389` and `:520`, row highlight 0.12 at `:557`, histogram 0.6 at `TransferStrip.swift:361`, Dock tile colors in `DockProgress.swift`, the HUD timing curve repeated three times in `ContentView.swift:78-85`), `HUDFont` and the two bundled fonts, `PixelGlyph` and `hudText`, `PixelArt`, `PixelSpinner`, `PixelMarchingAnts`, `PixelSignal`, `PixelCells`, `PixelHistogram`, `HUDPanel`, `HUDRow`, `HUDButton`, `CRTEffect`/`.crt`, the dashed divider (copied twice), the fixed-width menu bar image composer, the Dock badge renderer, the About window, the ⌘K `CommandPalette` and its scoring, `Updates` (Sparkle), `LicenseManager` (Lemon Squeezy), the Settings `pane`/`note` helpers, `release.sh`, `make-icon.swift`, and the site's CSS tokens and fonts. Rune copies what it needs ([§7](#7-code-shared-with-blit)).
 
 ### Where Blit's patterns don't fit an editor
 
-| # | Blit pattern | Why it doesn't fit Nib | Adaptation |
+| # | Blit pattern | Why it doesn't fit Rune | Adaptation |
 |---|---|---|---|
 | **A1** | System colors and accent everywhere native (V1) | Matching the user's Sublime highlighting is a core job; an editor's text area is the scheme's canvas | The **editor area** (text, background, caret, selection, gutter, line highlight) comes from the imported scheme. **Chrome** (title bar, tabs, sheets, Settings, palette) stays native, always in the dark appearance (A17), and follows the system accent. |
 | **A2** | The HUD strip floats over the window only while something runs, and the full HUD opens by itself when a transfer starts | An editor always has a document state (line, column, syntax, sync), and a save happens every few seconds all day; a HUD that pops open would never stop | A **permanent one-line status strip**, 24 pt, always dark (V2), at the bottom of every editor window. It never opens by itself. Clicking it expands the sync HUD with the CRT effect (V7). It can be hidden; the sync glyph then moves to the title bar. |
 | **A3** | Always-dark HUD next to a light or dark native UI | Under a dark editor the strip could look like part of the text | The user's scheme is dark (#1C1D21), and the strip is darker (#0A0A0A, 1.18:1 against it) with its 0.5 pt #2B2B2B border, so it reads as a separate instrument under the page. In the same register as the scheme, per V14. |
-| **A4** | One red (V3) | An Old Hope uses red (#EC475D in the Nib edition) for keywords and tags | Scheme reds stay in the text. #B35C5C and #C98080 stay confined to Nib's own chrome: the strip, conflict banners and gutter conflict marks, which always pair the color with ✕ and a word (V4). On the editor background, failure text uses #C98080 (5.5:1); #B35C5C would be 3.7:1. |
+| **A4** | One red (V3) | An Old Hope uses red (#EC475D in the Rune edition) for keywords and tags | Scheme reds stay in the text. #B35C5C and #C98080 stay confined to Rune's own chrome: the strip, conflict banners and gutter conflict marks, which always pair the color with ✕ and a word (V4). On the editor background, failure text uses #C98080 (5.5:1); #B35C5C would be 3.7:1. |
 | **A5** | One browser window; automatic window tabbing turned off (`BlitApp.swift:18`), because keyboard routing follows the active pane | An editor opens many files; Blit's reason (pane routing) doesn't apply to one-document windows | **Native window tabs** (⌘⇧[ and ⌘⇧]), one document per window, the scratch file a tab among the files: one window, as Sublime's (the user's call, 2026-10-02; until then the scratch window was apart). Show Scratch brings it forward, its tab selected. |
 | **A6** | ⌘K "Go to…" jumps anywhere (R2.7) | Sublime muscle memory: ⌘P is Goto Anything, ⌘⇧P the command palette | **⌘P** opens Go to File, built on Blit's palette component and scoring. ⌘K opens the same palette, for family consistency (open question 10 covers Sublime's ⌘K chords). **⌘⇧P** opens the command palette. |
-| **A7** | ⌘C / ⌘V move files; Return renames (Finder parity) | In a text view these are text commands | Text parity follows TextEdit and Sublime. Finder parity still applies to Nib's lists (palette, History). |
-| **A8** | Notifications for every finished transfer | Nib saves every second; notifying on saves would be noise | Notifications **only for conflicts and save failures**, and only when Nib isn't frontmost. Problems play the default sound (V13). Also, the user's call (2026-10-01): a file deleted or moved to the Trash, iCloud Drive off, iCloud storage full, where the text no longer reaches the file or the other Mac. |
-| **A9** | Dock progress cells and ✓/✕ badges | Nib has no long-running jobs | No Dock progress. A ✕ badge only while a conflict is unresolved (P2). |
+| **A7** | ⌘C / ⌘V move files; Return renames (Finder parity) | In a text view these are text commands | Text parity follows TextEdit and Sublime. Finder parity still applies to Rune's lists (palette, History). |
+| **A8** | Notifications for every finished transfer | Rune saves every second; notifying on saves would be noise | Notifications **only for conflicts and save failures**, and only when Rune isn't frontmost. Problems play the default sound (V13). Also, the user's call (2026-10-01): a file deleted or moved to the Trash, iCloud Drive off, iCloud storage full, where the text no longer reaches the file or the other Mac. |
+| **A9** | Dock progress cells and ✓/✕ badges | Rune has no long-running jobs | No Dock progress. A ✕ badge only while a conflict is unresolved (P2). |
 | **A10** | Menu bar item shows progress and time left while transferring | Uploads of a text file take seconds; a readout that flickers after every save breaks V8 | The menu bar item stays still. It animates only when an upload has been pending for more than 3 s, and shows the red ✕ mark on a conflict or failure (V11). |
 | **A11** | A 1-second timer polls the pasteboard forever (`PasteboardWatcher`, `BlitApp.swift:213`) | "Near-zero idle" means no wakeups when idle | **No idle timers.** Pasteboard state is read when a menu opens or the app activates. Sync status is polled only while an upload is in flight, then stops. |
-| **A12** | Keep the Mac awake while transfers run (R5.6) | A text save doesn't justify holding off sleep | Nib never holds off sleep. It **saves on the way to sleep** instead (§4.3). |
+| **A12** | Keep the Mac awake while transfers run (R5.6) | A text save doesn't justify holding off sleep | Rune never holds off sleep. It **saves on the way to sleep** instead (§4.3). |
 | **A13** | Transfer Log (⌥⌘L), JSONL, searchable, newest first | Same need, different events | **Sync Log** (⌥⌘L): every save, upload, arrival, merge and conflict, with content hashes. **History**: saved versions (the newest of each 5 minutes, and every one opened, merged, received, restored or closed with), kept locally. |
-| **A14** | ✓ means SHA-256 verified | iCloud offers no server-side checksum | ✓ SYNCED means "iCloud reports *this exact version* (by SHA-256 of what Nib wrote) is uploaded". A further ✓ ON STUDIO means the other Mac's Nib has loaded that version. Neither is claimed without its evidence (W2). |
+| **A14** | ✓ means SHA-256 verified | iCloud offers no server-side checksum | ✓ SYNCED means "iCloud reports *this exact version* (by SHA-256 of what Rune wrote) is uploaded". A further ✓ ON STUDIO means the other Mac's Rune has loaded that version. Neither is claimed without its evidence (W2). |
 | **A15** | Silkscreen/VT323 only for labels and readouts (V5) | Tempting to use VT323 as an editor font | Never in the text area. Code and prose use the user's monospaced font (imported from Sublime, SF Mono otherwise). |
-| **A16** | Blit app ignores Reduce Motion (the site respects it; the app has no `accessibilityReduceMotion` checks) | Nib's marching glyphs and CRT would inherit the gap | Every animated component in Nib honors Reduce Motion: marching becomes static dashes, the CRT becomes a fade. Blit can take the same checks (§7). |
-| **A17** | Follows the system appearance; nothing is forced except the HUD (V1, V2) | The page is dark (An Old Hope) and always will be; light chrome around a dark page, or a light page, isn't wanted | **Nib is dark only, always** (decided 2026-09-27). The app sets the dark appearance for itself (`NSApp.appearance = .darkAqua`), so title bar, tabs, sheets, menus, alerts, Settings and the menu bar panel are native dark controls whatever the system setting. Blit's rule "the HUD is always dark" extends to the whole app. There is no light scheme and no appearance setting. |
+| **A16** | Blit app ignores Reduce Motion (the site respects it; the app has no `accessibilityReduceMotion` checks) | Rune's marching glyphs and CRT would inherit the gap | Every animated component in Rune honors Reduce Motion: marching becomes static dashes, the CRT becomes a fade. Blit can take the same checks (§7). |
+| **A17** | Follows the system appearance; nothing is forced except the HUD (V1, V2) | The page is dark (An Old Hope) and always will be; light chrome around a dark page, or a light page, isn't wanted | **Rune is dark only, always** (decided 2026-09-27). The app sets the dark appearance for itself (`NSApp.appearance = .darkAqua`), so title bar, tabs, sheets, menus, alerts, Settings and the menu bar panel are native dark controls whatever the system setting. Blit's rule "the HUD is always dark" extends to the whole app. There is no light scheme and no appearance setting. |
 
 ---
 
@@ -139,15 +139,15 @@ One of the four jobs fails regularly. `scratch.md` lives in iCloud Drive and is 
 - **Saving is manual** by default. `save_on_focus_lost` exists, but there's no save while typing, and nothing covers a lid that closes before iCloud uploads.
 - **Sublime knows nothing about iCloud.** No upload state, no sign that a copy is stale, and a conflict turns into a `scratch 2.md` beside the original, or a silent overwrite.
 
-The failure has two halves, and Nib has to fix both: **unsaved state that lives only in memory**, and **sync that's slower than a person switching Macs**.
+The failure has two halves, and Rune has to fix both: **unsaved state that lives only in memory**, and **sync that's slower than a person switching Macs**.
 
 ### Goals
 
 1. **Never lose a keystroke.** Every edit is in a crash-safe recovery journal within 300 ms and in the file within 1 s of a pause (5 s at most while typing continuously), and immediately on focus loss, app switch, sleep, lock and quit. No unsaved state ever lives only in memory.
 2. **Never fork silently.** Any divergence between Macs is detected, then merged automatically when the edits don't overlap, or shown for a decision when they do. No text either Mac wrote is ever dropped.
-3. **Tell the truth about sync.** Sync state is always visible: saved locally, uploading, synced (and, when known, on the other Mac). Nib never shows more certainty than iCloud gives it (W2).
+3. **Tell the truth about sync.** Sync state is always visible: saved locally, uploading, synced (and, when known, on the other Mac). Rune never shows more certainty than iCloud gives it (W2).
 4. **Feel as fast as Sublime** for these jobs: summon in under 50 ms, type with no perceptible lag, idle at 0% CPU with a small memory footprint ([§6.5](#65-performance-targets)).
-5. **Look like the user's Sublime.** With An Old Hope · Nib in both editors, Nib colors at least 98% of characters the same as Sublime on the reference files.
+5. **Look like the user's Sublime.** With An Old Hope · Rune in both editors, Rune colors at least 98% of characters the same as Sublime on the reference files.
 6. **Stay small.** A new feature has to serve one of the four jobs, or it waits.
 
 ### Non-goals (V1)
@@ -165,7 +165,7 @@ Also out, to keep scope honest:
 - Clipboard history
 - An iPhone or iPad app (scratch.md stays reachable from the Files app regardless)
 - AI features
-- Custom key-binding files (Nib ships Sublime's defaults for the commands it has)
+- Custom key-binding files (Rune ships Sublime's defaults for the commands it has)
 - macOS versions before 27, Intel Macs, the Mac App Store (T1, T6)
 
 ---
@@ -174,32 +174,32 @@ Also out, to keep scope honest:
 
 **Primary user:** one person, a developer and heavy Mac user with at least two Macs on the same Apple Account, who uses Sublime every day for small, fast jobs and keeps a running `scratch.md` of email drafts, snippets and terminal commands. Keyboard first. Already runs Blit.
 
-**Secondary users** (Nib is sold, open question 13, decided 2026-09-30): people with two or more Macs who keep a scratch file and want a small editor that can't lose it.
+**Secondary users** (Rune is sold, open question 13, decided 2026-09-30): people with two or more Macs who keep a scratch file and want a small editor that can't lose it.
 
 **Not for:** anyone who wants an IDE.
 
 ### Core jobs
 
-| # | Job | Today, in Sublime | What goes wrong | In Nib | Done when |
+| # | Job | Today, in Sublime | What goes wrong | In Rune | Done when |
 |---|---|---|---|---|---|
-| **J1** | **Plain-text paste.** Paste anything, get clean unstyled text back. | ⌘N, ⌘V, ⌘A, ⌘C into a throwaway tab, then close it and answer "Save?" | An extra tab and prompt each time; invisible characters (zero-width spaces, non-breaking spaces) come through | ⌘V in Nib is always plain. **Clean Clipboard** (a global shortcut) cleans the clipboard in place without opening a window. Paste Clean also strips invisibles. | Rich text from Safari, Mail, Slack, Notes, Word and a PDF comes out with no styling and no invisible characters (test corpus, §9) |
+| **J1** | **Plain-text paste.** Paste anything, get clean unstyled text back. | ⌘N, ⌘V, ⌘A, ⌘C into a throwaway tab, then close it and answer "Save?" | An extra tab and prompt each time; invisible characters (zero-width spaces, non-breaking spaces) come through | ⌘V in Rune is always plain. **Clean Clipboard** (a global shortcut) cleans the clipboard in place without opening a window. Paste Clean also strips invisibles. | Rich text from Safari, Mail, Slack, Notes, Word and a PDF comes out with no styling and no invisible characters (test corpus, §9) |
 | **J2** | **Open and edit HTML, CSS, JS, JSON, MD and shell files** with highlighting | Open from Finder or `subl` | Nothing is broken; Sublime is just more app than the job needs | Opens in under 300 ms with highlighting, native tabs, Sublime keys for the commands used | Two weeks of normal editing without opening Sublime |
-| **J3** | **Highlighting that matches.** An Old Hope, as today | `an-old-hope.tmTheme` | Numbers and constants in a purple that's hard to read (2.8:1); comments and keywords just under 4.5:1 | **An Old Hope · Nib** built in (HL10), the same file installed in Sublime; any other `.tmTheme` or `.sublime-color-scheme` importable | ≥ 98% of characters colored as Sublime colors them (§9) |
+| **J3** | **Highlighting that matches.** An Old Hope, as today | `an-old-hope.tmTheme` | Numbers and constants in a purple that's hard to read (2.8:1); comments and keywords just under 4.5:1 | **An Old Hope · Rune** built in (HL10), the same file installed in Sublime; any other `.tmTheme` or `.sublime-color-scheme` importable | ≥ 98% of characters colored as Sublime colors them (§9) |
 | **J4** | **scratch.md as a working clipboard** on every Mac | A file in iCloud Drive, saved by hand | Stale copies on the second Mac; `scratch 2.md` | Autosave, instant reload, merge, visible sync state, a global shortcut to summon it | 30 days on two Macs with zero lost edits and no unresolved duplicates (§9) |
 
 ### Reference setup
 
-What Nib is built and measured against, as Blit's README has a reference environment. Found on 2026-09-27.
+What Rune is built and measured against, as Blit's README has a reference environment. Found on 2026-09-27.
 
 | | |
 |---|---|
 | This Mac | `Mac16,12`, Apple M4, macOS 27.0; Xcode 27.0 (27A266a), Swift 6.4. `xcode-select` points at the Command Line Tools, so builds set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, as Blit's README describes |
 | Other Macs | All on macOS 27 and Apple silicon (confirmed) |
 | Sublime Text | Build 4200. `color_scheme` is `Packages/User/an-old-hope.tmTheme`, identical to the file shared for this PRD, so there are no local overrides |
-| **The scratch file** | **`iCloud Drive/_scratch2.md`**: 197 KB, 3,924 lines, in daily use (decided: Nib opens it where it is) |
+| **The scratch file** | **`iCloud Drive/_scratch2.md`**: 197 KB, 3,924 lines, in daily use (decided: Rune opens it where it is) |
 | Earlier scratch files, same folder | `_scratch.md` 2.4 MB and 50,826 lines, last edited 2026-09-24; `_scratch-archive-through-2026-07-20.md` 2.4 MB, 50,284 lines; `_scratch-current.md` 123 bytes |
 
-What that means for the design: scratch files grow to about **2.4 MB and 50,000 lines** before they're archived by hand. That is the size the performance targets, the journal and the merge are built for (§4.3, §6.5), and `_scratch.md` (or a synthetic file of the same size) is the stress test. Nib never reads the contents of these files for testing; spikes use generated text of the same shape.
+What that means for the design: scratch files grow to about **2.4 MB and 50,000 lines** before they're archived by hand. That is the size the performance targets, the journal and the merge are built for (§4.3, §6.5), and `_scratch.md` (or a synthetic file of the same size) is the stress test. Rune never reads the contents of these files for testing; spikes use generated text of the same shape.
 
 ---
 
@@ -209,36 +209,36 @@ What that means for the design: scratch files grow to about **2.4 MB and 50,000 
 
 ### Scratch (SC)
 
-- **SC1 · P0** One scratch file: **`iCloud Drive/Nib/scratch.md`**, in Nib's own iCloud folder (decided 2026-09-28; it moves there from `iCloud Drive/_scratch2.md` when M1 goes live). On each Mac, first run finds it at that path; Settings can point to another file (for example when the current one is archived and a new one started). Without an existing file, first run offers to create `iCloud Drive/scratch.md`. The scratch window has its own window, which ⌘W hides rather than closes; Nib keeps running.
-- **SC2 · P0** A global shortcut, **Show Scratch** (proposed default ⌥Space, configurable; ⌃Space and ⌃⌥Space are macOS's input-source switches, and first run warns if another app such as Raycast or Alfred already holds the chosen keys), brings the scratch window forward from any app with the caret where it was, in under 50 ms. Pressed again while the scratch window is frontmost, it hides Nib and returns to the previous app.
+- **SC1 · P0** One scratch file: **`iCloud Drive/Rune/scratch.md`**, in Rune's own iCloud folder (decided 2026-09-28; it moves there from `iCloud Drive/_scratch2.md` when M1 goes live). On each Mac, first run finds it at that path; Settings can point to another file (for example when the current one is archived and a new one started). Without an existing file, first run offers to create `iCloud Drive/scratch.md`. The scratch window has its own window, which ⌘W hides rather than closes; Rune keeps running.
+- **SC2 · P0** A global shortcut, **Show Scratch** (proposed default ⌥Space, configurable; ⌃Space and ⌃⌥Space are macOS's input-source switches, and first run warns if another app such as Raycast or Alfred already holds the chosen keys), brings the scratch window forward from any app with the caret where it was, in under 50 ms. Pressed again while the scratch window is frontmost, it hides Rune and returns to the previous app.
 - **SC3 · P0** Caret, selection and scroll position are restored per Mac. They're local, not synced (open question 18).
 - **SC4 · P1** Markdown highlighting, with fenced code blocks highlighted in their own language (bash, js, json, html, css).
 - **SC5 · P1** **Copy Block** (⇧⌘C) copies the fenced code block at the caret (without its fences), or the paragraph at the caret, with no selection needed. The copied range flashes once. This is for terminal commands and email paragraphs.
 - **SC6 · P1** **Append Clipboard to Scratch** (menu bar, optional global shortcut): appends the cleaned clipboard to the end of scratch.md after a blank line, without taking focus. The strip confirms: "APPENDED 3 LINES TO SCRATCH".
 - **SC7 · P2** Headings list (⌘R, Sublime's Goto Symbol) to jump between sections of scratch.md. *Pulled forward into M2 (the user's call, 2026-10-02) and done: Text › Go to Heading… (§8).*
-- **SC8 · P2** App Intents for Shortcuts (T10): Append to Scratch, Get Scratch, Clean Text. A Finder Services item, "Append to Nib Scratch", for selected text in any app. *Done 2026-10-06 (§8, "About, the Dock, Services and Shortcuts").*
+- **SC8 · P2** App Intents for Shortcuts (T10): Append to Scratch, Get Scratch, Clean Text. A Finder Services item, "Append to Rune Scratch", for selected text in any app. *Done 2026-10-06 (§8, "About, the Dock, Services and Shortcuts").*
 
 ### Plain-text paste (PT)
 
 - **PT1 · P0** The editor is plain text only. ⌘V inserts only the text of what's on the clipboard: fonts, colors, links, images and attachments are dropped. Line endings become the document's.
-- **PT2 · P0** Copying or cutting from Nib puts only plain text (`public.utf8-plain-text`) on the clipboard, never RTF carrying the syntax colors. Tested, not assumed.
+- **PT2 · P0** Copying or cutting from Rune puts only plain text (`public.utf8-plain-text`) on the clipboard, never RTF carrying the syntax colors. Tested, not assumed.
 - **PT3 · P1** **Paste Clean** (⌥⇧⌘V, the system's Paste and Match Style shortcut) also removes invisible characters (zero-width space, joiners, BOM, soft hyphen, bidi controls), turns non-breaking and other unusual spaces into plain spaces, and trims trailing whitespace. Straightening smart quotes and dashes is a setting, off by default. Which of these plain ⌘V also applies is open question 7.
 - **PT4 · P1** **Clean Clipboard** (global shortcut, default ⌃⌥⌘V, and in the menu bar) rewrites the clipboard in place as clean plain text, with no window. The menu bar panel confirms it: "CLIPBOARD CLEANED · 3 INVISIBLES REMOVED". Then ⌘V pastes plain text in any app.
-- **PT5 · P1** A clipboard with no plain-text flavor (HTML or RTF only) is converted to text by Nib. Files copied in Finder paste as their full POSIX paths, one per line (open question 8).
+- **PT5 · P1** A clipboard with no plain-text flavor (HTML or RTF only) is converted to text by Rune. Files copied in Finder paste as their full POSIX paths, one per line (open question 8).
 - **PT6 · P2** Only if "anything" includes images (open question 8): text recognized on-device (Vision) from an image on the clipboard.
 - **PT7 · P2** Services › Clean Text replaces a selection in any app with its cleaned plain text. *Done 2026-10-06 (§8).*
 
 ### Files and editing (ED)
 
-- **ED1 · P0** A plain editor on `NSTextView`: undo and redo, find (⌘F, in Nib's own bar: ED7), a monospaced font and size setting, soft wrap, UTF-8.
-- **ED2 · P1** Open any text file: ⌘O, Finder's Open With, drag onto the Dock icon or a window, the `nib` CLI (AP4). Open Recent. One buffer per file: opening it again brings its window forward. Native window tabs (A5).
+- **ED1 · P0** A plain editor on `NSTextView`: undo and redo, find (⌘F, in Rune's own bar: ED7), a monospaced font and size setting, soft wrap, UTF-8.
+- **ED2 · P1** Open any text file: ⌘O, Finder's Open With, drag onto the Dock icon or a window, the `rune` CLI (AP4). Open Recent. One buffer per file: opening it again brings its window forward. Native window tabs (A5).
 - **ED3 · P1** Untitled buffers (⌘N, and ⌘T for New Tab: a tab in the window in front, in Markdown until another syntax is picked, the user's call, 2026-10-02) are journaled like everything else and come back after a relaunch or crash (Sublime hot-exit parity). Closing a non-empty untitled buffer keeps it in History for 30 days, with no "Save?" prompt (V8). Syncing untitled buffers is open question 12.
 - **ED4 · P1** Autosave for every open file, per [§4.3](#43-save-pipeline) (scope: open question 6). The File menu follows Apple's autosave model (W3): Save (saves now and shows sync progress), Duplicate (⇧⌘S), Rename…, Move To…, Revert To ›, listing History versions.
 - **ED5 · P1** Saving preserves: the encoding detected on open (UTF-8, UTF-8 with BOM, UTF-16 LE/BE, Latin-1 fallback), line endings (LF or CRLF), whether there's a final newline, POSIX permissions (a script stays executable), extended attributes, and the file's identity (replaced in place). The strip shows encoding and line endings. Line endings can be changed (View › Line Endings and the strip: an edit, saved as any is); the encoding is kept as found, converting it dropped (the user's call, 2026-10-07: the QA review's F50, §8).
-- **ED6 · P1** Editing commands, on Sublime's keys ([§5.12](#512-keyboard)): line numbers, current-line highlight, auto-indent, indent and outdent, tabs or spaces per file (detected on open, or chosen from View › Indentation and the strip, and kept for the file; Convert Indentation to Spaces or Tabs, 2026-10-07: F50), toggle comment, duplicate line, move line up or down, select line, join lines, go to line, show invisibles. Settings for trimming trailing whitespace and ensuring a final newline, applied only to files Nib edited, and only on ⌘S (Nib's own saves never change the text; §8, M2).
-- **ED7 · P1** Find and replace with regular expressions, match case, whole word and in-selection; ⌘G / ⇧⌘G; ⌘E uses the selection for Find. In a bar of Nib's own over the strip: the system's find bar has no regular expressions (§8, M2).
-- **ED8 · P1** Multiple carets: ⌘D (add the next occurrence), ⇧⌘L (split selection into lines), ⌘-click, ⌥-drag for columns. `NSTextView` has multiple selections but not multiple insertion points, so this is custom work. *Kept (the user's call, 2026-10-01, open question 10): not used by the user, but Nib is sold, and the people most likely to buy it, from Sublime and VS Code, expect it.* Typing, deleting, the arrows, the clipboard and the line commands work at every caret, and Find All selects every match (§8, M2).
-- **ED9 · P1** Large files: every feature up to 5 MB; from 5 to 100 MB no highlighting ("HIGHLIGHTING OFF · 42 MB" in the strip), still editable; above 100 MB Nib asks first (a decision, V8). Open question 17 checks the real sizes. Done in M2 (§8): above 5 MB, History keeps the versions opened and closed with, none of the saves between.
+- **ED6 · P1** Editing commands, on Sublime's keys ([§5.12](#512-keyboard)): line numbers, current-line highlight, auto-indent, indent and outdent, tabs or spaces per file (detected on open, or chosen from View › Indentation and the strip, and kept for the file; Convert Indentation to Spaces or Tabs, 2026-10-07: F50), toggle comment, duplicate line, move line up or down, select line, join lines, go to line, show invisibles. Settings for trimming trailing whitespace and ensuring a final newline, applied only to files Rune edited, and only on ⌘S (Rune's own saves never change the text; §8, M2).
+- **ED7 · P1** Find and replace with regular expressions, match case, whole word and in-selection; ⌘G / ⇧⌘G; ⌘E uses the selection for Find. In a bar of Rune's own over the strip: the system's find bar has no regular expressions (§8, M2).
+- **ED8 · P1** Multiple carets: ⌘D (add the next occurrence), ⇧⌘L (split selection into lines), ⌘-click, ⌥-drag for columns. `NSTextView` has multiple selections but not multiple insertion points, so this is custom work. *Kept (the user's call, 2026-10-01, open question 10): not used by the user, but Rune is sold, and the people most likely to buy it, from Sublime and VS Code, expect it.* Typing, deleting, the arrows, the clipboard and the line commands work at every caret, and Find All selects every match (§8, M2).
+- **ED9 · P1** Large files: every feature up to 5 MB; from 5 to 100 MB no highlighting ("HIGHLIGHTING OFF · 42 MB" in the strip), still editable; above 100 MB Rune asks first (a decision, V8). Open question 17 checks the real sizes. Done in M2 (§8): above 5 MB, History keeps the versions opened and closed with, none of the saves between.
 - **ED11 · P1** A minimap beside the scroller, as Sublime's: the text at a seventh of its size, each word a bar in its syntax color, lines wrapped as the editor's are, conflict blocks in the muted red, the lines in view under a box. A click brings the line there to the middle of the view; dragging the box scrolls with it. On by default; View › Hide Minimap and Settings › Editor turn it off. *Added (the user's call, 2026-10-02), from the non-goals.* Done in M2 (§8).
 - **ED10 · P2** Matching-bracket and matching-tag underlines, which An Old Hope defines (`bracketsOptions`, `tagsOptions`); indent guides (`guide`, `activeGuide`, `stackGuide`); auto-closing pairs as a setting. *Done in M2 (the user's call, 2026-10-02, §8), as the user's Sublime has them (its defaults): guides at every step, dotted, in `guide`; the active and stack guides, which Sublime draws only when asked, not yet.*
 
@@ -246,26 +246,26 @@ What that means for the design: scratch files grow to about **2.4 MB and 50,000 
 
 - **HL1 · P1** Highlighting for HTML, CSS, JavaScript (`.js`, `.mjs`, `.cjs`), JSON (and lenient JSON with comments), Markdown and shell (`.sh`, `.bash`, `.zsh`, dotfiles such as `.zshrc` and `.bash_profile`, and any file with a shell shebang). Embedded languages: `<script>` and `<style>` in HTML, fenced code in Markdown. Everything else is plain text. The syntax is shown in the strip and can be changed from it or the command palette.
 - **HL2 · P1** Import **`.tmTheme`** (property list: a globals dictionary first, then scoped rules; `colorSpaceName`, `fontStyle`) and **`.sublime-color-scheme`** (JSON with comments and trailing commas; `variables`, `globals`, `rules`; hex with alpha, `rgb()`, `hsl()`, named colors and the `color()` adjusters `alpha`, `blend`, `blenda`, `l`, `s`, `min-contrast`; `font_style` bold, italic, underline). Scope selectors support descendant (space), union (`,`), exclusion (`-`) and grouping, ranked by TextMate specificity with later rules winning ties, as Sublime does.
-- **HL3 · P1** **Import from Sublime Text** in one click. Nib reads `color_scheme` (or `dark_color_scheme` when it's `auto`, since Nib is dark only) from `~/Library/Application Support/Sublime Text/Packages/User/Preferences.sublime-settings`, finds the scheme loose in `Packages/`, inside `Installed Packages/*.sublime-package`, or in the app bundle's default packages (zip files, read in memory, never extracted, L1), applies overrides from `Packages/User/`, and also imports `font_face`, `font_size`, `line_padding_top`/`_bottom`, `tab_size`, `translate_tabs_to_spaces` and `word_wrap`. Sublime's files are only read, never changed. Dragging a scheme file onto Settings › Themes also works.
-- **HL4 · P1** An **import report**, in plain words (W1, W2): rules imported, globals used, globals Nib doesn't draw, and anything approximated. For the original An Old Hope it would read:
+- **HL3 · P1** **Import from Sublime Text** in one click. Rune reads `color_scheme` (or `dark_color_scheme` when it's `auto`, since Rune is dark only) from `~/Library/Application Support/Sublime Text/Packages/User/Preferences.sublime-settings`, finds the scheme loose in `Packages/`, inside `Installed Packages/*.sublime-package`, or in the app bundle's default packages (zip files, read in memory, never extracted, L1), applies overrides from `Packages/User/`, and also imports `font_face`, `font_size`, `line_padding_top`/`_bottom`, `tab_size`, `translate_tabs_to_spaces` and `word_wrap`. Sublime's files are only read, never changed. Dragging a scheme file onto Settings › Themes also works.
+- **HL4 · P1** An **import report**, in plain words (W1, W2): rules imported, globals used, globals Rune doesn't draw, and anything approximated. For the original An Old Hope it would read:
   > IMPORTED AN-OLD-HOPE · 42 RULES · 9 GLOBALS USED · 11 NOT DRAWN YET (BRACKETS, TAGS, GUIDES, SELECTION BORDER, SHADOW) · 6 COLORS UNDER 4.5:1: #767676 COMMENT 3.7, #7851A9 NUMBER 2.8, #EB3D54 KEYWORD 4.3, #F8F8F0 ON #F92672 INVALID 3.5, #F8F8F0 ON #AE81FF INVALID DEPRECATED 2.7, #EB3D54 ON #420E09 DIFF: DELETED 4.1
 
-  (What Nib's report says for the file itself, from Import File…; Import from Sublime keeps the Nib edition instead, HL10.)
+  (What Rune's report says for the file itself, from Import File…; Import from Sublime keeps the Rune edition instead, HL10.)
 
-  For An Old Hope · Nib: `… · EVERY COLOR AT LEAST 4.5:1 ON THE BACKGROUND`. Importing a light scheme adds `LIGHT BACKGROUND · NIB'S WINDOWS STAY DARK` (A17).
-- **HL5 · P1** The scheme drives the editor area only (A1): `background`, `foreground`, `caret`, `selection`, `inactiveSelection`, `lineHighlight`, `invisibles`, `findHighlight` and `findHighlightForeground`, plus the gutter (derived from background and foreground when the scheme doesn't set it, as with An Old Hope). Rules may set foreground, background (An Old Hope uses them for `invalid` and for `markup.inserted`/`deleted`/`changed`), bold, italic and underline. The editor font needs real italic and bold faces; Nib slants and emboldens only when the font has none. Colors are read in the scheme's color space (An Old Hope declares sRGB).
+  For An Old Hope · Rune: `… · EVERY COLOR AT LEAST 4.5:1 ON THE BACKGROUND`. Importing a light scheme adds `LIGHT BACKGROUND · RUNE'S WINDOWS STAY DARK` (A17).
+- **HL5 · P1** The scheme drives the editor area only (A1): `background`, `foreground`, `caret`, `selection`, `inactiveSelection`, `lineHighlight`, `invisibles`, `findHighlight` and `findHighlightForeground`, plus the gutter (derived from background and foreground when the scheme doesn't set it, as with An Old Hope). Rules may set foreground, background (An Old Hope uses them for `invalid` and for `markup.inserted`/`deleted`/`changed`), bold, italic and underline. The editor font needs real italic and bold faces; Rune slants and emboldens only when the font has none. Colors are read in the scheme's color space (An Old Hope declares sRGB).
 - **HL6 · P0** Dark only (A17). One scheme at a time, the same in every system appearance. The window chrome is always dark.
 - **HL7 · P1** Fidelity: at least 98% of non-whitespace characters get the same foreground color as in Sublime, on the reference files, measured by the fidelity harness (M0 S3, §9). Where Sublime's own syntax doesn't match the scheme's intent, Sublime's actual rendering is the target by default (open question 9). Likely example: An Old Hope's JSON-key rule targets `meta.structure.dictionary.key.json`, which may not match Sublime 4's JSON scopes, in which case Sublime shows keys as strings (cyan), not yellow.
 - **HL8 · P2** More languages (YAML, TOML, Python, Swift), each only once a real file of that type shows up in daily use. An Old Hope already has a YAML key rule. *XML done in M2 (2026-10-02, the user's call): a podcast feed opened as plain text on the first day of daily use (§8).* *Changed the same day (the user's call): a set list, in this order, each matched against Sublime's own syntax as HL7 asks, where Sublime has one:*
   - *First: JSX, TypeScript and TSX; diff and patch files; Git's commit messages, `.gitignore`, `.gitattributes` and `.gitconfig`; Makefiles; YAML; TOML; `.env` (read with the shell grammar) and INI, which Sublime doesn't color; Python; and the other names Sublime reads as JSON (`.sublime-settings`, `.ipynb`…). Done the same day (§8).*
   - *Then: Go, Rust, Ruby, Java, C, Lua, PHP (inside HTML), SQL, LaTeX and reStructuredText. Done the same day but LaTeX (§8), deferred (the user's call): its grammar's ready-made parser is the 2022 release's (28 MB of C, about 5 MB in the app), and a current one needs tree-sitter's command-line tool installed to generate it.*
-  - *Swift, which Sublime doesn't ship: Nib's own colors, and a first thing Nib colors that Sublime doesn't. Done the same day (§8).*
+  - *Swift, which Sublime doesn't ship: Rune's own colors, and a first thing Rune colors that Sublime doesn't. Done the same day (§8).*
   - *CSV and log files, which Sublime colors neither: each CSV column in a color of its own (as Sublime's Rainbow CSV package does), and in logs the timestamps, levels, quoted strings, numbers and URLs. Done the same day (§8).*
   - *C++, Objective-C, C#, Perl and AppleScript keep the old rule: together they'd be about half the size the grammars add, they're the hardest to match against Sublime, and they're the least likely to turn up in a scratch file.*
 - **HL9 · P2** Re-import automatically when the source scheme file changes.
-- **HL10 · P0** **An Old Hope · Nib** is the built-in default scheme: [`themes/an-old-hope-nib.tmTheme`](themes/an-old-hope-nib.tmTheme), a corrected copy of the user's `an-old-hope.tmTheme` in the same format, so it also installs in Sublime and the two editors can be compared (HL7). The MVP editor draws its globals (background, text, caret, selection, line highlight) before highlighting exists (M1); its rules take effect with highlighting (M2). Import from Sublime recognizes the original An Old Hope and keeps the Nib edition. The changes, each the smallest that fixes one problem, with every text color now at least 4.5:1 on #1C1D21:
+- **HL10 · P0** **An Old Hope · Rune** is the built-in default scheme: [`themes/an-old-hope-nib.tmTheme`](themes/an-old-hope-nib.tmTheme), a corrected copy of the user's `an-old-hope.tmTheme` in the same format, so it also installs in Sublime and the two editors can be compared (HL7). The MVP editor draws its globals (background, text, caret, selection, line highlight) before highlighting exists (M1); its rules take effect with highlighting (M2). Import from Sublime recognizes the original An Old Hope and keeps the Rune edition. The changes, each the smallest that fixes one problem, with every text color now at least 4.5:1 on #1C1D21:
 
-  | What | Original | Nib edition | Why |
+  | What | Original | Rune edition | Why |
   |---|---|---|---|
   | Numbers, `constant.language` (true, null), `constant.character`, `constant.other`, escapes | #7851A9 purple, 2.8:1 | #EF7C2B orange, 6.1:1 | The purple is removed. Orange already marks parameters (italic), regular expressions and Markdown lists; numbers stay upright, so parameters still read apart |
   | `invalid` | white on Monokai pink #F92672, 3.5:1 | #1C1D21 on red #EC475D, 4.5:1 | A Monokai leftover; now the palette's own red |
@@ -283,7 +283,7 @@ Summary only; the behavior is specified in [§4](#4-sync-and-data-integrity-spec
 
 - **SY1 · P0** A recovery journal holds every buffer's latest text within 300 ms of a keystroke, fsynced before it counts (T4, L3).
 - **SY2 · P0** Autosave: 1 s after typing pauses, at most 5 s during continuous typing, and immediately on every trigger in §4.3. A save that wrote much holds the next back: it waits at least that save's bytes ÷ 80 KB/s (§4.3 step 2; 2026-10-02, the user's call).
-- **SY3 · P0** Compare-and-swap saves: Nib never overwrites a version on disk that it hasn't seen (L4).
+- **SY3 · P0** Compare-and-swap saves: Rune never overwrites a version on disk that it hasn't seen (L4).
 - **SY4 · P0** A buffer with no edits is never written. Opening, focusing and switching never touch the file.
 - **SY5 · P0** Watch the file; reload instantly when a new version arrives and there are no local edits, keeping caret and scroll in place.
 - **SY6 · P0** The MVP safety net: when the file changed on disk and there are local edits, show both versions side by side with **Keep Mine**, **Keep Theirs** and **Keep Both**. Nothing is overwritten while it waits.
@@ -294,26 +294,26 @@ Summary only; the behavior is specified in [§4](#4-sync-and-data-integrity-spec
 - **SY11 · P1** iCloud conflict versions (`NSFileVersion`) and `scratch 2.md`-style duplicates detected and brought into the merge flow.
 - **SY12 · P1** Evicted files, offline, deletion, rename, iCloud Drive turned off, and iCloud errors such as full storage (§4.9).
 - **SY13 · P1** **History:** saved versions kept locally (every one opened, merged, from another Mac, restored or closed with, and the newest save of each 5 minutes; open question 22), thinned over 30 days, with Revert To and a History window. **Sync Log** (⌥⌘L), JSON Lines, searchable, newest first (A13).
-- **SY14 · P0** (was P1; S1b showed a held file can go stale while iCloud calls it current) Delivery receipts: Nib on each Mac records which version of each synced file it has loaded, so the other Mac can show "✓ ON STUDIO" or "NEWER VERSION ON AIR, NOT HERE YET" (§4.5).
-- **SY15 · P1** A notification, with sound, for a conflict or failed save while Nib isn't frontmost (A8). Done in M2: once while it lasts, taken back when it's over (§8).
+- **SY14 · P0** (was P1; S1b showed a held file can go stale while iCloud calls it current) Delivery receipts: Rune on each Mac records which version of each synced file it has loaded, so the other Mac can show "✓ ON STUDIO" or "NEWER VERSION ON AIR, NOT HERE YET" (§4.5).
+- **SY15 · P1** A notification, with sound, for a conflict or failed save while Rune isn't frontmost (A8). Done in M2: once while it lasts, taken back when it's over (§8).
 - **SY16 · P2** The expanded sync HUD (§5.3). *Done 2026-10-06 (§8, "The sync HUD").*
 - **SY17 · V2** The express lane, if M0/M2 measurements call for it (§4.10).
 
 ### Keyboard and navigation (KB)
 
-- **KB1 · P0** Every command is in a menu, with Apple's or Sublime's key where one exists; Nib doesn't invent keys for the rest (Rename…, Move To…, Revert To ›, the View toggles, the syntax picks, One Caret, Welcome to Nib, Skip to Next Occurrence; reworded 2026-10-07, the QA review's F49: it said every command had a shortcut). Escape closes whatever is open over the text, one thing a press: extra carets, the sync HUD, the find bar, then the conflict banner (§5.12; as in Blit, where Escape closes Quick Look, then the HUD).
-- **KB2 · P1** **Go to File** (⌘P, ⌘K too; A6): the scratch file, open files, recent files (newest first), and the Nib folder. Blit's palette scoring: prefix beats substring beats letters in order.
+- **KB1 · P0** Every command is in a menu, with Apple's or Sublime's key where one exists; Rune doesn't invent keys for the rest (Rename…, Move To…, Revert To ›, the View toggles, the syntax picks, One Caret, Welcome to Rune, Skip to Next Occurrence; reworded 2026-10-07, the QA review's F49: it said every command had a shortcut). Escape closes whatever is open over the text, one thing a press: extra carets, the sync HUD, the find bar, then the conflict banner (§5.12; as in Blit, where Escape closes Quick Look, then the HUD).
+- **KB2 · P1** **Go to File** (⌘P, ⌘K too; A6): the scratch file, open files, recent files (newest first), and the Rune folder. Blit's palette scoring: prefix beats substring beats letters in order.
 - **KB3 · P1** **Command palette** (⇧⌘P): every menu command, with its shortcut.
-- **KB4 · P1** Sublime's default bindings for every command Nib has ([§5.12](#512-keyboard)).
+- **KB4 · P1** Sublime's default bindings for every command Rune has ([§5.12](#512-keyboard)).
 
 ### App presence (AP)
 
-- **AP1 · P0** Nib keeps running with no windows open; closing the last window doesn't quit.
+- **AP1 · P0** Rune keeps running with no windows open; closing the last window doesn't quit.
 - **AP2 · P1** Launch at login (offered during first run).
 - **AP3 · P1** A menu bar extra, optional and on by default as in Blit (T10): sync state, Show Scratch, Clean Clipboard, Append Clipboard to Scratch, recent files.
-- **AP4 · P1** The `nib` command-line tool (T2), like Sublime's `subl`: `nib file…` opens; `nib -w file` waits until the file is closed (for `$EDITOR` and git commit messages); `cmd | nib` opens stdin as an untitled buffer; `cmd | nib -a` appends stdin to scratch; `nib --scratch` shows the scratch window.
+- **AP4 · P1** The `rune` command-line tool (T2), like Sublime's `subl`: `rune file…` opens; `rune -w file` waits until the file is closed (for `$EDITOR` and git commit messages); `cmd | rune` opens stdin as an untitled buffer; `cmd | rune -a` appends stdin to scratch; `rune --scratch` shows the scratch window.
 - **AP5 · P1** First run, in one window: find or create scratch.md, explain what macOS will ask permission for before it asks (as Blit's local-network description does), offer Import from Sublime, set the two global shortcuts, offer launch at login.
-- **AP6 · P2** Hide the Dock icon (menu bar only). *Done 2026-10-06: Settings › General, only while the nib in the menu bar is shown (§8).*
+- **AP6 · P2** Hide the Dock icon (menu bar only). *Done 2026-10-06: Settings › General, only while Rune is shown in the menu bar (§8).*
 - **AP7 · P2** Handoff: continue the scratch file on the other Mac from its Dock (§4.10).
 - **AP8 · P2** A Dock ✕ badge while a conflict is unresolved (A9). *Done 2026-10-06 (§8).*
 
@@ -322,16 +322,16 @@ Summary only; the behavior is specified in [§4](#4-sync-and-data-integrity-spec
 - **AX1 · P1** The status strip reads as one summary ("scratch.md, synced at 10:42, line 14, column 3, Markdown"). Glyphs are spoken as words (V4).
 - **AX2 · P1** Conflicts and merges are announced. Conflict blocks and merge-view controls have word labels ("Use Studio's version"), never glyphs alone.
 - **AX3 · P1** Reduce Motion is honored everywhere (A16).
-- **AX4 · P1** The import report flags colors under 4.5:1 against the scheme background. The original An Old Hope had three (the Obsidian port had already called its purple "too dark for text"); An Old Hope · Nib has none (HL10). Other imports stay faithful and are flagged, not changed.
+- **AX4 · P1** The import report flags colors under 4.5:1 against the scheme background. The original An Old Hope had three (the Obsidian port had already called its purple "too dark for text"); An Old Hope · Rune has none (HL10). Other imports stay faithful and are flagged, not changed.
 
 ### Distribution (DS)
 
-- **DS1 · P1** Developer ID signed, Hardened Runtime, notarized, not sandboxed; installed on each Mac with `scripts/release.sh INSTALL=1`, from Blit's (T6). *The script is written (2026-10-07, §8); its first run is the user's.*
-- **DS2 · P2** Sold like Blit (open question 13, decided 2026-09-30): Sparkle updates from an EdDSA-signed appcast on `nib.banast.as`, a single-page site there in Blit's design (`../blit/site/`), and Blit's licensing (Lemon Squeezy keys, the 7-day trial of DS4, no Nib server; T6), with the terms, privacy and refund pages Lemon Squeezy's store review asks for.
-- **DS3 · P2** Third-party notices in the app, reachable from About (§5.10): An Old Hope's MIT notice (© 2015 Jesse Leite; the scheme ships built in, HL10), swift-tree-sitter (BSD-3-Clause), tree-sitter and the grammars (MIT, but gitcommit's WTFPL and INI's Apache 2.0, whose notice too; `NibKit/Vendor/README.md` lists them), Sparkle (MIT), and the fonts' OFL texts (already in `nib/Resources/Fonts/`). Each license asks that its notice go with every copy. *Done 2026-10-06 but for Sparkle, which comes with DS2: `scripts/acknowledgements.py` writes `nib/Resources/Acknowledgements.txt` from what Nib is built with, and About › Acknowledgements shows it (§8).*
-- **DS4 · P2** **The 7-day trial** (decided 2026-09-30). Blit's rules (`../blit/Blit/Model/License.swift`), except where Nib's guarantees (§4.1) need more. **The rule: the lock stops new text, never anything that keeps or recovers text.**
-  - **Seven calendar days from Nib's first launch on each Mac,** everything included. The start is kept in the Keychain, so reinstalling doesn't restart it. Each Mac has its own trial.
-  - **After it, Nib is read-only**, as Blit stops starting new transfers. Locked: typing, pasting and everything else that adds text (⌘N, Append Clipboard to Scratch, `cmd | nib`), and Clean Clipboard. `nib -w` exits at once with a message (exit 1), so a git commit stops instead of waiting on a window nobody can type in.
+- **DS1 · P1** Developer ID signed, Hardened Runtime, notarized, not sandboxed; installed on each Mac with `scripts/release.sh INSTALL=1`, from Blit's (T6). *Done on the Mac mini (2026-10-07, 20:17, §8): notarized, stapled and installed by the script; the Air's copy is next.*
+- **DS2 · P2** Sold like Blit (open question 13, decided 2026-09-30): Sparkle updates from an EdDSA-signed appcast on `nib.banast.as`, a single-page site there in Blit's design (`../blit/site/`), and Blit's licensing (Lemon Squeezy keys, the 7-day trial of DS4, no Rune server; T6), with the terms, privacy and refund pages Lemon Squeezy's store review asks for. *Sparkle and the site built 2026-10-07 (§8, "Updates and the site"): Blit's EdDSA key (the user's call), the feed `https://rune.banast.as/appcast.xml`, `release.sh`'s PUBLISH step; hosting rune.banast.as and the end-to-end update are the user's steps. Licensing waits for DS4.*
+- **DS3 · P2** Third-party notices in the app, reachable from About (§5.10): An Old Hope's MIT notice (© 2015 Jesse Leite; the scheme ships built in, HL10), swift-tree-sitter (BSD-3-Clause), tree-sitter and the grammars (MIT, but gitcommit's WTFPL and INI's Apache 2.0, whose notice too; `NibKit/Vendor/README.md` lists them), Sparkle (MIT), and the fonts' OFL texts (already in `nib/Resources/Fonts/`). Each license asks that its notice go with every copy. *Done 2026-10-06, and Sparkle's (MIT) with DS2 on 2026-10-07: `scripts/acknowledgements.py` writes `nib/Resources/Acknowledgements.txt` from what Rune is built with, and About › Acknowledgements shows it (§8).*
+- **DS4 · P2** **The 7-day trial** (decided 2026-09-30). Blit's rules (`../blit/Blit/Model/License.swift`), except where Rune's guarantees (§4.1) need more. **The rule: the lock stops new text, never anything that keeps or recovers text.**
+  - **Seven calendar days from Rune's first launch on each Mac,** everything included. The start is kept in the Keychain, so reinstalling doesn't restart it. Each Mac has its own trial.
+  - **After it, Rune is read-only**, as Blit stops starting new transfers. Locked: typing, pasting and everything else that adds text (⌘N, Append Clipboard to Scratch, `cmd | rune`), and Clean Clipboard. `rune -w` exits at once with a message (exit 1), so a git commit stops instead of waiting on a window nobody can type in.
   - **Never locked:** saving and uploading what's already typed; the journal; fetching, merging and showing other Macs' versions; resolving conflicts; History and Revert To; Reopen Closed File; Save… for untitled buffers; opening, copying, find, Rename… and Move To…; the Sync Log. A file typed in on another Mac stays readable and current on this one.
   - **Never mid-sentence:** the lock waits for a minute without typing.
   - **Licenses:** a Lemon Squeezy key activates up to **3 Macs** (decided 2026-09-30); Settings › License deactivates one to move it. Keys are checked again weekly; a Mac that can't reach Lemon Squeezy stays licensed for 30 days; a key the store no longer accepts (refunded, disabled) locks as the end of the trial does.
@@ -343,22 +343,22 @@ Summary only; the behavior is specified in [§4](#4-sync-and-data-integrity-spec
 
 ### 4.1 Guarantees
 
-Nib makes three promises, in order of strength:
+Rune makes three promises, in order of strength:
 
-1. **Durability.** Every edit is on this Mac's disk, in the recovery journal, within 300 ms, and in the file itself within 1 s of a pause. A crash, a force quit or a kernel panic loses at most the last 300 ms. Only a full disk can leave text in memory alone, and then Nib says so loudly (§4.9).
+1. **Durability.** Every edit is on this Mac's disk, in the recovery journal, within 300 ms, and in the file itself within 1 s of a pause. A crash, a force quit or a kernel panic loses at most the last 300 ms. Only a full disk can leave text in memory alone, and then Rune says so loudly (§4.9).
 2. **No silent loss.** No text that any Mac wrote is ever dropped without the user seeing it. Every divergence is merged or shown. Every saved version stays in local History for 30 days.
-3. **Honest freshness.** Nib shows how current its copy is, and since macOS 26 it can also ask: it fetches the newest version from iCloud whenever it becomes active, so the Mac you switch to checks before you type (§4.4), and it uploads its own edits within seconds instead of waiting for iCloud's schedule (§4.3). What it still **cannot promise**: a Mac that hasn't uploaded yet (asleep, offline, or its lid closed during the 2-3 s upload) can't tell anyone anything. Promises 1 and 2 are what make that safe: typing on a stale copy produces a merge, not a loss. Shrinking what's left of the stale window is V2's job (§4.10).
+3. **Honest freshness.** Rune shows how current its copy is, and since macOS 26 it can also ask: it fetches the newest version from iCloud whenever it becomes active, so the Mac you switch to checks before you type (§4.4), and it uploads its own edits within seconds instead of waiting for iCloud's schedule (§4.3). What it still **cannot promise**: a Mac that hasn't uploaded yet (asleep, offline, or its lid closed during the 2-3 s upload) can't tell anyone anything. Promises 1 and 2 are what make that safe: typing on a stale copy produces a merge, not a loss. Shrinking what's left of the stale window is V2's job (§4.10).
 
 ### 4.2 Where the file lives
 
 Two options, settled by the M0 spike (S1):
 
-- **(a) A plain folder in iCloud Drive** (`~/Library/Mobile Documents/com~apple~CloudDocs/nib/scratch.md`), or wherever the user's scratch.md already is. No entitlements; every tool sees it. Nib isn't sandboxed (T6), so it can read and write any path. The first access may bring up a macOS privacy prompt for files managed by iCloud Drive; first run explains it beforehand (AP5).
-- **(b) Nib's own iCloud container** (`iCloud.com.banastas.nib`), which shows up in Finder as an "Nib" folder in iCloud Drive with the app's icon, and lives on disk at `~/Library/Mobile Documents/iCloud~com~banastas~nib/Documents/`. It needs the iCloud Documents entitlement and a Developer ID provisioning profile (new for the family; Blit has no iCloud entitlements). What it buys: `NSMetadataQuery` pushes live upload and download state, including percent uploaded, and there's no privacy prompt.
+- **(a) A plain folder in iCloud Drive** (`~/Library/Mobile Documents/com~apple~CloudDocs/nib/scratch.md`), or wherever the user's scratch.md already is. No entitlements; every tool sees it. Rune isn't sandboxed (T6), so it can read and write any path. The first access may bring up a macOS privacy prompt for files managed by iCloud Drive; first run explains it beforehand (AP5).
+- **(b) Rune's own iCloud container** (`iCloud.com.banastas.nib`), which shows up in Finder as a "Rune" folder in iCloud Drive with the app's icon, and lives on disk at `~/Library/Mobile Documents/iCloud~com~banastas~nib/Documents/`. It needs the iCloud Documents entitlement and a Developer ID provisioning profile (new for the family; Blit has no iCloud entitlements). What it buys: `NSMetadataQuery` pushes live upload and download state, including percent uploaded, and there's no privacy prompt.
 
-**Decided again (2026-09-28): (b), Nib's own folder.** A hidden `.nib` folder at the root of iCloud Drive (what (a) needed for the sync notes) isn't wanted; apps that sync keep a visible folder of their own there (Obsidian, Photomator, Pixelmator Pro), so Nib does too: **`iCloud Drive/Nib/`**, the container `iCloud.com.banastas.nib`, public, named "Nib". The scratch file moves into it when M1 goes live (`iCloud Drive/Nib/scratch.md`, from `_scratch2.md`), and the sync notes live hidden inside it (`nib/.nib/`), as Obsidian keeps `.obsidian` inside a vault. Until then the test files live in `iCloud Drive/Nib/Test/`. It takes the iCloud Documents capability and a provisioning profile (so team signing, not ad-hoc, for every build that uses it; ad-hoc test builds fall back to `nib-spike/`), and it brings `NSMetadataQuery` inside Nib's own folder. What follows was the first decision:
+**Decided again (2026-09-28): (b), Rune's own folder.** A hidden `.nib` folder at the root of iCloud Drive (what (a) needed for the sync notes) isn't wanted; apps that sync keep a visible folder of their own there (Obsidian, Photomator, Pixelmator Pro), so Rune does too: **`iCloud Drive/Rune/`**, the container `iCloud.com.banastas.nib`, public, named "Rune". The scratch file moves into it when M1 goes live (`iCloud Drive/Rune/scratch.md`, from `_scratch2.md`), and the sync notes live hidden inside it (`nib/.nib/`), as Obsidian keeps `.obsidian` inside a vault. Until then the test files live in `iCloud Drive/Rune/Test/`. It takes the iCloud Documents capability and a provisioning profile (so team signing, not ad-hoc, for every build that uses it; ad-hoc test builds fall back to `nib-spike/`), and it brings `NSMetadataQuery` inside Rune's own folder. What follows was the first decision:
 
-**Decided (2026-09-27): (a).** The scratch file is `iCloud Drive/_scratch2.md`, where it already is. M0 showed (b) isn't needed: FileManager's sync controls work on a plain iCloud Drive file with no entitlement (from an app bundle), and `NSFilePresenter` pushes upload and download state, which covers what `NSMetadataQuery` would have given. Without the entitlement `NSMetadataQuery` finds nothing in any scope, so Nib doesn't use it ([M0 results](#m0-results)).
+**Decided (2026-09-27): (a).** The scratch file is `iCloud Drive/_scratch2.md`, where it already is. M0 showed (b) isn't needed: FileManager's sync controls work on a plain iCloud Drive file with no entitlement (from an app bundle), and `NSFilePresenter` pushes upload and download state, which covers what `NSMetadataQuery` would have given. Without the entitlement `NSMetadataQuery` finds nothing in any scope, so Rune doesn't use it ([M0 results](#m0-results)).
 
 ### 4.3 Save pipeline
 
@@ -369,29 +369,29 @@ keystroke ─▶ buffer (main thread)
 journal ─▶ fsync                         (~/Library/Application Support/nib/Journal/)
    │ 1 s after the last keystroke, 5 s at most while typing, or at once on a trigger
    ▼
-coordinated compare-and-swap write, in place ─▶ the file (iCloud sync paused while nib holds it)
+coordinated compare-and-swap write, in place ─▶ the file (iCloud sync paused while Rune holds it)
    │ 3 s after typing pauses, every 20 s while it goes on, and at once on a trigger
    ▼
 upload now, failing on conflict ─▶ ✓ SYNCED (the version iCloud returns)
                                 └▶ server has newer: fetch it, merge, save, upload again
 ```
 
-**Nib holds the file while it's open.** macOS 26 added sync controls to `FileManager`, and M0 confirmed iCloud Drive offers both of them (`pauseSync`, `failUploadOnConflict`) for a plain file like `_scratch2.md`. When Nib opens a file in iCloud Drive, it pauses iCloud's own syncing of that file (`pauseSyncForUbiquitousItem`, retried with a short backoff if iCloud is busy with it) and decides itself when to upload (step 7) and when to fetch (§4.4). iCloud can't swap the file under Nib, and Nib's own edits never become iCloud conflict copies: the server refuses an upload made from an old version, and Nib merges before it retries. On close and on quit, Nib resumes syncing (`resumeSyncForUbiquitousItem`). A pause outlives the app (a crash leaves the file paused), so Nib keeps a list of the files it paused and settles it at every launch (§4.9). A pause belongs to the app's bundle ID (M1: a rebuild of Nib can resume it; another app can't), and pausing a file that's already paused answers "not supported" instead of succeeding, so a file left paused is resumed first and then paused fresh. If a file can't be paused (it isn't in iCloud, the controls aren't offered, or pausing keeps failing), Nib runs the same pipeline without step 7 and lets iCloud upload on its own schedule. **A pause waits until iCloud has finished uploading the file** (checked every quarter second, for up to 15 s): pausing a file mid-upload crashes iCloud's file provider on macOS 27.0.1, which then stops iCloud Drive for every app until it's back (§8, M2). Still uploading when the 15 s are up, it isn't paused: the hold is tried again in the background, as below, the file unheld meanwhile; not uploading but not uploaded either, it's paused then, as before. A new file, one just rewritten, or one just handed back with an upload to make is held about 3 s after it opens. A pause that fails otherwise (iCloud's helper not answering) is tried again in the background, 2, 5, 10, 20 and 40 s later, then every minute while the file is open; once it holds, Nib takes in whatever iCloud put in the file meanwhile, then uploads with fail-on-conflict, as at open. Closing waits for a pause in flight, so a file is never left paused (§8, M2). Only a real conflict takes the server's version when handing a file back; iCloud's other answers can be passing. "Not supported" isn't taken as the controls missing when iCloud offers them: pausing a paused file answers so (then it's Nib's own pause, held as it is), and so can a file handed back a moment before (tried again). A file left paused whose hand-back fails is held as it is and uploaded, fail-on-conflict. At quit and at launch, a passing failure is tried again and otherwise leaves the file paused and listed for the next launch, never handed back taking the server's version.
+**Rune holds the file while it's open.** macOS 26 added sync controls to `FileManager`, and M0 confirmed iCloud Drive offers both of them (`pauseSync`, `failUploadOnConflict`) for a plain file like `_scratch2.md`. When Rune opens a file in iCloud Drive, it pauses iCloud's own syncing of that file (`pauseSyncForUbiquitousItem`, retried with a short backoff if iCloud is busy with it) and decides itself when to upload (step 7) and when to fetch (§4.4). iCloud can't swap the file under Rune, and Rune's own edits never become iCloud conflict copies: the server refuses an upload made from an old version, and Rune merges before it retries. On close and on quit, Rune resumes syncing (`resumeSyncForUbiquitousItem`). A pause outlives the app (a crash leaves the file paused), so Rune keeps a list of the files it paused and settles it at every launch (§4.9). A pause belongs to the app's bundle ID (M1: a rebuild of Rune can resume it; another app can't), and pausing a file that's already paused answers "not supported" instead of succeeding, so a file left paused is resumed first and then paused fresh. If a file can't be paused (it isn't in iCloud, the controls aren't offered, or pausing keeps failing), Rune runs the same pipeline without step 7 and lets iCloud upload on its own schedule. **A pause waits until iCloud has finished uploading the file** (checked every quarter second, for up to 15 s): pausing a file mid-upload crashes iCloud's file provider on macOS 27.0.1, which then stops iCloud Drive for every app until it's back (§8, M2). Still uploading when the 15 s are up, it isn't paused: the hold is tried again in the background, as below, the file unheld meanwhile; not uploading but not uploaded either, it's paused then, as before. A new file, one just rewritten, or one just handed back with an upload to make is held about 3 s after it opens. A pause that fails otherwise (iCloud's helper not answering) is tried again in the background, 2, 5, 10, 20 and 40 s later, then every minute while the file is open; once it holds, Rune takes in whatever iCloud put in the file meanwhile, then uploads with fail-on-conflict, as at open. Closing waits for a pause in flight, so a file is never left paused (§8, M2). Only a real conflict takes the server's version when handing a file back; iCloud's other answers can be passing. "Not supported" isn't taken as the controls missing when iCloud offers them: pausing a paused file answers so (then it's Rune's own pause, held as it is), and so can a file handed back a moment before (tried again). A file left paused whose hand-back fails is held as it is and uploaded, fail-on-conflict. At quit and at launch, a passing failure is tried again and otherwise leaves the file paused and listed for the next launch, never handed back taking the server's version.
 
 1. **Journal (SY1).** Off the main thread. When a buffer's journal starts, a snapshot: the whole buffer, the base version's SHA-256, the file's identity, its encoding and its line endings, written to a temp file in the journal folder, fsynced, then renamed over the previous snapshot. After that, an **edit log** beside it: at each pause, what changed since the last write, a line written into the log and fsynced; a new snapshot once the log holds 1 MB of lines. The journal is local and never synced. *Built 2026-09-30 (§8, The journal's edit log) for texts over a million characters, with a snapshot every minute; whole snapshots were thought cheap below that. They weren't: the 223 KB scratch file's every pause was a 260 KB snapshot, and at 2.4 MB the minute's snapshots were 150 MB an hour of typing. Since 2026-10-02 every text logs its edits, the log keeps room ahead of its lines (a line written into room the file has counts about 2-5 KB of disk writes, appended about 17-20), and there's no minute's snapshot (§8, Disk writes).*
 2. **Debounce (SY2).** The file is written 1 s after typing pauses, and at least every 5 s during continuous typing, so a long burst can't stay unwritten. A save that wrote much holds the next back: it waits at least that save's bytes ÷ 80 KB/s (`SaveSchedule.rate`). Typing at the end of a file, or in a small one, isn't held (a save there writes a kilobyte, step 5); typing near the top of 2.4 MB saves every 30 s, not every 4-5. The triggers in step 3 don't wait, and the journal has every keystroke within 300 ms either way (§8, Disk writes; the user's call, 2026-10-02).
-3. **Triggers that save at once:** the window stops being key; Nib stops being the active app; ⌘S; closing the window or tab; quitting (`applicationShouldTerminate` waits for the write, as Blit's quit waits for its queue); the Mac going to sleep (`NSWorkspace.willSleepNotification`); the screens sleeping; the screen locking; fast user switching (`sessionDidResignActive`); before a merge; before Open With… hands the file to another app. Not during IME composition: a save waits until marked text is committed.
-4. **Compare-and-swap (SY3, L4).** Inside one `NSFileCoordinator` block that coordinates reading and writing the same URL, Nib checks the file's fingerprint on disk (size, modification date, file ID, and SHA-256 when any of those changed) against the **base**: the version the buffer was loaded from or last saved as. If they differ, the write is abandoned and the new version goes through the merge (§4.7) first, then the save retries. This closes the race where a debounce fires before the change notification arrives.
+3. **Triggers that save at once:** the window stops being key; Rune stops being the active app; ⌘S; closing the window or tab; quitting (`applicationShouldTerminate` waits for the write, as Blit's quit waits for its queue); the Mac going to sleep (`NSWorkspace.willSleepNotification`); the screens sleeping; the screen locking; fast user switching (`sessionDidResignActive`); before a merge; before Open With… hands the file to another app. Not during IME composition: a save waits until marked text is committed.
+4. **Compare-and-swap (SY3, L4).** Inside one `NSFileCoordinator` block that coordinates reading and writing the same URL, Rune checks the file's fingerprint on disk (size, modification date, file ID, and SHA-256 when any of those changed) against the **base**: the version the buffer was loaded from or last saved as. If they differ, the write is abandoned and the new version goes through the merge (§4.7) first, then the save retries. This closes the race where a debounce fires before the change notification arrives.
 5. **Write, in place.** Encode with the original encoding, BOM and line endings, then write what differs from the file on disk (from the first byte that differs to the end; at the same length, to the last that differs), cut it to length and fsync the same file. Identical bytes aren't written. (It wrote the whole file until 2026-10-02: 2.4 MB a save, about 1.7 GB an hour of typing at the end of the scratch file; §8, Disk writes.) Not a temp file renamed over it: M0 showed that a rename, or `replaceItemAt`, makes a new file, which drops the pause and reaches file presenters as a deletion. A write torn by a crash or power loss is repaired from the journal at the next launch, which is what the journal is for; the pause keeps a torn file from uploading meanwhile. Permissions and extended attributes stay because the file does. Set the lineage attribute (§4.6). The base becomes the new version.
-6. **Never write a clean buffer (SY4).** If the buffer's SHA-256 equals the base's, nothing is written. A Mac nobody typed on never writes, so background copies of Nib can't create phantom versions or conflicts. No reformatting on load, no trailing-newline fixes unless the user edited the file.
-7. **Upload now.** `uploadLocalVersionOfUbiquitousItem(at:withConflictResolutionPolicy: .failOnConflict)`, with one upload in flight at a time: 3 s after typing pauses, or every 20 s while it goes on, never within 3 s of the last, and at once on every trigger in step 3 (`UploadSchedule`; it was at most every 3 s until 2026-10-06, the user's call, since each upload sets iCloud's daemons writing several MB: §8). M0 measured 2.2-3.0 s per upload for both 200 KB and 2.4 MB, all successful during continuous typing, so the server stays within about 5 s of the keyboard. (Without the pause, iCloud restarted its upload at every save and finished nothing until 6 s after typing stopped.) The version the call returns is what ✓ SYNCED means (§4.5). If the server has a newer version, the call fails with `localVersionConflictingWithServer`: Nib fetches the latest version (§4.4), merges (§4.7), saves and uploads again.
+6. **Never write a clean buffer (SY4).** If the buffer's SHA-256 equals the base's, nothing is written. A Mac nobody typed on never writes, so background copies of Rune can't create phantom versions or conflicts. No reformatting on load, no trailing-newline fixes unless the user edited the file.
+7. **Upload now.** `uploadLocalVersionOfUbiquitousItem(at:withConflictResolutionPolicy: .failOnConflict)`, with one upload in flight at a time: 3 s after typing pauses, or every 20 s while it goes on, never within 3 s of the last, and at once on every trigger in step 3 (`UploadSchedule`; it was at most every 3 s until 2026-10-06, the user's call, since each upload sets iCloud's daemons writing several MB: §8). M0 measured 2.2-3.0 s per upload for both 200 KB and 2.4 MB, all successful during continuous typing, so the server stays within about 5 s of the keyboard. (Without the pause, iCloud restarted its upload at every save and finished nothing until 6 s after typing stopped.) The version the call returns is what ✓ SYNCED means (§4.5). If the server has a newer version, the call fails with `localVersionConflictingWithServer`: Rune fetches the latest version (§4.4), merges (§4.7), saves and uploads again.
 8. **Log it:** a Sync Log line for each save and each upload (time, size, SHA-256, device, and for uploads how long it took).
 
 ### 4.4 Load and reload pipeline
 
 - **Open.** Off the main thread (SY8): read the resource values first. If the file isn't downloaded, start the download (`startDownloadingUbiquitousItem`) and show ◐ NOT ON THIS MAC; the buffer opens when it arrives, or from the local shadow copy if offline (§4.8 F). Then a coordinated read, encoding detection, base = what was read, and the file is registered as an `NSFilePresenter`. An FSEvents stream on the parent folder catches writers that don't coordinate (vim, shell redirection, some sync tools) and new sibling files (duplicates, §4.6).
-- **Signals that trigger a check:** presenter callbacks (`presentedItemDidChange`, `…DidGainVersion`, `…DidMove`, `accommodatePresentedItemDeletion`, and `presentedItemDidChangeUbiquityAttributes` for upload and download state), FSEvents on the folder, Nib becoming active, the Mac waking, and the network coming back. Checks are coalesced for 50 ms. **Every activation re-checks** regardless of notifications, because notifications can arrive late while Nib is in the background or App Napped.
-- **Fetch, because a held file doesn't download by itself.** While Nib holds a file (§4.3), iCloud doesn't bring newer versions down on its own, so Nib asks with `fetchLatestRemoteVersionOfItem`: when Nib becomes active, when a window with the file becomes key, on wake, when the network returns, and every 30 s while Nib is frontmost. M0: 3-11 ms when nothing is newer. A newer version arrives at a side location while the file is paused; Nib reads it there, merges if there are local edits, and applies it with `NSFileVersion.replaceItem(at:)`. Whether the presenter also hears about a newer server version while paused (a push, not a fetch) is S1b's question for two Macs.
+- **Signals that trigger a check:** presenter callbacks (`presentedItemDidChange`, `…DidGainVersion`, `…DidMove`, `accommodatePresentedItemDeletion`, and `presentedItemDidChangeUbiquityAttributes` for upload and download state), FSEvents on the folder, Rune becoming active, the Mac waking, and the network coming back. Checks are coalesced for 50 ms. **Every activation re-checks** regardless of notifications, because notifications can arrive late while Rune is in the background or App Napped.
+- **Fetch, because a held file doesn't download by itself.** While Rune holds a file (§4.3), iCloud doesn't bring newer versions down on its own, so Rune asks with `fetchLatestRemoteVersionOfItem`: when Rune becomes active, when a window with the file becomes key, on wake, when the network returns, and every 30 s while Rune is frontmost. M0: 3-11 ms when nothing is newer. A newer version arrives at a side location while the file is paused; Rune reads it there, merges if there are local edits, and applies it with `NSFileVersion.replaceItem(at:)`. Whether the presenter also hears about a newer server version while paused (a push, not a fetch) is S1b's question for two Macs.
 - **Check.** Coordinated fingerprint read. Same as base: nothing. Different: read the new text, then:
   - **no local edits since base** → replace the buffer (SY5). The caret, selection and scroll are mapped through a line diff so text doesn't jump; the change is one undo step ("Changes from Studio"); the strip shows "▼ UPDATED FROM STUDIO · 10:42:31" for 10 s;
   - **local edits** → merge (§4.7).
@@ -404,11 +404,11 @@ States for a file in iCloud Drive, as the strip shows them (W5, V4):
 
 | State | Strip (glyph · words) | Means | Evidence |
 |---|---|---|---|
-| Editing | `· EDITING` (dim) | Typed in the last second; in the journal, not yet in the file | Nib's own state |
+| Editing | `· EDITING` (dim) | Typed in the last second; in the journal, not yet in the file | Rune's own state |
 | **Saved locally** | `= SAVED LOCALLY · 10:42:05` | In the file on this Mac; iCloud hasn't taken it yet | disk SHA-256 = buffer, and no upload has returned this version yet |
 | **Uploading** | `▲ UPLOADING · 10:42:05` (percent when known) | iCloud is sending this version | an upload call in flight (held file); `ubiquitousItemIsUploading` otherwise |
-| **Synced** | `✓ SYNCED · 10:42:07` | iCloud has this exact version | the upload call returned it (held file); otherwise `ubiquitousItemIsUploaded` and disk SHA-256 = what Nib wrote (L5) |
-| Delivered (P1) | `✓ SYNCED · ON STUDIO 10:42:31` | The other Mac's Nib has loaded this version | a receipt with the same SHA-256 (below) |
+| **Synced** | `✓ SYNCED · 10:42:07` | iCloud has this exact version | the upload call returned it (held file); otherwise `ubiquitousItemIsUploaded` and disk SHA-256 = what Rune wrote (L5) |
+| Delivered (P1) | `✓ SYNCED · ON STUDIO 10:42:31` | The other Mac's Rune has loaded this version | a receipt with the same SHA-256 (below) |
 | Newer elsewhere (P1) | `▼ NEWER ON AIR (10:42) · NOT HERE YET` | Another Mac saved a version this Mac hasn't received | a receipt with a SHA-256 this Mac hasn't seen |
 | Downloading | `▼ NEWER VERSION ARRIVING` | iCloud is fetching a newer version | `ubiquitousItemIsDownloading`, or status not current |
 | Not on this Mac | `◐ NOT ON THIS MAC · DOWNLOADING` | Evicted (dataless) | `ubiquitousItemDownloadingStatus` = not downloaded |
@@ -422,26 +422,26 @@ Rules:
 
 - **Say what it's waiting for (W4).** If a file sits in Saved locally for more than 60 s with a network available: `= SAVED LOCALLY · ICLOUD HASN'T STARTED UPLOADING (2 MIN)`. Waiting is dim, never red (L6).
 - **Pushed, not polled (A11).** State comes from two places, neither of them a timer: the result of each upload call (step 7 of §4.3), and the presenter's `presentedItemDidChangeUbiquityAttributes`, which M0 showed fires as uploading and uploaded change. While a file is paused, its `ubiquitousItemIsUploaded` flag stays false even after a successful upload, so for a held file only the upload's returned version counts.
-- **iCloud's error fields are noisy; Nib doesn't repeat them.** In M0, every ordinary upload briefly reported `NSCocoaErrorDomain 4355` ("the iCloud servers might be unreachable") while succeeding, and a paused file always reports "Sync is paused, open the file to resume." Neither is shown. A problem is a failed upload call, or, for a file Nib doesn't hold, an upload error that lasts more than 30 s without progress (L6).
+- **iCloud's error fields are noisy; Rune doesn't repeat them.** In M0, every ordinary upload briefly reported `NSCocoaErrorDomain 4355` ("the iCloud servers might be unreachable") while succeeding, and a paused file always reports "Sync is paused, open the file to resume." Neither is shown. A problem is a failed upload call, or, for a file Rune doesn't hold, an upload error that lasts more than 30 s without progress (L6).
 - **Tooltips carry the precise meaning.** For Synced: "iCloud reports this version (SHA-256 9f3a1c…) is uploaded, 10:42:07. Other Macs get it when iCloud delivers it."
-- **Delivery receipts (SY14).** Each Mac's Nib publishes a small record: device name, and for each synced file (keyed by its path inside iCloud Drive), the SHA-256 and time of the version it has loaded. It's published only when that changes, at most every 5 s. It travels by iCloud key-value storage if the entitlement works for a Developer ID build (S1), otherwise as `.nib/devices/<device>.json` in the same folder. Receipts travel through iCloud too, so they're as late as iCloud is, and this is stated in the tooltip. They're still useful: before closing the laptop, "ON STUDIO" says the desk Mac already has the text.
+- **Delivery receipts (SY14).** Each Mac's Rune publishes a small record: device name, and for each synced file (keyed by its path inside iCloud Drive), the SHA-256 and time of the version it has loaded. It's published only when that changes, at most every 5 s. It travels by iCloud key-value storage if the entitlement works for a Developer ID build (S1), otherwise as `.nib/devices/<device>.json` in the same folder. Receipts travel through iCloud too, so they're as late as iCloud is, and this is stated in the tooltip. They're still useful: before closing the laptop, "ON STUDIO" says the desk Mac already has the text.
 - **Device names** come from the Mac's computer name ("Studio", "Air") and can be changed in Settings. Clocks can disagree between Macs, so versions are never ordered by modification date alone (§4.7); displayed times are each device's own.
 
 ### 4.6 Conflict detection
 
-A conflict is any version this Mac didn't write and hasn't merged. Nib looks in seven places:
+A conflict is any version this Mac didn't write and hasn't merged. Rune looks in seven places:
 
-0. **At upload (the main one):** the server refuses the upload because it has a newer version (`localVersionConflictingWithServer`, §4.3 step 7). For files Nib holds, this is where almost every conflict is found, before iCloud has made a conflict copy of anything.
+0. **At upload (the main one):** the server refuses the upload because it has a newer version (`localVersionConflictingWithServer`, §4.3 step 7). For files Rune holds, this is where almost every conflict is found, before iCloud has made a conflict copy of anything.
 1. **At save:** compare-and-swap finds the disk ahead of the base (§4.3, step 4).
 2. **At reload:** a new version arrives while there are local edits (§4.4).
-3. **iCloud conflict versions** (from edits made while Nib wasn't holding the file): `ubiquitousItemHasUnresolvedConflicts`, then `NSFileVersion.unresolvedConflictVersionsOfItem(at:)`, each with `localizedNameOfSavingComputer` and a date.
+3. **iCloud conflict versions** (from edits made while Rune wasn't holding the file): `ubiquitousItemHasUnresolvedConflicts`, then `NSFileVersion.unresolvedConflictVersionsOfItem(at:)`, each with `localizedNameOfSavingComputer` and a date.
 4. **Duplicate files:** a new sibling named `<name> <n>.<ext>` (n ≥ 2, e.g. `scratch 2.md`) that appears after the original, as iCloud Drive creates in some races, such as two Macs creating the same file on first run. Also, defensively, old-style `.scratch.md.icloud` placeholders (pre-File-Provider iCloud Drive; not expected on macOS 27).
 5. **Crash recovery:** at launch, a journal snapshot newer than the file's last save.
 6. **Receipts:** another Mac reports a SHA-256 for this file that this Mac has never seen (informational until the version itself arrives).
 
 **Finding the common ancestor ("base") for a three-way merge,** best first:
 
-1. A **lineage extended attribute** Nib writes on every save (`com.banastas.nib.lineage#S`: this version's SHA-256, its parent's, device, time). The `#S` suffix marks an attribute as syncable; whether iCloud Drive carries it with each version is a spike question (S1). If it does, the base is exact.
+1. A **lineage extended attribute** Rune writes on every save (`com.banastas.nib.lineage#S`: this version's SHA-256, its parent's, device, time). The `#S` suffix marks an attribute as syncable; whether iCloud Drive carries it with each version is a spike question (S1). If it does, the base is exact.
 2. The **base this Mac kept**: the last version it loaded from disk or saved before the local edits began. This is right in the common case, where both Macs started from the same synced version.
 3. **History:** if the incoming version's SHA-256 matches a saved version in local History, that version's parent.
 4. **No base:** a two-way comparison, where every difference is a conflict. This happens mainly with duplicates of unrelated origin.
@@ -453,9 +453,9 @@ A conflict is any version this Mac didn't write and hasn't merged. Nib looks in 
 - **Deterministic output (SY10).** The same inputs produce the same bytes on either Mac: sides are ordered by device name, then by version date, never "mine first". Two Macs resolving the same conflict at the same moment then write identical text, and identical conflict versions resolve silently. The loop can't continue.
 - **Who writes a merge.** A Mac writes only to publish its own user's edits, including merging them onto a newer version. A Mac with no local edits never writes a merge; it shows the conflict and waits. This follows from §4.3 rule 6.
 - **Applying a clean merge:** one undo step ("Merge from Studio"), caret mapped through the diff, the strip's Merged state for 10 s, the changed ranges marked once with a stepped pixel underline (V6, V7), then a normal compare-and-swap save.
-- **Afterwards:** iCloud conflict versions are marked resolved (`isResolved = true`) only after the merged text is written. Nib doesn't delete other versions; its own History holds every input. A `scratch 2.md` duplicate is moved to the Trash (never deleted outright) once its text is in the merged file.
+- **Afterwards:** iCloud conflict versions are marked resolved (`isResolved = true`) only after the merged text is written. Rune doesn't delete other versions; its own History holds every input. A `scratch 2.md` duplicate is moved to the Trash (never deleted outright) once its text is in the merged file.
 
-**Overlapping edits** are written into the file as standard conflict markers, so the conflict itself is durable, syncs to every Mac, and loses nothing even if Nib is closed:
+**Overlapping edits** are written into the file as standard conflict markers, so the conflict itself is durable, syncs to every Mac, and loses nothing even if Rune is closed:
 
 ```
 <<<<<<< Air · 10:42
@@ -465,7 +465,7 @@ We can ship Thursday.
 >>>>>>> Studio · 10:41
 ```
 
-Seven-character markers are what git and most tools recognize. Nib renders them as conflict blocks (§5.4); other editors show them as text. Whether markers belong in the file, or conflicts should stay inside Nib until resolved, is open question 5.
+Seven-character markers are what git and most tools recognize. Rune renders them as conflict blocks (§5.4); other editors show them as text. Whether markers belong in the file, or conflicts should stay inside Rune until resolved, is open question 5.
 
 ### 4.8 Conflict flows
 
@@ -473,14 +473,14 @@ Seven-character markers are what git and most tools recognize. Nib renders them 
 - **B · Overlapping edits.** A banner at the top of the editor, not a dialog (V8, V9): red `✕ CONFLICT` tag, "Studio and this Mac both changed 1 paragraph. Everything else merged." with a button named for what it does: **Next Conflict** with three blocks or fewer, **Merge View…** with more (it was "Resolve…" for both: the QA review's F52, 2026-10-07). Typing continues. Each conflict appears as a block in the text with a ✕ in the gutter. With the caret in a block, ⌘1 uses the first side, ⌘2 the second, ⌘3 both (first side first); ⌥⌘↓ and ⌥⌘↑ go to the next and previous block (⌃⌘↓/↑ stay Sublime's move line). ⌥⌘R, Conflicts › Merge View…, opens the merge view (§5.5) whatever the count.
 - **C · A `scratch 2.md` appears.** Identical to the original → moved to the Trash, noted once: `REMOVED DUPLICATE “SCRATCH 2.MD” (IDENTICAL) · IN THE TRASH`. Derived from a version in History → merged as in A or B. Unrelated (no common history, e.g. both Macs created scratch.md on first run) → the merge view opens in two-way mode, with Keep Both (the other file's text appended under a heading) as the default.
 - **D · iCloud conflict versions.** Same as B or C, with the saving computer's name on each side.
-- **E · Deleted on another Mac.** Banner: `SCRATCH.MD WAS MOVED TO THE TRASH ON STUDIO` with **Restore** and **Close**. Nib doesn't recreate the file by itself (the delete may have been deliberate). Edits made meanwhile are journaled; Restore writes the current buffer back to the same path. For scratch.md, the menu bar item also shows the red ✕ mark until one or the other is chosen. (As built: the banner says "deleted, by another app or on another Mac", naming no Mac: nothing says which Mac deleted it, and a move to the Trash on another Mac arrives here as a deletion; the two-Mac probe, §8 M2.)
-- **F · Not on this Mac and offline.** `◐ OFFLINE · SHOWING THE COPY FROM 10:42 · EDITS MERGE WHEN ICLOUD RETURNS`, the text slightly dimmed; online, with iCloud slow to bring it, `◐ NOT HERE YET · ICLOUD IS SLOW TO BRING IT · SHOWING THE COPY FROM 10:42 · EDITS MERGE WHEN IT COMES` (2026-10-07, the QA review's F15). The copy is Nib's local shadow (the last version it saw, kept in Application Support). Typing is allowed; the edits sit on top of the shadow as the base, and merge when the real file downloads.
-- **G · Recovery after a crash.** At launch, if the journal is newer than the file: file unchanged since the journal's base → the journal is saved; file changed → merged as A or B. The strip says `RECOVERED 12 WORDS TYPED BEFORE NIB QUIT UNEXPECTEDLY`.
-- **H · Conflict while Nib is in the background.** A notification with the default sound (A8, V13): title "Scratch changed on two Macs", subtitle "scratch.md", body "Studio and Air both edited the same paragraph. Nothing is lost; open Nib to choose." It offers **Resolve** and groups in one stack, like Blit's.
+- **E · Deleted on another Mac.** Banner: `SCRATCH.MD WAS MOVED TO THE TRASH ON STUDIO` with **Restore** and **Close**. Rune doesn't recreate the file by itself (the delete may have been deliberate). Edits made meanwhile are journaled; Restore writes the current buffer back to the same path. For scratch.md, the menu bar item also shows the red ✕ mark until one or the other is chosen. (As built: the banner says "deleted, by another app or on another Mac", naming no Mac: nothing says which Mac deleted it, and a move to the Trash on another Mac arrives here as a deletion; the two-Mac probe, §8 M2.)
+- **F · Not on this Mac and offline.** `◐ OFFLINE · SHOWING THE COPY FROM 10:42 · EDITS MERGE WHEN ICLOUD RETURNS`, the text slightly dimmed; online, with iCloud slow to bring it, `◐ NOT HERE YET · ICLOUD IS SLOW TO BRING IT · SHOWING THE COPY FROM 10:42 · EDITS MERGE WHEN IT COMES` (2026-10-07, the QA review's F15). The copy is Rune's local shadow (the last version it saw, kept in Application Support). Typing is allowed; the edits sit on top of the shadow as the base, and merge when the real file downloads.
+- **G · Recovery after a crash.** At launch, if the journal is newer than the file: file unchanged since the journal's base → the journal is saved; file changed → merged as A or B. The strip says `RECOVERED 12 WORDS TYPED BEFORE RUNE QUIT UNEXPECTEDLY`.
+- **H · Conflict while Rune is in the background.** A notification with the default sound (A8, V13): title "Scratch changed on two Macs", subtitle "scratch.md", body "Studio and Air both edited the same paragraph. Nothing is lost; open Rune to choose." It offers **Resolve** and groups in one stack, like Blit's.
 
 ### 4.9 Edge cases and failure modes
 
-| # | Case | What Nib does | Guarantee kept |
+| # | Case | What Rune does | Guarantee kept |
 |---|---|---|---|
 | 1 | Switch Macs faster than iCloud delivers, and type on the stale copy | Reload finds local edits → merge (A or B) | 2 (no loss); 3 said honestly in the strip |
 | 2 | The laptop lid closes before iCloud uploads | Saved on the way to sleep (§4.3). The desktop can't know yet; when the laptop wakes and uploads, the desktop merges. The laptop's menu bar item showed ▲ before it closed | 1, 2 |
@@ -491,22 +491,22 @@ Seven-character markers are what git and most tools recognize. Nib renders them 
 | 7 | Evicted by Optimize Mac Storage | Never read on the main thread: in M0 a coordinated read of an evicted 200 KB file blocked 1.1 s while it downloaded (an explicit download took 0.45 s). Download started; ◐ shown; F if offline. First run suggests Finder's "Keep Downloaded" for the folder; the SDK has no API to keep one file downloaded (M0 checked) | 1, 3 |
 | 8 | Deleted or moved to the Trash elsewhere | E (*built 2026-09-30, by another app on this Mac; §8, Failure modes*) | 2 |
 | 9 | Renamed or moved elsewhere | The presenter follows the move; the title updates; the scratch binding follows too (*built 2026-09-30 for files other than the scratch file, which only says where it went; §8, Failure modes*) | 2 |
-| 10 | The Nib folder is deleted or renamed | As 8 or 9, for the folder | 2 |
-| 11 | iCloud Drive turned off, or signed out, on this Mac (the folder may disappear) | The buffer stays; saves go to `Application Support/nib/Recovery/`; the strip reads `✕ ICLOUD DRIVE IS OFF ON THIS MAC · SAVING TO NIB'S RECOVERY FOLDER`; merged back when the file returns | 1, 2 |
+| 10 | The Rune folder is deleted or renamed | As 8 or 9, for the folder | 2 |
+| 11 | iCloud Drive turned off, or signed out, on this Mac (the folder may disappear) | The buffer stays; saves go to `Application Support/nib/Recovery/`; the strip reads `✕ ICLOUD DRIVE IS OFF ON THIS MAC · SAVING TO RUNE'S RECOVERY FOLDER`; merged back when the file returns | 1, 2 |
 | 12 | iCloud storage full, or another upload error | Red `✕ ICLOUD STORAGE IS FULL · SAVED LOCALLY ONLY`; keeps saving locally; retries when the error clears | 1 |
 | 13 | This Mac's disk is full | The journal and the save both fail. The one case where text lives only in memory: red strip `✕ DISK FULL · YOUR LATEST CHANGES ARE ONLY IN MEMORY · FREE SPACE OR COPY THEM`, a notification, a retry every 15 s, and **Empty Trash** offered when the Trash holds enough to help (borrowed from Blit's WAITING FOR SPACE, R5.8 and R5.9) | 1 degrades, loudly |
-| 14 | Nib crashes, is force-quit, or the Mac panics | G at next launch; at most 300 ms lost | 1 |
-| 14a | …and leaves a file paused | At launch, Nib resumes every file on its paused list that it won't open (`preserveLocalChanges` in M1; `afterUploadWithFailOnConflict` with the merge flow in M2). The file it will open is resumed (fail-on-conflict first), uploaded if iCloud may lack its last save, and paused fresh. A pause never outlives Nib's next launch (M1: tested with `kill -9`) | 2 |
-| 14b | Nib isn't running on a Mac where a file is still paused (quit during a crash loop, or removed) | That Mac neither uploads nor downloads the file until it's resumed. `nib --resume-sync` resumes everything Nib paused; removing Nib means quitting it first, which resumes. Stated in the README | 2 |
+| 14 | Rune crashes, is force-quit, or the Mac panics | G at next launch; at most 300 ms lost | 1 |
+| 14a | …and leaves a file paused | At launch, Rune resumes every file on its paused list that it won't open (`preserveLocalChanges` in M1; `afterUploadWithFailOnConflict` with the merge flow in M2). The file it will open is resumed (fail-on-conflict first), uploaded if iCloud may lack its last save, and paused fresh. A pause never outlives Rune's next launch (M1: tested with `kill -9`) | 2 |
+| 14b | Rune isn't running on a Mac where a file is still paused (quit during a crash loop, or removed) | That Mac neither uploads nor downloads the file until it's resumed. `rune --resume-sync` resumes everything Rune paused; removing Rune means quitting it first, which resumes. Stated in the README | 2 |
 | 14c | `pauseSync` answers "resource busy" (iCloud is still applying a change) | Retry after 0.5, 1, 2… s (M0 hit it right after an upload); meanwhile the file runs unheld | n/a |
-| 14d | Another app on the same Mac reads the file while Nib holds it | It sees what Nib last saved; newer versions from other Macs arrive only when Nib fetches (§4.4) | 3 |
-| 15 | Two Nib windows on the same file | One buffer per file (ED2) | n/a |
+| 14d | Another app on the same Mac reads the file while Rune holds it | It sees what Rune last saved; newer versions from other Macs arrive only when Rune fetches (§4.4) | 3 |
+| 15 | Two Rune windows on the same file | One buffer per file (ED2) | n/a |
 | 16 | Clocks differ between Macs | Order by lineage and hashes, never by modification date alone; each side labeled with its own device's time | 2 |
 | 17 | Line endings or encoding differ between versions | Compared after normalizing; written back in the file's original form | 1 |
 | 18 | IME composition open when a change arrives | Applied after the text is committed (§4.4) | n/a |
 | 19 | A remote change lands while typing | Held until 300 ms after the last keystroke (2 s at most), then merged; a change touching the caret's own lines becomes a conflict block instead of moving text under the cursor | 2 |
 | 20 | Both Macs create scratch.md on first run | A duplicate appears → C, unrelated → two-way merge view | 2 |
-| 21 | Older Nib on the other Mac | Receipts and lineage carry a format version; unknown versions are ignored, not misread | 2 |
+| 21 | Older Rune on the other Mac | Receipts and lineage carry a format version; unknown versions are ignored, not misread | 2 |
 | 22 | Low Power Mode or a constrained network slows iCloud | Waiting states say why (W4) | 3 |
 | 23 | Secrets in scratch.md (API tokens in terminal commands) | History and the journal are local only, never synced. The file itself is in iCloud Drive, which is end-to-end encrypted only with Advanced Data Protection; Settings says so in one sentence | privacy |
 | 24 | A scratch file past 1 MB, or a huge paste | Edit-log journal above 1 MB (§4.3), so typing writes bytes, not megabytes | 1 |
@@ -515,7 +515,7 @@ Seven-character markers are what git and most tools recognize. Nib renders them 
 
 **What iCloud Drive gives:** durable storage with no account, server or cost beyond the user's plan; a real file that Finder, Terminal, other editors and the iPhone's Files app all see; optional end-to-end encryption.
 
-**What it can't give:** a bound on delivery time. Apple publishes no latency figure, and a Mac that sleeps before its upload finishes holds its changes until it wakes. On its own schedule iCloud is slow for this job (M0: saves every second were never uploaded until typing stopped). macOS 26's sync controls fix most of that: Nib uploads within about 5 s of typing and fetches the latest version when you switch to a Mac (§4.3, §4.4). What remains is the gap between the last keystroke and the end of its upload (about 2.5 s), plus whatever S1b measures on the receiving side. V1's merge engine makes all of it safe (guarantee 2). V2 can only make it faster (guarantee 3).
+**What it can't give:** a bound on delivery time. Apple publishes no latency figure, and a Mac that sleeps before its upload finishes holds its changes until it wakes. On its own schedule iCloud is slow for this job (M0: saves every second were never uploaded until typing stopped). macOS 26's sync controls fix most of that: Rune uploads within about 5 s of typing and fetches the latest version when you switch to a Mac (§4.3, §4.4). What remains is the gap between the last keystroke and the end of its upload (about 2.5 s), plus whatever S1b measures on the receiving side. V1's merge engine makes all of it safe (guarantee 2). V2 can only make it faster (guarantee 3).
 
 | Option | Latency | Covers "switched Macs within seconds"? | Covers "lid closed before upload"? | Cost and fit |
 |---|---|---|---|---|
@@ -524,7 +524,7 @@ Seven-character markers are what git and most tools recognize. Nib renders them 
 | **3. CloudKit express lane** (each save as a record in the private database, pushed to the other Mac) | Usually seconds; pushes can be coalesced or throttled | Mostly | Partly: it still has to leave before sleep | Moderate. Adds a CloudKit container and schema; still Apple's infrastructure, with no guarantee |
 | **4. Handoff** (`NSUserActivity` with continuation streams: the other Mac pulls the text directly) | About a second, on demand | Yes, if the user clicks the Handoff icon | Only if the first Mac is awake | Small. Explicit UX; historically unreliable. Good as a P2 extra, not as the mechanism |
 | **5. CRDT document model** (Automerge, Yjs, Loro) | Doesn't change latency | No | No | High. Fixes merge semantics, which V1's diff3 already handles for one person; state would live outside the plain file |
-| **6. Third-party sync** (Dropbox, Syncthing, a Nib server) | Varies | Varies | No | Accounts, money or servers. Against the family's no-server stance (Blit licenses with "no Blit server") |
+| **6. Third-party sync** (Dropbox, Syncthing, a Rune server) | Varies | Varies | No | Accounts, money or servers. Against the family's no-server stance (Blit licenses with "no Blit server") |
 
 **Recommendation:**
 
@@ -543,7 +543,7 @@ Seven-character markers are what git and most tools recognize. Nib renders them 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │ ● ● ●   scratch.md                                                   │
-│         iCloud Drive › Nib                                           │
+│         iCloud Drive › Rune                                           │
 ├──────────────────────────────────────────────────────────────────────┤
 │   ## Deploy                                                          │
 │   ```bash                                                            │
@@ -579,10 +579,10 @@ A 24 pt, always-dark bar at the bottom of every editor window (A2, A3). Blit's s
 Clicking the sync state opens the strip upward into a HUD with Blit's CRT switch-on (V7). Escape or a second click collapses it. It never opens by itself (A2).
 
 ```
-┌ ▼ SYNC · SCRATCH.MD ──────────────────────────────────────── NIB://SYNC ┐
+┌ ▼ SYNC · SCRATCH.MD ──────────────────────────────────────── RUNE://SYNC ┐
 │ ┌ FILE ────────────────────┐ ┌ ICLOUD ───────────────┐ ┌ MACS ───────────────┐ │
 │ │ SCRATCH.MD               │ │ STATE      ✓ SYNCED   │ │ AIR     THIS MAC    │ │
-│ │ ICLOUD DRIVE › NIB       │ │ SAVED      10:42:05   │ │ STUDIO  ✓ 10:42:31  │ │
+│ │ ICLOUD DRIVE › RUNE       │ │ SAVED      10:42:05   │ │ STUDIO  ✓ 10:42:31  │ │
 │ │ 4.1 KB · 212 LINES       │ │ UPLOADED   10:42:07   │ │ —                   │ │
 │ │ SHA256 9F3A1C…           │ │ ON DISK    CURRENT    │ │ —                   │ │
 │ └──────────────────────────┘ └───────────────────────┘ └─────────────────────┘ │
@@ -597,7 +597,7 @@ Clicking the sync state opens the strip upward into a HUD with Blit's CRT switch
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Blit's HUD rules, unchanged (V10, V12): boxed panels with 1 pt borders and Silkscreen titles, the same rows every time with "—" where one doesn't apply, a six-line log at 18 pt per line, a fixed height, and `NIB://SYNC` echoing `BLIT://HUD` (W8). *Built 2026-10-06 (§8, "The sync HUD"); View › Show Sync Details (⇧⌘Y, §5.12) opens it too.* An unresolved conflict adds Blit's WARNING panel in #B35C5C with black text, at exactly the log's height: `WARNING · 1 CONFLICT · LINES 14-16 · BOTH SIDES KEPT IN THE FILE · MERGE VIEW ⌥⌘R` (W1; RESOLVE until 2026-10-07, F52).
+Blit's HUD rules, unchanged (V10, V12): boxed panels with 1 pt borders and Silkscreen titles, the same rows every time with "—" where one doesn't apply, a six-line log at 18 pt per line, a fixed height, and `RUNE://SYNC` echoing `BLIT://HUD` (W8). *Built 2026-10-06 (§8, "The sync HUD"); View › Show Sync Details (⇧⌘Y, §5.12) opens it too.* An unresolved conflict adds Blit's WARNING panel in #B35C5C with black text, at exactly the log's height: `WARNING · 1 CONFLICT · LINES 14-16 · BOTH SIDES KEPT IN THE FILE · MERGE VIEW ⌥⌘R` (W1; RESOLVE until 2026-10-07, F52).
 
 ### 5.4 Conflict banner and conflict blocks (P1)
 
@@ -623,7 +623,7 @@ Blit's HUD rules, unchanged (V10, V12): boxed panels with 1 pt borders and Silks
 A sheet on the editor window for more than three conflicts, a duplicate file, or a two-way comparison.
 
 ```
-┌ NIB://MERGE · SCRATCH.MD · 2 CONFLICTS · 5 MERGED ─────────────────────┐
+┌ RUNE://MERGE · SCRATCH.MD · 2 CONFLICTS · 5 MERGED ─────────────────────┐
 │ ┌ AIR · THIS MAC · 10:42 ─────────┐ ┌ STUDIO · 10:41 ─────────────────┐ │
 │ │   Hi Sam, thanks for…           │ │   Hi Sam, thanks for…           │ │
 │ │ ~ We can ship on Friday if QA…  │ │ ~ We can ship Thursday.         │ │
@@ -646,36 +646,36 @@ A sheet on the editor window for more than three conflicts, a duplicate file, or
 
 Blit's `CommandPalette`, copied and generalized (`nib/Vendor/FromBlit/CommandPalette.swift`): native SwiftUI, 520 pt wide, SF Symbols, a group label on the right of each row (V1, V12, A6).
 
-- **Go to File (⌘P, ⌘K):** prompt "Go to a file, a recent file or the scratch". Groups: Scratch, Open, Recent (newest first, Blit's R2.4 default), Nib folder. Empty result: "No matches" (W6).
+- **Go to File (⌘P, ⌘K):** prompt "Go to a file, a recent file or the scratch". Groups: Scratch, Open, Recent (newest first, Blit's R2.4 default), Rune folder. Empty result: "No matches" (W6).
 - **Commands (⇧⌘P):** every menu item, named as in the menu (W3), with its shortcut on the right.
 
 ### 5.7 Menu bar item and panel (P1)
 
-- **Item (V11, A10):** a 9-pixel-wide pixel Nib over an underline, a template image of fixed width. Still when idle. When an upload has been pending for more than 3 s, the underline's dashes march left to right. The muted-red ✕ mark sits beside it while a conflict or save problem is unresolved.
+- **Item (V11, A10):** a 9-pixel-wide pixel ᚱ (the rune raidō, R for Rune; a pen nib until 2026-10-07) over an underline, a template image of fixed width. Still when idle. When an upload has been pending for more than 3 s, the underline's dashes march left to right. The muted-red ✕ mark sits beside it while a conflict or save problem is unresolved.
   ```
-  #########
-  #########
-  ###...###
-  ###...###
-  .###.###.
-  ..##.##..
-  ...#.#...
-  ....#....
+  .##......
+  .####....
+  .##.##...
+  .####....
+  .##.##...
+  .##..##..
+  .##...##.
+  .##....##
   .........
   #########    ← the line: marches while uploading
   ```
-  (A first draft on Blit's grid; to refine with `make-icon.swift`'s renderer.)
-- **Panel:** Blit's 320 pt column of HUD cards (V12). One card for scratch.md: state, saved and uploaded times, other Macs and their receipts. Then actions in native rows: Show Scratch ⌥Space, Clean Clipboard ⌃⌥⌘V, Append Clipboard to Scratch, recent files, Settings…, Quit Nib.
+  (Drawn 2026-10-07, the user's pick: `NibMark.rune` in `nib/Views/MenuBar.swift`, eight rows over a blank one, as the nib's were.)
+- **Panel:** Blit's 320 pt column of HUD cards (V12). One card for scratch.md: state, saved and uploaded times, other Macs and their receipts. Then actions in native rows: Show Scratch ⌥Space, Clean Clipboard ⌃⌥⌘V, Append Clipboard to Scratch, recent files, Settings…, Quit Rune.
 
 ### 5.8 Settings
 
 Blit's format (V12, W7): tabs, grouped forms that size to fit, 480 pt wide, a caption note under each control.
 
-- **General:** launch at login; show Nib in the menu bar; Show Scratch shortcut; Clean Clipboard shortcut; Paste Clean options (smart quotes, dashes; moved from Editor on 2026-10-07, which they made too tall for the Air's screen, the QA review's F22); notifications (conflicts and problems only; the note says saves never notify; in Scratch & Sync since 2026-10-07).
-- **Editor:** font and size; line numbers (scratch, code files); soft wrap; tab width, spaces or tabs; show invisibles; trim trailing whitespace; ensure final newline. Note under trimming: "Only in files you edit in Nib. Files you just open are never rewritten."
-- **Themes:** the scheme in use (An Old Hope · Nib by default); other imported schemes; Import from Sublime Text…; Import File…; the last import report (HL4). Note: "Nib is always dark."
+- **General:** launch at login; show Rune in the menu bar; Show Scratch shortcut; Clean Clipboard shortcut; Paste Clean options (smart quotes, dashes; moved from Editor on 2026-10-07, which they made too tall for the Air's screen, the QA review's F22); notifications (conflicts and problems only; the note says saves never notify; in Scratch & Sync since 2026-10-07).
+- **Editor:** font and size; line numbers (scratch, code files); soft wrap; tab width, spaces or tabs; show invisibles; trim trailing whitespace; ensure final newline. Note under trimming: "Only in files you edit in Rune. Files you just open are never rewritten."
+- **Themes:** the scheme in use (An Old Hope · Rune by default); other imported schemes; Import from Sublime Text…; Import File…; the last import report (HL4). Note: "Rune is always dark."
 - **Scratch & Sync:** scratch file location (Reveal, Change…); this Mac's name; History retention (default 30 days); Clear History…. Note: "History and the recovery journal stay on this Mac. scratch.md itself is in iCloud Drive, which is end-to-end encrypted only with Advanced Data Protection."
-- **Files** (added 2026-10-06, open question 15): "Reopen the files that were open when Nib quit" (2026-10-07, on by default); "Open with Nib", a switch for each kind of file a double-click in Finder opens: Markdown, plain text, JSON, CSS, JavaScript, shell scripts (HTML too until 2026-10-07: see §8, "HTML out of Settings › Files"). Each says its extensions and, while off, the app that has it now (".md · now Xcode"). Note: "A double-click in Finder opens these files in Nib, and so does the open command in Terminal. Turning one off gives its files back to the app they opened in before. Shell scripts are files macOS can run, so it asks you to confirm each of .sh, .zsh and .bash: three times. For one file alone, use Finder's Get Info › Open With."
+- **Files** (added 2026-10-06, open question 15): "Reopen the files that were open when Rune quit" (2026-10-07, on by default); "Open with Rune", a switch for each kind of file a double-click in Finder opens: Markdown, plain text, JSON, CSS, JavaScript, shell scripts (HTML too until 2026-10-07: see §8, "HTML out of Settings › Files"). Each says its extensions and, while off, the app that has it now (".md · now Xcode"). Note: "A double-click in Finder opens these files in Rune, and so does the open command in Terminal. Turning one off gives its files back to the app they opened in before. Shell scripts are files macOS can run, so it asks you to confirm each of .sh, .zsh and .bash: three times. For one file alone, use Finder's Get Info › Open With."
 - **Updates** and **License** (DS2).
 
 ### 5.9 First run (P1)
@@ -683,18 +683,35 @@ Blit's format (V12, W7): tabs, grouped forms that size to fit, 480 pt wide, a ca
 One window, three steps, native controls (V1):
 
 1. **Scratch file.** "Where's your scratch.md?" Buttons: Choose… · Create “nib/scratch.md” in iCloud Drive. The note explains that macOS may ask for access to iCloud Drive and why.
-2. **Look.** Nib already uses An Old Hope · Nib. "Use your Sublime Text font and tab settings?" Import from Sublime (showing what it found, e.g. "Menlo 13 · 2 spaces") · Skip.
-3. **Keys.** The two global shortcuts, and "Open Nib when you log in".
+2. **Look.** Rune already uses An Old Hope · Rune. "Use your Sublime Text font and tab settings?" Import from Sublime (showing what it found, e.g. "Menlo 13 · 2 spaces") · Skip.
+3. **Keys.** The two global shortcuts, and "Open Rune when you log in".
 
 ### 5.10 About (P2)
 
-Blit's About, in Nib's words (V5, V7): the pixel icon at 96 pt; `NIB` in Silkscreen 34; the tagline in VT323 with the blinking `_`; a dashed divider; `V0.1 · BUILD 1`; `SILKSCREEN · VT323 · SIL OPEN FONT LICENSE 1.1`. *Built 2026-10-06 (§8): as Blit's About is now, the fonts' line gave way to ACKNOWLEDGEMENTS ›, where the fonts' licenses are with the rest (DS3); under Reduce Motion the `_` stays lit (A16).*
+Blit's About, in Rune's words (V5, V7): the pixel icon at 96 pt; `RUNE` in Silkscreen 34; the tagline in VT323 with the blinking `_`; a dashed divider; `V0.1 · BUILD 1`; `SILKSCREEN · VT323 · SIL OPEN FONT LICENSE 1.1`. *Built 2026-10-06 (§8): as Blit's About is now, the fonts' line gave way to ACKNOWLEDGEMENTS ›, where the fonts' licenses are with the rest (DS3); under Reduce Motion the `_` stays lit (A16).*
 
 Tagline proposal, in the pattern of Blit's "MOVE BIG FILES FAST. VERIFY EVERY BYTE" (two short imperatives): **"WRITE IT DOWN. LOSE NOTHING_"**
 
 ### 5.11 App icon (P2)
 
-Blit's recipe (V11): an Icon Composer `.icon` (`nib/AppIcon.icon`) with a solid near-black fill (0.045) and one pixel layer, glass off, rendered by `scripts/make-icon.swift` (Blit's script with Nib's art and name). **Built 2026-09-28:** on Blit's 14×12 grid, a fountain-pen nib, diagonal, with its breather hole and a one-cell slit down to the tip, writing on the family mark:
+Blit's recipe (V11): an Icon Composer `.icon` (`nib/AppIcon.icon`) with a solid near-black fill (0.045) and one pixel layer, glass off, rendered by `scripts/make-icon.swift` (Blit's script with Rune's art and name). **Since 2026-10-07 (the rename, the user's pick):** the rune ᚱ, raidō ("journey", R for Rune), its stave, bow and leg in two-cell strokes, over the family mark:
+
+```
+...##.........
+...####.......
+...##.##......
+...##..##.....
+...##.##......
+...####.......
+...##.##......
+...##..##.....
+...##...##....
+...##....##...
+..............
+##.##.##.##.::
+```
+
+**Built 2026-09-28, as Nib:** on Blit's 14×12 grid, a fountain-pen nib, diagonal, with its breather hole and a one-cell slit down to the tip, writing on the family mark:
 
 ```
 ........####..
@@ -746,30 +763,30 @@ Sublime's defaults where Sublime has the command (KB4); Apple's where it's a sta
 | Go to Heading (Sublime's Goto Symbol): a Markdown file's headings | ⌘R | P2 (done in M2) |
 | Close what's open over the text, one thing a press: with several carets, one caret first (Sublime); then the sync HUD, the find bar, and last the conflict banner (until the blocks change); nothing else (not the word completion list, which is ⌥Esc). One order with KB1 since 2026-10-07 (the QA review's F32) | Esc | P0 |
 
-⇧⌘T is "Reopen Closed File" here because that's what it means in Sublime and browsers; Blit uses it for Show Transfer Details, which Nib moves to ⇧⌘Y.
+⇧⌘T is "Reopen Closed File" here because that's what it means in Sublime and browsers; Blit uses it for Show Transfer Details, which Rune moves to ⇧⌘Y.
 
 ### 5.13 Copy deck
 
-The voice (W1-W7), applied to Nib's common moments.
+The voice (W1-W7), applied to Rune's common moments.
 
 | Moment | Copy |
 |---|---|
 | Strip, clean merge | `✓ MERGED 2 CHANGES FROM STUDIO · ⌘Z UNDOES` |
 | Strip, reload | `▼ UPDATED FROM STUDIO · 10:42:31` |
 | Strip, upload not starting | `= SAVED LOCALLY · ICLOUD HASN'T STARTED UPLOADING (2 MIN)` |
-| Strip, save failed | `✕ COULDN'T SAVE “INDEX.HTML” · PERMISSION DENIED · YOUR TEXT IS IN NIB'S RECOVERY FOLDER` |
+| Strip, save failed | `✕ COULDN'T SAVE “INDEX.HTML” · PERMISSION DENIED · YOUR TEXT IS IN RUNE'S RECOVERY FOLDER` |
 | Strip, large file | `HIGHLIGHTING OFF · 42 MB` |
 | Menu bar panel, clipboard | `CLIPBOARD CLEANED · 3 INVISIBLES REMOVED` |
 | Banner, deleted | `SCRATCH.MD WAS MOVED TO THE TRASH ON STUDIO` · Restore · Close |
-| Notification, conflict | "Scratch changed on two Macs" / "scratch.md" / "Studio and Air both edited the same paragraph. Nothing is lost; open Nib to choose." |
-| Notification, save failed | "Couldn't save “notes.md”" / "iCloud Drive" / "The disk is full. Nib is keeping your changes and trying again every 15 seconds." |
-| Recovery | `RECOVERED 12 WORDS TYPED BEFORE NIB QUIT UNEXPECTEDLY` |
+| Notification, conflict | "Scratch changed on two Macs" / "scratch.md" / "Studio and Air both edited the same paragraph. Nothing is lost; open Rune to choose." |
+| Notification, save failed | "Couldn't save “notes.md”" / "iCloud Drive" / "The disk is full. Rune is keeping your changes and trying again every 15 seconds." |
+| Recovery | `RECOVERED 12 WORDS TYPED BEFORE RUNE QUIT UNEXPECTEDLY` |
 | Empty scratch | "Paste or type. Saved as you go, on every Mac." |
 | Palette, nothing found | "No matches" |
 | Strip, trial's last day | `TRIAL · 1 DAY LEFT · SETTINGS › LICENSE` |
-| Banner, trial ended (DS4) | `NIB'S 7-DAY TRIAL HAS ENDED · WHAT YOU'VE TYPED IS SAVED AND STILL SYNCS` · Buy Nib… · Enter License Key… |
-| Strip, typing after the trial | `READ ONLY · TO TYPE, BUY NIB OR ENTER A KEY IN SETTINGS › LICENSE` |
-| Settings note, sync | "Nib saves a second after you stop typing, and whenever you switch away. There is no unsaved state to lose." |
+| Banner, trial ended (DS4) | `RUNE'S 7-DAY TRIAL HAS ENDED · WHAT YOU'VE TYPED IS SAVED AND STILL SYNCS` · Buy Rune… · Enter License Key… |
+| Strip, typing after the trial | `READ ONLY · TO TYPE, BUY RUNE OR ENTER A KEY IN SETTINGS › LICENSE` |
+| Settings note, sync | "Rune saves a second after you stop typing, and whenever you switch away. There is no unsaved state to lose." |
 
 ---
 
@@ -784,16 +801,16 @@ The voice (W1-W7), applied to Nib's common moments.
 | Language and UI | Swift 6 with strict concurrency; SwiftUI app lifecycle, AppKit for the text view and window-level behavior |
 | Appearance | Dark only, always (`NSApp.appearance = .darkAqua`, A17) |
 | Distribution | Developer ID signed, Hardened Runtime, notarized and stapled; not sandboxed |
-| Name and bundle ID | **Nib**, capitalized like Blit: the app (`Nib.app`) and its iCloud Drive folder (decided 2026-09-28; it was lowercase `nib` from 2026-09-27). The bundle ID `com.banastas.nib` and container `iCloud.com.banastas.nib` stay as registered (Blit is `com.banastas.Blit`) |
+| Name and bundle ID | **Rune** (since 2026-10-07, the user's call: §10, question 14): the app (`Rune.app`), its iCloud Drive folder and the `rune` command. Nib, capitalized like Blit, from 2026-09-28; lowercase `nib` from 2026-09-27. Inside, the code's names (NibKit, NibText, the `nib` scheme and folder) and `Application Support/nib/` keep Nib. The bundle ID `com.banastas.nib` and container `iCloud.com.banastas.nib` stay as registered (Blit is `com.banastas.Blit`) |
 | Category | Developer tools (`public.app-category.developer-tools`) |
 | Build | Xcode 27; hand-written project with a folder-synced group; `NibKit` as a local package (T2) |
 
-**Why not sandboxed** (as Blit): Nib opens any file on any volume, is driven from a CLI, reads Sublime's settings and packages, and follows iCloud Drive paths it didn't create.
+**Why not sandboxed** (as Blit): Rune opens any file on any volume, is driven from a CLI, reads Sublime's settings and packages, and follows iCloud Drive paths it didn't create.
 
 ### 6.2 Structure
 
 ```
-┌──────────────────────────────── SwiftUI app (nib) ─────────────────────────────────┐
+┌─────────────────────────────── SwiftUI app (Rune) ─────────────────────────────────┐
 │ Scratch window · file windows (native tabs) · merge sheet · palettes · Settings    │
 │ Menu bar extra · status strip and sync HUD (Blit's pixels) · hotkeys · CLI bridge  │
 └──────────────┬─────────────────────────────────────────────────────────────────────┘
@@ -816,13 +833,13 @@ The voice (W1-W7), applied to Nib's common moments.
 ├─────────────────────────────┴──────────────────────────┴────────────────────────────┤
 │ NibText: encodings · line endings · paste cleanup · SHA-256 fingerprints (CryptoKit)│
 ├─────────────────────────────────────────────────────────────────────────────────────┤
-│ nib (CLI): open · wait · stdin · append                                             │
+│ rune (CLI): open · wait · stdin · append                                            │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 6.3 Key decisions
 
-**Text view: `NSTextView`, wrapped for SwiftUI.** SwiftUI's `TextEditor` offers no control over highlighting attributes, carets or performance. A custom renderer (the Zed approach) would mean rebuilding input methods, accessibility and bidirectional text for none of the four jobs. **TextKit 2, decided by S2 (2026-09-27).** At 2.4 MB its main-thread cost per keystroke was a tenth to a half of TextKit 1's (p99 2 ms without highlighting and ≤ 10 ms with a stand-in highlighter, against 20-21 ms and 17-19 ms), and it used 16 MB less memory after opening, 100 MB less with the whole document highlighted ([M0 results](#m0-results)). The price is the one other editors report: TextKit 2 estimates the height of text it hasn't laid out, so the scroll bar's size and position shift as you move through a large file (the estimate varied by 175,000 pt at 2.4 MB). Laying out the whole document doesn't fix it in TextKit 2 (it made the estimate vary more and mid-document keystrokes 41 ms), so Nib doesn't. Rules that follow: nothing ever touches `layoutManager` on a TextKit 2 view (that silently switches it to TextKit 1; debug builds assert the engine), and the editor module keeps TextKit behind one type, so falling back to TextKit 1 stays a contained change if the scroll bar proves unacceptable in use. Highlighting colors are rendering attributes, which never touch the text storage, undo or layout; bold, italic and underline change glyphs, so they're font and underline attributes set on the text storage in the visible range, outside undo and never counted as edits.
+**Text view: `NSTextView`, wrapped for SwiftUI.** SwiftUI's `TextEditor` offers no control over highlighting attributes, carets or performance. A custom renderer (the Zed approach) would mean rebuilding input methods, accessibility and bidirectional text for none of the four jobs. **TextKit 2, decided by S2 (2026-09-27).** At 2.4 MB its main-thread cost per keystroke was a tenth to a half of TextKit 1's (p99 2 ms without highlighting and ≤ 10 ms with a stand-in highlighter, against 20-21 ms and 17-19 ms), and it used 16 MB less memory after opening, 100 MB less with the whole document highlighted ([M0 results](#m0-results)). The price is the one other editors report: TextKit 2 estimates the height of text it hasn't laid out, so the scroll bar's size and position shift as you move through a large file (the estimate varied by 175,000 pt at 2.4 MB). Laying out the whole document doesn't fix it in TextKit 2 (it made the estimate vary more and mid-document keystrokes 41 ms), so Rune doesn't. Rules that follow: nothing ever touches `layoutManager` on a TextKit 2 view (that silently switches it to TextKit 1; debug builds assert the engine), and the editor module keeps TextKit behind one type, so falling back to TextKit 1 stays a contained change if the scroll bar proves unacceptable in use. Highlighting colors are rendering attributes, which never touch the text storage, undo or layout; bold, italic and underline change glyphs, so they're font and underline attributes set on the text storage in the visible range, outside undo and never counted as edits.
 
 **Highlighting: tree-sitter, with a capture-to-scope map.** Two ways to reach J3:
 
@@ -831,19 +848,19 @@ The voice (W1-W7), applied to Nib's common moments.
 | Speed on edits | Incremental reparse, fast | Line-by-line regex with cached state; fine at these sizes |
 | Match with Sublime | Approximate: tree-sitter captures (`keyword`, `string`, `function`) are mapped to TextMate scopes (`keyword.control.js`, `string.quoted.double.json`, `entity.name.function.js`) | Exact scopes, if Sublime's default `.sublime-syntax` files can be bundled (licensing unknown) |
 | Stack | SwiftPM C targets; stays Swift + SPM (T7) | A Rust toolchain and an xcframework in a Swift-only family |
-| Theme side | Nib's own parser either way: syntect reads `.tmTheme` but not `.sublime-color-scheme` | same |
+| Theme side | Rune's own parser either way: syntect reads `.tmTheme` but not `.sublime-color-scheme` | same |
 
 **Highlight the viewport, parse the document.** S2 showed that applying rendering attributes to a whole 2.4 MB document costs 308 ms and a lot of memory, while re-highlighting a window of ±3,000 characters around each edit stays within a few milliseconds. So the parser (below) runs over the whole document off the main thread, but attributes are applied only to what's visible plus a margin, and again as the view scrolls. Built so in M2: the tree is kept across edits and reparsed incrementally, and queries, embedded languages and styles cover only the text in view with a margin (§8, Incremental highlighting). Since 2026-09-30 a big Markdown, JavaScript or CSS file (over 256K characters) keeps a tree of only the stretch around the view, parsed from a place where a parse of the whole is in its starting state too, so it colors exactly as the whole does (§8, Idle memory with a big file).
 
 **Recommendation: tree-sitter.** The grammars for all six languages exist (HTML, CSS, JavaScript, JSON, Markdown block and inline, Bash) under permissive licenses, and injections cover `<script>`, `<style>` and code fences. The scope map is written against Sublime's actual scopes for these languages, including the `text source` context An Old Hope's "Embedded Source" rule relies on. **Fallback:** syntect behind the same highlighter protocol, only if the fidelity harness (S3) can't reach 98%. That would be the one "strong reason" to leave the pure Swift stack, and would be recorded here with the numbers.
 
-**Documents: own layer over `NSFilePresenter`, `NSFileCoordinator` and FileManager's sync controls, not `NSDocument` or `DocumentGroup`.** `NSDocument` gives autosave and iCloud handling, but its autosave timing and its conflict window (pick a version, no merge) are opaque, and it saves by replacing the file, which M0 showed drops a sync pause. Nib needs a 1 s debounce, in-place compare-and-swap saves, a journal, uploads it times itself and a merge flow, so it owns the pipeline: pause, save in place, upload with fail-on-conflict, fetch, resume (§4.3, §4.4). The sync controls need an app identity (a bare command-line binary gets "feature not supported"), so the `nib` CLI never writes synced files itself; it asks the running app.
+**Documents: own layer over `NSFilePresenter`, `NSFileCoordinator` and FileManager's sync controls, not `NSDocument` or `DocumentGroup`.** `NSDocument` gives autosave and iCloud handling, but its autosave timing and its conflict window (pick a version, no merge) are opaque, and it saves by replacing the file, which M0 showed drops a sync pause. Rune needs a 1 s debounce, in-place compare-and-swap saves, a journal, uploads it times itself and a merge flow, so it owns the pipeline: pause, save in place, upload with fail-on-conflict, fetch, resume (§4.3, §4.4). The sync controls need an app identity (a bare command-line binary gets "feature not supported"), so the `rune` CLI never writes synced files itself; it asks the running app.
 
 **App lifecycle: SwiftUI `App`, as Blit** (`Window` for scratch, `WindowGroup(for:)` for files, `MenuBarExtra`, `Settings`, `Window` for About and History), with the `NSApplicationDelegate` adaptor for opening files, termination, sleep and Services. S2 measured the cost: first window at a median 201 ms after process start with SwiftUI, 139 ms with plain AppKit, and 25.3 against 22.4 MB idle. About 60 ms and 3 MB, under the 100 ms bar set here, so the SwiftUI lifecycle stays. (The launch that matters is the Show Scratch shortcut into a running app, which S2 didn't measure; M1 does.)
 
-**Global hotkeys: Carbon `RegisterEventHotKey`,** which needs no Accessibility permission, wrapped in about 100 lines of Nib's own rather than adding a dependency (T7). **Launch at login:** `SMAppService.mainApp`.
+**Global hotkeys: Carbon `RegisterEventHotKey`,** which needs no Accessibility permission, wrapped in about 100 lines of Rune's own rather than adding a dependency (T7). **Launch at login:** `SMAppService.mainApp`.
 
-**CLI:** `nib` opens files through the running app (launching it if needed): it leaves a request file with a one-time token in Nib's support folder and says so with a distributed notification, and Nib answers with one. `-w` waits for a distributed notification carrying the token, posted when that file's window has closed and its text is in the file. Standard input travels in the request, and Nib makes an untitled buffer of it (built 2026-09-29, §8).
+**CLI:** `rune` opens files through the running app (launching it if needed): it leaves a request file with a one-time token in Rune's support folder and says so with a distributed notification, and Rune answers with one. `-w` waits for a distributed notification carrying the token, posted when that file's window has closed and its text is in the file. Standard input travels in the request, and Rune makes an untitled buffer of it (built 2026-09-29, §8).
 
 **Dependencies:** swift-tree-sitter (BSD-3-Clause; `tree-sitter/swift-tree-sitter`, formerly ChimeHQ's SwiftTreeSitter) and the grammars for HTML, CSS, JavaScript, JSON, Markdown, Bash, XML and HL8's list (MIT, but two: gitcommit's WTFPL, INI's Apache 2.0), Sparkle (MIT; DS2). All but HTML's, JSON's, Bash's and Markdown's are vendored in `NibKit/Vendor/` (CSS's and JavaScript's manifests drop the external scanner under SwiftPM's sandbox; most others name SwiftTreeSitter at its old address, a second package with the same module, or have no manifest; `NibKit/Vendor/README.md`). Everything else is Apple's SDK: CryptoKit for SHA-256, Compression for reading zip entries, Network for path monitoring.
 
@@ -859,14 +876,14 @@ The voice (W1-W7), applied to Nib's common moments.
 | Shadow copies (last version seen of each synced file, for offline) | History's newest version of the file (no store of its own, §8 M2) | no |
 | Recovery folder (when iCloud Drive is off) | `…/nib/Recovery/` | no |
 | Sync Log | `…/nib/sync.jsonl` (T8) | no |
-| Built-in scheme | An Old Hope · Nib, in the app bundle (from `themes/`) | no |
+| Built-in scheme | An Old Hope · Rune, in the app bundle (from `themes/`) | no |
 | Imported themes | `…/nib/Themes/` (converted to one internal format) | no |
 | Receipts | iCloud key-value storage, or `.nib/devices/` beside the file | yes |
-| Paused files | `…/nib/paused.json`: every file Nib has paused, settled at each launch (§4.9, 14a) | no |
+| Paused files | `…/nib/paused.json`: every file Rune has paused, settled at each launch (§4.9, 14a) | no |
 | Lineage | extended attribute on the file (if S1b confirms it syncs; M0 showed it survives eviction on one Mac, which doesn't prove it reaches another) | yes |
 | Preferences, caret and scroll per file | `UserDefaults` | no |
 
-The test harness's Nib (a launch with `-NibScenario`: the suite, the two-Mac test, `run-perf.sh`) keeps all of this apart, in `~/Library/Application Support/nib-scenarios/` and the defaults domain `com.banastas.nib.scenarios` (`NibPaths.support`, `NibDefaults.store`), so a test run never touches the user's (§8, M2).
+The test harness's Rune (a launch with `-NibScenario`: the suite, the two-Mac test, `run-perf.sh`) keeps all of this apart, in `~/Library/Application Support/nib-scenarios/` and the defaults domain `com.banastas.nib.scenarios` (`NibPaths.support`, `NibDefaults.store`), so a test run never touches the user's (§8, M2).
 
 ### 6.5 Performance targets
 
@@ -874,12 +891,12 @@ Baselined against Sublime Text on the same Mac in M0, in the manner of Blit's pe
 
 | Measure | Target | Notes | Measured (2026-09-30, Mac mini) |
 |---|---|---|---|
-| Show Scratch shortcut to caret ready (app running) | ≤ 50 ms, p95 | The launch that matters: Nib is always running | **Met, Nib's side:** p50 13 ms, p95 25 ms, from the call to the window key with the caret in it, Nib in front. macOS's activation isn't in it: that needs a real key press, which a scenario can't make |
-| Cold launch to editable scratch window | ≤ 300 ms, p95 | S2: 167-217 ms with SwiftUI and a 197 KB file once cached; 478 ms on the first launch after a build. Sublime baseline still to take | **Met on a quiet Mac, not while it's busy:** the suite's 34 launches (Debug, back to back, 17:13 on 2026-09-30) median 267 ms, p95 274, at most 282; ten launches while the Mac was in use (other apps busy) 312-393 ms, median 330 (optimized). The window is up at about 225 ms; the text comes about 100 ms later. Where it goes (warm Debug, from the process's start): Nib's code starts at 13 ms, fonts registered by 22, SwiftUI and AppKit set up until the scenes at 96, the scratch document and its editor made by 117, launching finished at 240; Nib's own setup then (shortcuts, the menu bar item) about 20 ms; AppKit's own work about 40 ms before the launch task runs; the open about 20 ms (iCloud's status 5-10 ms, reading 2-4, showing 5-7). Holding the file comes after, 1.0-1.8 s more, the text editable meanwhile. Tried: the setup queued after the open's start (it landed as iCloud answered and held the text back, 30 ms worse); handing back paused files beside the open (nothing to hand back: no gain). Left to try: reading the scratch file in the background while AppKit launches (about 40 ms) |
-| Keystroke to glyph on screen | ≤ 1 frame (8.3 ms at 120 Hz), p99 ≤ 16 ms | S2 measured Nib's main-thread share only: p99 2 ms at 2.4 MB without highlighting, ≤ 10 ms with the stand-in highlighter. Glass-to-glass still needs Typometer, Sublime alongside | **Met for Nib's share:** a small file p50 1.4 ms, p99 3.1-6.7 ms; at 2.4 MB the slowest of a line's keystrokes 7.6-10.9 ms. Glass to glass still needs Typometer |
-| Idle memory, a small scratch file, its window open or not | ≤ 45 MB physical footprint (was ≤ 40 MB with the window, ≤ 25 MB without; revised 2026-09-30, the user's call: below) | S2: 25.3 MB idle with SwiftUI and a 197 KB file. A bare SwiftUI app with one text view is 24.5 MB (2026-09-30), and the scratch file stays open with its window closed (SC1, so Show Scratch is instant, SC2), so a window-less target well under that can't be met. **Watch:** after 400 synthetic edits in two places of a 2.4 MB file, TextKit 2 had grown to 113 MB; M1 measures real use against this target | **Not met, by 3 MB, with a small scratch file:** 43 MB, three launches alike (optimized; 2 KB test file). A bare SwiftUI app with one TextKit 2 text view is 24.5 MB on this Mac (macOS 27, measured the same day), so Nib's own share is about 18 MB, its highlighting 3 of it (40 MB as plain text). **With the scratch file at its real size, 2.4 MB of Markdown: 182-201 MB**, and growing slowly while idle (about 0.3 MB every 5 s, as plain text too; explained 2026-10-02: the scratch file's note went back and forth to iCloud every second or two, and the notes queue, never idle, kept what each read made. The Release in daily use grew 3 MB a minute that way, idle, to 219 MB with the 223 KB scratch file; fixed, §8 Disk writes). As plain text the same file is 64-70 MB: **the Markdown syntax tree is about 130 MB** (tree-sitter: 354,216 nodes a cursor sees, 58,903 named, more hidden; 4.95 MB of JavaScript makes a 175 MB tree, so whole-file trees cost 35-55 times the text). Nothing frees when the parser is reset or released: it's the tree |
+| Show Scratch shortcut to caret ready (app running) | ≤ 50 ms, p95 | The launch that matters: Rune is always running | **Met, Rune's side:** p50 13 ms, p95 25 ms, from the call to the window key with the caret in it, Rune in front. macOS's activation isn't in it: that needs a real key press, which a scenario can't make |
+| Cold launch to editable scratch window | ≤ 300 ms, p95 | S2: 167-217 ms with SwiftUI and a 197 KB file once cached; 478 ms on the first launch after a build. Sublime baseline still to take | **Met on a quiet Mac, not while it's busy:** the suite's 34 launches (Debug, back to back, 17:13 on 2026-09-30) median 267 ms, p95 274, at most 282; ten launches while the Mac was in use (other apps busy) 312-393 ms, median 330 (optimized). The window is up at about 225 ms; the text comes about 100 ms later. Where it goes (warm Debug, from the process's start): Rune's code starts at 13 ms, fonts registered by 22, SwiftUI and AppKit set up until the scenes at 96, the scratch document and its editor made by 117, launching finished at 240; Rune's own setup then (shortcuts, the menu bar item) about 20 ms; AppKit's own work about 40 ms before the launch task runs; the open about 20 ms (iCloud's status 5-10 ms, reading 2-4, showing 5-7). Holding the file comes after, 1.0-1.8 s more, the text editable meanwhile. Tried: the setup queued after the open's start (it landed as iCloud answered and held the text back, 30 ms worse); handing back paused files beside the open (nothing to hand back: no gain). Left to try: reading the scratch file in the background while AppKit launches (about 40 ms) |
+| Keystroke to glyph on screen | ≤ 1 frame (8.3 ms at 120 Hz), p99 ≤ 16 ms | S2 measured Rune's main-thread share only: p99 2 ms at 2.4 MB without highlighting, ≤ 10 ms with the stand-in highlighter. Glass-to-glass still needs Typometer, Sublime alongside | **Met for Rune's share:** a small file p50 1.4 ms, p99 3.1-6.7 ms; at 2.4 MB the slowest of a line's keystrokes 7.6-10.9 ms. Glass to glass still needs Typometer |
+| Idle memory, a small scratch file, its window open or not | ≤ 45 MB physical footprint (was ≤ 40 MB with the window, ≤ 25 MB without; revised 2026-09-30, the user's call: below) | S2: 25.3 MB idle with SwiftUI and a 197 KB file. A bare SwiftUI app with one text view is 24.5 MB (2026-09-30), and the scratch file stays open with its window closed (SC1, so Show Scratch is instant, SC2), so a window-less target well under that can't be met. **Watch:** after 400 synthetic edits in two places of a 2.4 MB file, TextKit 2 had grown to 113 MB; M1 measures real use against this target | **Met with a small scratch file (43 MB against the revised 45 MB; the 40 MB before the revision it missed by 3 MB):** 43 MB, three launches alike (optimized; 2 KB test file). A bare SwiftUI app with one TextKit 2 text view is 24.5 MB on this Mac (macOS 27, measured the same day), so Rune's own share is about 18 MB, its highlighting 3 of it (40 MB as plain text). **With the scratch file at its real size, 2.4 MB of Markdown: 182-201 MB**, and growing slowly while idle (about 0.3 MB every 5 s, as plain text too; explained 2026-10-02: the scratch file's note went back and forth to iCloud every second or two, and the notes queue, never idle, kept what each read made. The Release in daily use grew 3 MB a minute that way, idle, to 219 MB with the 223 KB scratch file; fixed, §8 Disk writes). As plain text the same file is 64-70 MB: **the Markdown syntax tree is about 130 MB** (tree-sitter: 354,216 nodes a cursor sees, 58,903 named, more hidden; 4.95 MB of JavaScript makes a 175 MB tree, so whole-file trees cost 35-55 times the text). Nothing frees when the parser is reset or released: it's the tree |
 | Idle memory, the scratch file at 2.4 MB | ≤ 100 MB (added 2026-09-30, the user's call) | The size scratch files reach before archiving (§2): the case that matters, where a small file's number doesn't show it | **Met:** 67.8 MB once settled, 77.6 MB in the first 40 s (optimized, the harness's 2.4 MB of Markdown viewed at its end; flat over 3 minutes); 64.5 MB as plain text. Was 182-201 MB, about 130 MB of it the syntax tree: big files now keep a tree of the stretch around the view only (§8) |
-| Idle CPU and wakeups | 0.0%, no timer wakeups | A11; checked with `powermetrics` | **Met once settled:** 0.00-0.05% CPU after launch's own work tails off (5 s slices after the file is synced: 0.63%, 0.10, 0.25, 0.03, then 0.01 and below from 20 s on), about 0.5 wakeups a second, none from Nib's timers: over 20 s of `sample` nothing of Nib's ran, only AppKit's saving of window state and one spell-checker setup (the `idle` scenario, optimized; `powermetrics` needs sudo). The first `perf` measured during the tail-off (0.7-0.9%); it now waits for two quiet slices |
+| Idle CPU and wakeups | 0.0%, no timer wakeups | A11; checked with `powermetrics` | **Met once settled:** 0.00-0.05% CPU after launch's own work tails off (5 s slices after the file is synced: 0.63%, 0.10, 0.25, 0.03, then 0.01 and below from 20 s on), about 0.5 wakeups a second, none from Rune's timers: over 20 s of `sample` nothing of Rune's ran, only AppKit's saving of window state and one spell-checker setup (the `idle` scenario, optimized; `powermetrics` needs sudo). The first `perf` measured during the tail-off (0.7-0.9%); it now waits for two quiet slices |
 | Open a 5 MB JavaScript file | first paint ≤ 300 ms, fully highlighted ≤ 1 s | | **Met:** 4.95 MB (ED9 highlights up to 5,000,000 characters) shown in 120-156 ms, the text at the top colored at 242-247 ms (optimized, an untitled buffer; only the stretch in view is parsed; before the fixes of 2026-09-30, 1.3 and 1.9 s, then 658-743 ms) |
 | Keystroke to journal | ≤ 300 ms | SY1 | **Met:** 235-260 ms; 259-262 ms in a 2.4 MB buffer, where it's an edit log (most of it the 250 ms wait for a pause) |
 | Keystroke to file | ≤ 1 s after a pause, ≤ 5 s while typing | SY2 | **Met:** 1.0 s after a pause (the debounce), when nothing else holds the file queue (saves had waited seconds behind note reads until the 2026-09-29 fix, §8); ≤ 5 s by the schedule while typing |
@@ -894,13 +911,13 @@ How: `scripts/run-perf.sh` builds the app optimized (-O Swift, -Os C, as a relea
 As Blit (T9): `swift test` for NibKit, plus debug-only harnesses in the app driven by launch arguments.
 
 - **Merge:** property tests (random edits on two sides of a random base: output is deterministic, and every inserted line appears either merged or inside markers); a corpus of real prose conflicts.
-- **Themes:** golden tests for An Old Hope · Nib and the original (`.tmTheme`), including a contrast test that fails if any text color in the built-in scheme drops under 4.5:1, and a `.sublime-color-scheme` exercising variables, `color()` adjusters and exclusions; scope-ranking tests.
-- **Fidelity harness (S3):** a small Sublime plugin dumps every token's scope and color for the reference files (`view.extract_tokens_with_scopes` and `view.style_for_scope`); Nib renders the same files and compares characters. This runs on every change to the scope map.
+- **Themes:** golden tests for An Old Hope · Rune and the original (`.tmTheme`), including a contrast test that fails if any text color in the built-in scheme drops under 4.5:1, and a `.sublime-color-scheme` exercising variables, `color()` adjusters and exclusions; scope-ranking tests.
+- **Fidelity harness (S3):** a small Sublime plugin dumps every token's scope and color for the reference files (`view.extract_tokens_with_scopes` and `view.style_for_scope`); Rune renders the same files and compares characters. This runs on every change to the scope map.
 - **Crash recovery:** a harness types continuously, is killed with `kill -9` at random moments, relaunches, and checks that at most the last 300 ms is missing.
 - **iCloud simulation:** a `CloudStatusProvider` protocol faked in tests, to inject conflict versions, `name 2` duplicates, dataless files, upload errors and deletions.
 - **Two-Mac probe:** `scripts/sync-probe.sh` (in the style of Blit's `sftp-probe.sh`) writes numbered versions on one Mac and logs arrival times on the other.
 - **Paste corpus:** saved clipboards from Safari, Mail, Slack, Notes, Word and Preview (PDF), each with a known clean result.
-- **Render harness:** Nib's pixel art (the menu bar item and panel, the welcome window) rendered to PNGs beside the scenario logs, to compare.
+- **Render harness:** Rune's pixel art (the menu bar item and panel, the welcome window) rendered to PNGs beside the scenario logs, to compare.
 
 Before 1.0, a QA and UX review in the format of Blit's (`qa/blit-qa-ux-review.md`), weighted toward sync and data loss.
 
@@ -908,10 +925,10 @@ Before 1.0, a QA and UX review in the format of Blit's (`qa/blit-qa-ux-review.md
 
 ## 7. Code shared with Blit
 
-**Decided 2026-09-29 (the user): no shared package.** Each app's code lives entirely in its own repository. Either may read the other's code and copy or adapt what it needs; a copy's header names where it came from (the repository, the file and the commit), and from then on it's that app's own code, changed as that app needs. Nothing keeps the copies in step: when one app fixes a piece the other copied, the other decides whether to take the fix. (The earlier plan, a `FamilyKit` package in its own repository with `PixelUI` and `AppShell` libraries, Blit switched to it first and then Nib, is dropped; so is open question 20.)
+**Decided 2026-09-29 (the user): no shared package.** Each app's code lives entirely in its own repository. Either may read the other's code and copy or adapt what it needs; a copy's header names where it came from (the repository, the file and the commit), and from then on it's that app's own code, changed as that app needs. Nothing keeps the copies in step: when one app fixes a piece the other copied, the other decides whether to take the fix. (The earlier plan, a `FamilyKit` package in its own repository with `PixelUI` and `AppShell` libraries, Blit switched to it first and then Rune, is dropped; so is open question 20.)
 
-- **Nib's copies from Blit:** `nib/Vendor/FromBlit/` (the HUD's colors and fonts, the pixel glyphs, the pixel-art renderer and the fixed-width menu bar image, the command palette, generalized, and emptying the Trash, `TrashService`) and `scripts/make-icon.swift` (Blit's script with Nib's art and name). The rest of Blit's inventory ([Reusable pieces](#reusable-pieces-from-blit)) is copied when Nib needs it.
-- **What Blit may want from Nib:** the global shortcuts (`nib/Model/HotKey.swift`: Carbon hot keys, changeable, with the warnings), launch at login (`nib/Model/LoginItem.swift`), the menu bar item made with AppKit's `NSStatusItem` (`nib/Views/MenuBar.swift`; SwiftUI's `MenuBarExtra` on macOS 27 ignores being turned off and shows only its label's first image, §8), and Reduce Motion (A16) once Nib honors it.
+- **Rune's copies from Blit:** `nib/Vendor/FromBlit/` (the HUD's colors and fonts, the pixel glyphs, the pixel-art renderer and the fixed-width menu bar image, the command palette, generalized, and emptying the Trash, `TrashService`) and `scripts/make-icon.swift` (Blit's script with Rune's art and name). The rest of Blit's inventory ([Reusable pieces](#reusable-pieces-from-blit)) is copied when Rune needs it.
+- **What Blit may want from Rune:** the global shortcuts (`nib/Model/HotKey.swift`: Carbon hot keys, changeable, with the warnings), launch at login (`nib/Model/LoginItem.swift`), the menu bar item made with AppKit's `NSStatusItem` (`nib/Views/MenuBar.swift`; SwiftUI's `MenuBarExtra` on macOS 27 ignores being turned off and shows only its label's first image, §8), and Reduce Motion (A16) once Rune honors it.
 
 ---
 
@@ -1836,7 +1853,27 @@ Now a launch with `-NibScenario` (every script's) is the test harness's Nib (`Ni
 - **iCloud under Developer ID, M0's open question:** Nib's folder needs its container (`iCloud.com.banastas.nib`) in the signature and a Developer ID provisioning profile that allows it. The script stops if either is missing, before notarizing, so the first run answers the question; Nib opening its scratch file from the installed copy confirms it.
 - **What it checks:** Developer ID as the signing authority (`codesign -dvv`: Blit's `-dv` shows no authorities, so its line printed nothing), the container in the entitlements, the profile embedded with it, the sources not newer than the archive, About's acknowledgements current. Tried on the team-signed copy in `/Applications`: the container and profile found ("Mac Team Provisioning Profile: com.banastas.nib"), the authority not Developer ID, as it should stop.
 - **The user's steps:** Xcode signed in to the team's account, as for Blit's releases; the first run makes a Developer ID provisioning profile with the iCloud container in the account and submits the build to Apple's notary service. The Developer ID copy has the same bundle ID, container, settings and History as the team-signed one; macOS may ask again for Finder (Empty Trash) and folders, its signature being another.
+- **The first run (the user's, 20:17-20:19, on the Mac mini):** build 202610072017, signed "Developer ID Application" (Xcode's cloud-managed certificate: the Mac has no Developer ID one of its own), notarized, stapled (`stapler validate`), installed; a 5.8 MB zip in `build/release/`. Its Nib opened the scratch file at 20:20:52, iCloud's folder answering at once, and held it: **iCloud Documents works under Developer ID signing**, M0's open question answered. A save and upload from it, and the Air's copy (the same zip, no device registration needed), are next.
 - **Not yet:** Sparkle's PUBLISH step (DS2, which waits on the name, question 14).
+
+**The twenty-ninth two-Mac run (2026-10-07, 20:33, `8b8c994`; a on the Mac mini, b on the Air)** passed everything on both Macs, 17 checks, the same SHA-256 (`104b5892…53f4`), receipts included (each strip "✓ SYNCED · ON" the other Mac); the lead line reached the Air in 19.7 s, as before (19.6 s on 2026-10-06). The first since the twenty-eighth (2026-10-06, 21:04): with it, the QA review's seven rounds (F7's upload skipped when nothing was saved since, the strip's and HUD's words), closing during a note wait (`settleNoteWait`), the undo after a save, the launch's tabs, and line endings and indentation. The run uses each Mac's Debug build from the repository; the Nib in daily use on both is now the notarized release.
+
+**Rune (2026-10-07, the user's call: question 14).** Nib is renamed Rune, Plan 9's word for a character, from a brainstorm for a name with hacker roots that puts raw text first; two 2026 notes apps for the Mac were already called Nib (`qa/nib-name-review.md`).
+- **What people see says Rune:** the app (`Rune.app`: `PRODUCT_NAME`, `CFBundleDisplayName`), its menus, About's RUNE, the strip's, HUD's and notifications' words, Settings, the welcome window, Services (Append to Rune Scratch, `NSPortName`), the Shortcuts' descriptions, the `rune` command's usage and messages, the iCloud Drive folder's name (`NSUbiquitousContainerName`; the Debug build number raised to 4, as iCloud caches the name), the built-in scheme ("An Old Hope · Rune"), the acknowledgements and the README. 123 string literals in the app and 62 in the scenarios, changed only inside string text by a small tokenizer (comments, code and interpolations untouched), each read first; the command's lowercase `nib` by hand.
+- **What stays Nib, inside:** the bundle ID and container (so settings, History, the folder's files and macOS's permissions carry over), the code's names (NibKit, NibText, NibApp…), defaults keys and launch arguments (`-NibScenario`…), `Application Support/nib/`, the hidden `.nib` folder of notes and receipts (renamed, it would part the two Macs), the scheme and source folder `nib`, the scripts' names (`install-nib.sh`…), and comments that record history.
+- **The art (the user's pick of two drafts):** the rune ᚱ, raidō ("journey", R for Rune), for the pen nib: in the app icon over Blit's family mark (§5.11) and in the menu bar, eight rows over a blank one and its line (§5.7).
+- **Installing:** `install-nib.sh` and `release.sh` install `/Applications/Rune.app` and move `/Applications/Nib.app` to the Trash (the same app, one bundle ID: two copies would leave macOS choosing between them). `install-nib-cli.sh` installs `rune` and leaves an old `nib`, which still reaches the app by its bundle ID; `EDITOR="rune -w"` is the user's step.
+- **Checks:** the scenarios' expected strings follow the app's; NibKit's 224 tests (Alerts, Spoken and the scheme report's words).
+- **Suite (21:24-21:38):** 70 scenario runs, all 549 checks passing, the first full pass since 2026-10-07 13:16; 224 NibKit tests.
+
+**Updates and the site, DS2 (2026-10-07, the round after the rename).**
+- **Sparkle in Rune:** Sparkle 2.10.0 (the version Blit ships) as a package of the app's project; Blit's `Updates` (`nib/Vendor/FromBlit/Updates.swift`, from `297871d`), so a released copy checks `https://rune.banast.as/appcast.xml` once a day and installs only updates signed with the EdDSA key; Rune › Check for Updates…; in Settings › General, a row beside the login item (the daily check and Check Now): a section of its own made General 870 points, over the Air's 860 (F22), and it's 815 so. Debug builds and a test run's copy have no updater, as in Blit. The KVO callback reads Sparkle's main-thread property under `MainActor.assumeIsolated` (Blit's copy warns there).
+- **The key (the user's call):** Blit's, already in this Mac's Keychain as Sparkle's default (`ed25519`); its public half in Info.plist. One key for both apps: nothing new to make or back up, and losing it or its leaking touches both.
+- **Publishing:** `PUBLISH=1 INSTALL=1 VERSION=0.2 NOTES="…" scripts/release.sh`, from Blit's: the notarized zip signed with Sparkle's `sign_update` (from the archive's own Sparkle package), into `site/downloads/` under a name of its own (`Rune-<version>-<build>.zip`, so a cached old file can't meet a new signature) and as `Rune.zip`, `site/appcast.xml` written, those two committed and pushed. `VERSION=` sets the version shown; Sparkle compares the build, the time.
+- **The site:** `site/`, Blit's design (from `../blit/site/`, nothing loaded from other servers, Reduce Motion respected). `index.html`: the ᚱ icon, RUNE, "WRITE IT DOWN. LOSE NOTHING_"; a simulated scratch window typing a packing list, its strip going through Rune's own states (· EDITING, = SAVED LOCALLY, ▲ UPLOADING, ✓ SYNCED · ON AIR, ‖ A NEWER VERSION FROM ANOTHER MAC…, ✓ MERGED 1 CHANGE FROM AIR) with the sync HUD in Rune's words; then Nothing lost between Macs (the guarantees, the strip state by state, a conflict as Rune draws it and as `cat` shows it), Plain text in, Quick edits (a reference file colored as Sublime's dump colors it, the 33 languages), A real Mac app, a spec sheet with §6.5's measured numbers, and the price ($19, 3 Macs, the trial's rule). `legal.html`: terms, refunds, and a privacy policy that says what Rune sends: files only through iCloud Drive, the daily update check to rune.banast.as, the notes and receipts in the hidden `.nib` folder beside synced files (versions and times, never text), license checks once licensing is on; no analytics. `favicon.svg`, the ᚱ; `README.md`, how to preview, host and go live. While `LIVE = false` Download and Buy are inactive, and Buy has no checkout link (no Rune product in Lemon Squeezy yet). Made by an agent from Blit's site, then read here against the PRD and the code (Show Scratch's second press hides Rune; Import reads Sublime's line padding and word wrap) and looked at in the browser pane: no outside requests, no console errors; the tagline breaks after its first sentence.
+- **Notices:** Sparkle's MIT notice in About › Acknowledgements (DS3, `scripts/acknowledgements.py`).
+- **The user's steps:** a Cloudflare Pages project for `banastas/Rune` with `site` as its output folder, and a CNAME for `rune.banast.as`; then a release with PUBLISH, a second with a higher VERSION, and Check for Updates in the first: M3's "an update verified end to end through Sparkle".
+- **Suite (22:41-22:55):** 70 scenario runs, 548 of 549 checks; 224 NibKit tests. The one: General 870 points tall with Updates as a section of its own; with the row moved, 815, and `defaultapps` passes (22:58).
 
 **HTML out of Settings › Files (2026-10-07, the user's call, after the QA review's F27).** macOS has no viewer apart from an editor for a file type: every page on the Mac opens with the app for `public.html`, whoever asks (`open page.html`, Python's `webbrowser`, the coverage and documentation reports build tools open, a link in Terminal or Mail). With Nib as it, those came up as source, and a caption could only say so. So HTML isn't a kind any more: Settings › Files has six (Markdown, plain text, JSON, CSS, JavaScript, shell scripts), and its note says why HTML isn't there and how Nib still edits it (Open With, ⌘O, `nib page.html`). Nib still claims `.html` in its Info.plist as an alternate, for Open With, and edits it as before, highlighted, with its tags matched. A Mac where Nib had HTML gives it back once, at the next launch, to the app Nib took it from (remembered when it took it), or the Mac's web browser if that's gone, and the strip says so (`HTML FILES OPEN IN SAFARI AGAIN · NIB STILL EDITS THEM: OPEN WITH, ⌘O OR NIB PAGE.HTML`; `DefaultApps.giveBackHTML`, once, `htmlGivenBack`). The test harness's Nib never does it at launch; `defaultapps` checks it on its stand-in (given back to the app it was taken from, and once only), and that the six kinds have eight types and not HTML's.
 
@@ -1886,13 +1923,13 @@ Now a launch with `-NibScenario` (every script's) is the test harness's Nib (`Ni
 
 ## 9. Success criteria
 
-How to know Nib has replaced Sublime:
+How to know Rune has replaced Sublime:
 
 1. **Sublime goes unused.** Sublime not opened for 30 consecutive days of normal work, checked with `mdls -name kMDItemLastUsedDate "/Applications/Sublime Text.app"`. After that, Sublime is removed from the Dock (and eventually deleted).
 2. **Zero lost edits across Macs** over the same 30 days: every divergence in the Sync Log ends as merged or resolved, History holds every input, and no `scratch <n>.md` file is left in the folder (`ls`).
 3. **No stale-copy surprises:** every time a Mac merged remote changes into local edits, it's in the Sync Log (a count, not a failure). If the count is above zero, it's the input to V2 (§4.10).
 4. **Plain paste works every time:** 100% of the paste corpus comes out as expected, and J1's old routine (new tab, paste, select all, copy, close, "Don't Save") is gone.
-5. **Highlighting matches:** at least 98% of non-whitespace characters in the reference files (one each of HTML, CSS, JavaScript, JSON, Markdown with fenced code, and a zsh script, from the user's real work) colored as Sublime colors them, with An Old Hope · Nib in both.
+5. **Highlighting matches:** at least 98% of non-whitespace characters in the reference files (one each of HTML, CSS, JavaScript, JSON, Markdown with fenced code, and a zsh script, from the user's real work) colored as Sublime colors them, with An Old Hope · Rune in both.
 6. **As fast as Sublime:** the §6.5 targets met, and keystroke latency within 1 ms of Sublime's on the same Mac (Typometer). Subjectively: after two weeks, no moment of "Sublime would have been faster".
 7. **Small:** idle at 0% CPU, and every shipped feature traceable to a job (J1-J4) or a guarantee (§4.1).
 
@@ -1917,7 +1954,7 @@ How to know Nib has replaced Sublime:
     **Checked (2026-09-30): An Old Hope · Nib may ship built in.** It comes from your Sublime port (`../an-old-hope-theme`, built on Jesse Leite's Atom theme), whose license is MIT, © 2015 Jesse Leite. MIT allows selling on one condition: the copyright and permission notice goes with every copy. `themes/an-old-hope-nib.tmTheme` credits him ("Based on @JesseLeite's theme for Atom") but doesn't carry the notice, so it goes in the app's notices (DS3), with the dependencies'.
 
     **When:** Sparkle's feed URL and public key have to be settled before the first build that goes to a Mac other than yours. A build's are fixed in its `Info.plist` (`SUFeedURL`, `SUPublicEDKey`, as in Blit's `Support/Info.plist`), and every copy installed from it looks there for updates. On your own two Macs, adding Sparkle later costs one install by hand on each. The site waits for M3, which builds the HUD, icon and About it would show.
-14. **The name.** ~~Casing~~ **Decided (2026-09-28):** Nib, capitalized like Blit (lowercase `nib` from 2026-09-27 until then); the bundle ID stays `com.banastas.nib`. Still open, and needed before Nib goes on sale (question 13): "Nib" collides with Apple's `.nib` Interface Builder files and `NSNib`, which makes it hard to search for and possibly to trademark.
+14. ~~**The name.**~~ **Decided (2026-10-07): Rune** (renamed that day; §8, "Rune"). Before: ~~Casing~~ **Decided (2026-09-28):** Nib, capitalized like Blit (lowercase `nib` from 2026-09-27 until then); the bundle ID stays `com.banastas.nib`. Still open, and needed before Nib goes on sale (question 13): "Nib" collides with Apple's `.nib` Interface Builder files and `NSNib`, which makes it hard to search for and possibly to trademark. **Screened (2026-10-07, `qa/nib-name-review.md`):** worse than that. Two notes apps for the Mac are called Nib in 2026: Palú Labs' (a quick-capture window behind a global shortcut, Markdown files, a notarized download from `nib.palu.io`) and FIVENINE DESIGN's (notes for iPhone, iPad and Mac), besides the health insurer nib and Apple's `.nib`. The write-up recommends renaming before sale: Spool (no Mac app under it), or Stet (the proofreader's "let it stand", but a Mac dictation app launched under it the same day) or Tittle (the dot over *i*, near a golf brand); Plume, Stylo, Penna, Quire, Margin and Kept are taken by notes or writing apps. **The user's pick (2026-10-07): Rune**, from a second brainstorm for a name with hacker roots that puts raw text first: Plan 9's word for a character (Pike and Thompson's, as Blit was Pike's terminal). Screened the same way: no current Mac notes or text app under it (a dormant Java editor on SourceForge, 2022; Sticky Runes, Mac sticky notes; a Rust scripting language), no US class 9 RUNE mark found; Roon, the music software, is said the same, a point for the lawyer. A USPTO search and a lawyer before sale; the rename itself is a round of its own.
 15. ~~**Should Nib become the default app** for `.md`, `.html`, `.css`, `.js`, `.json` and shell scripts, or register only as an alternate for Open With?~~ **Decided (2026-10-06): the default app, a kind at a time.** Settings › Files has a switch for each of those and plain text (§5.8); off gives a kind back to the app it had. **HTML taken out (2026-10-07, the user's call):** macOS opens every page on the Mac with the app for `.html`, so with Nib as it, links and reports came up as source (§8). Nib's own Info.plist still claims them as an alternate, so nothing changes until the user turns one on (§8, "Nib as the default app").
 16. ~~**Nib as `$EDITOR`** (`nib -w`) for git commit messages and `crontab -e`: wanted?~~ **Decided (2026-10-06): wanted.** `EDITOR="nib -w"` in the user's shell, with the `nib` tool installed (`scripts/install-nib-cli.sh`): the user's step. It opens any file since the safety rule went.
 17. **Largest files you edit?** Big logs or data dumps would move ED9's thresholds.

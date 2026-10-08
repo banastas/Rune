@@ -7,8 +7,8 @@
       "layers" : [
         {
           "glass" : false,
-          "image-name" : "nib.png",
-          "name" : "nib"
+          "image-name" : "rune.png",
+          "name" : "rune"
         }
       ]
     }

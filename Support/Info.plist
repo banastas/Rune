@@ -2,9 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Merged into the generated Info.plist. The container shows in iCloud Drive as "Nib",
+	<!-- Merged into the generated Info.plist. The container shows in iCloud Drive as "Rune" (as "Nib" until 2026-10-07),
 	     beside other apps' folders. iCloud caches this: raise CFBundleVersion when it changes. -->
-	<!-- Text files, so Nib is in Finder's Open With and takes files dropped on its Dock icon
+	<!-- Text files, so Rune is in Finder's Open With and takes files dropped on its Dock icon
 	     (ED2), as an alternative: it never takes over as the default app by itself (Settings ›
 	     Files makes it one, a kind at a time, open question 15). -->
 	<key>CFBundleDocumentTypes</key>
@@ -27,7 +27,7 @@
 			</array>
 		</dict>
 	</array>
-	<!-- Services › Append to Nib Scratch (SC8) and Clean Text (PT7), for text selected in any app:
+	<!-- Services › Append to Rune Scratch (SC8) and Clean Text (PT7), for text selected in any app:
 	     ServiceProvider in nib/Model/Services.swift. -->
 	<key>NSServices</key>
 	<array>
@@ -35,12 +35,12 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Append to Nib Scratch</string>
+				<string>Append to Rune Scratch</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>appendToScratch</string>
 			<key>NSPortName</key>
-			<string>Nib</string>
+			<string>Rune</string>
 			<key>NSRequiredContext</key>
 			<dict/>
 			<key>NSSendTypes</key>
@@ -57,7 +57,7 @@
 			<key>NSMessage</key>
 			<string>cleanText</string>
 			<key>NSPortName</key>
-			<string>Nib</string>
+			<string>Rune</string>
 			<key>NSRequiredContext</key>
 			<dict/>
 			<key>NSReturnTypes</key>
@@ -72,16 +72,16 @@
 	</array>
 	<!-- Finder empties the Trash when the disk is full and the user chooses Empty Trash (PRD §4.9, 13). -->
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Nib asks Finder to empty the Trash when this Mac’s disk is full and you choose Empty Trash on the strip.</string>
-	<!-- The folders macOS asks about, now that Nib opens any file (the QA review's F53, 2026-10-07). -->
+	<string>Rune asks Finder to empty the Trash when this Mac’s disk is full and you choose Empty Trash on the strip.</string>
+	<!-- The folders macOS asks about, now that Rune opens any file (the QA review's F53, 2026-10-07). -->
 	<key>NSDocumentsFolderUsageDescription</key>
-	<string>Nib opens only the files you open in it, and saves them where they are.</string>
+	<string>Rune opens only the files you open in it, and saves them where they are.</string>
 	<key>NSDesktopFolderUsageDescription</key>
-	<string>Nib opens only the files you open in it, and saves them where they are.</string>
+	<string>Rune opens only the files you open in it, and saves them where they are.</string>
 	<key>NSDownloadsFolderUsageDescription</key>
-	<string>Nib opens only the files you open in it, and saves them where they are.</string>
+	<string>Rune opens only the files you open in it, and saves them where they are.</string>
 	<key>NSRemovableVolumesUsageDescription</key>
-	<string>Nib opens only the files you open in it, and saves them where they are.</string>
+	<string>Rune opens only the files you open in it, and saves them where they are.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.com.banastas.nib</key>
@@ -89,10 +89,20 @@
 			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
 			<true/>
 			<key>NSUbiquitousContainerName</key>
-			<string>Nib</string>
+			<string>Rune</string>
 			<key>NSUbiquitousContainerSupportedFolderLevels</key>
 			<string>Any</string>
 		</dict>
 	</dict>
+	<!-- Updates (PRD DS2): Sparkle checks rune.banast.as once a day, and installs only what Blit's
+	     EdDSA key signed (the same key as Blit's, the user's call, 2026-10-07). Release builds only. -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://rune.banast.as/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>/4WEfxb0faJLR2dnRoeQ2z3ym2syLxUzmOZSffgOkI4=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>

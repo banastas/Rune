@@ -16,7 +16,7 @@ echo "==> Building nib (optimized, with the scenarios)"
 xcodebuild -project nib.xcodeproj -scheme nib -configuration Debug -derivedDataPath "$DERIVED" \
   -destination "platform=macOS" -allowProvisioningUpdates \
   SWIFT_OPTIMIZATION_LEVEL=-O GCC_OPTIMIZATION_LEVEL=s ENABLE_DEBUG_DYLIB=NO -quiet build
-APP=$DERIVED/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
+APP=$DERIVED/Build/Products/Debug/Rune.app/Contents/MacOS/Rune
 LOGS=build/scenarios
 mkdir -p "$LOGS"
 SIZE=${1:-0}
@@ -26,7 +26,7 @@ SCRATCH=perf-scratch.md
 mkdir -p "$FOLDER"
 # As the `idlebig` scenario makes it: a heading every 50 lines, a list item every third.
 awk -v n="$SIZE" 'BEGIN {
-  line = "Nib perf scratch file: generated text, started afresh by run-perf.sh.\n"; printf "%s", line; total = length(line)
+  line = "Rune perf scratch file: generated text, started afresh by run-perf.sh.\n"; printf "%s", line; total = length(line)
   while (total < n) {
     m++
     if (m % 50 == 0) line = "## Notes for " m "\n"
@@ -49,7 +49,7 @@ run() {   # run <name> <log> [limit]: one launch, killed after the limit (120 s)
 }
 
 echo "==> perf"
-run perf "$LOGS/perf-$SUFFIX.log" 300   # its idle measures wait for Nib to go quiet first
+run perf "$LOGS/perf-$SUFFIX.log" 300   # its idle measures wait for Rune to go quiet first
 grep -E "MEASURED|FAIL|PASS" "$LOGS/perf-$SUFFIX.log" || echo "FAIL no output"
 
 echo "==> ten cold launches"

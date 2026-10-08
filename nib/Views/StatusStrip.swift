@@ -178,13 +178,13 @@ struct StatusStrip: View {
     /// The precise meaning, in sentence case (PRD §4.5, "tooltips carry the precise meaning").
     private var tooltip: String {
         let hold = document.held
-            ? "Nib holds this file: iCloud's own syncing is paused, and Nib uploads each version itself, refusing to overwrite a newer one."
+            ? "Rune holds this file: iCloud's own syncing is paused, and Rune uploads each version itself, refusing to overwrite a newer one."
             : "iCloud syncs this file on its own schedule."
         switch document.state {
-        case .synced: return "iCloud has this exact version. Other Macs get it when they check, which Nib does whenever it comes forward. " + receipts + hold
+        case .synced: return "iCloud has this exact version. Other Macs get it when they check, which Rune does whenever it comes forward. " + receipts + hold
         case .saved: return "Saved on this Mac. iCloud doesn't have this version yet. " + hold
         case .savedHere: return "Saved to this Mac's disk. This file isn't in iCloud Drive, so there's nothing to sync: it's on this Mac only."
-        case .local: return "An untitled buffer: Nib keeps it on this Mac, in its own folder, and never syncs it. Closing it keeps the text in History for 30 days, and File › Reopen Closed File brings it back; File › Save… makes it a file."
+        case .local: return "An untitled buffer: Rune keeps it on this Mac, in its own folder, and never syncs it. Closing it keeps the text in History for 30 days, and File › Reopen Closed File brings it back; File › Save… makes it a file."
         case .uploading: return "Uploading this version to iCloud. " + hold
         default: return document.state.spoken + ". " + hold
         }

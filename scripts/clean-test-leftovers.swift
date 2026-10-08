@@ -28,7 +28,7 @@ let testFolder = URL(fileURLWithPath: home + "/Library/Mobile Documents/iCloud~c
 let domain = "com.banastas.nib"
 
 guard NSRunningApplication.runningApplications(withBundleIdentifier: domain).isEmpty else {
-    print("Nib is running (or a test run is): quit it first, then run this again.")
+    print("Rune is running (or a test run is): quit it first, then run this again.")
     exit(1)
 }
 
@@ -108,7 +108,7 @@ if recentScratch > 0 {
 }
 
 if fm.fileExists(atPath: syncLog.path) {
-    notes.append("The Sync Log, \(bytes(size(syncLog))): kept (Nib opens any file now, so it's your files' too)")
+    notes.append("The Sync Log, \(bytes(size(syncLog))): kept (Rune opens any file now, so it's your files' too)")
 }
 
 let journal = support.appendingPathComponent("Journal")
@@ -142,7 +142,7 @@ var oldTestFiles: [URL] = []
 for name in (try? fm.contentsOfDirectory(atPath: testFolder.path)) ?? [] where name != "scratch-test.md" && name != ".nib" && !name.hasPrefix("old-test-files-") {
     oldTestFiles.append(testFolder.appendingPathComponent(name))
 }
-notes.append("iCloud Drive/Nib/Test: \(oldTestFiles.count) old entries (kept: scratch-test.md and .nib); this folder syncs, so they go on the other Mac too")
+notes.append("iCloud Drive/Rune/Test: \(oldTestFiles.count) old entries (kept: scratch-test.md and .nib); this folder syncs, so they go on the other Mac too")
 
 print(remove ? "Moving to the Trash:" : "Would move to the Trash (a dry run; --remove to do it):")
 for note in notes { print("  " + note) }
@@ -151,7 +151,7 @@ let settingsChange = !settingKeys.isEmpty || recentLeft.count != recent.count ||
 
 // Into one folder, the settings as they were with them; then that folder to the Trash.
 let stamp = ISO8601DateFormatter.string(from: Date(), timeZone: .current, formatOptions: [.withFullDate, .withTime])
-let leftovers = support.deletingLastPathComponent().appendingPathComponent("Nib test leftovers \(stamp)", isDirectory: true)
+let leftovers = support.deletingLastPathComponent().appendingPathComponent("Rune test leftovers \(stamp)", isDirectory: true)
 if moves.isEmpty, !settingsChange {
     // Nothing of Nib's own folder or settings to move: no folder for it.
 } else {

@@ -123,7 +123,7 @@ final class ReceiptBook {
         }
         lastWrite[folder] = Date()
         writing.remove(folder)
-        if let failure { NSLog("Nib: couldn't write this Mac's receipts in \(folder): \(failure)") }
+        if let failure { NSLog("Rune: couldn't write this Mac's receipts in \(folder): \(failure)") }
         if pending[folder]?.isEmpty == false { schedule(folder) }
     }
 

@@ -71,7 +71,7 @@ final class FirstRun: NSObject, NSWindowDelegate {
         let window = NSWindow(contentViewController: host)
         window.styleMask = [.titled, .closable]
         window.setContentSize(NSSize(width: FirstRunView.width, height: FirstRunView.minHeight))
-        window.title = "Welcome to Nib"
+        window.title = "Welcome to Rune"
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.center()
@@ -157,7 +157,7 @@ final class FirstRun: NSObject, NSWindowDelegate {
         await document.open()
         creating = false
         scratchFound = FileManager.default.fileExists(atPath: document.url.path)
-        if scratchFound != true { message = "Nib couldn't make it. \(Spoken.sentence(document.state.line))." }
+        if scratchFound != true { message = "Rune couldn't make it. \(Spoken.sentence(document.state.line))." }
     }
 
     func choose() {
@@ -223,7 +223,7 @@ enum ScratchChoice {
     /// Why Nib won't use it, in a sentence (the safety rule, §8).
     static func refusal(_ url: URL) -> String? {
         guard ScratchLocation.refusal(for: url) != nil else { return nil }
-        return "In a test run, Nib opens only test files, in iCloud Drive › Nib › Test. \(url.lastPathComponent) isn't one."
+        return "In a test run, Rune opens only test files, in iCloud Drive › Rune › Test. \(url.lastPathComponent) isn't one."
     }
 
     static func isCurrent(_ url: URL) -> Bool {
@@ -290,7 +290,7 @@ struct FirstRunView: View {
                     Button("Back") { model.step = FirstRun.Step(rawValue: model.step.rawValue - 1) ?? .scratch }
                 }
                 if model.step == .keys {
-                    Button(model.chosen == nil ? "Done" : "Reopen Nib") { model.finish() }
+                    Button(model.chosen == nil ? "Done" : "Reopen Rune") { model.finish() }
                         .keyboardShortcut(.defaultAction)
                 } else {
                     Button("Continue") { model.step = FirstRun.Step(rawValue: model.step.rawValue + 1) ?? .keys }
@@ -311,7 +311,7 @@ struct FirstRunView: View {
                     .frame(width: 56, height: 56)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Welcome to Nib").font(.title2.weight(.semibold))
+                    Text("Welcome to Rune").font(.title2.weight(.semibold))
                     Text("Three things to set up. Each can be changed later in Settings.")
                         .foregroundStyle(.secondary)
                 }
@@ -349,7 +349,7 @@ private struct ScratchStep: View {
         Section("Where's your scratch file?") {
             Group {
                 if let chosen = model.chosen {
-                    Label("Nib will use “\(chosen.lastPathComponent)” in \(ScratchLocation.place(of: chosen)) once it reopens, at the end.",   // names quoted (F64)
+                    Label("Rune will use “\(chosen.lastPathComponent)” in \(ScratchLocation.place(of: chosen)) once it reopens, at the end.",   // names quoted (F64)
                           systemImage: "arrow.triangle.2.circlepath")
                 } else if model.scratchFound == nil {
                     Label { Text("Looking in \(place)…") } icon: { ProgressView().controlSize(.small) }
@@ -359,7 +359,7 @@ private struct ScratchStep: View {
                     }
                 } else {
                     // Said as maybe on its way, and looked for while this window's open (F26).
-                    Label("There's no “\(name)” in \(place) yet. If another Mac has one, iCloud may still be bringing it: Nib keeps looking while this window is open.",
+                    Label("There's no “\(name)” in \(place) yet. If another Mac has one, iCloud may still be bringing it: Rune keeps looking while this window is open.",
                           systemImage: "doc.badge.plus")
                 }
             }
@@ -386,16 +386,16 @@ private struct ScratchStep: View {
             if let chosen = model.chosen, !ScratchLocation.place(of: chosen).hasPrefix("iCloud Drive") {
                 firstRunNote("The scratch file is where everything you jot down goes. “\(chosen.lastPathComponent)” is on this Mac only, so your other Macs won't see it: choose one in iCloud Drive to have it on every Mac.")
             } else {
-                firstRunNote("The scratch file is where everything you jot down goes. It's in Nib's own folder in iCloud Drive, so every Mac signed in to your Apple Account opens the same file, and Nib keeps them the same. If one Mac already has it, this finds it; make it only on the first Mac.")
+                firstRunNote("The scratch file is where everything you jot down goes. It's in Rune's own folder in iCloud Drive, so every Mac signed in to your Apple Account opens the same file, and Rune keeps them the same. If one Mac already has it, this finds it; make it only on the first Mac.")
             }
             // §4.9 row 7: macOS has no way for an app to keep one file on the Mac (M0 checked).
-            firstRunNote("So that macOS never takes it off this Mac to free up space, Control-click iCloud Drive › Nib in Finder and choose Keep Downloaded. If it's off this Mac anyway, Nib brings it back when it opens, or shows the last copy it saw while you're offline.")
+            firstRunNote("So that macOS never takes it off this Mac to free up space, Control-click iCloud Drive › Rune in Finder and choose Keep Downloaded. If it's off this Mac anyway, Rune brings it back when it opens, or shows the last copy it saw while you're offline.")
             if ScratchLocation.safetyRule {
-                firstRunNote("In a test run, Nib opens only test files, in iCloud Drive › Nib › Test, so this is its test file.")
+                firstRunNote("In a test run, Rune opens only test files, in iCloud Drive › Rune › Test, so this is its test file.")
             }
         }
         Section("What macOS may ask") {
-            firstRunNote("Nothing, for Nib's own iCloud Drive folder, and nothing for its global shortcuts, which need no Accessibility access. If you choose a scratch file in Documents, on the Desktop or elsewhere in iCloud Drive, macOS may ask once whether Nib can open files there: Nib only opens the files you choose. If you have Nib open when you log in (the last step), macOS says so in a notification. At the end, macOS asks whether Nib may send its notifications (the last step says which). And only if this Mac's disk fills and you choose Empty Trash, it asks once whether Nib may have Finder empty it.")
+            firstRunNote("Nothing, for Rune's own iCloud Drive folder, and nothing for its global shortcuts, which need no Accessibility access. If you choose a scratch file in Documents, on the Desktop or elsewhere in iCloud Drive, macOS may ask once whether Rune can open files there: Rune only opens the files you choose. If you have Rune open when you log in (the last step), macOS says so in a notification. At the end, macOS asks whether Rune may send its notifications (the last step says which). And only if this Mac's disk fills and you choose Empty Trash, it asks once whether Rune may have Finder empty it.")
         }
     }
 }
@@ -407,7 +407,7 @@ private struct LookStep: View {
     var body: some View {
         let schemes = Schemes.shared
         Section("Look") {
-            Text("Nib uses \(schemes.current.name), in \(schemes.fontFace.isEmpty ? "SF Mono" : schemes.fontFace) \(schemes.fontSize.formatted(.number.precision(.fractionLength(0...1)))) pt, and it's always dark.")
+            Text("Rune uses \(schemes.current.name), in \(schemes.fontFace.isEmpty ? "SF Mono" : schemes.fontFace) \(schemes.fontSize.formatted(.number.precision(.fractionLength(0...1)))) pt, and it's always dark.")
                 .fixedSize(horizontal: false, vertical: true)
         }
         Section("Your Sublime Text settings") {
@@ -421,7 +421,7 @@ private struct LookStep: View {
                     Button("Import from Sublime Text") { model.importSublime() }
                 }
                 // Everything it sets, as Settings › Themes says too (the QA review's F25: it listed five).
-                firstRunNote("Import takes Sublime's color scheme, font and size, tab width and spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs and ⌘S tidying, and sets Nib's to match. Sublime's files are only read, never changed. \(model.imported ? "" : "Continue skips it; ")Settings › Themes can import later.")
+                firstRunNote("Import takes Sublime's color scheme, font and size, tab width and spaces, line numbers, invisibles, indent guides, matching brackets, closing pairs and ⌘S tidying, and sets Rune's to match. Sublime's files are only read, never changed. \(model.imported ? "" : "Continue skips it; ")Settings › Themes can import later.")
             } else {
                 Text(model.sublime.failure ?? "")
                     .fixedSize(horizontal: false, vertical: true)
@@ -460,7 +460,7 @@ private struct KeysStep: View {
             LoginToggle()
         }
         Section("Notifications") {
-            firstRunNote("When Nib is in the background, it tells you about a conflict, a file it can't save or sync, or one deleted or moved to the Trash, with a notification and a sound. Nothing else: not saves, not syncs. macOS asks whether Nib may when you click \(model.chosen == nil ? "Done" : "Reopen Nib"); System Settings › Notifications changes it later.")
+            firstRunNote("When Rune is in the background, it tells you about a conflict, a file it can't save or sync, or one deleted or moved to the Trash, with a notification and a sound. Nothing else: not saves, not syncs. macOS asks whether Rune may when you click \(model.chosen == nil ? "Done" : "Reopen Rune"); System Settings › Notifications changes it later.")
         }
     }
 }
@@ -469,7 +469,7 @@ private struct KeysStep: View {
 struct LoginToggle: View {
     var body: some View {
         let login = LoginItem.shared
-        Toggle("Open Nib when you log in", isOn: Binding(get: { login.enabled || login.needsApproval }, set: { login.set($0) }))
+        Toggle("Open Rune when you log in", isOn: Binding(get: { login.enabled || login.needsApproval }, set: { login.set($0) }))
             .onAppear { login.refresh() }
             .onChange(of: login.failure) { _, why in if let why { Announce.sentence(why) } }   // F62
         if login.needsApproval {
@@ -484,7 +484,7 @@ struct LoginToggle: View {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.failure)
             }
         }
-        firstRunNote("So Show Scratch works from the moment you log in. macOS confirms it in a notification and lists Nib in System Settings › General › Login Items & Extensions, where you can turn it off too.")
+        firstRunNote("So Show Scratch works from the moment you log in. macOS confirms it in a notification and lists Rune in System Settings › General › Login Items & Extensions, where you can turn it off too.")
     }
 }
 

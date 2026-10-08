@@ -69,11 +69,11 @@ enum CLIBridge {
             let url = URL(fileURLWithPath: file.path)
             var folder: ObjCBool = false
             if FileManager.default.fileExists(atPath: url.path, isDirectory: &folder), folder.boolValue {
-                problems.append("\(url.path) is a folder: Nib opens files")
+                problems.append("\(url.path) is a folder: Rune opens files")
             } else if !FileManager.default.fileExists(atPath: url.deletingLastPathComponent().path) {
                 problems.append("\(url.path): its folder doesn't exist, so there's nowhere to make it")   // F3: it exited 0 before
             } else if ScratchLocation.refusal(for: url) != nil {
-                problems.append("\(url.path) isn't a test file: in a test run, Nib opens only files in iCloud Drive › Nib › Test")
+                problems.append("\(url.path) isn't a test file: in a test run, Rune opens only files in iCloud Drive › Rune › Test")
             } else {
                 if request.wait {
                     if key(url) == key(Documents.scratch.url) {

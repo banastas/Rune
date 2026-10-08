@@ -33,7 +33,7 @@ struct FindBar: View {
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .frame(minWidth: 90, maxWidth: find.failure == nil ? 190 : 320, alignment: .leading)
-                    .help(find.failure.map { _ in "The pattern isn't a regular expression Nib can read. Check the brackets and escapes, or turn off .* to find it as typed." } ?? "Matches in the text")
+                    .help(find.failure.map { _ in "The pattern isn't a regular expression Rune can read. Check the brackets and escapes, or turn off .* to find it as typed." } ?? "Matches in the text")
                     .accessibilityLabel(find.countLabel.isEmpty ? "No search" : Spoken.sentence(find.countLabel))   // F61
                 controls
             }

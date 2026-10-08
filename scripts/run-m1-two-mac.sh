@@ -29,7 +29,7 @@ T0=$(date -j -f "%H:%M:%S" "$at:00" +%s)
 SIGN=${SIGN:-team}   # as in run-m1-scenarios.sh; both Macs must use the same
 echo "==> Building nib (Debug, $SIGN signing)"
 scripts/build-nib.sh "$SIGN"   # and checks the app is newer than every source file
-APP=build/DerivedData/Build/Products/Debug/Nib.app/Contents/MacOS/Nib
+APP=build/DerivedData/Build/Products/Debug/Rune.app/Contents/MacOS/Rune
 mkdir -p build/scenarios
 LOG=$PWD/build/scenarios/$scenario-$role.log
 # A clean start for the scenarios' own journal: one left by an earlier failed run would raise a
