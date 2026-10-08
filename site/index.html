@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rune — a small, fast text editor for macOS</title>
-<meta name="description" content="Rune is a small, fast text editor for macOS: plain-text paste, quick edits in Sublime Text's colors, and one scratch.md in iCloud Drive that every Mac shares, saved as you type and merged between Macs, never overwritten.">
+<meta name="description" content="A small, fast text editor for the Mac, with one scratch file in iCloud Drive that all your Macs share. It saves as you type, and edits from two Macs are merged, never overwritten.">
 <meta name="theme-color" content="#0a0a0a">
 <!-- The link preview on X, Hacker News, Slack, Messages and the rest. No card image yet. -->
 <meta property="og:type" content="website">
@@ -107,10 +107,7 @@ h1 {
 .tagline .cursor { animation: blink 1.1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .sub { color: var(--dim); max-width: 50ch; margin: 0 0 22px; }
-section.block .sub { max-width: 70ch; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { border: 1px solid var(--border); padding: 3px 8px 2px; color: var(--dim); }
-.chip b { color: var(--bright); font-weight: normal; }
+section.block .sub { max-width: 60ch; margin-bottom: 28px; }
 .cta { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 22px; }
 .btn-quiet { border-color: var(--border); color: var(--dim); }
 .btn-quiet:hover { border-color: var(--bright); background: none; color: var(--bright); }
@@ -219,11 +216,11 @@ section.block .sub { max-width: 70ch; }
 .note { margin: 10px 2px 0; }
 
 /* ---------- sections ---------- */
-section.block { padding: 56px 0; border-top: 1px solid var(--border); }
+section.block { padding: 72px 0; border-top: 1px solid var(--border); }
 .section-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 26px; }
 .section-head .label { color: var(--dim); }
 h2 { font-family: var(--label); font-weight: normal; font-size: clamp(22px, 3.4vw, 30px); letter-spacing: 0.04em; margin: 0; text-transform: uppercase; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .card {
   border: 1px solid var(--border);
   padding: 16px 16px 14px;
@@ -249,7 +246,7 @@ h2 { font-family: var(--label); font-weight: normal; font-size: clamp(22px, 3.4v
 .card p:last-child { margin-bottom: 0; }
 .card .k { color: var(--bright); }
 
-.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
 .metric { border: 1px solid var(--border); padding: 12px 14px; }
 .metric .v { font-size: 56px; line-height: 0.9; margin-top: 2px; white-space: normal; overflow: visible; }
 .metric .v small { font-size: 22px; color: var(--dim); }
@@ -263,11 +260,6 @@ h2 { font-family: var(--label); font-weight: normal; font-size: clamp(22px, 3.4v
 .term .p { color: var(--dim); }
 .term .ok { color: var(--bright); }
 
-.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 10px 22px; margin-top: 18px; }
-.legend div { font-size: 20px; color: #c4c4c4; }
-.legend .s { display: block; color: var(--bright); }
-.legend .s.dimmed { color: var(--dim); }
-.legend .s.failed { color: var(--failure-text); }
 
 /* An editor-area sample: the scheme's colors, as Sublime Text draws them (HL7). */
 .page-sample {
@@ -303,15 +295,10 @@ h2 { font-family: var(--label); font-weight: normal; font-size: clamp(22px, 3.4v
 .spec { width: 100%; border-collapse: collapse; font-size: 20px; }
 .spec td, .spec th { border-top: 1px solid var(--border); padding: 8px 10px 7px 0; vertical-align: top; text-align: left; font-weight: normal; }
 .spec td:first-child, .spec th { font-family: var(--label); font-size: 11px; color: var(--dim); width: 34%; padding-top: 12px; text-transform: uppercase; }
-.spec.measured td:first-child { width: 30%; }
-.spec.measured td:nth-child(2) { color: var(--dim); width: 26%; }
-.spec.measured th:nth-child(2), .spec.measured th:nth-child(3) { width: auto; }
-.table-scroll { overflow-x: auto; }
 h3.sub-head { font-family: var(--label); font-weight: normal; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; margin: 36px 0 10px; }
 
-.langs { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 6px; }
-.langs span { border: 1px solid var(--border); padding: 2px 8px 1px; font-size: 19px; color: #c4c4c4; }
-.langs span.own { border-style: dashed; color: var(--dim); }
+.langs { color: #c4c4c4; margin: 14px 2px 28px; }
+.langs .label { margin-right: 10px; }
 
 .marks { display: flex; flex-wrap: wrap; gap: 18px; margin: 4px 0 12px; }
 .marks figure { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
@@ -342,6 +329,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
   .hud { grid-template-columns: 1fr; }
   .topbar nav { display: none; }
   .price { grid-template-columns: 1fr; }
+  .grid, .metrics { grid-template-columns: 1fr; }
   .split { grid-template-columns: minmax(0, 1fr); }
   .rstrip { flex-wrap: wrap; row-gap: 2px; padding-top: 5px; padding-bottom: 4px; }
   .sync-btn { flex-basis: 100%; }
@@ -357,7 +345,6 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
   body { font-size: 20px; }
   .metric .v { font-size: 46px; }
   .price-v { font-size: 80px; }
-  .legend { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -390,13 +377,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
       <div>
         <h1>RUNE</h1>
         <p class="tagline">WRITE IT DOWN.<br> LOSE NOTHING<span class="cursor" aria-hidden="true">_</span></p>
-        <p class="sub">A small, fast Mac text editor for plain-text paste, quick edits and one scratch.md in iCloud Drive, saved as you type and merged between your Macs, never overwritten.</p>
-        <div class="chips label">
-          <span class="chip">macOS <b>27</b></span>
-          <span class="chip">Apple silicon</span>
-          <span class="chip">iCloud Drive</span>
-          <span class="chip">7-day free trial</span>
-        </div>
+        <p class="sub">A small, fast text editor for the Mac, with one scratch file in iCloud Drive that all your Macs share. It saves as you type, and edits from two Macs are merged, never overwritten.</p>
         <div class="cta">
           <a class="btn is-soon" id="download-button" aria-disabled="true" data-href="downloads/Rune.zip">Download free trial</a>
           <a class="btn btn-quiet" href="#buy">Buy · $19</a>
@@ -406,9 +387,9 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
     </div>
   </section>
 
-  <section class="demo" aria-label="Rune's scratch window and status strip, simulated">
+  <section class="demo" aria-label="Rune's scratch window and status line, simulated">
     <div class="wrap">
-      <div class="caption label dim"><span id="demo-caption">The scratch window and its status strip · simulation</span><span id="clock">--:--:--</span></div>
+      <div class="caption label dim"><span id="demo-caption">scratch.md · simulated</span><span id="clock">--:--:--</span></div>
       <div class="win">
         <div class="win-bar">
           <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -419,7 +400,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
           <div class="minimap" id="minimap" aria-hidden="true"></div>
         </div>
         <div class="rstrip">
-          <button class="sync-btn" id="sync-btn" type="button" aria-expanded="true" aria-controls="hud" title="Click for the sync details (⇧⌘Y in Rune)">
+          <button class="sync-btn" id="sync-btn" type="button" aria-expanded="false" aria-controls="hud" title="Click for the sync details (⇧⌘Y in Rune)">
             <span class="tag" id="tag" hidden></span>
             <span class="state" id="state"></span>
           </button>
@@ -427,7 +408,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
         </div>
       </div>
 
-      <div class="hud" id="hud" role="group" aria-label="The sync HUD">
+      <div class="hud" id="hud" role="group" aria-label="The sync HUD" hidden>
         <div class="hud-head"><span class="label" id="hud-title"></span><span class="label dim">RUNE://SYNC</span></div>
         <div class="panel">
           <h3>File</h3>
@@ -455,85 +436,41 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
           <div class="log" id="log"></div>
         </div>
       </div>
-      <p class="label dim note">In Rune's own words. This Mac is called Studio, the other Air; the time between events is shortened.</p>
+      <p class="label dim note">This Mac is Studio, the other is Air, and time runs faster. Click the status line for the sync details.</p>
     </div>
   </section>
 
   <section class="block" id="sync">
     <div class="wrap">
       <div class="section-head"><span class="label">01</span><h2>Nothing lost between Macs</h2></div>
-      <p class="sub" style="margin-bottom:22px">The scratch file lives in Rune's own folder in iCloud Drive; any other file stays where it is. Rune saves as you type, uploads each version itself, and says in the strip how far each version has got. Every difference between Macs is merged or shown: no text any Mac wrote is dropped without you seeing it.</p>
+      <p class="sub">Every difference between your Macs is merged or shown to you. Nothing is dropped quietly.</p>
       <div class="metrics">
-        <div class="metric"><div class="label dim">On disk within</div><div class="v">300<small> MS</small></div><div class="d">every edit, in the recovery journal <span class="dim">(measured 235-260 ms)</span></div></div>
-        <div class="metric"><div class="label dim">In the file</div><div class="v">1<small> S</small></div><div class="d">after you stop typing, and at once when you switch away <span class="dim">(measured 1.0 s; in a big file a save that wrote a lot holds the next back, and the journal has every keystroke meanwhile)</span></div></div>
-        <div class="metric"><div class="label dim">To the other Mac</div><div class="v">2.5<small> S</small></div><div class="d">from a save to the text on the other Mac, median <span class="dim">(3.6 s p95, both awake and online)</span></div></div>
-        <div class="metric"><div class="label dim">History</div><div class="v">30<small> DAYS</small></div><div class="d">of saved versions, kept on this Mac</div></div>
+        <div class="metric"><div class="label dim">On disk within</div><div class="v">300<small> MS</small></div><div class="d">every keystroke, in a recovery journal</div></div>
+        <div class="metric"><div class="label dim">To your other Mac</div><div class="v">2.5<small> S</small></div><div class="d">from a save to the text there, median</div></div>
+        <div class="metric"><div class="label dim">History</div><div class="v">30<small> DAYS</small></div><div class="d">of versions, kept on this Mac</div></div>
       </div>
       <div class="grid">
         <div class="card">
-          <h3><span data-glyph="check"></span> In the journal first</h3>
-          <p>Every edit goes into a recovery journal on this Mac within 300 ms, written through to the disk before it counts. A crash, a force quit or a kernel panic loses at most the last 300 ms, and the rest comes back at the next launch.</p>
-          <p class="dim">There is no "Save?" and no unsaved state to lose. A file nobody typed in is never written.</p>
-        </div>
-        <div class="card">
-          <h3><span data-glyph="pause"></span> Held while it's open</h3>
-          <p>While a file in iCloud Drive is open, Rune pauses iCloud's own syncing of it, saves in place, and uploads each version itself: 3 s after typing pauses, every 20 s while it goes on, and at once when you switch away, lock the screen, sleep the Mac or quit.</p>
-          <p class="dim">An upload fails rather than overwrite a newer version on the server. Rune fetches that version, merges, and uploads again.</p>
-        </div>
-        <div class="card">
-          <h3><span data-glyph="down"></span> Checks before you type</h3>
-          <p>When Rune comes forward on a Mac, it asks iCloud for the newest version of what's open, so the Mac you switch to checks before you type.</p>
-          <p class="dim">What no Mac can know: a version another Mac hasn't uploaded yet, because it's asleep, offline or its lid closed mid-upload. Typing on the older copy then makes a merge, not a loss.</p>
+          <h3><span data-glyph="check"></span> Saved as you type</h3>
+          <p>A crash or a force quit loses at most the last 300 ms. There's no "Save?" to answer, and File › Revert To brings back any version from the last 30 days.</p>
         </div>
         <div class="card">
           <h3><span data-glyph="check"></span> Merged, not overwritten</h3>
-          <p>Edits from two Macs that don't overlap merge on their own, three-way, by line and then by word inside a line, as one step <span class="k">⌘Z</span> undoes. The same inputs give the same bytes on either Mac.</p>
+          <p>Rune uploads each version itself, and an upload fails rather than replace a newer one. Edits that don't overlap are merged, by line and by word, and <span class="k">⌘Z</span> undoes the merge.</p>
         </div>
         <div class="card">
-          <h3><span data-glyph="cross"></span> Conflicts in the text</h3>
-          <p>Where both Macs changed the same lines, both versions go into the file between standard conflict markers, so nothing is lost even with Rune closed. Rune draws them as blocks: <span class="k">⌘1</span>, <span class="k">⌘2</span> or <span class="k">⌘3</span> keeps one side or both, and <span class="k">⌥⌘R</span> opens the merge view.</p>
+          <h3><span data-glyph="cross"></span> Conflicts you can see</h3>
+          <p>Where both Macs changed the same lines, both versions stay in the file. <span class="k">⌘1</span>, <span class="k">⌘2</span> or <span class="k">⌘3</span> keeps one side or both; <span class="k">⌥⌘R</span> opens the merge view.</p>
         </div>
         <div class="card">
-          <h3><span data-glyph="arrow"></span> History for 30 days</h3>
-          <p>Every version opened, merged, received from another Mac, restored or closed with, and the newest save of each 5 minutes. All of them for a day, hourly for a week, daily to 30 days. File › Revert To and the History window bring any back.</p>
-          <p class="dim">History and the journal stay on this Mac and never sync.</p>
+          <h3><span data-glyph="arrow"></span> Says how far it got</h3>
+          <p>The status line says when a version is saved, uploaded and on your other Mac. A deleted file, a full disk or iCloud turned off gets a plain red line and a way out.</p>
         </div>
-        <div class="card">
-          <h3><span data-glyph="check"></span> Receipts from your other Macs</h3>
-          <p>Each Mac's Rune notes which version of each file it has loaded, so the strip can say <span class="k">✓ SYNCED · ON AIR 10:42:31</span>, or that Air has a newer one that isn't here yet.</p>
-          <p class="dim">Receipts travel through iCloud too, so they're as late as iCloud is.</p>
-        </div>
-        <div class="card">
-          <h3><span data-glyph="down"></span> iCloud's own copies</h3>
-          <p>iCloud's conflict versions and duplicates such as <span class="k">scratch 2.md</span> are found and brought into the same merge. An identical duplicate goes to the Trash.</p>
-        </div>
-        <div class="card">
-          <h3><span data-glyph="cross"></span> Says what went wrong</h3>
-          <p>A file deleted or moved to the Trash elsewhere gets a banner with Restore and Close. A file renamed or moved is followed. With iCloud Drive off, saves go to Rune's recovery folder and merge back when the file returns; with iCloud storage full, Rune keeps saving on this Mac and tries again.</p>
-          <p class="dim">A full disk is the one case where text lives only in memory. The strip says so in red, Rune tries again every 15 s, and it offers to empty the Trash when that would help.</p>
-        </div>
-      </div>
-
-      <h3 class="sub-head">The strip, state by state</h3>
-      <p class="sub">A glyph and words, never color alone. Waits are dim, never red; red only when something needs you.</p>
-      <div class="legend" id="legend">
-        <div><span class="s dimmed" data-hud="· EDITING"></span>Typed in the last second: in the journal, not yet in the file.</div>
-        <div><span class="s" data-hud="= SAVED LOCALLY · 10:42:05"></span>In the file on this Mac. iCloud doesn't have this version yet.</div>
-        <div><span class="s" data-hud="▲ UPLOADING · SAVED 10:42:05"></span>Rune is sending this version to iCloud.</div>
-        <div><span class="s" data-hud="✓ SYNCED · 10:42:07"></span>iCloud has this exact version: the one Rune's upload returned.</div>
-        <div><span class="s" data-hud="✓ SYNCED · ON AIR 10:42:31"></span>And your other Mac has loaded it.</div>
-        <div><span class="s" data-hud="▼ NEWER ON AIR · 10:42:31 · NOT HERE YET"></span>Another Mac saved a version this one hasn't received.</div>
-        <div><span class="s dimmed" data-hud="‖ A NEWER VERSION FROM ANOTHER MAC · CHECKING WHAT IT WAS MADE FROM, TO MERGE IT"></span>Another Mac's version came in while this Mac's latest typing is still only in the journal. Rune waits up to 10 s to learn which version it was made from, then merges from there.</div>
-        <div><span class="s" data-hud="✓ MERGED 2 CHANGES FROM AIR · ⌘Z UNDOES"></span>A clean merge, shown for 10 s.</div>
-        <div><span class="s dimmed" data-hud="‖ WAITING FOR NETWORK · SAVED LOCALLY"></span>Offline: saved on this Mac, waiting for the network to upload.</div>
-        <div><span class="s" data-hud="◐ OFFLINE · SHOWING THE COPY FROM 10:42 · EDITS MERGE WHEN ICLOUD RETURNS"></span>Not on this Mac and offline: the copy Rune saw last, editable.</div>
-        <div><span class="s" data-hud="✓ SAVED · 10:42:05"></span>A file outside iCloud Drive, written to this Mac's disk.</div>
-        <div><span class="s failed" data-hud="✕ ICLOUD STORAGE IS FULL · SAVED LOCALLY ONLY" data-tag="✕"></span>Saved on this Mac; Rune tries the upload again.</div>
       </div>
 
       <div class="split">
         <figure style="margin:0">
-          <figcaption class="caption label dim"><span>A conflict, as Rune shows it</span></figcaption>
+          <figcaption class="caption label dim"><span>A conflict in Rune</span></figcaption>
           <div class="win">
             <div class="banner"><span class="tag" data-hud="✕ CONFLICT"></span><span>Air and this Mac both changed 1 place. Everything else merged.</span><span class="nbtn">Next Conflict</span></div>
             <div class="editor small">
@@ -550,7 +487,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
           </div>
         </figure>
         <figure style="margin:0">
-          <figcaption class="caption label dim"><span>And in the file, for any other editor</span></figcaption>
+          <figcaption class="caption label dim"><span>The same file in any other editor</span></figcaption>
 <pre class="term"><span class="p">$ cat scratch.md</span>
 - [ ] two shirts
 <span class="ok">&lt;&lt;&lt;&lt;&lt;&lt;&lt; Air · 10:44</span>
@@ -567,39 +504,24 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
   <section class="block" id="paste">
     <div class="wrap">
       <div class="section-head"><span class="label">02</span><h2>Plain text in</h2></div>
-      <p class="sub" style="margin-bottom:22px">Paste anything, get clean, unstyled text back, in Rune or in any other app.</p>
+      <p class="sub">Paste anything and get clean, unstyled text, in Rune or in any other app.</p>
       <div class="grid">
         <div class="card">
-          <h3><span data-glyph="check"></span> Paste is always plain</h3>
-          <p><span class="k">⌘V</span> in Rune inserts only the text: fonts, colors, links, images and attachments are dropped, and line endings become the document's. A clipboard with only HTML or RTF on it is turned into text.</p>
-          <p class="dim">Copy and Cut put plain text on the clipboard, never the syntax colors.</p>
+          <h3>Paste is always plain</h3>
+          <p><span class="k">⌘V</span> in Rune inserts only the text: no fonts, colors, links or images. Copy puts plain text on the clipboard too.</p>
         </div>
         <div class="card">
           <h3>Paste Clean</h3>
-          <p><span class="k">⌥⇧⌘V</span> also removes invisible characters (zero-width spaces, joiners, byte-order marks, soft hyphens, bidi controls), turns non-breaking and other unusual spaces into plain ones, and trims trailing whitespace.</p>
-          <p class="dim">Straightening smart quotes and dashes is a setting, off by default.</p>
+          <p><span class="k">⌥⇧⌘V</span> also removes invisible characters such as zero-width spaces, makes unusual spaces plain, and trims trailing whitespace.</p>
         </div>
         <div class="card">
           <h3>Clean Clipboard</h3>
-          <p><span class="k">⌃⌥⌘V</span>, from any app, rewrites the clipboard in place as clean plain text, with no window. Then <span class="k">⌘V</span> pastes plain text wherever you are.</p>
+          <p><span class="k">⌃⌥⌘V</span>, in any app, rewrites the clipboard as clean plain text, with no window.</p>
         </div>
         <div class="card">
-          <h3>Append Clipboard to Scratch</h3>
-          <p>Adds the cleaned clipboard to the end of scratch.md, after a blank line, without taking the focus. From the menu bar, or from a global shortcut you choose.</p>
+          <h3>Append to Scratch</h3>
+          <p>Adds the clipboard, or a selection through Services, to the end of scratch.md without leaving the app you're in. In Shortcuts too.</p>
         </div>
-        <div class="card">
-          <h3>Copy Block</h3>
-          <p><span class="k">⇧⌘C</span> copies the fenced code block at the caret without its fences, or the paragraph at the caret, with nothing selected. For terminal commands and email paragraphs.</p>
-        </div>
-        <div class="card">
-          <h3>From any app</h3>
-          <p>Services › Clean Text puts a selection back as clean plain text; Services › Append to Rune Scratch adds it to scratch.md. In Shortcuts: Append to Scratch, Get Scratch and Clean Text.</p>
-        </div>
-      </div>
-      <div style="margin-top:14px">
-        <div class="caption label dim"><span>What it says, in the HUD's words</span></div>
-        <div class="term" id="paste-lines"><span data-hud="CLIPBOARD CLEANED · 1 INVISIBLE REMOVED · 1 SPACE MADE PLAIN · 1 LINE TRIMMED · FORMATTING DROPPED"></span>
-<span data-hud="APPENDED 3 LINES TO SCRATCH"></span></div>
       </div>
     </div>
   </section>
@@ -607,13 +529,9 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
   <section class="block" id="edit">
     <div class="wrap">
       <div class="section-head"><span class="label">03</span><h2>Quick edits</h2></div>
-      <p class="sub" style="margin-bottom:22px">Open a file, fix it, close it. Highlighting that looks as Sublime Text's does, Sublime's keys for the commands Rune has, and nothing an IDE would add.</p>
-      <div class="metrics">
-        <div class="metric"><div class="label dim">Colored as Sublime colors it</div><div class="v">99.97%</div><div class="d">of characters on Rune's 30 reference files <span class="dim">(28,758 of 28,766)</span></div></div>
-        <div class="metric"><div class="label dim">View › Syntax</div><div class="v">33<small> LANGUAGES</small></div><div class="d">and the languages inside them: <span class="k">&lt;script&gt;</span> and <span class="k">&lt;style&gt;</span> in HTML, fenced code in Markdown</div></div>
-      </div>
-      <figure style="margin:0 0 6px">
-        <figcaption class="caption label dim"><span>script.js, a reference file, as Sublime Text colors it with An Old Hope · Rune</span></figcaption>
+      <p class="sub">Open a file, fix it, close it. Highlighting that matches Sublime Text, Sublime's keys, and nothing an IDE would add.</p>
+      <figure style="margin:0">
+        <figcaption class="caption label dim"><span>Colored as Sublime Text colors it: 99.97% of characters on Rune's reference files</span></figcaption>
 <pre class="page-sample"><span class="k">export</span> <span class="k">function</span> <span class="y">totalsByMonth</span>(<span class="oi">invoices</span>, { <span class="oi">round</span> = <span class="o">true</span> } = {}) {
   <span class="k">const</span> <span class="g">totals</span> = new <span class="ci">Map</span>();
   <span class="k">for</span> (<span class="k">const</span> { <span class="g">date</span>, <span class="g">amount</span> } <span class="k">of</span> <span class="g">invoices</span>) {
@@ -623,48 +541,23 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
   <span class="k">return</span> <span class="g">round</span> ? [...<span class="g">totals</span>].<span class="g">map</span>(([<span class="oi">m</span>, <span class="oi">t</span>]) <span class="k">=&gt;</span> [<span class="g">m</span>, <span class="c">Math</span>.<span class="c">round</span>(<span class="g">t</span> * <span class="o">100</span>) / <span class="o">100</span>]) : [...<span class="g">totals</span>];
 }</pre>
       </figure>
-      <div class="langs" aria-label="Languages">
-        <span>HTML</span><span>CSS</span><span>JavaScript</span><span>JSON</span><span>Markdown</span><span>Shell</span><span>XML</span><span>JSX</span><span>TypeScript</span><span>TSX</span><span>Diff</span><span>Git Commit</span><span>Git Ignore</span><span>Git Attributes</span><span>Git Config</span><span>Makefile</span><span>YAML</span><span>TOML</span><span>Python</span><span>Go</span><span>Rust</span><span>Ruby</span><span>Java</span><span>C</span><span>Lua</span><span>PHP</span><span>SQL</span><span>reStructuredText</span><span class="own">INI</span><span class="own">Swift</span><span class="own">CSV</span><span class="own">TSV</span><span class="own">Log</span>
-      </div>
-      <p class="label dim" style="margin:0 2px 22px">Dashed: Rune's own colors, where Sublime Text has none. .env files read as shell.</p>
+      <p class="langs"><span class="label dim">33 languages</span> HTML · CSS · JavaScript · TypeScript · JSX · JSON · Markdown · Shell · Python · Go · Rust · Ruby · Swift · Java · C · PHP · SQL · YAML · TOML · XML · CSV · and more</p>
       <div class="grid">
         <div class="card">
-          <h3>An Old Hope · Rune, built in</h3>
-          <p>A corrected edition of the An Old Hope color scheme: the purple taken out, and every text color at least 4.5:1 on the background. The same file installs in Sublime Text.</p>
-          <p class="dim">An Old Hope is © 2015 Jesse Leite, under the MIT license. Rune is dark only, always.</p>
-        </div>
-        <div class="card">
-          <h3>Import from Sublime Text</h3>
-          <p>One click reads your color scheme, font, size, line padding, tab settings and word wrap from Sublime Text, and changes nothing there. Or import any <span class="k">.tmTheme</span> or <span class="k">.sublime-color-scheme</span>, with a report in plain words of what was imported, what isn't drawn, and colors under 4.5:1.</p>
-        </div>
-        <div class="card">
-          <h3>Sublime's keys</h3>
-          <p>Sublime Text's default bindings for every command Rune has: <span class="k">⌘L</span> select line, <span class="k">⌘J</span> join, <span class="k">⇧⌘D</span> duplicate, <span class="k">⌃⌘↑ ↓</span> move, <span class="k">⌘/</span> comment, <span class="k">⌘] ⌘[</span> indent, <span class="k">⌃G</span> go to line.</p>
+          <h3>Sublime's colors and keys</h3>
+          <p>An Old Hope built in, or import your scheme and font from Sublime Text in one click. Sublime's default keys for every command Rune has, and its minimap.</p>
         </div>
         <div class="card">
           <h3>Multiple carets</h3>
-          <p><span class="k">⌘D</span> adds the next occurrence, <span class="k">⇧⌘L</span> splits a selection into lines, <span class="k">⌘</span>-click adds a caret, <span class="k">⌥</span>-drag makes a column. Typing, deleting, the arrows, the clipboard and the line commands work at every caret.</p>
-          <p class="dim"><span class="k">⌘U</span> takes back the carets' last change, as Sublime's soft undo does.</p>
+          <p><span class="k">⌘D</span> adds the next match, <span class="k">⇧⌘L</span> splits a selection into lines, <span class="k">⌘</span>-click adds a caret, <span class="k">⌥</span>-drag makes a column.</p>
         </div>
         <div class="card">
-          <h3>Find and replace</h3>
-          <p>In a bar of Rune's own: regular expressions, match case, whole word, in selection. Replace All is one undo, and Find All puts a caret on every match.</p>
-        </div>
-        <div class="card">
-          <h3>Go to File</h3>
-          <p><span class="k">⌘P</span> finds the scratch file, open files, recent files and the Rune folder: a name that starts with what you type comes first, then one that contains it, then one with its letters in order. <span class="k">⇧⌘P</span> opens every menu command with its shortcut; <span class="k">⌘R</span> lists a Markdown file's headings.</p>
-        </div>
-        <div class="card">
-          <h3>Minimap</h3>
-          <p>Beside the scroller, as Sublime's: the text at a seventh of its size, each word a bar in its syntax color, conflict blocks in the muted red. Click or drag to scroll. View › Hide Minimap turns it off.</p>
+          <h3>Find anything</h3>
+          <p>Find and replace with regular expressions. <span class="k">⌘P</span> goes to a file, <span class="k">⇧⌘P</span> runs any command, <span class="k">⌘R</span> jumps to a Markdown heading.</p>
         </div>
         <div class="card">
           <h3>Files kept as they were</h3>
-          <p>Saving keeps the encoding, line endings, final newline, permissions (a script stays executable), extended attributes, and the file itself, written in place. Line endings and indentation change from the View menu or the strip.</p>
-        </div>
-        <div class="card">
-          <h3>Big files too</h3>
-          <p>Everything up to 5 MB. From 5 to 100 MB the strip says <span class="k">HIGHLIGHTING OFF · 42 MB</span> and the file stays editable; above 100 MB Rune asks first.</p>
+          <p>Encoding, line endings, permissions and extended attributes stay as they were. Big files open fast; past 5 MB, highlighting turns off.</p>
         </div>
       </div>
     </div>
@@ -676,55 +569,31 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
       <div class="grid">
         <div class="card">
           <h3>Show Scratch</h3>
-          <p><span class="k">⌥Space</span>, from any app, brings the scratch window forward with the caret where you left it. Press it again and Rune steps back to the app you were in.</p>
-          <p class="dim">The keys can be changed in Settings › General, which warns when another app holds them.</p>
+          <p><span class="k">⌥Space</span>, in any app, brings the scratch window forward with the caret where you left it. Press it again to go back.</p>
         </div>
         <div class="card">
-          <h3>One window of tabs</h3>
-          <p>Files open as native tabs beside the scratch file, one buffer per file. ⌘O, Open Recent, Open With, a drag onto the Dock icon or the window. <span class="k">⇧⌘T</span> reopens a closed file, and the files open at a quit open again.</p>
-        </div>
-        <div class="card">
-          <h3>Untitled, still kept</h3>
-          <p><span class="k">⌘N</span> and <span class="k">⌘T</span> open untitled tabs that are journaled like everything else and come back after a quit or a crash. Closing one keeps its text in History for 30 days, with no "Save?".</p>
+          <h3>Tabs that come back</h3>
+          <p>Files open as native tabs beside the scratch file. Untitled tabs are kept like everything else, and the tabs open at a quit open again.</p>
         </div>
         <div class="card">
           <h3>In the menu bar</h3>
           <div class="marks" aria-hidden="true">
-            <figure><svg class="px" width="27" height="30" viewBox="0 0 9 10" data-mark="still"></svg><figcaption class="label dim">Still</figcaption></figure>
+            <figure><svg class="px" width="27" height="30" viewBox="0 0 9 10" data-mark="still"></svg><figcaption class="label dim">All well</figcaption></figure>
             <figure><svg class="px" width="27" height="30" viewBox="0 0 9 10" data-mark="march"></svg><figcaption class="label dim">Upload waiting</figcaption></figure>
             <figure><svg class="px" width="51" height="30" viewBox="0 0 17 10" data-mark="cross"></svg><figcaption class="label dim">Needs a look</figcaption></figure>
           </div>
-          <p>A pixel ᚱ that stays still while all is well. Its line marches only when an upload has waited more than 3 s, and a red ✕ sits beside it while a conflict or a failed save needs you.</p>
-          <p class="dim">Its panel: the scratch file's state, Show Scratch, Clean Clipboard, Append Clipboard to Scratch and recent files. The Dock icon can be hidden while the ᚱ is in the menu bar.</p>
+          <p>Its panel has Show Scratch, Clean Clipboard and your recent files.</p>
         </div>
         <div class="card">
-          <h3>Open with Rune</h3>
-          <p>Settings › Files makes Rune the app for Markdown, plain text, JSON, CSS, JavaScript and shell scripts, a kind at a time. Turning one off gives it back to the app it had.</p>
-        </div>
-        <div class="card">
-          <h3>Notifications that matter</h3>
-          <p>Only for a conflict, a save that failed, a file deleted, iCloud Drive turned off or iCloud storage full, and only while Rune isn't in front. Once while it lasts, taken back when it's over. Saves never notify.</p>
-        </div>
-        <div class="card">
-          <h3>VoiceOver and Reduce Motion</h3>
-          <p>The strip reads as one summary ("scratch.md, synced at 10:42, line 14, column 3, Markdown"), glyphs are said as words, and conflicts and merges are announced. Under Reduce Motion nothing marches and the sync HUD fades in.</p>
-        </div>
-        <div class="card">
-          <h3>Quiet when idle</h3>
-          <p>No timers while nothing happens: 0.00-0.05% CPU once settled. Rune never holds off sleep; it saves on the way to it.</p>
-        </div>
-        <div class="card">
-          <h3>Keeps itself current</h3>
-          <p>Signed updates, checked once a day; Rune › Check for Updates… checks now.</p>
+          <h3>Quiet</h3>
+          <p>No timers while nothing happens. Notifications only when something needs you, never for a save.</p>
         </div>
       </div>
       <div style="margin-top:14px">
-        <div class="caption label dim"><span>The <code>rune</code> command, like Sublime's <code>subl</code></span></div>
-        <div class="term"><span class="p">$</span> rune notes.md:12                 <span class="p"># opens it at line 12</span>
-<span class="p">$</span> export EDITOR="rune -w"          <span class="p"># waits until the file is closed: git commit messages</span>
-<span class="p">$</span> ls -la | rune                    <span class="p"># standard input as an untitled tab</span>
-<span class="p">$</span> date | rune -a                   <span class="p"># appended to scratch.md, Rune left where it is</span>
-<span class="p">$</span> rune --scratch                   <span class="p"># the scratch window</span></div>
+        <div class="caption label dim"><span>And a <code>rune</code> command, like Sublime's <code>subl</code></span></div>
+        <div class="term"><span class="p">$</span> rune notes.md:12                 <span class="p"># open at line 12</span>
+<span class="p">$</span> export EDITOR="rune -w"          <span class="p"># for git commit messages</span>
+<span class="p">$</span> date | rune -a                   <span class="p"># append to scratch.md</span></div>
       </div>
     </div>
   </section>
@@ -733,36 +602,26 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
     <div class="wrap">
       <div class="section-head"><span class="label">05</span><h2>Spec sheet</h2></div>
       <table class="spec">
-        <tr><td>Platform</td><td>macOS 27, Apple silicon. Swift 6, SwiftUI and AppKit, with a TextKit 2 text view.</td></tr>
-        <tr><td>Sync</td><td>iCloud Drive and nothing else: no account, no server of Rune's own. scratch.md in iCloud Drive › Rune; any other file where it is.</td></tr>
-        <tr><td>While a file is open</td><td>iCloud's own syncing of it paused; saved in place, compare-and-swap, so Rune never overwrites a version on disk it hasn't seen; each version uploaded by Rune, failing rather than overwrite a newer one.</td></tr>
-        <tr><td>Merging</td><td>Three-way, by line and then by word, the same bytes on either Mac. Overlapping edits go between the conflict markers git uses.</td></tr>
-        <tr><td>On this Mac only</td><td>The recovery journal, History (30 days), and the Sync Log (⌥⌘L): every save, upload, arrival, merge and conflict, with its SHA-256.</td></tr>
-        <tr><td>Highlighting</td><td>33 languages, with tree-sitter (CSV and logs a line at a time), colored as Sublime Text colors 99.97% of the reference files' characters. An Old Hope · Rune built in; <span class="k">.tmTheme</span> and <span class="k">.sublime-color-scheme</span> import.</td></tr>
-        <tr><td>Privacy</td><td>No analytics, no telemetry. Your files go only through iCloud Drive, which is end-to-end encrypted only with Advanced Data Protection.</td></tr>
-        <tr><td>Updates</td><td>Sparkle, with EdDSA-signed releases, checked once a day (or off in Settings › General).</td></tr>
-        <tr><td>Distribution</td><td>Sold directly, one-time, through Lemon Squeezy. Signed with Developer ID and notarized by Apple; not sandboxed, so it opens any file on any volume.</td></tr>
-        <tr><td>Tested</td><td>224 engine tests and 549 checks over 70 scenario runs of the app, all passing (7 October 2026), and a test on two Macs whose runs end with both holding the same SHA-256.</td></tr>
+        <tr><td>Platform</td><td>macOS 27, Apple silicon. Native: Swift, AppKit and TextKit 2.</td></tr>
+        <tr><td>Sync</td><td>iCloud Drive and nothing else: no account, no server of Rune's own.</td></tr>
+        <tr><td>Merging</td><td>Three-way, by line and then by word. Conflicts go between git's markers, readable in any editor.</td></tr>
+        <tr><td>On this Mac only</td><td>The recovery journal, 30 days of History, and a Sync Log of every save, upload and merge.</td></tr>
+        <tr><td>Highlighting</td><td>33 languages with tree-sitter. An Old Hope · Rune built in; imports <span class="k">.tmTheme</span> and <span class="k">.sublime-color-scheme</span>.</td></tr>
+        <tr><td>Accessibility</td><td>VoiceOver reads the status line as one sentence. Reduce Motion stops everything that moves.</td></tr>
+        <tr><td>Privacy</td><td>No analytics, no telemetry. Your files go only through iCloud Drive.</td></tr>
+        <tr><td>Updates</td><td>Signed, checked once a day, or off in Settings.</td></tr>
+        <tr><td>Distribution</td><td>Developer ID, notarized by Apple. Not sandboxed, so it opens any file.</td></tr>
       </table>
 
       <h3 class="sub-head">Measured</h3>
-      <div class="table-scroll">
-        <table class="spec measured">
-          <tr><th scope="col">Measure</th><th scope="col">Target</th><th scope="col">Measured</th></tr>
-          <tr><td>Show Scratch to caret ready</td><td>at most 50 ms, p95</td><td>p50 13 ms, p95 25 ms <span class="dim">(Rune's side; macOS's own activation not in it)</span></td></tr>
-          <tr><td>Cold launch to editable scratch window</td><td>at most 300 ms, p95</td><td>p95 274 ms on a quiet Mac <span class="dim">(312-393 ms with other apps busy)</span></td></tr>
-          <tr><td>Keystroke, on the main thread</td><td>one frame (8.3 ms at 120 Hz); p99 at most 16 ms</td><td>p50 1.4 ms, p99 3.1-6.7 ms in a small file; at 2.4 MB, the slowest of a line's keystrokes 7.6-10.9 ms</td></tr>
-          <tr><td>Keystroke to journal</td><td>at most 300 ms</td><td>235-260 ms</td></tr>
-          <tr><td>Keystroke to file</td><td>1 s after a pause, at most 5 s while typing</td><td>1.0 s after a pause</td></tr>
-          <tr><td>New version on disk to screen</td><td>at most 200 ms</td><td>7-12 ms <span class="dim">(another app's coordinated write; 75 ms for <code>echo &gt;&gt;</code>)</span></td></tr>
-          <tr><td>A 2.4 MB, 50,000-line scratch file</td><td>opens in at most 300 ms; a reload or merge at most 100 ms</td><td>shown in 69-98 ms; a reload 71-89 ms; a three-way merge 25-27 ms</td></tr>
-          <tr><td>A 5 MB JavaScript file</td><td>first paint at most 300 ms, highlighted within 1 s</td><td>shown in 120-156 ms, the top colored at 242-247 ms</td></tr>
-          <tr><td>Idle memory</td><td>at most 45 MB with a small scratch file; 100 MB at 2.4 MB</td><td>43 MB; 67.8 MB at 2.4 MB</td></tr>
-          <tr><td>Idle CPU</td><td>0.0%, no timer wakeups</td><td>0.00-0.05% once settled, none from Rune's timers</td></tr>
-          <tr><td>Save on one Mac to text on the other</td><td>measured</td><td>median 2.5 s, p95 3.6 s <span class="dim">(both awake and online)</span></td></tr>
-        </table>
-      </div>
-      <p class="label dim" style="margin:10px 2px 0">Measured on a Mac mini with macOS 27. The cold launch's p95 comes from the test suite's Debug builds; the last row from the first two-Mac probe, 16 versions.</p>
+      <table class="spec">
+        <tr><td>Show Scratch to typing</td><td>25 ms, p95</td></tr>
+        <tr><td>Cold launch to typing</td><td>274 ms, p95</td></tr>
+        <tr><td>A keystroke</td><td>1.4 ms, median</td></tr>
+        <tr><td>Opening a 2.4 MB file</td><td>under 100 ms</td></tr>
+        <tr><td>Idle</td><td>43 MB of memory, 0.00-0.05% CPU</td></tr>
+      </table>
+      <p class="label dim" style="margin:10px 2px 0">On a Mac mini with macOS 27.</p>
     </div>
   </section>
 
@@ -777,7 +636,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
         </div>
         <ul class="price-list">
           <li><span data-glyph="check"></span> 7-day free trial on each Mac, everything included</li>
-          <li><span data-glyph="check"></span> After the trial, Rune is read-only: what you typed still saves, syncs and merges, and History and the journal never stop</li>
+          <li><span data-glyph="check"></span> After it, Rune is read-only until you buy, and keeps syncing what you wrote</li>
           <li><span data-glyph="check"></span> 30-day refunds, no questions asked</li>
           <li><span data-glyph="check"></span> Updates to Rune 1.x included</li>
         </ul>
@@ -1088,15 +947,15 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
     if (instant) {
       await cycle();
       render();
-      $("demo-caption").textContent = "The scratch window and its status strip · Reduce Motion: where the simulation ends";
+      $("demo-caption").textContent = "scratch.md · simulated · Reduce Motion: where it ends";
       return;
     }
     setInterval(() => { if (lines) $("clock").textContent = hms(now()); }, 250);
     for (;;) await cycle();
   })();
 
-  // The sync HUD opens from the strip, as in Rune, and switches on like a CRT the first time it
-  // scrolls into view (a plain show under Reduce Motion).
+  // The sync HUD opens from the status line, as in Rune, and switches on like a CRT (a plain show
+  // under Reduce Motion).
   const hud = $("hud"), syncButton = $("sync-btn");
   syncButton.addEventListener("click", () => {
     const open = hud.hidden;
@@ -1104,14 +963,6 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
     syncButton.setAttribute("aria-expanded", String(open));
     if (open && !reduce) { hud.classList.remove("crt-on"); void hud.offsetWidth; hud.classList.add("crt-on"); }
   });
-  if (!reduce && "IntersectionObserver" in window) {
-    hud.style.visibility = "hidden";
-    new IntersectionObserver((entries, obs) => {
-      if (entries.some(e => e.isIntersecting)) {
-        hud.style.visibility = ""; hud.classList.add("crt-on"); obs.disconnect();
-      }
-    }, { threshold: 0.2 }).observe(hud);
-  }
 
   // ---------- download and checkout ----------
   // Off for visitors until launch (LIVE). Then the Download buttons fetch the current release
