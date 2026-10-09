@@ -45,7 +45,7 @@ final class LineNumberRuler: NSRulerView {
     func fit() {
         let count = max(3, String(editor?.lineIndex.lineCount ?? 1).count)
         let width = ("8" as NSString).size(withAttributes: [.font: Scheme.font]).width
-        let thickness = ceil(CGFloat(count) * width + 16)
+        let thickness = ceil(CGFloat(count) * width + 18)   // room for the change marks (ED12) after the numbers
         guard count != digits || ruleThickness != thickness else { return }
         digits = count
         ruleThickness = thickness
@@ -81,7 +81,7 @@ final class LineNumberRuler: NSRulerView {
         drawnMarks = [:]
         #endif
         let changes = editor.gitChanges
-        let cell: CGFloat = 3, column = bounds.width - cell - 1
+        let cell: CGFloat = 4, column = bounds.width - cell - 2   // 4 points clear of the numbers
         /// A notch: two cells across the boundary between lines, where committed lines were deleted.
         func notch(at y: CGFloat, before line: Int) {
             #if DEBUG
@@ -115,7 +115,7 @@ final class LineNumberRuler: NSRulerView {
             #endif
             let text = NSAttributedString(string: String(line), attributes: caretLines.contains(line) ? current : plain)
             let y = convert(NSPoint(x: 0, y: baseline), from: view).y - font.ascender
-            text.draw(at: NSPoint(x: bounds.width - 8 - text.size().width, y: y))
+            text.draw(at: NSPoint(x: bounds.width - 10 - text.size().width, y: y))
         }
 
         let documentStart = content.documentRange.location
@@ -140,7 +140,14 @@ final class LineNumberRuler: NSRulerView {
         let endsWithNewline = length > 0 && (view.string as NSString).character(at: length - 1) == 0x0A
         let end = index.lineCount - (endsWithNewline ? 1 : 0)
         if changes.deletedBefore.contains(end), let last, content.offset(from: documentStart, to: last.rangeInElement.endLocation) >= length {
-            notch(at: convert(NSPoint(x: 0, y: origin.y + last.layoutFragmentFrame.maxY), from: view).y, before: end)
+            // Under the last line of text: above the empty row a final newline makes, when TextKit 2
+            // lays that out as the paragraph's extra row (it was drawn under that row).
+            let frame = last.layoutFragmentFrame
+            var y = origin.y + frame.maxY
+            if endsWithNewline, last.textLineFragments.count > 1, let extra = last.textLineFragments.last, extra.characterRange.length == 0 {
+                y = origin.y + frame.minY + extra.typographicBounds.minY
+            }
+            notch(at: convert(NSPoint(x: 0, y: y), from: view).y, before: end)
         }
         // The empty line after a final newline: TextKit 2 lays it out as the last paragraph's
         // extra row, or below it.

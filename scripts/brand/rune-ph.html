@@ -1,0 +1,191 @@
+<!doctype html>
+<!-- Rune's Product Hunt images, drawn as the site draws Rune (its palette, fonts and pixel art),
+     rendered by scripts/make-brand.sh: #hero, #conflict and #find at 1270×760 (the gallery; the
+     first is also the shared preview), #thumb at 240×240 (the thumbnail). Generated text only. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "Silkscreen"; src: url("../../site/fonts/Silkscreen-Regular.ttf") format("truetype"); }
+@font-face { font-family: "VT323"; src: url("../../site/fonts/VT323-Regular.ttf") format("truetype"); }
+:root {
+  --bg: #0a0a0a; --border: #2b2b2b; --bright: #f0f0f0; --dim: #7d7d7d; --failure: #b35c5c;
+  --page: #1c1d21; --page-line: #272b34; --page-text: #f8f8f2;
+  --label: "Silkscreen", monospace; --term: "VT323", monospace;
+  --code: ui-monospace, "SF Mono", Menlo, monospace;
+  --system: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--bright); overflow: hidden; }
+body { width: 1270px; height: 760px; font-family: var(--term); -webkit-font-smoothing: none; }
+.px { shape-rendering: crispEdges; }
+.shot { display: none; width: 1270px; height: 760px; padding: 64px 80px; flex-direction: column; justify-content: center; gap: 30px; }
+.shot.on { display: flex; }
+.head { display: flex; align-items: center; gap: 26px; }
+.tile { flex: none; width: 104px; height: 104px; border-radius: 24px; background: #121212; box-shadow: inset 0 0 0 1px var(--border); display: grid; place-items: center; }
+.tile svg { width: 66%; height: 66%; }
+h1 { font-family: var(--label); font-weight: normal; font-size: 64px; letter-spacing: 0.04em; line-height: 0.9; }
+h2 { font-family: var(--label); font-weight: normal; font-size: 40px; letter-spacing: 0.04em; text-transform: uppercase; }
+.tagline { font-size: 38px; }
+.sub { font-size: 30px; color: #c4c4c4; max-width: 980px; line-height: 1.15; }
+.label { font-family: var(--label); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
+.win { border: 1px solid #3a3a3c; border-radius: 14px; overflow: hidden; background: var(--page); box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.bar { display: flex; align-items: center; gap: 16px; height: 42px; padding: 0 16px; background: #2a2a2d; border-bottom: 1px solid #111; font-family: var(--system); -webkit-font-smoothing: antialiased; }
+.lights { display: flex; gap: 8px; } .lights i { width: 12px; height: 12px; border-radius: 50%; background: #4a4a4d; display: block; }
+.title b { display: block; font-size: 13px; font-weight: 600; color: #e6e6e6; } .title span { font-size: 11px; color: #9a9a9a; }
+.editor { display: flex; font: 16px/25px var(--code); color: var(--page-text); -webkit-font-smoothing: antialiased; padding: 10px 0; }
+.gutter { width: 52px; padding-right: 14px; text-align: right; color: #5c616d; flex: none; }
+.lines { flex: 1; padding-left: 4px; } .ln { white-space: pre; } .ln.cur, .gutter .cur { background: var(--page-line); } .gutter .cur { color: #c9ccd4; }
+.h { color: #e7ce57; font-weight: bold; } .l { color: #ef7c2b; } .b { color: #ef7c2b; font-weight: bold; } .c { color: #78bc65; }
+.caret { display: inline-block; width: 2px; height: 19px; vertical-align: -4px; background: #f8f8f0; }
+.strip { display: flex; align-items: center; gap: 12px; height: 34px; padding: 0 14px; background: var(--bg); border-top: 1px solid var(--border); font-size: 21px; }
+.strip .slots { margin-left: auto; color: var(--dim); }
+.glyph { fill: currentColor; }
+/* the conflict */
+.pair { display: grid; grid-template-columns: 1.45fr 1fr; gap: 22px; align-items: start; }
+.banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #2a2a2d; border-bottom: 1px solid #111; font: 14px/1.4 var(--system); color: #e6e6e6; -webkit-font-smoothing: antialiased; }
+.banner .nbtn { margin-left: auto; border: 1px solid #5a5a5d; border-radius: 6px; padding: 1px 9px; white-space: nowrap; }
+.banner > span:nth-child(2) { white-space: nowrap; }
+.tag { font-family: var(--label); font-size: 10px; letter-spacing: 0.06em; background: var(--failure); color: #000; padding: 2px 7px 1px; display: inline-flex; gap: 5px; align-items: center; }
+.small { padding: 10px 14px 12px 34px; display: block; }
+.cblock { position: relative; border: 1px solid #4a4a4a; margin: 3px 0; }
+.cblock .bh { display: flex; justify-content: space-between; padding: 4px 9px 2px; font-family: var(--label); font-size: 11px; letter-spacing: 0.06em; color: #a0a0a0; -webkit-font-smoothing: none; }
+.cblock .bh.mid { border-top: 1px solid #4a4a4a; }
+.cblock .ln { padding: 0 9px; }
+.cblock .gx { position: absolute; left: -24px; top: 6px; color: var(--failure); }
+.term { border: 1px solid var(--border); background: #070707; padding: 16px 18px; font-size: 22px; white-space: pre; color: #c4c4c4; line-height: 1.15; }
+.term .p { color: var(--dim); } .term .ok { color: var(--bright); }
+.cap { margin-bottom: 8px; }
+/* find in History */
+.findbar { display: flex; align-items: center; gap: 14px; padding: 9px 14px; background: var(--bg); border-top: 1px solid var(--border); font-size: 21px; }
+.field { border: 1px solid #3a3a3c; border-radius: 6px; padding: 3px 10px 2px; font: 15px var(--system); color: #e6e6e6; min-width: 300px; -webkit-font-smoothing: antialiased; }
+.found { color: var(--bright); text-decoration: underline; text-underline-offset: 3px; }
+.opts { margin-left: auto; color: var(--dim); font-family: var(--label); font-size: 11px; letter-spacing: 0.06em; }
+/* the thumbnail */
+body.thumb { width: 240px; height: 240px; }
+.thumbshot { display: none; width: 240px; height: 240px; place-items: center; background: var(--bg); }
+.thumbshot.on { display: grid; }
+.thumbshot .tile { width: 200px; height: 200px; border-radius: 46px; }
+</style>
+</head>
+<body>
+
+<section class="shot" id="hero">
+  <div class="head">
+    <div class="tile"><svg class="px" viewBox="0 0 14 14" data-art="icon"></svg></div>
+    <div>
+      <h1>RUNE</h1>
+      <p class="tagline" style="margin-top:12px">WRITE IT DOWN. LOSE NOTHING_</p>
+    </div>
+  </div>
+  <p class="label" style="line-height:1.9">A text editor for the Mac · one scratch file in iCloud Drive for all your Macs<br>Saved as you type, merged, never overwritten</p>
+  <div class="win" data-window="hero"></div>
+</section>
+
+<section class="shot" id="conflict">
+  <div>
+    <h2>Conflicts you can see</h2>
+    <p class="sub" style="margin-top:12px">Where two Macs changed the same lines, both versions stay in the file. ⌘1, ⌘2 or ⌘3 keeps one side or both.</p>
+  </div>
+  <div class="pair">
+    <div>
+      <p class="label cap">In Rune</p>
+      <div class="win">
+        <div class="banner"><span class="tag"><svg class="glyph px" width="9" height="9" viewBox="0 0 7 7" data-glyph="cross"></svg>CONFLICT</span><span>Air and this Mac both changed 1 place. Everything else merged.</span><span class="nbtn">Next Conflict</span></div>
+        <div class="editor small"><div class="lines">
+          <div class="ln"><span class="l">- [ ] two shirts</span></div>
+          <div class="cblock">
+            <span class="gx"><svg class="glyph px" width="13" height="13" viewBox="0 0 7 7" data-glyph="cross"></svg></span>
+            <div class="bh"><span>AIR · 10:44</span><span>⌘1 USE · ⌘3 BOTH</span></div>
+            <div class="ln"><span class="l">- [ ] rain jacket and umbrella</span></div>
+            <div class="bh mid"><span>STUDIO · 10:44</span><span>⌘2 USE</span></div>
+            <div class="ln"><span class="l">- [ ] rain jacket</span></div>
+          </div>
+          <div class="ln"><span class="l">- [ ] passport</span></div>
+        </div></div>
+      </div>
+    </div>
+    <div>
+      <p class="label cap">The same file in any other editor</p>
+<pre class="term"><span class="p">$ cat scratch.md</span>
+- [ ] two shirts
+<span class="ok">&lt;&lt;&lt;&lt;&lt;&lt;&lt; Air · 10:44</span>
+- [ ] rain jacket and umbrella
+<span class="ok">=======</span>
+- [ ] rain jacket
+<span class="ok">&gt;&gt;&gt;&gt;&gt;&gt;&gt; Studio · 10:44</span>
+- [ ] passport</pre>
+    </div>
+  </div>
+</section>
+
+<section class="shot" id="find">
+  <div>
+    <h2>Find in History</h2>
+    <p class="sub" style="margin-top:12px">When Find has no matches, Rune searches the file's saved versions and names the one that still has the text. Copy Paragraph puts it back.</p>
+  </div>
+  <div class="win" data-window="find"></div>
+</section>
+
+<section class="thumbshot" id="thumb">
+  <div class="tile"><svg class="px" viewBox="0 0 14 14" data-art="icon"></svg></div>
+</section>
+
+<script>
+const kind = (location.hash || "#hero").slice(1);
+document.getElementById(kind).classList.add("on");
+if (kind === "thumb") document.body.className = "thumb";
+const NS = "http://www.w3.org/2000/svg";
+function rects(svg, rows, colors, dy = 0) {
+  rows.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === ".") return;
+    const r = document.createElementNS(NS, "rect");
+    r.setAttribute("x", x); r.setAttribute("y", y + dy); r.setAttribute("width", 1); r.setAttribute("height", 1);
+    r.setAttribute("fill", colors[ch] || "currentColor");
+    svg.appendChild(r);
+  }));
+}
+const ICON = ["...##.........", "...####.......", "...##.##......", "...##..##.....", "...##.##......", "...####.......",
+              "...##.##......", "...##..##.....", "...##...##....", "...##....##...", "..............", "##.##.##.##.::"];
+document.querySelectorAll('[data-art="icon"]').forEach(svg => rects(svg, ICON, { "#": "#f0f0f0", ":": "#4a4a4a" }, 1));
+const GLYPHS = {
+  check: [".......", "......#", ".....#.", "#...#..", ".#.#...", "..#....", "......."],
+  cross: ["#.....#", ".#...#.", "..#.#..", "...#...", "..#.#..", ".#...#.", "#.....#"],
+};
+document.querySelectorAll("[data-glyph]").forEach(svg => rects(svg, GLYPHS[svg.dataset.glyph], {}));
+
+function classes(s) {
+  if (/^#{1,6} /.test(s)) return [...s].map(() => "h");
+  if (/^(- |\d+\. )/.test(s)) return [...s].map(() => "l");
+  const out = [...s].map(() => "");
+  for (const [re, cls] of [[/\*\*[^*]+\*\*/g, "b"], [/`[^`]+`/g, "c"]]) for (const m of s.matchAll(re)) for (let i = m.index; i < m.index + m[0].length; i++) out[i] = cls;
+  return out;
+}
+const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+function editor(lines, caretLine) {
+  let text = "", gutter = "";
+  lines.forEach((s, i) => {
+    const cls = classes(s); let html = "", run = "", rc = null;
+    const flush = () => { if (run) html += rc ? `<span class="${rc}">${esc(run)}</span>` : esc(run); run = ""; };
+    for (let k = 0; k < s.length; k++) { if (cls[k] !== rc) { flush(); rc = cls[k]; } run += s[k]; }
+    flush();
+    const cur = i === caretLine;
+    if (cur) html += '<span class="caret"></span>';
+    text += `<div class="ln${cur ? " cur" : ""}">${html || " "}</div>`;
+    gutter += `<div${cur ? ' class="cur"' : ""}>${i + 1}</div>`;
+  });
+  return `<div class="editor"><div class="gutter">${gutter}</div><div class="lines">${text}</div></div>`;
+}
+const bar = name => `<div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="title"><b>${name}</b><span>iCloud Drive › Rune</span></span></div>`;
+const check = '<svg class="glyph px" width="14" height="14" viewBox="0 0 7 7"><rect/></svg>';
+const hero = ["# Packing · weekend", "Train at **08:10** from `platform 4`.", "", "## Bag", "- [x] charger and cable", "- [ ] two shirts", "- [ ] rain jacket", "- [ ] passport"];
+const findLines = ["# Packing · weekend", "Train at **08:10** from `platform 4`.", "", "## Bag", "- [x] charger and cable", "- [ ] two shirts", "- [ ] passport"];
+document.querySelector('[data-window="hero"]').innerHTML = bar("scratch.md") + editor(hero, 6) +
+  `<div class="strip"><span><svg class="glyph px" width="14" height="14" viewBox="0 0 7 7" data-glyph="check"></svg> SYNCED · ON AIR 10:42:31</span><span class="slots">LN 7, COL 18 · MARKDOWN · UTF-8 · LF</span></div>`;
+document.querySelector('[data-window="find"]').innerHTML = bar("scratch.md") + editor(findLines, 5) +
+  `<div class="findbar"><span class="field">spare charger</span><span class="found">NO MATCHES · IN HISTORY: TUE 14:02 ›</span><span class="opts">.* · Aa · WORD</span></div>` +
+  `<div class="strip"><span><svg class="glyph px" width="14" height="14" viewBox="0 0 7 7" data-glyph="check"></svg> SYNCED · 10:42:31</span><span class="slots">LN 6, COL 17 · MARKDOWN · UTF-8 · LF</span></div>`;
+document.querySelectorAll('[data-glyph="check"]').forEach(svg => { if (!svg.childNodes.length) rects(svg, GLYPHS.check, {}); });
+</script>
+</body>
+</html>

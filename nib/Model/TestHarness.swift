@@ -104,6 +104,7 @@ enum TestHarness {
             case "conflictversions": await conflictVersions(document, log, marker)
             case "history": await historyScenario(document, log, marker)
             case "findhistory": await findHistoryScenario(document, log, marker)
+            case "gitmarks": await gitMarksScenario(log, marker)
             case "files": await files(log, marker)
             case "syntax": await syntaxScenario(log, marker)
             case "themes": await themes(log, marker)
@@ -5949,6 +5950,90 @@ enum TestHarness {
         try? await Task.sleep(for: .milliseconds(900))
         log.check(find.inHistory == .none && find.countLabel == "NO MATCHES", "under 3 characters, History isn't searched (“\(find.countLabel)”)")
         find.close()
+    }
+
+    /// Changes since the last commit (ED12): a repository made in the test folder outside iCloud
+    /// (never a `.git` in iCloud Drive); a committed file opened shows no marks; a changed, an added
+    /// and a deleted line are marked in the gutter and counted in the HUD's line; a commit made by
+    /// git outside Rune clears them; a file git doesn't track, and one outside any repository.
+    static func gitMarksScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        guard GitRepo.installed else { log.check(false, "git installed (the developer tools)"); return }
+        let repo = ScratchLocation.localTestFolder.appendingPathComponent("git-\(marker)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: repo, withIntermediateDirectories: true)
+        func sh(_ command: String) {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/sh")
+            process.arguments = ["-c", command]
+            process.currentDirectoryURL = repo
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            try? process.run()
+            process.waitUntilExit()
+        }
+        let file = repo.appendingPathComponent("notes.md"), other = repo.appendingPathComponent("draft.md")
+        let outside = ScratchLocation.localTestFolder.appendingPathComponent("plain-\(marker).md")
+        defer {
+            for url in [file, other, outside] { Documents.existing(for: url)?.editor.textView.window?.performClose(nil) }
+            try? FileManager.default.removeItem(at: repo)
+            try? FileManager.default.removeItem(at: outside)
+        }
+        try? Data("one \(marker)\ntwo\nthree\nfour\nfive\n".utf8).write(to: file)
+        sh("git init -q -b main && git config user.email test@example.com && git config user.name Test && git add notes.md && git commit -q -m first")
+
+        AppDelegate.openFile(file)
+        _ = await waitFor(10) { Documents.existing(for: file)?.ready == true }
+        guard let document = Documents.existing(for: file) else { log.check(false, "the committed file opened"); return }
+        let clean = await waitFor(8) { document.git.status == .tracked(branch: "main") }
+        log.check(clean && document.git.changes.isEmpty && document.git.hudLine == "GIT · MAIN · NO CHANGES SINCE THE LAST COMMIT",
+                  "a committed file, as committed: no marks (“\(document.git.hudLine ?? "no git line")”)")
+
+        // A changed line, an added one, a deleted one.
+        let view = document.editor.textView
+        func replace(_ old: String, _ new: String) {
+            let range = (view.string as NSString).range(of: old)
+            guard range.location != NSNotFound else { return }
+            view.setSelectedRange(range)
+            view.insertText(new, replacementRange: range)
+        }
+        replace("two\n", "TWO\n")
+        replace("three\n", "three\nadded line\n")
+        replace("five\n", "")
+        await endOfEvent(view)
+        let marked = await waitFor(5) { document.git.changes.modified == 1 && document.git.changes.added == 1 && document.git.changes.deleted == 1 }
+        document.editor.ruler?.display()
+        let drawn = document.editor.ruler?.drawnMarks ?? [:]
+        log.check(marked && drawn[1] == "modified" && drawn[3] == "added" && drawn.values.contains("deleted"),
+                  "a changed, an added and a deleted line, marked in the gutter (\(drawn.sorted { $0.key < $1.key }.map { "\($0.key + 1): \($0.value)" }.joined(separator: ", "))) and in the HUD (“\(document.git.hudLine ?? "")”)")
+        log.check(document.git.hudLine == "GIT · MAIN · 1 CHANGED · 1 ADDED · 1 DELETED", "the HUD's line: “\(document.git.hudLine ?? "none")”")
+        document.toggleSyncDetails()   // the HUD open, its git line in the picture
+        try? await Task.sleep(for: .milliseconds(700))
+        if let window = view.window, let frame = window.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("gitmarks.png"))
+        }
+        document.toggleSyncDetails()
+
+        // Committed by git outside Rune: the marks go.
+        await document.flush(reason: "test")
+        _ = await waitFor(5) { !document.dirty }
+        sh("git commit -q -am second")
+        let cleared = await waitFor(8) { document.git.changes.isEmpty && document.git.status == .tracked(branch: "main") }
+        log.check(cleared, "committed outside Rune: the marks go (“\(document.git.hudLine ?? "")”)")
+
+        // A file git doesn't track, and one outside any repository.
+        try? Data("not added \(marker)\n".utf8).write(to: other)
+        try? Data("no repository \(marker)\n".utf8).write(to: outside)
+        AppDelegate.openFile(other)
+        AppDelegate.openFile(outside)
+        _ = await waitFor(10) { Documents.existing(for: other)?.ready == true && Documents.existing(for: outside)?.ready == true }
+        let untracked = await waitFor(8) { Documents.existing(for: other)?.git.status == .untracked(branch: "main") }
+        let plainFile = Documents.existing(for: outside)
+        try? await Task.sleep(for: .milliseconds(500))
+        log.check(untracked && Documents.existing(for: other)?.git.hudLine == "GIT · MAIN · NOT TRACKED YET"
+                    && Documents.existing(for: other)?.git.changes.isEmpty == true
+                    && plainFile?.git.status == GitMarks.Status.none && plainFile?.git.hudLine == nil,
+                  "a file git doesn't track says so, with no marks; outside a repository, nothing")
     }
 
     static func historyScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {

@@ -118,6 +118,7 @@ hmarker="history-$(date +%s)"
 run history -NibMarker "$hmarker" -NibSlowQuit YES   # its quit cut off by the 10 s watchdog, as when iCloud is slow
 run history-closed -NibMarker "$hmarker"   # the save it quit with went into History all the same
 run findhistory   # SY18: Find comes up empty, names the version History has it in, opens it; Copy Paragraph
+run gitmarks   # ED12: changes since the last commit in the gutter and the HUD, in a repository outside iCloud
 run files
 run syntax
 run themes
