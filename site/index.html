@@ -441,14 +441,14 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
           <div class="log" id="log"></div>
         </div>
       </div>
-      <p class="label dim note">This Mac is Studio, the other is Air, and time runs faster. Click the status line for the sync details.</p>
+      <p class="label dim note">This Mac is Studio, the other is Air, and the time between events is shortened. Click the status line for the sync details.</p>
     </div>
   </section>
 
   <section class="block" id="sync">
     <div class="wrap">
       <div class="section-head"><span class="label">01</span><h2>Nothing lost between Macs</h2></div>
-      <p class="sub">Every difference between your Macs is merged or shown to you. Nothing is dropped quietly.</p>
+      <p class="sub">Every difference between your Macs is merged or shown to you. Rune never discards text without telling you.</p>
       <div class="metrics">
         <div class="metric"><div class="label dim">On disk within</div><div class="v">300<small> MS</small></div><div class="d">every keystroke, in a recovery journal</div></div>
         <div class="metric"><div class="label dim">To your other Mac</div><div class="v">2.5<small> S</small></div><div class="d">from a save to the text there, median</div></div>
@@ -468,8 +468,8 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
           <p>Where both Macs changed the same lines, both versions stay in the file. <span class="k">⌘1</span>, <span class="k">⌘2</span> or <span class="k">⌘3</span> keeps one side or both; <span class="k">⌥⌘R</span> opens the merge view.</p>
         </div>
         <div class="card">
-          <h3><span data-glyph="arrow"></span> Says how far it got</h3>
-          <p>The status line says when a version is saved, uploaded and on your other Mac. A deleted file, a full disk or iCloud turned off gets a plain red line and a way out.</p>
+          <h3><span data-glyph="arrow"></span> Shows where each version is</h3>
+          <p>The status line says when a version is saved, uploaded and on your other Mac. A deleted file, a full disk or iCloud turned off gets a red line saying what happened and what to do.</p>
         </div>
       </div>
 
@@ -517,11 +517,11 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
         </div>
         <div class="card">
           <h3>Paste Clean</h3>
-          <p><span class="k">⌥⇧⌘V</span> also removes invisible characters such as zero-width spaces, makes unusual spaces plain, and trims trailing whitespace.</p>
+          <p><span class="k">⌥⇧⌘V</span> also removes invisible characters such as zero-width spaces, turns non-breaking and other unusual spaces into ordinary ones, and trims trailing whitespace.</p>
         </div>
         <div class="card">
           <h3>Clean Clipboard</h3>
-          <p><span class="k">⌃⌥⌘V</span>, in any app, rewrites the clipboard as clean plain text, with no window.</p>
+          <p><span class="k">⌃⌥⌘V</span>, in any app, rewrites the clipboard as clean plain text, without opening a window.</p>
         </div>
         <div class="card">
           <h3>Append to Scratch</h3>
@@ -534,7 +534,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
   <section class="block" id="edit">
     <div class="wrap">
       <div class="section-head"><span class="label">03</span><h2>Quick edits</h2></div>
-      <p class="sub">Open a file, fix it, close it. Highlighting that matches Sublime Text, Sublime's keys, and nothing an IDE would add.</p>
+      <p class="sub">Open a file, fix it, close it. Highlighting that matches Sublime Text, Sublime Text's keys, and no project panel, build system or debugger.</p>
       <figure style="margin:0">
         <figcaption class="caption label dim"><span>Colored as Sublime Text colors it: 99.97% of characters on Rune's reference files</span></figcaption>
 <pre class="page-sample"><span class="k">export</span> <span class="k">function</span> <span class="y">totalsByMonth</span>(<span class="oi">invoices</span>, { <span class="oi">round</span> = <span class="o">true</span> } = {}) {
@@ -550,19 +550,19 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
       <div class="grid">
         <div class="card">
           <h3>Sublime's colors and keys</h3>
-          <p>An Old Hope built in, or import your scheme and font from Sublime Text in one click. Sublime's default keys for every command Rune has, and its minimap.</p>
+          <p>An Old Hope built in, or import your scheme and font from Sublime Text in one click. Sublime Text's default keys for every command Rune has, and a minimap like Sublime Text's.</p>
         </div>
         <div class="card">
           <h3>Multiple carets</h3>
           <p><span class="k">⌘D</span> adds the next match, <span class="k">⇧⌘L</span> splits a selection into lines, <span class="k">⌘</span>-click adds a caret, <span class="k">⌥</span>-drag makes a column.</p>
         </div>
         <div class="card">
-          <h3>Find anything</h3>
+          <h3>Find and go to</h3>
           <p>Find and replace with regular expressions. <span class="k">⌘P</span> goes to a file, <span class="k">⇧⌘P</span> runs any command, <span class="k">⌘R</span> jumps to a Markdown heading.</p>
         </div>
         <div class="card">
           <h3>Files kept as they were</h3>
-          <p>Encoding, line endings, permissions and extended attributes stay as they were. Big files open fast; past 5 MB, highlighting turns off.</p>
+          <p>Encoding, line endings, permissions and extended attributes stay as they were. A 2.4 MB file opens in under 100 ms; past 5 MB, highlighting turns off.</p>
         </div>
       </div>
     </div>
@@ -570,28 +570,28 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
 
   <section class="block" id="mac">
     <div class="wrap">
-      <div class="section-head"><span class="label">04</span><h2>A real Mac app</h2></div>
+      <div class="section-head"><span class="label">04</span><h2>A native Mac app</h2></div>
       <div class="grid">
         <div class="card">
           <h3>Show Scratch</h3>
-          <p><span class="k">⌥Space</span>, in any app, brings the scratch window forward with the caret where you left it. Press it again to go back.</p>
+          <p><span class="k">⌥Space</span>, in any app, brings the scratch window forward with the caret where you left it. Press it again to return to the app you were in.</p>
         </div>
         <div class="card">
-          <h3>Tabs that come back</h3>
+          <h3>Tabs reopen after a quit</h3>
           <p>Files open as native tabs beside the scratch file. Untitled tabs are kept like everything else, and the tabs open at a quit open again.</p>
         </div>
         <div class="card">
           <h3>In the menu bar</h3>
           <div class="marks" aria-hidden="true">
-            <figure><svg class="px" width="27" height="30" viewBox="0 0 9 10" data-mark="still"></svg><figcaption class="label dim">All well</figcaption></figure>
+            <figure><svg class="px" width="27" height="30" viewBox="0 0 9 10" data-mark="still"></svg><figcaption class="label dim">Synced</figcaption></figure>
             <figure><svg class="px" width="27" height="30" viewBox="0 0 9 10" data-mark="march"></svg><figcaption class="label dim">Upload waiting</figcaption></figure>
-            <figure><svg class="px" width="51" height="30" viewBox="0 0 17 10" data-mark="cross"></svg><figcaption class="label dim">Needs a look</figcaption></figure>
+            <figure><svg class="px" width="51" height="30" viewBox="0 0 17 10" data-mark="cross"></svg><figcaption class="label dim">Problem</figcaption></figure>
           </div>
           <p>Its panel has Show Scratch, Clean Clipboard and your recent files.</p>
         </div>
         <div class="card">
           <h3>Quiet</h3>
-          <p>No timers while nothing happens. Notifications only when something needs you, never for a save.</p>
+          <p>No timers while idle, and 0.00-0.05% CPU. Notifications only for a conflict, a failed save, a deleted file, or iCloud Drive off or full; never for a save that worked.</p>
         </div>
       </div>
       <div style="margin-top:14px">
@@ -612,7 +612,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: 
         <tr><td>Merging</td><td>Three-way, by line and then by word. Conflicts go between git's markers, readable in any editor.</td></tr>
         <tr><td>On this Mac only</td><td>The recovery journal, 30 days of History, and a Sync Log of every save, upload and merge.</td></tr>
         <tr><td>Highlighting</td><td>33 languages with tree-sitter. An Old Hope · Rune built in; imports <span class="k">.tmTheme</span> and <span class="k">.sublime-color-scheme</span>.</td></tr>
-        <tr><td>Accessibility</td><td>VoiceOver reads the status line as one sentence. Reduce Motion stops everything that moves.</td></tr>
+        <tr><td>Accessibility</td><td>VoiceOver reads the status line as one sentence. With Reduce Motion on, nothing animates.</td></tr>
         <tr><td>Privacy</td><td>No analytics, no telemetry. Your files go only through iCloud Drive.</td></tr>
         <tr><td>Updates</td><td>Signed, checked once a day, or off in Settings.</td></tr>
         <tr><td>Distribution</td><td>Developer ID, notarized by Apple. Not sandboxed, so it opens any file.</td></tr>

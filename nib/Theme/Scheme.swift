@@ -234,7 +234,7 @@ final class Schemes {
             if found.scheme.isOriginalAnOldHope {
                 use(Self.builtIn)
                 facts = ["SUBLIME TEXT USES \(found.scheme.name.uppercased())",
-                         "KEPT \(Theme.anOldHopeNib.name.uppercased()), ITS CORRECTED EDITION: EVERY COLOR AT LEAST 4.5:1"]
+                         "KEPT \(Theme.anOldHopeNib.name.uppercased()), RUNE'S EDITION OF IT: EVERY TEXT COLOR AT LEAST 4.5:1"]   // not "corrected" (2026-10-08: the original's purple is the user's)
             } else {
                 try keep(Theme.document(sublimeColorScheme: found.document), named: found.scheme.name)
                 facts = ThemeReport.facts(for: found.scheme)
