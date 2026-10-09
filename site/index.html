@@ -398,9 +398,9 @@ body.checkout-open { overflow: hidden; }
         <p class="tagline">WRITE IT DOWN.<br> LOSE NOTHING<span class="cursor" aria-hidden="true">_</span></p>
         <p class="sub">A small, fast text editor for the Mac, with one scratch file in iCloud Drive that all your Macs share. It saves as you type, and edits from two Macs are merged, never overwritten.</p>
         <div class="cta">
-          <a class="btn is-soon" id="download-button" aria-disabled="true" data-href="downloads/Rune.zip">Download free trial</a>
+          <a class="btn" id="download-button" href="downloads/Rune.zip" download data-href="downloads/Rune.zip">Download free trial</a>
           <a class="btn btn-quiet" id="buy-top" href="#buy">Buy · $19</a>
-          <span class="label dim" id="download-note">Coming soon · macOS 27 · Apple silicon</span>
+          <span class="label dim" id="download-note">Free for 7 days · macOS 27 · Apple silicon</span>
         </div>
         <p class="label ph" id="ph-line" hidden><a id="ph-link" href="#">Rune is on Product Hunt today →</a></p>
       </div>
@@ -661,13 +661,13 @@ body.checkout-open { overflow: hidden; }
           <li><span data-glyph="check"></span> Updates to Rune 1.x included</li>
         </ul>
         <div class="price-cta">
-          <a class="btn is-soon" id="trial-button" aria-disabled="true" data-href="downloads/Rune.zip">Download free trial</a>
+          <a class="btn" id="trial-button" href="downloads/Rune.zip" download data-href="downloads/Rune.zip">Download free trial</a>
           <!-- Rune's Lemon Squeezy checkout, as an overlay (?embed=1&desc=0, as Blit's; the hero's
-               Buy opens it too). Off for
-               visitors until LIVE = true below; ?checkout=test turns it on to try (site/README.md). -->
-          <a class="btn is-soon" id="buy-button" aria-disabled="true"
+               Buy opens it too). Without JavaScript, href is the plain checkout page; the script
+               below turns it into the overlay (site/README.md). -->
+          <a class="btn" id="buy-button" href="https://banastas.lemonsqueezy.com/checkout/buy/ff20f57a-cce0-455f-85b4-afd7eaa6f89f?desc=0"
              data-checkout="https://banastas.lemonsqueezy.com/checkout/buy/ff20f57a-cce0-455f-85b4-afd7eaa6f89f?embed=1&desc=0">Buy Rune · $19</a>
-          <span class="label dim" id="buy-note">Checkout opens soon · secure payment by Lemon Squeezy</span>
+          <span class="label dim" id="buy-note">Secure payment by Lemon Squeezy · 30-day refunds</span>
         </div>
       </div>
     </div>
