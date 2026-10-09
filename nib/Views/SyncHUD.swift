@@ -92,6 +92,11 @@ struct SyncHUD: View {
                 Text("SHA256 \(document.versionSHA.map { String($0.prefix(12)).uppercased() + "…" } ?? "—")")
                     .foregroundStyle(HUDColor.dim).lineLimit(1)
                     .help(document.versionSHA.map { "The version this text comes from: \($0)" } ?? "")
+                // Changes since the last commit (ED12), in a git repository.
+                if let git = document.git.hudLine {
+                    Text(git).foregroundStyle(HUDColor.dim).lineLimit(1).truncationMode(.middle)
+                        .help("Lines that differ from the last commit, as the gutter marks them")
+                }
             }
             .font(HUDFont.terminal(18))
         }

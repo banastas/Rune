@@ -51,6 +51,11 @@ enum Scheme {
     static var gutter: NSColor { NSColor(theme.gutter) }
     static var gutterForeground: NSColor { NSColor(theme.gutterForeground) }
     static var gutterForegroundHighlight: NSColor { global("gutter_foreground_highlight") ?? foreground }
+    /// Changes since the last commit (ED12), in the gutter and the minimap: a scheme's own
+    /// (Sublime Text's `line_diff_*` keys), else An Old Hope's green, yellow and red.
+    static var lineDiffAdded: NSColor { global("line_diff_added") ?? color(0x78BC65) }
+    static var lineDiffModified: NSColor { global("line_diff_modified") ?? color(0xE7CE57) }
+    static var lineDiffDeleted: NSColor { global("line_diff_deleted") ?? color(0xEC475D) }
     /// ED10: indent guides in the scheme's `guide` (An Old Hope's #2D2D2D); the brackets beside
     /// the caret underlined in its `brackets_foreground` (#F8F8F0), the pair round it in its
     /// `bracket_contents_foreground`; an HTML element's tag names in `tags_foreground`, or their

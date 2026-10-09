@@ -25,6 +25,10 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
 
     /// The minimap beside the scroller (ED11), while it's on; never in the merge view's panes.
     private(set) var minimap: MinimapView?
+    /// Changes since the last commit (ED12), drawn in the gutter and the minimap.
+    var gitChanges = LineChanges() {
+        didSet { ruler?.needsDisplay = true; minimap?.needsDisplay = true }
+    }
     private let allowsMinimap: Bool
 
     init(minimap: Bool = true) {
@@ -183,6 +187,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     func textDidChange(_ notification: Notification) {
         saidSinceUndoStep = true
         LicenseManager.shared.noteTyping()   // the trial's lock waits for a minute without it (DS4)
+        document?.git.textChanged()   // the marks against the last commit, a moment after (ED12)
         textView.matchedTags = []   // till the tree has the edit (`updateMatches`)
         document?.textDidChange()
         onChange?()

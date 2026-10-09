@@ -328,7 +328,7 @@ final class Document {
     /// A version with no proof yet of the version both had, held while its note is awaited.
     @ObservationIgnored private var waitingForNote: (sha: String, data: Data, fingerprint: Fingerprint?, source: String, fromServer: Bool)?
     @ObservationIgnored private var pausing = false
-    @ObservationIgnored private var closing = false
+    @ObservationIgnored private(set) var closing = false
     /// Closed: nothing reads or writes its file any more. A History window left open after its
     /// file's tab closed kept the document, and Restore then saved into the file with no window
     /// and no hold (the QA review's F2, 2026-10-07).
@@ -569,6 +569,7 @@ final class Document {
         }
         ready = true
         Task { await reloadHistory() }   // for Revert To and the History window (F57)
+        git.load()   // changes since the last commit (ED12), in a git repository
         #if DEBUG
         if self === Documents.scratch { AppDelegate.launchMoments.text = AppDelegate.launchMoments.text ?? Date() }
         #endif
@@ -1720,6 +1721,8 @@ final class Document {
     /// Find in History (SY18): the version and search the History window opens on; nil once
     /// it's closed.
     var historyFocus: HistoryFocus?
+    /// Changes since the last commit (ED12): the gutter's marks and the HUD's git line.
+    @ObservationIgnored private(set) lazy var git = GitMarks(document: self)
 
     /// History changed (or the file opened): its versions read again, off the main thread and
     /// off the journal's queue (History has its own lock): on the queue, the read of every
@@ -2478,6 +2481,7 @@ final class Document {
     /// nib came forward: check the server now, then every 30 s while it stays in front.
     func becameActive() {
         if deleted { Task { await deletedFileBack() }; return }
+        git.becameActive()   // a commit made meanwhile
         guard !untitled else { return }   // on this Mac only: nothing to check
         Task {
             if held { await diskMayHaveChanged() }   // another app on this Mac may have written it
@@ -2524,6 +2528,7 @@ final class Document {
     /// Quitting: save, upload, hand the file back to iCloud (§4.3; a pause outlives the app).
     func close() async {
         closing = true
+        git.stop()
         downloadTask?.cancel()
         thinTask?.cancel()
         Notifier.shared.closed(url)

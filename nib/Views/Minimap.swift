@@ -272,6 +272,22 @@ final class MinimapView: NSView {
             context.setFillColor(cgColor(color))
             context.fill(list)
         }
+        // Changes since the last commit (ED12): a column at the left edge, as in the gutter, so the
+        // changes in a long file show where they are.
+        let changes = editor.gitChanges
+        if !changes.isEmpty {
+            let width: CGFloat = 2
+            for (line, kind) in changes.lines {
+                guard line + 1 < rowStarts.count, rowStarts[line + 1] > firstRow, rowStarts[line] <= lastRow else { continue }
+                (kind == .added ? Scheme.lineDiffAdded : Scheme.lineDiffModified).setFill()
+                NSRect(x: 0, y: CGFloat(rowStarts[line]) * m.row - place.offset, width: width,
+                       height: max(m.row, CGFloat(rowStarts[line + 1] - rowStarts[line]) * m.row)).fill()
+            }
+            Scheme.lineDiffDeleted.setFill()
+            for line in changes.deletedBefore where line < rowStarts.count && rowStarts[line] >= firstRow && rowStarts[line] <= lastRow + 1 {
+                NSRect(x: 0, y: CGFloat(rowStarts[line]) * m.row - place.offset - 1, width: width * 2, height: 2).fill()
+            }
+        }
         #if DEBUG
         drawnRange = NSRange(location: drawnStart, length: max(0, drawnEnd - drawnStart))
         drawnBox = place.box
