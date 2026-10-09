@@ -50,4 +50,35 @@ import Testing
         let changes = LineChanges.between(committed: "", text: "a\nb\n")
         #expect(changes.lines == [0: .added, 1: .added], "a file not in the last commit: every line added")
     }
+
+    /// The capped diff against Swift's own (minimal) one on random texts: the same number of lines
+    /// kept, each pair the same line, in order.
+    @Test func matchesAsSwiftsDiff() {
+        var random = SystemRandomNumberGenerator()
+        for _ in 0..<500 {
+            let a = (0..<Int.random(in: 0...30, using: &random)).map { _ in Substring(["a", "b", "c", "d"].randomElement(using: &random)!) }
+            let b = (0..<Int.random(in: 0...30, using: &random)).map { _ in Substring(["a", "b", "c", "d"].randomElement(using: &random)!) }
+            guard let matched = LineChanges.matches(a, b, limit: 1_000) else { Issue.record("gave up under the cap"); return }
+            let pairs = matched.enumerated().compactMap { i, j in j.map { (i, $0) } }
+            let removed = b.difference(from: a).removals.count
+            #expect(pairs.count == a.count - removed, "as many lines kept as the minimal diff keeps: \(a) → \(b)")
+            #expect(pairs.allSatisfy { a[$0.0] == b[$0.1] }, "each pair the same line")
+            #expect(zip(pairs, pairs.dropFirst()).allSatisfy { $0.1 < $1.1 }, "in order")
+        }
+    }
+
+    /// Past the cap: no line-by-line matching, lines not in the commit marked, said as such.
+    @Test func tooManyEdits() {
+        let committed = (0..<300).map { "line \($0)" }.joined(separator: "\n") + "\n"
+        let text = (0..<300).map { $0 % 2 == 0 ? "line \($0)" : "other \($0)" }.joined(separator: "\n") + "\n"
+        let exact = LineChanges.between(committed: committed, text: text)
+        #expect(!exact.approximate && exact.modified == 150)
+        let capped = LineChanges.between(committed: committed, text: text, limit: 100)
+        #expect(capped.approximate && capped.modified == 150 && capped.deleted == 0)
+        #expect(capped.summary == "MANY CHANGES SINCE THE LAST COMMIT · 150 NEW LINES MARKED")
+        let sorted = committed.split(separator: "\n").sorted().joined(separator: "\n") + "\n"
+        let moved = LineChanges.between(committed: committed, text: sorted, limit: 100)
+        #expect(moved.approximate && moved.lines.isEmpty && !moved.isEmpty, "lines only moved: nothing to mark, but not no changes")
+        #expect(moved.summary == "MANY CHANGES SINCE THE LAST COMMIT")
+    }
 }
