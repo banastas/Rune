@@ -58,6 +58,8 @@ import Testing
         #expect(Licensing.explain("license_key not found.").hasPrefix("That license key wasn't found"))
         #expect(Licensing.explain("This license key has reached the activation limit.").contains("3 Macs"))
         #expect(Licensing.explain("license_key is disabled.") == "This license key is no longer active.")
+        #expect(Licensing.explain("This license key is disabled.") == "This license key is no longer active.", "Lemon Squeezy's words for a refunded key")
+        #expect(Licensing.explain("instance_id not found.").hasPrefix("This Mac's activation isn't on the license"), "the activation gone, not the key")
         #expect(Licensing.explain(nil) == "The key couldn't be activated.")
         #expect(Licensing.explain("Something new.") == "Something new.", "anything else as Lemon Squeezy says it")
     }

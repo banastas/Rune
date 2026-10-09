@@ -81,6 +81,9 @@ public enum Licensing {
     public static func explain(_ error: String?) -> String {
         guard let error, !error.isEmpty else { return "The key couldn't be activated." }
         let e = error.lowercased()
+        // This Mac's activation, not the key: removed in the store's dashboard, say ("instance_id
+        // not found."). It said the key wasn't found, and to check it against the receipt.
+        if e.contains("instance") && e.contains("not found") { return "This Mac's activation isn't on the license any more. Enter the key again in Settings › License." }
         if e.contains("not found") { return "That license key wasn't found. Check it against your receipt email." }
         if e.contains("activation limit") { return "This key is already active on 3 Macs. Deactivate it on one of them first (Settings › License)." }
         if e.contains("disabled") || e.contains("expired") { return "This license key is no longer active." }

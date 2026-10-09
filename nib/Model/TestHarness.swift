@@ -2048,6 +2048,19 @@ enum TestHarness {
             let freed = await license.deactivate()
             log.check(freed == nil && license.license == nil, "Deactivate This Mac frees the activation: \(freed ?? license.summary)")
         }
+        // A key refunded or disabled after it was activated (`-NibLicenseRevokedKey`): the weekly
+        // check hears it from Lemon Squeezy, the license goes, and Rune is read-only after a quiet minute.
+        if let revoked = NibDefaults.store.string(forKey: "NibLicenseRevokedKey"), !revoked.isEmpty {
+            license.testSet(license: StoredLicense(key: revoked, instanceID: "rune-test", email: nil, name: nil, lastValidated: Date().addingTimeInterval(-8 * 86_400)))
+            let before = license.state
+            await license.revalidateIfDue()
+            license.testSet(quietFor: 61)
+            var said = ""
+            if case .revoked(let why) = license.state { said = why }
+            log.check(before == .licensed(email: nil) && !said.isEmpty && license.license == nil && license.typingLocked && !view.isEditable,
+                      "a key disabled since it was activated: the weekly check revokes it, read-only after a quiet minute (“\(said)”)")
+            license.testSet(trialStartedDaysAgo: 0, license: .some(nil))
+        }
         await document.flush(reason: "test")
     }
 
