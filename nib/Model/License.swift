@@ -122,6 +122,11 @@ final class LicenseManager {
 
     /// Whether licensing is in effect: at launch, or with `-NibLicensing YES` in a Debug build
     /// (a test run's `license` scenario passes it).
+    /// A key is in and valid: the app menu offers License… in place of Buy and Enter License.
+    var isLicensed: Bool {
+        if case .licensed = state { true } else { false }
+    }
+
     var isEnforced: Bool {
         #if DEBUG
         LicenseConfig.enforced || UserDefaults.standard.bool(forKey: "NibLicensing")

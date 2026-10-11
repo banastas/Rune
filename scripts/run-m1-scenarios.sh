@@ -67,6 +67,7 @@ run type
 run uploads   # 30 s of typing: uploads every 20 s, then 3 s after it stops (§4.3 step 7)
 run clipboard
 run cleantext
+run copykey   # ⌘C pressed, not called: in a file's window and the scratch file's (the user's report, 2026-10-10)
 run lines
 run find
 run findjump   # Find's jumps through 223 KB, by the keyboard too: AppKit's crash at a scroll (2026-10-04)

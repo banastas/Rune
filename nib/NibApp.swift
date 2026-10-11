@@ -498,11 +498,9 @@ struct NibCommands: Commands {
             // Sparkle (DS2): released copies only; a Debug build or a test run's has it off.
             Button("Check for Updates…") { Updates.shared.checkNow() }
                 .disabled(!Updates.shared.isAvailable || !Updates.shared.canCheck)
-            // DS4, from Blit's app menu: only while licensing is on.
-            if LicenseManager.shared.isEnforced {
-                Button("Buy Rune…") { LicenseManager.shared.openBuyPage() }
-                Button("Enter License…") { LicenseManager.shared.openLicenseSettings() }
-            }
+            // DS4, from Blit's app menu: only while licensing is on. Once a key is in, nothing to
+            // buy or enter: License… opens Settings › License (whose it is, Deactivate This Mac).
+            if LicenseManager.shared.isEnforced { LicenseMenuItems() }
         }
         CommandGroup(replacing: .newItem) {
             Button("New") { AppDelegate.newUntitled() }
@@ -692,6 +690,19 @@ extension View {
 }
 
 /// File › Open Recent, from the system's list (ED2).
+/// Rune › Buy Rune… and Enter License…, or License… once a key is in (DS4). A view of its own, as
+/// `CloseMenuItems` is: in the commands' body, a change of license left the menu as it was.
+struct LicenseMenuItems: View {
+    var body: some View {
+        if LicenseManager.shared.isLicensed {
+            Button("License…") { LicenseManager.shared.openLicenseSettings() }
+        } else {
+            Button("Buy Rune…") { LicenseManager.shared.openBuyPage() }
+            Button("Enter License…") { LicenseManager.shared.openLicenseSettings() }
+        }
+    }
+}
+
 /// File › Close, or Close Tab in a window of tabs, and Close Window (F78). A view of its own, as
 /// the Conflicts menu's items are: SwiftUI follows what a view's body reads.
 struct CloseMenuItems: View {
