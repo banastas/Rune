@@ -398,7 +398,7 @@ enum TestHarness {
         await endOfEvent(sview)
         log.check(sview.string.contains("<!-- comment me \(marker) -->"), "in Markdown: <!-- -->")
         let menu = NSApp.mainMenu?.items.first { $0.title == "Text" }?.submenu?.items.filter { !$0.isHidden && !$0.isSeparatorItem }.map(\.title) ?? []
-        log.check(menu == ["Indent", "Outdent", "Toggle Comment", "Duplicate Line", "Move Line Up", "Move Line Down", "Select Line", "Join Lines", "Go to Line…", "Go to Heading…"],
+        log.check(menu == ["Indent", "Outdent", "Toggle Comment", "Duplicate Line", "Move Line Up", "Move Line Down", "Select Line", "Join Lines", "Go to Line…", "Go to Heading…", "Next Change", "Previous Change", "Revert Change"],
                   "the Text menu: \(menu.joined(separator: ", "))")
         // View › Indentation and View › Line Endings, as the strip's slots have them (F50).
         func viewSubmenu(_ title: String) -> [String] {
