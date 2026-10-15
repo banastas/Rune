@@ -6,13 +6,13 @@
     <description>Updates for Rune</description>
     <language>en</language>
     <item>
-      <title>Rune 1.1.1</title>
-      <pubDate>Sun, 11 Oct 2026 16:06:46 +0000</pubDate>
-      <sparkle:version>202610110904</sparkle:version>
-      <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+      <title>Rune 1.2</title>
+      <pubDate>Thu, 15 Oct 2026 16:49:36 +0000</pubDate>
+      <sparkle:version>202610150947</sparkle:version>
+      <sparkle:shortVersionString>1.2</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <description><![CDATA[<p>Once a license is entered, the Rune menu shows License… in place of Buy Rune… and Enter License….</p>]]></description>
-      <enclosure url="https://rune.banast.as/downloads/Rune-1.1.1-202610110904.zip" type="application/octet-stream" sparkle:edSignature="TRcYS0yGP2eNUzfLSdMNNHKpangionEK55vZnR1tvcg4zQqFWoccQpt/nlku8iQb6iaq+NZyo7XnaSv18XHNAw==" length="6926664" />
+      <description><![CDATA[<p>Click a change mark in the gutter to see the committed lines and revert them. Text › Next Change (⌃.) and Previous Change (⌃,) move between changes.</p>]]></description>
+      <enclosure url="https://rune.banast.as/downloads/Rune-1.2-202610150947.zip" type="application/octet-stream" sparkle:edSignature="81BDVRYXNWe4kx2S/vUVURH67kcstbXnJ/dq0Ku6FiULst3GW5//Mf6sHrZ0TpCFxGqgNuCtUIhwQHJwBw32CQ==" length="6937334" />
     </item>
   </channel>
 </rss>
