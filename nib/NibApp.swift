@@ -263,6 +263,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // (§6.5, measured 2026-09-30). Not in the test harness's Nib: the keys are the Nib in
         // daily use's (the `firstrun` scenario registers its own).
         if !NibPaths.isScenario { GlobalShortcuts.shared.registerAll() }
+        // Open at login (AP2): when it's on but another copy of Rune registered it, this copy's now.
+        if !NibPaths.isScenario { _ = LoginItem.shared }
         observeSystem()
         MenuBarController.shared.start()   // the menu bar extra (§5.7), AppKit's own status item
         Notifier.shared.start()   // SY15: conflicts and files Nib can't save or sync, while it's in the background

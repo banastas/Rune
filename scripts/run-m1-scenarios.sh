@@ -84,7 +84,7 @@ run tidy
 run menubar
 # Another app holding a global shortcut, for the first run's warning (SC2).
 swiftc -O -o build/hotkey-holder scripts/hotkey-holder.swift 2>/dev/null || true
-run firstrun -NibFakeLoginItem YES -NibHotKeyHolder "$PWD/build/hotkey-holder"
+run firstrun -NibHotKeyHolder "$PWD/build/hotkey-holder"
 run defaultapps   # Settings › Files: Rune as the default app, a kind at a time (a stand-in, never the Mac's)
 run synchud   # the sync HUD (§5.3): ⇧⌘Y, Escape, its log, the WARNING panel
 run about     # About Rune (§5.10) and its Acknowledgements (DS3)
