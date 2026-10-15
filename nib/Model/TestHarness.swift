@@ -6233,6 +6233,74 @@ enum TestHarness {
         }
         document.toggleSyncDetails()
 
+        // A click on a mark: the change and its committed lines, COPY and REVERT (one ⌘Z step).
+        // The text now: "one…", "TWO", "three", "added line", "four"; "five" deleted at the end.
+        let saved = savePasteboard()
+        func click(line: Int) -> Bool {
+            guard let ruler = document.editor.ruler, let window = ruler.window else { return false }
+            var y: CGFloat = 0
+            while y < ruler.bounds.height, ruler.line(atY: y)?.0 != line { y += 2 }
+            guard y < ruler.bounds.height else { return false }
+            let point = ruler.convert(NSPoint(x: ruler.bounds.width - 5, y: y + 3), to: nil)
+            guard let event = NSEvent.mouseEvent(with: .leftMouseDown, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                                 windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1) else { return false }
+            ruler.mouseDown(with: event)
+            return true
+        }
+        let clicked = click(line: 1)
+        let shown = await waitFor(2) { ChangePanel.isShown }
+        log.check(clicked && shown && ChangePanel.current == LineChanges.Hunk(lines: 1..<2, committed: ["two"]),
+                  "a click on the changed line's mark shows the change: \(ChangePanel.current.map { "lines \($0.lines), committed \($0.committed)" } ?? "nothing")")
+        try? await Task.sleep(for: .milliseconds(400))
+        if let panel = NSApp.windows.first(where: { $0.isVisible && String(describing: Swift.type(of: $0)).contains("Popover") }), let frame = panel.contentView,
+           let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
+            frame.cacheDisplay(in: frame.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: log.path).deletingLastPathComponent().appendingPathComponent("changepanel.png"))
+        }
+        ChangePanel.press("COPY", in: document)
+        log.check(NSPasteboard.general.string(forType: .string) == "two\n" && !ChangePanel.isShown, "COPY: the committed line on the clipboard, the panel closed")
+        restorePasteboard(saved)
+        _ = click(line: 1)
+        _ = await waitFor(2) { ChangePanel.isShown }
+        ChangePanel.press("REVERT", in: document)
+        let lines = { view.string.components(separatedBy: "\n") }
+        let reverted = lines()[1] == "two" && document.git.changes.modified == 0 && document.git.changes.added == 1 && document.git.changes.deleted == 1
+        log.check(reverted && view.undoManager?.undoActionName == "Revert Change",
+                  "REVERT: the committed line back, its mark gone, the others kept (\(document.git.hudLine ?? "")); Edit › Undo Revert Change")
+        await endOfEvent(view)
+        view.undoManager?.undo()
+        _ = document.git.changesNow()
+        log.check(lines()[1] == "TWO" && document.git.changes.modified == 1, "⌘Z takes the revert back: “\(lines()[1])”")
+
+        // Next Change and Previous Change, round the ends; Revert Change at the caret.
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        var visited: [Int] = []
+        for _ in 0..<4 {
+            document.git.go(forward: true)
+            visited.append(document.editor.lineIndex.line(at: view.selectedRange().location))
+        }
+        document.git.go(forward: false)
+        let back = document.editor.lineIndex.line(at: view.selectedRange().location)
+        log.check(visited == [2, 4, 6, 2] && back == 6,
+                  "Next Change: lines 2, 4, then the end (where “five” was), round to 2; Previous Change round to the end: \(visited), back \(back)")
+        view.setSelectedRange(NSRange(location: document.editor.lineIndex.start(ofLine: 4) ?? 0, length: 0))
+        await endOfEvent(view)
+        document.git.revertAtCaret()
+        await endOfEvent(view)
+        let added = !view.string.contains("added line") && document.git.changes.added == 0
+        if let last = document.git.changesNow()?.hunks.last { document.git.revert(last) }
+        await endOfEvent(view)
+        let committedNow = view.string == "one \(marker)\nTWO\nthree\nfour\nfive\n"
+        log.check(added && committedNow && document.git.changes.deleted == 0,
+                  "Revert Change on the added line takes it out; on the end's notch, “five” back: \(view.string.debugDescription)")
+        view.undoManager?.undo()
+        await endOfEvent(view)
+        view.undoManager?.undo()
+        await endOfEvent(view)
+        _ = document.git.changesNow()
+        log.check(document.git.changes.modified == 1 && document.git.changes.added == 1 && document.git.changes.deleted == 1,
+                  "and two ⌘Z put both back (\(document.git.hudLine ?? ""))")
+
         // Committed by git outside Rune: the marks go.
         await document.flush(reason: "test")
         _ = await waitFor(5) { !document.dirty }

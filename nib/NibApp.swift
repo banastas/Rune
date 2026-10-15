@@ -492,6 +492,8 @@ struct NibCommands: Commands {
     /// F46). With no window in front (Nib behind another app) they're sent on as before.
     private var noEditor: Bool { document == nil && NSApp.keyWindow != nil }
     private var cantEdit: Bool { noEditor || document?.locked != nil }
+    /// No changes since the last commit to go to or revert (ED12): outside a repository, or none.
+    private var noChanges: Bool { merging || document?.git.changes.hunks.isEmpty != false }
 
     var body: some Commands {
         // Blit's About, not the standard panel (§5.10).
@@ -646,6 +648,11 @@ struct NibCommands: Commands {
             Button("Go to Line…") { if !merging { document?.goingToLine = true } }.keyboardShortcut("g", modifiers: .control).disabled(document == nil || merging)
             // Sublime's Goto Symbol (SC7): a Markdown file's headings.
             Button("Go to Heading…") { AppDelegate.showPalette(.headings, in: document) }.keyboardShortcut("r").disabled(document == nil || merging)
+            // Changes since the last commit (ED12), on Sublime's keys; a click on a mark shows one.
+            Divider()
+            Button("Next Change") { document?.git.go(forward: true) }.keyboardShortcut(".", modifiers: .control).disabled(noChanges)
+            Button("Previous Change") { document?.git.go(forward: false) }.keyboardShortcut(",", modifiers: .control).disabled(noChanges)
+            Button("Revert Change") { document?.git.revertAtCaret() }.disabled(noChanges || cantEdit)
         }
         // Multiple carets (ED8), on Sublime's keys; Escape is one caret again.
         CommandMenu("Selection") {

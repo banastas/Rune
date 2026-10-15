@@ -1,5 +1,6 @@
 // Changes since the last commit (PRD ED12): lines added, changed and deleted, as the gutter marks them.
 
+import Foundation
 import Testing
 
 @testable import NibText
@@ -80,5 +81,61 @@ import Testing
         let moved = LineChanges.between(committed: committed, text: sorted, limit: 100)
         #expect(moved.approximate && moved.lines.isEmpty && !moved.isEmpty, "lines only moved: nothing to mark, but not no changes")
         #expect(moved.summary == "MANY CHANGES SINCE THE LAST COMMIT")
+    }
+
+    /// A change's committed lines, and the change at a line, a notch's either side.
+    @Test func hunks() {
+        let changes = LineChanges.between(committed: "one\ntwo\nthree\nfour\nfive\n", text: "one\nTWO\nthree\nfive\nsix\n")
+        #expect(changes.hunks == [
+            .init(lines: 1..<2, committed: ["two"]),
+            .init(lines: 3..<3, committed: ["four"]),
+            .init(lines: 4..<5, committed: []),
+        ])
+        #expect(changes.hunk(at: 1)?.committed == ["two"])
+        #expect(changes.hunk(at: 0) == nil)
+        #expect(changes.hunk(at: 2)?.committed == ["four"] && changes.hunk(at: 3)?.committed == ["four"], "the notch between lines 3 and 4 (from 1): either line")
+        #expect(changes.hunk(after: 1)?.lines == 3..<3 && changes.hunk(after: 4)?.lines == 1..<2, "next, round to the first")
+        #expect(changes.hunk(before: 3)?.lines == 1..<2 && changes.hunk(before: 1)?.lines == 4..<5, "previous, round to the last")
+        #expect(LineChanges.between(committed: "a\n", text: "b\n", limit: 0).hunks.isEmpty, "none past the cap")
+    }
+
+    /// Revert Change on each change in turn, last to first, gives back the committed lines, the
+    /// file's last line ending as it did; with \r\n too.
+    @Test func revertGivesTheCommit() {
+        var random = SystemRandomNumberGenerator()
+        func text(_ n: Int, _ newline: String) -> String {
+            let lines = (0..<n).map { _ in ["a", "b", "c", "dd", ""].randomElement(using: &random)! }
+            return lines.joined(separator: newline) + (Bool.random(using: &random) && n > 0 ? newline : "")
+        }
+        for newline in ["\n", "\r\n"] {
+            for _ in 0..<400 {
+                let committed = text(Int.random(in: 0...12, using: &random), newline)
+                let current = text(Int.random(in: 0...12, using: &random), newline)
+                let changes = LineChanges.between(committed: committed, text: current)
+                var result = current
+                for hunk in changes.hunks.reversed() {
+                    let (range, replacement) = LineChanges.revert(hunk, in: result, newline: newline)
+                    result = (result as NSString).replacingCharacters(in: range, with: replacement)
+                }
+                #expect(LineChanges.split(result) == LineChanges.split(committed), "\(committed.debugDescription) ← \(current.debugDescription): \(result.debugDescription)")
+                let ended = current.hasSuffix(newline) || current.isEmpty, ends = result.hasSuffix(newline) || result.isEmpty
+                #expect(ended == ends || LineChanges.split(committed).isEmpty || LineChanges.split(committed).last == "",
+                        "the last line ends as it did (but an empty last line has its newline): \(current.debugDescription) → \(result.debugDescription)")
+                #expect(newline == "\n" || !result.replacingOccurrences(of: "\r\n", with: "").contains("\n"), "no bare \\n in a \\r\\n file: \(result.debugDescription)")
+            }
+        }
+    }
+
+    /// One change reverted alone: only its lines change.
+    @Test func revertOne() {
+        let current = "one\nTWO\nthree\nfive\nsix"
+        let changes = LineChanges.between(committed: "one\ntwo\nthree\nfour\nfive\n", text: current)
+        func apply(_ i: Int) -> String {
+            let (range, replacement) = LineChanges.revert(changes.hunks[i], in: current)
+            return (current as NSString).replacingCharacters(in: range, with: replacement)
+        }
+        #expect(apply(0) == "one\ntwo\nthree\nfive\nsix")
+        #expect(apply(1) == "one\nTWO\nthree\nfour\nfive\nsix")
+        #expect(apply(2) == "one\nTWO\nthree\nfive", "an added last line out, with the newline before it")
     }
 }

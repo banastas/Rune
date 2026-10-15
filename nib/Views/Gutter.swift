@@ -37,6 +37,38 @@ final class LineNumberRuler: NSRulerView {
     override func accessibilityChildren() -> [Any]? { [] }
 
     override var isFlipped: Bool { true }
+
+    // MARK: A click on a change mark (ED12): the change and its committed lines
+
+    /// The marks' column and the notch's cell before it, with a little room to hit them.
+    private var marksMinX: CGFloat { bounds.width - 4 - 2 - 4 - 4 }
+
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        guard point.x >= marksMinX, let editor, let document = editor.document, !editor.gitChanges.isEmpty,
+              let (line, rect) = line(atY: point.y), let hunk = document.git.changesNow()?.hunk(at: line) else {
+            super.mouseDown(with: event)
+            return
+        }
+        ChangePanel.show(hunk, for: document, relativeTo: NSRect(x: marksMinX, y: rect.minY, width: bounds.width - marksMinX, height: rect.height), of: self)
+    }
+
+    /// The line (from 0) beside a point in the gutter, and its rows' rect here; below the text,
+    /// its last line (where a notch for lines deleted at the end is drawn).
+    func line(atY y: CGFloat) -> (Int, NSRect)? {
+        guard let editor, case let view = editor.textView, let layout = view.textLayoutManager,
+              let content = layout.textContentManager else { return nil }
+        let origin = view.textContainerOrigin
+        let inView = convert(NSPoint(x: 0, y: y), to: view).y
+        let documentStart = content.documentRange.location
+        guard let fragment = layout.textLayoutFragment(for: CGPoint(x: 0, y: max(0, inView - origin.y))) else {
+            return (max(0, editor.lineIndex.lineCount - 1), NSRect(x: 0, y: y - 6, width: bounds.width, height: 12))
+        }
+        let offset = content.offset(from: documentStart, to: fragment.rangeInElement.location)
+        let frame = fragment.layoutFragmentFrame
+        let top = convert(NSPoint(x: 0, y: origin.y + frame.minY), from: view).y
+        return (editor.lineIndex.line(at: offset) - 1, NSRect(x: 0, y: top, width: bounds.width, height: frame.height))
+    }
     override var isOpaque: Bool { true }
     override var requiredThickness: CGFloat { ruleThickness }
 

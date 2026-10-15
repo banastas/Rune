@@ -119,6 +119,71 @@ final class GitMarks {
         document?.editor.gitChanges = new
     }
 
+    // MARK: Seeing and reverting a change (ED12, as Sublime Text's diff popup and Revert Hunk)
+
+    /// The changes against the text as it is now, shown too: the marks lag typing by 0.3 s, and
+    /// a revert must use the lines as they are. Nil outside a repository or over 5 MB.
+    func changesNow() -> LineChanges? {
+        guard let document, let base, !document.highlightingOff else { return nil }
+        recompute?.cancel()
+        let fresh = LineChanges.between(committed: base.text, text: document.editor.textView.string)
+        show(fresh)
+        return fresh
+    }
+
+    /// The line (from 0) the caret is on.
+    private var caretLine: Int? {
+        guard let editor = document?.editor else { return nil }
+        return editor.lineIndex.line(at: editor.textView.selectedRange().location) - 1
+    }
+
+    /// Puts a change's committed lines back: an edit like typing, one ⌘Z step, so not while the
+    /// trial's lock is on (DS4). False when it wasn't made (the lines moved on since: no longer
+    /// a change as shown).
+    @discardableResult
+    func revert(_ shown: LineChanges.Hunk) -> Bool {
+        guard let document, let changes = changesNow(), changes.hunks.contains(shown) else { NSSound.beep(); return false }
+        guard !LicenseManager.shared.typingLocked else { Toast.show(LicenseManager.shared.refusedHUD, for: 4); return false }
+        let view = document.editor.textView
+        let (range, replacement) = LineChanges.revert(shown, in: view.string)
+        guard view.isEditable, view.shouldChangeText(in: range, replacementString: replacement) else { NSSound.beep(); return false }
+        view.textStorage?.replaceCharacters(in: range, with: replacement)
+        view.didChangeText()
+        view.undoManager?.setActionName("Revert Change")
+        view.setSelectedRange(NSRange(location: range.location, length: 0))
+        view.reveal(range.location)
+        _ = changesNow()
+        Announce.sentence(Self.spoken(shown, reverted: true))
+        return true
+    }
+
+    /// Text › Revert Change: the change on the caret's line.
+    func revertAtCaret() {
+        guard let line = caretLine, let hunk = changesNow()?.hunk(at: line) else { NSSound.beep(); return }
+        revert(hunk)
+    }
+
+    /// Text › Next Change (⌃.) and Previous Change (⌃,), Sublime's keys: the caret to the start of
+    /// the next change, round the end.
+    func go(forward: Bool) {
+        guard let document, let line = caretLine, let changes = changesNow(),
+              let hunk = forward ? changes.hunk(after: line) : changes.hunk(before: line) else { NSSound.beep(); return }
+        let view = document.editor.textView
+        let offset = document.editor.lineIndex.start(ofLine: hunk.lines.lowerBound + 1) ?? (view.string as NSString).length
+        view.setSelectedRange(NSRange(location: offset, length: 0))
+        view.reveal(offset, linesAbove: 3)
+        Announce.sentence(Self.spoken(hunk, reverted: false))
+    }
+
+    /// "Lines 4 to 6 changed since the last commit", for VoiceOver.
+    static func spoken(_ hunk: LineChanges.Hunk, reverted: Bool) -> String {
+        let lines = hunk.lines.isEmpty ? "before line \(hunk.lines.lowerBound + 1)"
+            : hunk.lines.count == 1 ? "line \(hunk.lines.lowerBound + 1)" : "lines \(hunk.lines.lowerBound + 1) to \(hunk.lines.upperBound)"
+        let what = hunk.lines.isEmpty ? "\(hunk.committed.count) deleted" : hunk.committed.isEmpty ? "\(lines) added" : "\(lines) changed"
+        if reverted { return hunk.lines.isEmpty ? "Restored \(hunk.committed.count) line\(hunk.committed.count == 1 ? "" : "s") \(lines)" : "Reverted \(lines)" }
+        return hunk.lines.isEmpty ? "Lines \(what) \(lines)" : what.prefix(1).uppercased() + what.dropFirst()
+    }
+
     /// The repository's log of HEAD's moves: written at every commit, checkout and reset.
     private func watch(_ url: URL) {
         watcher?.cancel()

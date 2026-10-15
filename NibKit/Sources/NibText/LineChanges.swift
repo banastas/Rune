@@ -26,6 +26,23 @@ public struct LineChanges: Equatable, Sendable {
     /// Too many edits to match line by line: only lines not in the commit are marked.
     public private(set) var approximate = false
 
+    /// One change: lines of the text in place of lines of the commit (either can be none). What a
+    /// click on a mark shows, and what Revert Change puts back.
+    public struct Hunk: Equatable, Sendable {
+        /// The text's lines, from 0 (empty where lines were only deleted: before `lines.lowerBound`).
+        public let lines: Range<Int>
+        /// The committed lines they stand in place of.
+        public let committed: [String]
+
+        public init(lines: Range<Int>, committed: [String]) {
+            self.lines = lines
+            self.committed = committed
+        }
+    }
+
+    /// Every change, in order (none when `approximate`).
+    public private(set) var hunks: [Hunk] = []
+
     public var isEmpty: Bool { lines.isEmpty && deletedBefore.isEmpty && !approximate }
 
     public init() {}
@@ -51,6 +68,9 @@ public struct LineChanges: Equatable, Sendable {
         var previousBase = -1, previousNow = -1
         func gap(toBase i: Int, toNow j: Int) {
             let removed = i - previousBase - 1, inserted = j - previousNow - 1
+            if removed > 0 || inserted > 0 {
+                changes.hunks.append(Hunk(lines: (previousNow + 1)..<j, committed: base[(previousBase + 1)..<i].map(String.init)))
+            }
             if inserted > 0 {
                 for (k, line) in ((previousNow + 1)..<j).enumerated() {
                     let kind: Kind = k < removed ? .modified : .added
@@ -71,6 +91,63 @@ public struct LineChanges: Equatable, Sendable {
         }
         gap(toBase: base.count, toNow: now.count)
         return changes
+    }
+
+    /// The change on a line (from 0), or the one of lines deleted just before it or just after it
+    /// (its notch is on the line's edge).
+    public func hunk(at line: Int) -> Hunk? {
+        hunks.first { $0.lines.contains(line) } ?? hunks.first { $0.lines.isEmpty && ($0.lines.lowerBound == line || $0.lines.lowerBound == line + 1) }
+    }
+
+    /// The first change starting after `line`, round to the first; or the last starting before it,
+    /// round to the last (Text › Next Change, Previous Change).
+    public func hunk(after line: Int) -> Hunk? {
+        hunks.first { $0.lines.lowerBound > line } ?? hunks.first
+    }
+    public func hunk(before line: Int) -> Hunk? {
+        hunks.last { $0.lines.lowerBound < line } ?? hunks.last
+    }
+
+    /// The edit that puts a change's committed lines back, in UTF-16 offsets of `text` (an
+    /// NSTextView's string): the range to replace and what goes in its place, with `newline`
+    /// between lines. The file's last line keeps ending as it does, with or without a newline,
+    /// unless the committed lines end with an empty one.
+    public static func revert(_ hunk: Hunk, in text: String, newline: String = "\n") -> (range: NSRange, replacement: String) {
+        let ns = text as NSString
+        let length = ns.length
+        // Where each line starts, as `split` counts lines (a final newline ends the last line).
+        var starts = [0]
+        var at = 0
+        while at < length {
+            let found = ns.range(of: "\n", options: .literal, range: NSRange(location: at, length: length - at))
+            guard found.location != NSNotFound else { break }
+            at = found.location + 1
+            if at < length { starts.append(at) }
+        }
+        let count = length == 0 ? 0 : starts.count
+        let endsWithNewline = length > 0 && ns.character(at: length - 1) == 0x0A
+        func start(_ line: Int) -> Int { line < count ? starts[line] : length }
+        let from = start(hunk.lines.lowerBound), to = start(hunk.lines.upperBound)
+        var replacement = hunk.committed.map { $0 + newline }.joined()
+        let atEnd = hunk.lines.upperBound >= count
+        if atEnd && !endsWithNewline && length > 0 && hunk.committed.last == "" && hunk.lines.isEmpty {
+            replacement = newline + replacement   // after a last line with no newline, which now gets one
+        }
+        // (An empty last line can't go without its newline: the file ends with one then.)
+        if atEnd && !endsWithNewline && length > 0 && hunk.committed.last != "" {
+            if hunk.lines.isEmpty {
+                replacement = newline + String(replacement.dropLast(newline.count))   // after a last line with no newline
+            } else if !replacement.isEmpty {
+                replacement = String(replacement.dropLast(newline.count))
+            } else if from > 0 {
+                // Lines taken out at the end: the newline before them goes too, unless the line
+                // before is empty (it would go with it).
+                let before = ns.substring(to: from).hasSuffix("\r\n") ? 2 : 1
+                let previousEmpty = hunk.lines.lowerBound > 0 && start(hunk.lines.lowerBound - 1) == from - before
+                if !previousEmpty { return (NSRange(location: from - before, length: to - from + before), "") }
+            }
+        }
+        return (NSRange(location: from, length: to - from), replacement)
     }
 
     /// For each line of `base`, the line of `new` it's the same line as (nil: not in `new`), or
