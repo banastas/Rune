@@ -191,6 +191,7 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         textView.matchedTags = []   // till the tree has the edit (`updateMatches`)
         document?.textDidChange()
         onChange?()
+        if Self.paintsEdits { paintEdited() } else { editedSinceDrawn = nil }
         scheduleHighlight()
         find.textChanged()
     }
@@ -222,6 +223,10 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             guard i < ranges.count, ranges[i].location < p else { return p + before[i] }
             return ranges[i].location + before[i] + (start ? inserted[i] : 0)
         }
+        if let first = ranges.first, let last = ranges.last {
+            let end = NSMaxRange(last) + before[ranges.count]
+            noteEdit(NSRange(location: first.location, length: end - first.location), change: before[ranges.count])
+        }
         styles = styles.compactMap { item in
             let start = moved(item.range.location, start: true), end = moved(NSMaxRange(item.range), start: false)
             return end > start ? (NSRange(location: start, length: end - start), item.style) : nil
@@ -238,11 +243,20 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         return true
     }
 
+    /// An edit about to be made, `after` where its new text will be: kept for `paintEdited`, with
+    /// any not painted yet moved by it.
+    private func noteEdit(_ after: NSRange, change: Int) {
+        guard let earlier = editedSinceDrawn else { editedSinceDrawn = after; return }
+        let moved = earlier.location >= after.location ? NSRange(location: max(after.location, earlier.location + change), length: earlier.length) : earlier
+        editedSinceDrawn = NSUnionRange(moved, after)
+    }
+
     /// Before each change: the colors move with the text until the next highlight, so typing
     /// doesn't shift them a character off for a moment.
     func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString text: String?) -> Bool {
         let inserted = (text as NSString?)?.length ?? 0, change = inserted - range.length
         guard change != 0 || range.length > 0 else { return true }
+        noteEdit(NSRange(location: range.location, length: inserted), change: change)
         styles = styles.compactMap { item in
             var (r, style) = item
             let end = NSMaxRange(r), editEnd = NSMaxRange(range)
@@ -420,7 +434,6 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
     /// (§6.3: never the text storage, undo or layout), then the conflict frames' hidden marker
     /// lines; bold, italic and underline, which rendering attributes can't carry, as faces.
     func render(force: Bool = false) {
-        guard let layout = textView.textLayoutManager else { return }
         let length = (textView.string as NSString).length
         let view = visibleRange()
         let wanted = NSIntersectionRange(NSRange(location: max(0, view.location - 3_000), length: view.length + 6_000), NSRange(location: 0, length: length))
@@ -430,11 +443,23 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
         if syntaxDocument != nil, !highlightPending, NSIntersectionRange(wanted, styled).length < wanted.length {
             scheduleHighlight(after: 0)
         }
-        guard let whole = textView.textRange(wanted) else { return }
+        guard paint(wanted) else { return }
+        rendered = wanted
+        redrawText()
+    }
+
+    /// The colors of `wanted` from `styles`, Find's matches and the conflict blocks, as rendering
+    /// attributes, and its faces. Drawn when TextKit next draws its lines (`redrawText`).
+    @discardableResult
+    private func paint(_ wanted: NSRange) -> Bool {
+        guard let layout = textView.textLayoutManager, let whole = textView.textRange(wanted) else { return false }
         layout.removeRenderingAttribute(.foregroundColor, for: whole)
         layout.removeRenderingAttribute(.backgroundColor, for: whole)
         let plain = Scheme.theme.foreground
-        for (range, style) in styles {
+        var i = Self.firstStyle(after: wanted.location, in: styles)
+        while i < styles.count, styles[i].range.location < NSMaxRange(wanted) {
+            let (range, style) = styles[i]
+            i += 1
             let part = NSIntersectionRange(range, wanted)
             guard part.length > 0, let text = textView.textRange(part) else { continue }
             if style.foreground != plain { layout.addRenderingAttribute(.foregroundColor, value: NSColor(style.foreground), for: text) }
@@ -464,9 +489,43 @@ final class Editor: NSObject, NSTextViewDelegate, NSTextStorageDelegate {
             }
         }
         applyFaces(in: wanted)
-        rendered = wanted
-        redrawText()
+        return true
     }
+
+    /// The first of `styles` (in order, apart) that ends after `location`.
+    private static func firstStyle(after location: Int, in styles: [(range: NSRange, style: Style)]) -> Int {
+        var low = 0, high = styles.count
+        while low < high {
+            let mid = (low + high) / 2
+            if NSMaxRange(styles[mid].range) <= location { low = mid + 1 } else { high = mid }
+        }
+        return low
+    }
+
+    /// Just after an edit, the colors round it from `styles` as moved with it (`shouldChangeText`),
+    /// before TextKit draws it. TextKit 2 moves rendering attributes with the text, but a typed
+    /// character gets none of the color either side of it: in a numbered list each one came white
+    /// and took the list's color only when the highlight landed (the user, 2026-10-17). Lines
+    /// TextKit draws again for the edit are drawn in these; the rest kept their drawing.
+    private func paintEdited() {
+        guard let edited = editedSinceDrawn else { return }
+        editedSinceDrawn = nil
+        let ns = textView.string as NSString
+        guard NSMaxRange(edited) <= ns.length else { return }
+        let start = ns.lineRange(for: NSRange(location: edited.location, length: 0)).location
+        let end = min(ns.length, NSMaxRange(edited) + Self.paintedBelowEdit)
+        // Only what's rendered (the view and its margin): carets through a whole file make one
+        // span of it, and the rest is painted as it comes into view.
+        let part = NSIntersectionRange(NSRange(location: start, length: end - start), rendered)
+        if part.length > 0 { paint(part) }
+    }
+
+    /// Off with `-NibPaintEdits NO`, for the `listcolor` scenario to compare.
+    static let paintsEdits = NibDefaults.store.object(forKey: "NibPaintEdits") == nil || NibDefaults.store.bool(forKey: "NibPaintEdits")
+    /// The text an edit's colors are painted to after it, past the edit (`paintEdited`).
+    static let paintedBelowEdit = 2_000
+    /// The edits since the last `paintEdited`, after them: from the first's start to the last's end.
+    private var editedSinceDrawn: NSRange?
 
     /// TextKit 2 draws each stretch of text in a view of its own, into a layer, and draws it again
     /// only when its text changes: neither the text view's `needsDisplay` nor a change of rendering

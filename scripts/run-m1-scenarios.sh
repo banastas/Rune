@@ -75,6 +75,7 @@ run carets
 run minimap
 run nap   # 40 s out of sight, not napped
 run mdlist       # a numbered list typed in a 2.4 MB Markdown file: its colors, and the lines drawn again
+run listcolor    # typing at a list item's end: each character in the list's color at once, the line below untouched
 run widescroll -NibWideScrollBig YES   # a scroll to a stretch taller than the view, then typing, in 2.4 MB (TextKit 2 crashed)
 run palette
 run headings     # Go to Heading (⌘R): a Markdown file's headings, the jump, 2.4 MB off the main thread
@@ -101,6 +102,8 @@ run receipts
 run undo
 run crash -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover -NibMarker "$marker"
+run restore -NibMarker "$marker"          # a file's window open as Nib dies: macOS keeps the windows, by bundle ID
+run restore-return -NibMarker "$marker"   # …and a test run's Nib opens none of them, nor any window for a file outside the test folders
 run crash-blocks -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600
 run recover-blocks -NibMarker "$marker"
 run crash-big -NibMarker "$marker" -NibSaveIdle 600 -NibSaveMax 600   # a 2.4 MB buffer's journal: an edit log
@@ -152,7 +155,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib-scenarios/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type uploads clipboard cleantext lines find findjump carets minimap nap mdlist widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge-quit merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit reopen reopen-return refresh large bigfile; do   # this run's logs only
+for name in type uploads clipboard cleantext lines find findjump carets minimap nap mdlist listcolor widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover restore restore-return crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge-quit merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit reopen reopen-return refresh large bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done

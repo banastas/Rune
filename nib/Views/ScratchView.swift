@@ -110,10 +110,15 @@ struct FileWindow: View {
     /// made a new one for the file just let go and opened it again, held, with no window (the
     /// `files` scenario, 2026-10-02: an untitled tab's file stayed behind).
     @State private var document: Document?
+    /// Set in a test run for a window no one asked for, on a file outside the test folders: closed
+    /// with no document (`unasked`).
+    @State private var refused = false
 
     var body: some View {
         ZStack {
-            if let document {
+            if refused {
+                Color.clear.background(WindowConfigurator { window in DispatchQueue.main.async { window.close() } })
+            } else if let document {
                 DocumentView(document: document)
                     .background(WindowConfigurator { window in
                         // Closing it saves, uploads and hands the file back (`Documents.watchClosing`).
@@ -126,9 +131,22 @@ struct FileWindow: View {
             }
         }
         .onAppear {
-            if document == nil { document = Documents.document(for: url) }
             AppDelegate.openFileWindow = { openWindow(value: $0) }
+            if Self.unasked(url) { refused = true; return }
+            if document == nil { document = Documents.document(for: url) }
         }
+    }
+
+    /// A test run's Nib makes no document for a file outside the test folders that nothing asked
+    /// for (`AppDelegate.openFile`): macOS put the Rune in daily use's windows back in it, by
+    /// bundle ID, and it opened the user's files (2026-10-17; `ScenarioWindows.keepRestorationOut`).
+    /// One asked for opens, locked, to say why (`ScratchLocation.refusal`).
+    static func unasked(_ url: URL) -> Bool {
+        guard ScratchLocation.refusal(for: url) != nil, asked[url.path] == nil else { return false }
+        #if DEBUG
+        AppDelegate.mark("a window for \(url.lastPathComponent), not asked for, closed")
+        #endif
+        return true
     }
 
     /// The window New and New Tab were chosen in: their tab goes there, if it takes tabs.

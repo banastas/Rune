@@ -135,6 +135,9 @@ enum TestHarness {
             case "carets": await caretsScenario(log, marker)
             case "minimap": await minimapScenario(log, marker)
             case "mdlist": await markdownListScenario(log, marker)
+            case "listcolor": await listColorScenario(log, marker)
+            case "restore": await restoreScenario(log, marker)
+            case "restore-return": await restoreReturnScenario(log, marker)
             case "widescroll": await wideScrollScenario(log, marker)
             case "headings": await headingsScenario(log, marker)
             case "pairs": await pairsScenario(log, marker)
@@ -3794,6 +3797,143 @@ enum TestHarness {
         _ = await waitFor(15) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
     }
 
+    /// A file's window open as Nib dies without quitting (`restore-return` follows): macOS keeps
+    /// its windows for the next launch, as it kept the Rune in daily use's for a scenario's Nib
+    /// (2026-10-17, `ScenarioWindows.keepRestorationOut`).
+    static func restoreScenario(_ log: HarnessLog, _ marker: String) async {
+        let url = restoreFile(marker)
+        try? Data("# Restore \(marker)\n\na file left open\n".utf8).write(to: url)
+        AppDelegate.openFile(url)
+        let shown = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        log.check(shown, "a test file's window open")
+        Documents.existing(for: url)?.editor.textView.window?.invalidateRestorableState()
+        try? await Task.sleep(for: .seconds(6))   // macOS saves the windows a moment after they change
+        // -NibRestoreStay n: still running n s more, as the Rune in daily use was, for another
+        // launch beside it to see (2026-10-17).
+        let stay = NibDefaults.store.double(forKey: "NibRestoreStay")
+        if stay > 0 { try? await Task.sleep(for: .seconds(stay)) }
+        log.line("SIGKILL")
+        kill(getpid(), SIGKILL)
+    }
+
+    /// The launch after `restore`: no window, and no document, for the file left open. A scenario's
+    /// Nib restores nothing from a last launch, its own or the user's Rune's.
+    static func restoreReturnScenario(_ log: HarnessLog, _ marker: String) async {
+        let url = restoreFile(marker)
+        try? await Task.sleep(for: .seconds(1))   // anything restored has its window by now
+        let titles = NSApp.windows.filter(\.isVisible).map(\.title)
+        log.check(Documents.existing(for: url) == nil && !titles.contains { $0.contains(url.lastPathComponent) },
+                  "after a launch that died, the file it had open isn't opened again (\(Documents.existing(for: url) == nil ? "no document" : "a document"); windows: \(titles.joined(separator: ", ")))")
+        let real = Documents.all.map(\.url).filter { ScratchLocation.refusal(for: $0) != nil }
+        log.check(real.isEmpty, "and no document outside the test folders (\(real.isEmpty ? "none" : real.map(\.lastPathComponent).joined(separator: ", ")))")
+        // A window for a file outside the test folders that nothing asked for, as restoration made
+        // them: closed, with no document (`FileWindow.unasked`).
+        let outside = FileManager.default.temporaryDirectory.appendingPathComponent("nib-unasked-\(marker).md")
+        try? Data("# not a test file\n".utf8).write(to: outside)
+        let windowsBefore = NSApp.windows.filter(\.isVisible).count
+        AppDelegate.openFileWindow?(outside)
+        try? await Task.sleep(for: .seconds(1.5))
+        let left = NSApp.windows.filter { $0.isVisible && $0.title.contains(outside.lastPathComponent) }
+        log.check(AppDelegate.openFileWindow != nil && Documents.existing(for: outside) == nil && left.isEmpty && NSApp.windows.filter(\.isVisible).count == windowsBefore,
+                  "a window for a file outside the test folders, not asked for: closed, no document (\(Documents.existing(for: outside) == nil ? "none" : "a document"), \(left.count) window\(left.count == 1 ? "" : "s") left)")
+        try? FileManager.default.removeItem(at: outside)
+        // The file and what it left: closed first if it came back, so nothing is saved after.
+        if let window = Documents.existing(for: url)?.editor.textView.window {
+            window.performClose(nil)
+            _ = await waitFor(15) { Documents.existing(for: url) == nil }
+        }
+        try? FileManager.default.removeItem(at: url)
+        try? FileManager.default.removeItem(at: History(root: NibPaths.support.appendingPathComponent("History"), path: url.path).directory)
+        NibDefaults.store.removeObject(forKey: "selection:" + url.path)
+        if let item = ClosedItems.shared.items.first(where: { $0.path == url.path }) { ClosedItems.shared.forget(item) }
+        RecentFiles.shared.remove(url)
+    }
+
+    private static func restoreFile(_ marker: String) -> URL {
+        ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("restore-\(marker).md")
+    }
+
+    /// Typing at the end of a numbered list's item, as the user did (2026-10-17): each character
+    /// came white and took the list's color only when the highlight landed, and the first letter of
+    /// the plain line below took it for that moment. Read from what the lines' layers hold right
+    /// after each keystroke, before any highlight (`Editor.paintEdited`; `-NibPaintEdits NO` as before).
+    static func listColorScenario(_ log: HarnessLog, _ marker: String) async {
+        let text = "# Notes \(marker)\n\n1. first\n2. second\n3. jhjkhkaas\n\n\n\nChrome Vendor – lead\nmore text\n"
+        guard let url = Untitled.create(text: text, name: "listcolor-\(marker).md") else { log.check(false, "a Markdown buffer"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url), let window = document.editor.textView.window else { log.check(false, "it opened"); return }
+        defer { Untitled.letGo(url) }
+        let view = document.editor.textView
+        let orange = "#EF7C2B"
+        _ = await waitFor(3) { drawnColor(view, at: (view.string as NSString).range(of: "3. ").location) == orange }
+        try? await Task.sleep(for: .milliseconds(300))
+        /// What the layers hold over the character at `location`: "orange" if any of it is in the
+        /// list's color (drawn as it is, not drawn again).
+        func shown(at location: Int) -> String {
+            guard let content = window.contentView, let layer = content.layer,
+                  let from = view.caretRect(at: location), let to = view.caretRect(at: location + 1), to.minX > from.minX else { return "nowhere" }
+            let glyph = view.convert(NSRect(x: from.minX, y: from.minY, width: to.minX - from.minX, height: from.height), to: content)
+            let b = content.bounds
+            guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(b.width) * 2, pixelsHigh: Int(b.height) * 2, bitsPerSample: 8, samplesPerPixel: 4,
+                                             hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+                  let context = NSGraphicsContext(bitmapImageRep: rep)?.cgContext else { return "no picture" }
+            context.scaleBy(x: 2, y: 2)
+            layer.render(in: context)
+            var lit = false
+            for x in Int(glyph.minX) + 1 ..< max(Int(glyph.minX) + 2, Int(glyph.maxX) - 1) {
+                for y in Int(glyph.minY) + 2 ..< max(Int(glyph.minY) + 3, Int(glyph.maxY) - 2) {
+                    let row = Int(b.height) - y   // the layer comes out upside down in the picture, flipped view or not
+                    guard let c = rep.colorAt(x: x * 2, y: row * 2)?.usingColorSpace(.sRGB) else { continue }
+                    if c.redComponent > 0.75, c.greenComponent > 0.3, c.greenComponent < 0.65, c.blueComponent < 0.35 { return "orange" }
+                    if c.redComponent > 0.5 { lit = true }
+                }
+            }
+            return lit ? "plain" : "blank"
+        }
+        let ns = { view.string as NSString }
+        log.check(shown(at: ns().range(of: "jhjk").location) == "orange" && shown(at: ns().range(of: "Chrome").location) == "plain",
+                  "before typing: the item drawn in the list's color, “Chrome” below it plain (\(shown(at: ns().range(of: "jhjk").location)), \(shown(at: ns().range(of: "Chrome").location)))")
+        view.setSelectedRange(NSRange(location: NSMaxRange(ns().range(of: "jhjkhkaas")), length: 0))
+        var typedWrong: [String] = [], belowWrong: [String] = [], attributesWrong: [String] = []
+        for character in "abcdefgh" {
+            view.insertText(String(character), replacementRange: view.selectedRange())
+            window.displayIfNeeded()
+            CATransaction.flush()
+            let typed = view.selectedRange().location - 1, below = ns().range(of: "Chrome").location
+            if drawnColor(view, at: typed) != orange { attributesWrong.append("\(character): \(drawnColor(view, at: typed))") }
+            let typedShown = shown(at: typed), belowShown = shown(at: below)
+            if typedShown != "orange" { typedWrong.append("\(character): \(typedShown)") }
+            if belowShown != "plain" { belowWrong.append("\(character): \(belowShown)") }
+            try? await Task.sleep(for: .milliseconds(40))   // under the highlight's 80 ms: none lands
+        }
+        log.check(attributesWrong.isEmpty, "each character typed at the item's end in the list's color at once, before the highlight (\(attributesWrong.isEmpty ? "all 8" : "not: " + attributesWrong.joined(separator: ", ")))")
+        log.check(typedWrong.isEmpty, "and drawn so (\(typedWrong.isEmpty ? "all 8" : "not: " + typedWrong.joined(separator: ", ")))")
+        log.check(belowWrong.isEmpty, "“Chrome” on the plain line below never drawn in the list's color (\(belowWrong.isEmpty ? "all 8" : "it was: " + belowWrong.joined(separator: ", ")))")
+        // Typed as a person types, a highlight landing after each key: what's drawn read 10 times
+        // between keys, the typed character and “Chrome” below.
+        var slowWrong: [String] = []
+        for character in "ijkl" {
+            view.insertText(String(character), replacementRange: view.selectedRange())
+            for moment in 0..<10 {
+                window.displayIfNeeded()
+                CATransaction.flush()
+                let typed = view.selectedRange().location - 1, below = ns().range(of: "Chrome").location
+                let typedShown = shown(at: typed), belowShown = shown(at: below)
+                if typedShown != "orange" || belowShown != "plain" { slowWrong.append("\(character) at \(moment * 25) ms: \(typedShown)/\(belowShown)") }
+                try? await Task.sleep(for: .milliseconds(25))
+            }
+        }
+        log.check(slowWrong.isEmpty, "typed a key every 250 ms, the highlight landing between: the character in the list's color and “Chrome” plain throughout (\(slowWrong.isEmpty ? "40 looks" : "not: " + slowWrong.joined(separator: ", ")))")
+        try? await Task.sleep(for: .milliseconds(500))   // the highlight in
+        window.displayIfNeeded()
+        CATransaction.flush()
+        log.check(drawnColor(view, at: NSMaxRange(ns().range(of: "jhjkhkaasabcdefghijkl")) - 1) == orange && shown(at: ns().range(of: "Chrome").location) == "plain",
+                  "with the highlight in: the item in the list's color, “Chrome” plain")
+        window.performClose(nil)
+        _ = await waitFor(15) { Documents.existing(for: url) == nil && !FileManager.default.fileExists(atPath: url.path) }
+    }
+
     /// VoiceOver (AX1, AX2): the strip's summary; its indentation, encoding and line endings in words; a notice said as a sentence;
     /// a conflict's notice said at once, the Conflicts rotor naming the block without its dot,
     /// and "No conflicts left" once it's resolved; the HUD line said too.
@@ -7180,11 +7320,28 @@ enum ScenarioWindows {
               let skip = class_getInstanceMethod(NSWindow.self, #selector(NSWindow.nibScenarioSaveFrame(usingName:))) else { return }
         method_exchangeImplementations(save, skip)
     }
+
+    /// No windows restored from the last quit, and none saved for the next. macOS keeps an app's
+    /// windows by bundle ID, and a scenario's Nib is the user's (`com.banastas.nib`): with the
+    /// Rune in daily use running, its windows read as never closed, and a scenario's Nib opened
+    /// the user's files in them (2026-10-17: two podcast drafts, a feed and a JSON file, whose
+    /// carets then went into the scenarios' defaults), then wrote its own windows over the
+    /// user's. Read once at launch, from defaults registered for this run only (never written).
+    /// `-NibRestoreWindows YES`: as before, for `restore-return` to show the difference.
+    static func keepRestorationOut() {
+        guard !NibDefaults.store.bool(forKey: "NibRestoreWindows") else { return }
+        UserDefaults.standard.register(defaults: ["ApplePersistenceIgnoreState": true])
+        guard let restorable = class_getInstanceMethod(NSWindow.self, #selector(getter: NSWindow.isRestorable)),
+              let never = class_getInstanceMethod(NSWindow.self, #selector(NSWindow.nibScenarioIsRestorable)) else { return }
+        method_exchangeImplementations(restorable, never)
+    }
 }
 
 extension NSWindow {
     /// In place of saveFrame(usingName:), in a scenario's Nib only.
     @objc fileprivate func nibScenarioSaveFrame(usingName name: NSWindow.FrameAutosaveName) {}
+    /// In place of isRestorable, in a scenario's Nib only.
+    @objc fileprivate func nibScenarioIsRestorable() -> Bool { false }
 }
 
 /// A scenario's Nib gives the Mac's focus back to the app that had it, at launch and whenever it
