@@ -3750,6 +3750,14 @@ enum TestHarness {
         guard let document = Documents.existing(for: url) else { log.check(false, "it opened"); return }
         defer { Untitled.letGo(url) }
         let editor = document.editor, view = editor.textView
+        // Room for the whole list, its lines unwrapped: the screen check needs every item in view.
+        // (Windows came back at the size saved for them, 1151 by 1223 points, until a test run's Nib
+        // stopped restoring windows, 2026-10-17; at the default 720 by 560 the titles wrap and
+        // seven items scrolled out of view.)
+        if let window = view.window, let screen = window.screen?.visibleFrame {
+            let size = NSSize(width: min(1150, screen.width), height: min(900, screen.height))
+            window.setFrame(NSRect(x: screen.minX, y: screen.maxY - size.height, width: size.width, height: size.height), display: true)
+        }
         let ns = text as NSString
         let first = ns.range(of: titles[0]).location
         let firstLine = editor.lineIndex.line(at: first)
