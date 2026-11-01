@@ -6,13 +6,13 @@
     <description>Updates for Rune</description>
     <language>en</language>
     <item>
-      <title>Rune 1.2.1</title>
-      <pubDate>Sat, 17 Oct 2026 13:52:07 +0000</pubDate>
-      <sparkle:version>202610170649</sparkle:version>
-      <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
+      <title>Rune 1.2.2</title>
+      <pubDate>Sun, 01 Nov 2026 20:29:53 +0000</pubDate>
+      <sparkle:version>202611011228</sparkle:version>
+      <sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <description><![CDATA[<p>List items take their color as you type.</p>]]></description>
-      <enclosure url="https://rune.banast.as/downloads/Rune-1.2.1-202610170649.zip" type="application/octet-stream" sparkle:edSignature="i39QCYo1qj9BGBiK+HFGq/pWKuoO7W7eFtEbg1H7bBYaUs/9T90nPZMOYuLsV8bFlOyZHfkgjb+PvFRHg6y9DQ==" length="6942230" />
+      <description><![CDATA[<p>The text you're reading stays in place when your other Mac's changes come in.</p>]]></description>
+      <enclosure url="https://rune.banast.as/downloads/Rune-1.2.2-202611011228.zip" type="application/octet-stream" sparkle:edSignature="9tSvHq1hUKRJV8edAfY6VhOPcSUYVm+S/wb11PzKoMhGOYXrC7TAnEbL5XwasTuNskE+xqvvb4X7h8MCVPMUBQ==" length="6949092" />
     </item>
   </channel>
 </rss>
