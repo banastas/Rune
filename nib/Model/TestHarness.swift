@@ -150,6 +150,7 @@ enum TestHarness {
             case "license": await licenseScenario(Documents.scratch, log, marker)
             case "nap": await napScenario(document, log, marker)
             case "findjump": await findJumpScenario(log, marker)
+        case "keepview": await keepViewScenario(log, marker)
             case "uploads": await uploadsScenario(document, log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -5993,6 +5994,78 @@ enum TestHarness {
         view.window?.performClose(nil)
         // Closed and handed back to iCloud, and only then removed (the defer): a document leaves
         // the list as its closing begins, and the file removed then was left paused (2026-10-01).
+        _ = await waitFor(20) { Documents.existing(for: url) == nil && !document.held }
+    }
+
+    /// Another version with lines added above what's in view, as the other Mac's comes in when
+    /// Rune comes forward: the same text stays at the view's top. The view stayed at its height
+    /// in points and showed earlier text (the user's 254 KB scratch, 2026-11-01). Lines changed
+    /// below the view, then in it, move nothing. `-NibKeepView NO` is as before, to compare.
+    static func keepViewScenario(_ log: HarnessLog, _ marker: String) async {
+        await waitReady(Documents.scratch)
+        let url = ScratchLocation.url.deletingLastPathComponent().appendingPathComponent("keepview-\(marker).md")
+        var text = "# Keep view \(marker)\n", n = 0
+        while text.utf8.count < 250_000 {
+            n += 1
+            if n % 25 == 0 { text += String(repeating: "A long pasted paragraph that wraps in an ordinary window, item \(n), ", count: 4) + "\n" }
+            else if n % 3 == 0 { text += "- item \(n) with `code` and **bold** text\n" }
+            else { text += "Line \(n): a scratch file's note.\n" }
+        }
+        try? Data(text.utf8).write(to: url)
+        defer {
+            try? FileManager.default.removeItem(at: url)
+            ClosedItems.removeKept(for: url.path)
+            for item in ClosedItems.shared.items where item.path == url.path { ClosedItems.shared.forget(item) }
+            RecentFiles.shared.remove(url)
+            for prefix in ["selection:", "syntax:", "siblings:"] { NibDefaults.store.removeObject(forKey: prefix + url.path) }
+        }
+        AppDelegate.openFile(url)
+        _ = await waitFor(15) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url) else { log.check(false, "the file opened"); return }
+        let view = document.editor.textView
+        _ = await waitFor(30) { document.held && isSynced(document) }
+        /// The text at the view's top: its first 60 characters from there.
+        func atTop() -> String {
+            guard let anchor = view.scrollAnchor() else { return "" }
+            let ns = view.string as NSString
+            return ns.substring(with: NSRange(location: anchor.location, length: min(60, ns.length - anchor.location)))
+        }
+        /// Another app's version, coordinated, in place, as iCloud puts another Mac's; then until it's in the buffer.
+        /// Once the last is uploaded: one a second after it, while Nib uploaded it, was a conflict.
+        func incoming(_ changed: String, _ what: String) async -> Bool {
+            _ = await waitFor(30) { isSynced(document) }
+            var error: NSError?
+            NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: [], error: &error) { target in
+                try? Data(changed.utf8).write(to: target)
+            }
+            let came = await waitFor(10) { view.string == changed }
+            try? await Task.sleep(for: .milliseconds(300))
+            if !came { log.check(false, "\(what): the version came in (\(document.notice ?? document.state.line))") }
+            return came
+        }
+        // Three fifths down, as a person reads, the caret at the top (typed there earlier).
+        let ns = text as NSString
+        let reading = ns.lineRange(for: NSRange(location: ns.length * 3 / 5, length: 0)).location
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        view.reveal(reading, linesAbove: 0)
+        try? await Task.sleep(for: .milliseconds(300))
+        let before = atTop()
+        log.line("at the top of the view: \(before.debugDescription) (\(view.scrollAnchor()?.location ?? -1) of \(ns.length))")
+        var current = text
+        let above = (current as NSString).lineRange(for: NSRange(location: ns.length / 10, length: 0)).location
+        let added = (1...30).map { "- from the other Mac \(marker), line \($0)\n" }.joined()
+        current = (current as NSString).replacingCharacters(in: NSRange(location: above, length: 0), with: added)
+        if await incoming(current, "30 lines above the view") {
+            log.check(atTop() == before, "30 lines from another version above the view: the same text at its top (\(atTop().debugDescription))"
+                      + (Document.keepsView ? "" : " [-NibKeepView NO]"))
+        }
+        let shown = atTop()
+        let below = (current as NSString).lineRange(for: NSRange(location: (current as NSString).length * 19 / 20, length: 0)).location
+        current = (current as NSString).replacingCharacters(in: NSRange(location: below, length: 0), with: added)
+        if await incoming(current, "30 lines below the view") {
+            log.check(atTop() == shown, "and 30 below it: still the same (\(atTop().debugDescription))")
+        }
+        view.window?.performClose(nil)
         _ = await waitFor(20) { Documents.existing(for: url) == nil && !document.held }
     }
 

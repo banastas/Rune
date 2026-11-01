@@ -1971,10 +1971,17 @@ final class Document {
         }
     }
 
-    /// Replaces the buffer, keeping the caret near where it was. One undo step.
+    /// Off with `-NibKeepView NO`, for the `keepview` scenario to compare.
+    static let keepsView = NibDefaults.store.object(forKey: "NibKeepView") == nil || NibDefaults.store.bool(forKey: "NibKeepView")
+
+    /// Replaces the buffer, keeping the caret near where it was, and the text in view where it
+    /// was. One undo step.
     private func apply(_ text: String, undoable: Bool = true) {
         let view = editor.textView
         let selection = view.selectedRange()
+        // The scroll stayed at its height in points: lines from another Mac above what was in
+        // view, as Rune came forward, put earlier text there (the user's scratch, 2026-11-01).
+        let anchor = view.scrollAnchor()
         applying = true
         // Only what changed (§6.5): another version usually differs in a few lines, and
         // replacing the whole text redid TextKit's layout, the line index and the undo step for
@@ -2006,6 +2013,15 @@ final class Document {
             location = change.range.location + (change.replacement as NSString).length
         }
         view.setSelectedRange(NSRange(location: min(max(0, location), length), length: 0))
+        // The text at the view's top there again, moved along the same way; in the change, its start.
+        if let change, var top = anchor, Self.keepsView {
+            if top.location >= NSMaxRange(change.range) {
+                top.location += (change.replacement as NSString).length - change.range.length
+            } else if top.location > change.range.location {
+                top = (change.range.location, 0)
+            }
+            view.scroll(to: (min(top.location, length), top.offset))
+        }
         updateBlocks()
     }
 

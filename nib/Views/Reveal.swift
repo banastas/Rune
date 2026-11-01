@@ -45,6 +45,32 @@ extension NSTextView {
         }
     }
 
+    /// Where the view is in the text: the first character of the paragraph at its top, and how
+    /// far below that paragraph's first line the view's top is (`scroll(to:)` puts it back).
+    func scrollAnchor() -> (location: Int, offset: CGFloat)? {
+        guard let layout = textLayoutManager, let content = layout.textContentManager else { return nil }
+        layout.textViewportLayoutController.layoutViewport()
+        let top = visibleRect.minY
+        guard let fragment = layout.textLayoutFragment(for: CGPoint(x: 0, y: max(0, top - textContainerOrigin.y))) else { return nil }
+        let location = content.offset(from: content.documentRange.location, to: fragment.rangeInElement.location)
+        guard let rect = placeRect(at: location) else { return nil }
+        return (location, top - rect.minY)
+    }
+
+    /// The view where `scrollAnchor` said, its location moved by an edit since. The viewport is
+    /// laid out first: just after an edit above the view, TextKit 2 still has the lines below it
+    /// where they were (2,670 characters off, 30 lines into 254 KB, in a probe; 2026-11-01).
+    func scroll(to anchor: (location: Int, offset: CGFloat)) {
+        textLayoutManager?.textViewportLayoutController.layoutViewport()
+        for _ in 0..<3 {
+            guard let rect = placeRect(at: anchor.location) else { return }
+            let top = max(0, rect.minY + anchor.offset)
+            if abs(visibleRect.minY - top) < 1 { return }
+            scroll(NSPoint(x: visibleRect.minX, y: top))
+            textLayoutManager?.textViewportLayoutController.layoutViewport()
+        }
+    }
+
     /// The line `location` is on at the top of the view, `linesAbove` lines down from it; laid
     /// out and looked at again as `reveal(_:)` does.
     func reveal(_ location: Int, linesAbove: Int) {
