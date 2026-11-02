@@ -927,7 +927,34 @@ final class NibTextView: NSTextView {
         let flags = event.modifierFlags.intersection([.command, .option, .shift, .control])
         if flags == .command { commandClick(event); return }
         if flags == .option, event.clickCount == 1, columnDrag(event) { return }
+        // A press in the selection may drag it away (AppKit's drag session): its scrolls are its own.
+        let index = characterIndexForInsertion(at: convert(event.locationInWindow, from: nil))
+        let inSelection = event.clickCount == 1 && selectedRange().length > 0 && NSLocationInRange(index, selectedRange())
+        let scrolls = inSelection ? nil : scrollsWhileSelecting()
         super.mouseDown(with: event)
+        scrolls?.invalidate()
+    }
+
+    /// AppKit's selection drag takes only the mouse's drags and its release: a trackpad's scroll
+    /// waited until the button was let go (the user, 2026-11-01; Sublime scrolls). While it runs,
+    /// each scroll is taken from the queue, scrolls the view, and is followed by a drag where the
+    /// pointer is, so the selection reaches the text now under it. Word and line drags (a double
+    /// or triple click's) stay AppKit's.
+    private func scrollsWhileSelecting() -> Timer {
+        let timer = Timer(timeInterval: 1.0 / 120, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                while let scroll = NSApp.nextEvent(matching: .scrollWheel, until: nil, inMode: .eventTracking, dequeue: true) {
+                    guard let self, let window = self.window else { continue }
+                    self.enclosingScrollView?.scrollWheel(with: scroll)
+                    let drag = NSEvent.mouseEvent(with: .leftMouseDragged, location: scroll.locationInWindow, modifierFlags: scroll.modifierFlags,
+                                                  timestamp: scroll.timestamp, windowNumber: window.windowNumber, context: nil,
+                                                  eventNumber: 0, clickCount: 1, pressure: 1)
+                    if let drag { NSApp.postEvent(drag, atStart: true) }
+                }
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        return timer
     }
 
     override func copy(_ sender: Any?) {

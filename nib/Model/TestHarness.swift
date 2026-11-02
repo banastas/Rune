@@ -151,6 +151,7 @@ enum TestHarness {
             case "nap": await napScenario(document, log, marker)
             case "findjump": await findJumpScenario(log, marker)
         case "keepview": await keepViewScenario(log, marker)
+        case "dragscroll": await dragScrollScenario(log, marker)
             case "uploads": await uploadsScenario(document, log, marker)
             case "perf": await perfScenario(Documents.scratch, log, marker)
             case "launch": await waitReady(document)   // §6.5's cold launch: the first line says it
@@ -5995,6 +5996,60 @@ enum TestHarness {
         // Closed and handed back to iCloud, and only then removed (the defer): a document leaves
         // the list as its closing begins, and the file removed then was left paused (2026-10-01).
         _ = await waitFor(20) { Documents.existing(for: url) == nil && !document.held }
+    }
+
+    /// A selection dragged while a trackpad scrolls (the user, 2026-11-01): the view scrolls
+    /// with the button held, and the selection reaches the text under the pointer, in AppKit's
+    /// drag and in Rune's own (⌥-drag's column). The press goes to the view; a drag, a scroll of
+    /// 600 points and the release are posted, the release a moment later, from a timer, as the
+    /// drag runs.
+    static func dragScrollScenario(_ log: HarnessLog, _ marker: String) async {
+        let text = (1...3_000).map { "Line \($0) of a list to select through \(marker)" }.joined(separator: "\n") + "\n"
+        guard let url = Untitled.create(text: text, name: "dragscroll-\(marker).txt") else { log.check(false, "a buffer"); return }
+        AppDelegate.openFile(url)
+        _ = await waitFor(10) { Documents.existing(for: url)?.ready == true && Documents.existing(for: url)?.editor.textView.window?.isVisible == true }
+        guard let document = Documents.existing(for: url), let window = document.editor.textView.window else { log.check(false, "it opened"); return }
+        defer { Untitled.letGo(url) }
+        let view = document.editor.textView, clip = document.editor.scrollView.contentView
+        ScenarioFocus.take()
+        window.makeKeyAndOrderFront(nil)
+        window.makeFirstResponder(view)
+        _ = await waitFor(5) { window.isKeyWindow }
+        for (name, flags) in [("a drag", NSEvent.ModifierFlags()), ("an ⌥-drag", .option)] {
+            view.setSelectedRange(NSRange(location: 0, length: 0))
+            clip.scroll(to: .zero)
+            document.editor.scrollView.reflectScrolledClipView(clip)
+            try? await Task.sleep(for: .milliseconds(300))
+            // Two lines down from the top, at the text's left.
+            let inView = NSPoint(x: view.textContainerOrigin.x + 30, y: view.visibleRect.minY + 30)
+            let point = window.contentView!.convert(view.convert(inView, to: nil), from: nil)
+            func mouse(_ type: NSEvent.EventType) -> NSEvent? {
+                NSEvent.mouseEvent(with: type, location: point, modifierFlags: flags, timestamp: ProcessInfo.processInfo.systemUptime,
+                                   windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)
+            }
+            let screen = window.convertPoint(toScreen: point)
+            let height = window.screen?.frame.maxY ?? NSScreen.screens[0].frame.maxY
+            let cg = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: -600, wheel2: 0, wheel3: 0)
+            cg?.location = CGPoint(x: screen.x, y: height - screen.y)
+            cg?.flags = flags.contains(.option) ? .maskAlternate : []
+            guard let down = mouse(.leftMouseDown), let drag = mouse(.leftMouseDragged), let wheel = cg.flatMap(NSEvent.init(cgEvent:)) else {
+                log.check(false, "\(name): the events"); continue
+            }
+            let top = clip.bounds.minY
+            NSApp.postEvent(drag, atStart: false)
+            NSApp.postEvent(wheel, atStart: false)
+            let release = Timer(timeInterval: 0.5, repeats: false) { _ in MainActor.assumeIsolated { if let up = mouse(.leftMouseUp) { NSApp.postEvent(up, atStart: false) } } }
+            RunLoop.main.add(release, forMode: .common)
+            // The press to the view itself: posted, with the focus given back, it only brought the window forward.
+            view.mouseDown(with: down)
+            try? await Task.sleep(for: .milliseconds(300))
+            let scrolled = clip.bounds.minY - top
+            let ns = view.string as NSString
+            let end = view.selectedRanges.map { NSMaxRange($0.rangeValue) }.max() ?? 0
+            let lastLine = ns.substring(to: min(end, ns.length)).components(separatedBy: "\n").count
+            log.check(scrolled > 300 && lastLine > 20, "\(name) with a scroll while the button is held: the view scrolled \(Int(scrolled)) points, the selection to line \(lastLine)")
+        }
+        window.performClose(nil)
     }
 
     /// Another version with lines added above what's in view, as the other Mac's comes in when

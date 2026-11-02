@@ -588,12 +588,14 @@ extension NibTextView {
         return middles
     }
 
-    /// The mouse held down: `update` as it moves, until it's let go.
+    /// The mouse held down: `update` as it moves, or as the view scrolls under it (a trackpad's
+    /// scroll while it's held), until it's let go.
     private func track(_ update: (NSPoint) -> Void) {
-        while let event = window?.nextEvent(matching: [.leftMouseDragged, .leftMouseUp]) {
+        while let event = window?.nextEvent(matching: [.leftMouseDragged, .leftMouseUp, .scrollWheel]) {
+            if event.type == .scrollWheel { enclosingScrollView?.scrollWheel(with: event) }
             update(convert(event.locationInWindow, from: nil))
             if event.type == .leftMouseUp { break }
-            autoscroll(with: event)
+            if event.type == .leftMouseDragged { autoscroll(with: event) }
         }
     }
 

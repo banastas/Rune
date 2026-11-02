@@ -71,6 +71,7 @@ run copykey   # ⌘C pressed, not called: in a file's window and the scratch fil
 run lines
 run find
 run findjump   # Find's jumps through 223 KB, by the keyboard too: AppKit's crash at a scroll (2026-10-04)
+run dragscroll   # a selection dragged while a trackpad scrolls: the view scrolls, the selection follows (2026-11-01)
 run keepview   # another Mac's version with lines above the view: the same text stays at its top (2026-11-01)
 run carets
 run minimap
@@ -156,7 +157,7 @@ run bigfile
 
 echo "==> Paused files left behind: $(cat "$HOME/Library/Application Support/nib-scenarios/paused.json" 2>/dev/null || echo none)"
 failed=0
-for name in type uploads clipboard cleantext lines find findjump keepview carets minimap nap mdlist listcolor widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover restore restore-return crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge-quit merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit reopen reopen-return refresh large bigfile; do   # this run's logs only
+for name in type uploads clipboard cleantext lines find findjump dragscroll keepview carets minimap nap mdlist listcolor widescroll palette headings pairs gutter tidy menubar firstrun cli fileops access moved deleted full icloudoff evicted receipts undo crash recover restore restore-return crash-blocks recover-blocks crash-big recover-big external unsent merge-note-first merge-no-note merge-late-note merge-quit merge mergeview duplicates conflictversions history history-closed files syntax themes synclog holdretry-4099 holdretry handback handback-return refusal-lost-hold refusal untitled untitled-return untitled-quit reopen reopen-return refresh large bigfile; do   # this run's logs only
   [[ -f $LOGS/$name.log ]] || failed=1   # a launch that never got going wrote nothing
   grep -q "FAIL" "$LOGS/$name.log" 2>/dev/null && failed=1
 done
