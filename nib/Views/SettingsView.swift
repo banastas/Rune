@@ -14,8 +14,14 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @AppStorage("settingsTab", store: NibDefaults.store) private var tab = "general"   // was "editor": Settings opened on its third tab (F84)
 
+    /// The saved tab, or General when it isn't one any more (License, before 1.3), as Blit's.
+    private var shown: Binding<String> {
+        Binding(get: { ["general", "sync", "files", "editor", "themes"].contains(tab) ? tab : "general" },
+                set: { tab = $0 })
+    }
+
     var body: some View {
-        TabView(selection: $tab) {
+        TabView(selection: shown) {
             GeneralSettings()
                 .tabItem { Label("General", systemImage: "gearshape") }
                 .tag("general")
@@ -33,11 +39,6 @@ struct SettingsView: View {
             ThemeSettings()
                 .tabItem { Label("Themes", systemImage: "paintpalette") }
                 .tag("themes")
-            if LicenseManager.shared.isEnforced {   // DS4: off until launch
-                LicenseSettings()
-                    .tabItem { Label("License", systemImage: "key") }
-                    .tag("license")
-            }
         }
         .frame(width: 480)
         .fixedSize()
@@ -201,82 +202,6 @@ private struct FileSettings: View {
         .scrollDisabled(true)
         .onAppear { apps.refresh() }
         .onChange(of: apps.failure) { _, why in if let why { Announce.sentence(why) } }   // F62
-    }
-}
-
-/// Settings › License (DS4): the trial or the license, a key to activate, Deactivate This Mac
-/// to move it, Buy Rune…. From Blit's `LicenseSection` (`Blit/Views/MenuBarViews.swift`).
-private struct LicenseSettings: View {
-    @State private var license = LicenseManager.shared
-    @State private var key = ""
-    @State private var problem: String?
-
-    var body: some View {
-        Form {
-            Section {
-                LabeledContent("Status") {
-                    Text(license.summary)
-                        .foregroundStyle(license.state.allowsTyping ? Color.primary : Color.failureText)
-                }
-                if let stored = license.license {
-                    LabeledContent("Key", value: "…" + stored.key.suffix(8))
-                    HStack {
-                        Spacer()
-                        Button("Deactivate This Mac") { Task { problem = await license.deactivate() } }
-                            .disabled(license.isWorking)
-                            .help("Frees this Mac's activation, to use the key on another Mac")
-                    }
-                    note("A key works on 3 Macs. Deactivating this one frees it for another; this Mac is then read-only until a key is entered again.")
-                } else {
-                    HStack {
-                        // One line: a key is one (it wrapped, in a Form, the user's report). A key pasted
-                        // from the receipt email with a line break before or after it loses it.
-                        // The row is the field and Activate, the key whole in it (36 characters): a Form
-                        // label beside it took the monospaced font and squeezed it to 23.
-                        TextField("License key", text: $key, prompt: Text("License key, from your receipt email"))
-                            .labelsHidden()
-                            .lineLimit(1)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body.monospaced())
-                            .multilineTextAlignment(.leading)
-                            .autocorrectionDisabled()
-                            .accessibilityLabel("License key")
-                            .onChange(of: key) { _, typed in
-                                let line = typed.components(separatedBy: .newlines).joined().trimmingCharacters(in: .whitespaces)
-                                if line != typed { key = line }
-                            }
-                            .onSubmit(activate)
-                        Button("Activate", action: activate)
-                            .disabled(key.trimmingCharacters(in: .whitespaces).isEmpty || license.isWorking)
-                    }
-                    HStack(alignment: .top) {
-                        note(trialNote)
-                        Spacer()
-                        Button("Buy Rune…") { license.openBuyPage() }
-                    }
-                }
-                if license.isWorking { ProgressView().controlSize(.small) }
-                if let problem {
-                    Text(problem).font(.caption).foregroundStyle(Color.failureText).fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .formStyle(.grouped)
-        .scrollDisabled(true)
-        .onChange(of: problem) { _, why in if let why { Announce.sentence(why) } }
-    }
-
-    private var trialNote: String {
-        license.state.allowsTyping
-            ? "Everything works during the \(Licensing.trialDays)-day trial. $19, once, for 3 Macs."
-            : "Read-only until a license is entered. Saving, sync, merges, History and the journal go on, and every file still opens."
-    }
-
-    private func activate() {
-        Task {
-            problem = await license.activate(key)
-            if problem == nil { key = "" }
-        }
     }
 }
 

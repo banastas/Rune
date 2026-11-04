@@ -22,7 +22,6 @@ enum ChangePanel {
         popover.appearance = NSAppearance(named: .darkAqua)   // dark only (A17)
         let content = ChangePanelView(
             hunk: hunk,
-            locked: LicenseManager.shared.typingLocked,
             revert: { [weak document] in
                 close()
                 document?.git.revert(hunk)
@@ -65,7 +64,6 @@ enum ChangePanel {
 
 private struct ChangePanelView: View {
     let hunk: LineChanges.Hunk
-    let locked: Bool
     let revert: () -> Void
     let copy: () -> Void
 
@@ -94,9 +92,8 @@ private struct ChangePanelView: View {
                 }
             }
             HStack(spacing: 16) {
-                Button(action: revert) { Text(locked ? "READ-ONLY" : "REVERT").underline(!locked) }
-                    .disabled(locked)
-                    .help(locked ? "Rune is read-only: the trial has ended" : "Put the committed lines back (⌘Z takes it back)")
+                Button(action: revert) { Text("REVERT").underline() }
+                    .help("Put the committed lines back (⌘Z takes it back)")
                 if !hunk.committed.isEmpty {
                     Button(action: copy) { Text("COPY").underline() }
                         .help("Copy the committed lines")

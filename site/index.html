@@ -384,7 +384,7 @@ body.checkout-open { overflow: hidden; }
       <a href="#edit">Edit</a>
       <a href="#mac">Mac</a>
       <a href="#spec">Spec</a>
-      <a href="#buy">Price</a>
+      <a href="#support">Price</a>
     </nav>
   </div>
 </header>
@@ -398,9 +398,9 @@ body.checkout-open { overflow: hidden; }
         <p class="tagline">WRITE IT DOWN.<br> LOSE NOTHING<span class="cursor" aria-hidden="true">_</span></p>
         <p class="sub">A small, fast text editor for the Mac, with one scratch file in iCloud Drive that all your Macs share. It saves as you type, and edits from two Macs are merged, never overwritten.</p>
         <div class="cta">
-          <a class="btn" id="download-button" href="downloads/Rune.zip" download data-href="downloads/Rune.zip">Download free trial</a>
-          <a class="btn btn-quiet" id="buy-top" href="#buy">Buy · $19</a>
-          <span class="label dim" id="download-note">Free for 7 days · macOS 27 · Apple silicon</span>
+          <a class="btn" id="download-button" href="downloads/Rune.zip" download data-href="downloads/Rune.zip">Download Rune</a>
+          <a class="btn btn-quiet" id="buy-top" href="#support">Pay what you want</a>
+          <span class="label dim" id="download-note">Free · open source · macOS 27 · Apple silicon</span>
         </div>
         <p class="label ph" id="ph-line" hidden><a id="ph-link" href="#">Rune is on Product Hunt today →</a></p>
       </div>
@@ -645,28 +645,32 @@ body.checkout-open { overflow: hidden; }
     </div>
   </section>
 
-  <section class="block" id="buy">
+  <!-- "support" since 1.3 (Rune › Support Rune… opens it); "buy" kept for old links. -->
+  <section class="block" id="support">
+    <span id="buy" aria-hidden="true"></span>
     <div class="wrap">
       <div class="section-head"><span class="label">06</span><h2>Price</h2></div>
       <div class="price">
         <div class="price-main">
-          <div class="label dim">One-time</div>
-          <div class="price-v">$19</div>
-          <div class="dim">A license for 3 Macs. No subscription.</div>
+          <div class="label dim">Open source · MIT</div>
+          <div class="price-v">FREE</div>
+          <div class="dim">Pay what you want for the signed build.</div>
         </div>
         <ul class="price-list">
-          <li><span data-glyph="check"></span> 7-day free trial on each Mac, everything included</li>
-          <li><span data-glyph="check"></span> After it, Rune is read-only until you buy, and keeps syncing what you wrote</li>
-          <li><span data-glyph="check"></span> 30-day refunds, no questions asked</li>
-          <li><span data-glyph="check"></span> Updates to Rune 1.x included</li>
+          <li><span data-glyph="check"></span> Everything works on every Mac, with no trial and no license key</li>
+          <li><span data-glyph="check"></span> Signed, notarized by Apple, and updated by Rune itself</li>
+          <li><span data-glyph="check"></span> The source is on GitHub: build it yourself, or change it</li>
+          <li><span data-glyph="check"></span> Paid and changed your mind? 30-day refunds, no questions asked</li>
         </ul>
         <div class="price-cta">
-          <a class="btn" id="trial-button" href="downloads/Rune.zip" download data-href="downloads/Rune.zip">Download free trial</a>
-          <!-- Rune's Lemon Squeezy checkout, as an overlay (?embed=1&desc=0, as Blit's; the hero's
-               Buy opens it too). Without JavaScript, href is the plain checkout page; the script
-               below turns it into the overlay (site/README.md). -->
+          <a class="btn" id="trial-button" href="downloads/Rune.zip" download data-href="downloads/Rune.zip">Download Rune</a>
+          <!-- Rune's Lemon Squeezy checkout, pay what you want since 1.3, as an overlay
+               (?embed=1&desc=0, as Blit's; the hero's Pay what you want opens it too). Without
+               JavaScript, href is the plain checkout page; the script below turns it into the
+               overlay (site/README.md). -->
           <a class="btn" id="buy-button" href="https://banastas.lemonsqueezy.com/checkout/buy/ff20f57a-cce0-455f-85b4-afd7eaa6f89f?desc=0"
-             data-checkout="https://banastas.lemonsqueezy.com/checkout/buy/ff20f57a-cce0-455f-85b4-afd7eaa6f89f?embed=1&desc=0">Buy Rune · $19</a>
+             data-checkout="https://banastas.lemonsqueezy.com/checkout/buy/ff20f57a-cce0-455f-85b4-afd7eaa6f89f?embed=1&desc=0">Pay what you want</a>
+          <a class="btn btn-quiet" href="https://github.com/banastas/Rune">Source on GitHub</a>
           <span class="label dim" id="buy-note">Secure payment by Lemon Squeezy · 30-day refunds</span>
         </div>
       </div>
@@ -988,8 +992,8 @@ body.checkout-open { overflow: hidden; }
 
   // ---------- download and checkout ----------
   // Off for visitors until launch (LIVE). Then the Download buttons fetch the current release
-  // (scripts/release.sh's PUBLISH step writes downloads/Rune.zip) and Buy opens Lemon Squeezy's
-  // checkout overlay (both Buy buttons). ?checkout=test turns Buy on to try a test-mode checkout,
+  // (scripts/release.sh's PUBLISH step writes downloads/Rune.zip) and Pay what you want opens
+  // Lemon Squeezy's checkout overlay (both buttons; Buy until 1.3). ?checkout=test turns Buy on to try a test-mode checkout,
   // once the button has a checkout link (data-checkout, Rune's Lemon Squeezy product since
   // 2026-10-08). The overlay is drawn here, as lemon.js draws it, not by lemon.js: a content
   // blocker that stopped the script sent Buy to the plain page. Nothing loads from Lemon Squeezy
@@ -1004,7 +1008,7 @@ body.checkout-open { overflow: hidden; }
       b.classList.remove("is-soon");
       b.removeAttribute("aria-disabled");
     }
-    $("download-note").textContent = "Free for 7 days · macOS 27 · Apple silicon";
+    $("download-note").textContent = "Free · open source · macOS 27 · Apple silicon";
   }
   // ---------- Product Hunt (launch week) ----------
   // A plain link, not Product Hunt's badge: the badge is an image from their server, and a plain
@@ -1047,7 +1051,7 @@ body.checkout-open { overflow: hidden; }
       backdrop.addEventListener("click", close);
       frame = document.createElement("iframe");
       frame.className = "checkout-frame";
-      frame.title = "Buy Rune";
+      frame.title = "Pay what you want for Rune";
       frame.allow = "payment";
       frame.src = checkout;
       document.body.append(backdrop, frame);

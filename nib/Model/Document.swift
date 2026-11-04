@@ -1989,14 +1989,12 @@ final class Document {
         let current = view.textStorage?.string as NSString? ?? view.string as NSString
         let change = TextDelta.change(from: current, to: text as NSString)
         if let change {
-            // Another Mac's version, a merge, Revert To and the merge view's result are never
-            // locked (DS4): the trial's lock lets them through.
-            let applied = undoable && editor.allowingEdits { () -> Bool in
+            let applied = undoable && { () -> Bool in
                 guard view.shouldChangeText(in: change.range, replacementString: change.replacement) else { return false }
                 view.textStorage?.replaceCharacters(in: change.range, with: change.replacement)
                 view.didChangeText()
                 return true
-            }
+            }()
             if !applied {
                 // Not undoable, or the view won't take an edit (read-only): the whole text, as before.
                 view.string = text

@@ -33,8 +33,6 @@ enum Clipboard {
     /// was done, for the confirmation ("CLIPBOARD CLEANED · 3 INVISIBLES REMOVED").
     @discardableResult
     static func cleanInPlace(_ pasteboard: NSPasteboard = .general) -> String {
-        // Not once the trial has ended (DS4); the clipboard stays as it was.
-        guard !LicenseManager.shared.typingLocked else { return LicenseManager.shared.refusedHUD + " · THE CLIPBOARD IS AS IT WAS" }
         guard let text = text(pasteboard) else { return "THE CLIPBOARD HAS NO TEXT · NOTHING CHANGED" }
         let formatted = pasteboard.types?.contains { [.rtf, .rtfd, .html, .fileURL].contains($0) } ?? false
         let result = PasteCleaner.clean(text, options: options)
@@ -60,8 +58,6 @@ enum Clipboard {
         /// Nothing left once cleaned, said of where the text came from: "the clipboard has no
         /// text" was said for the Service's selection, a Shortcut's text and `nib -a` too (F19).
         case lines(Int), notOpen, empty(from: String), readOnly
-        /// The trial has ended, or the key isn't active (DS4): why, in the HUD's words.
-        case locked(String)
 
         /// For the strip, the menu bar panel and the HUD line.
         var hud: String {
@@ -71,7 +67,6 @@ enum Clipboard {
             case .empty(let source): source == "THE CLIPBOARD" ? "NOTHING TO APPEND · THE CLIPBOARD HAS NO TEXT"
                                                                 : "NOTHING TO APPEND · \(source) IS EMPTY ONCE CLEANED"
             case .readOnly: "✕ COULDN'T APPEND · THE SCRATCH FILE IS READ-ONLY"
-            case .locked(let why): why + " · NOTHING APPENDED"
             }
         }
     }
@@ -81,7 +76,6 @@ enum Clipboard {
     static func append(_ text: String, action: String, from source: String) -> Appended {
         let document = Documents.scratch
         guard document.ready, document.locked == nil else { return .notOpen }
-        guard !LicenseManager.shared.typingLocked else { return .locked(LicenseManager.shared.refusedHUD) }
         var clean = PasteCleaner.clean(text, options: options).text
         while clean.hasSuffix("\n") { clean.removeLast() }
         guard !clean.isEmpty else { return .empty(from: source) }

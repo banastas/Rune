@@ -41,10 +41,6 @@ final class ServiceProvider: NSObject {
             error.pointee = "There's no text to clean." as NSString
             return
         }
-        guard !LicenseManager.shared.typingLocked else {   // DS4, as Clean Clipboard
-            error.pointee = LicenseManager.shared.refusedSentence as NSString
-            return
-        }
         pasteboard.clearContents()
         pasteboard.setString(CleanTextIntent.clean(text), forType: .string)
     }
@@ -111,8 +107,7 @@ struct CleanTextIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        guard !LicenseManager.shared.typingLocked else { throw NibIntentError.message(LicenseManager.shared.refusedSentence) }   // DS4
-        return .result(value: Self.clean(text))
+        .result(value: Self.clean(text))
     }
 
     @MainActor

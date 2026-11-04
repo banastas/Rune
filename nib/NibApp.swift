@@ -100,8 +100,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// scratch file's too, A5), in Markdown until another syntax is picked (the user's call,
     /// 2026-10-02).
     static func newUntitled() {
-        // A new buffer is new text: not once the trial has ended (DS4).
-        guard !LicenseManager.shared.typingLocked else { Toast.show(LicenseManager.shared.refusedHUD, for: 4); return }
         guard let url = Untitled.create() else {   // said, not only a beep (F72)
             Toast.show("✕ COULDN'T MAKE A NEW BUFFER · \(Untitled.lastError.map(ErrorWords.hud) ?? "RUNE'S UNTITLED FOLDER")", for: 4)
             return
@@ -214,9 +212,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Documents.watchClosing()
         _ = Updates.shared   // the daily update check (DS2), in released copies only
-        // The trial or license (DS4): its clock starts at the first launch with licensing on.
-        LicenseManager.shared.refresh()
-        Task { await LicenseManager.shared.revalidateIfDue() }
         // Services › Append to Nib Scratch and Clean Text (SC8, PT7). Not a test run's Nib: it
         // would answer the user's.
         if !NibPaths.isScenario {
@@ -293,8 +288,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         Documents.all.forEach { $0.becameActive() }
-        LicenseManager.shared.refresh()   // DS4: a Mac's day can pass with Rune behind
-        Task { await LicenseManager.shared.revalidateIfDue() }   // weekly; nothing to do otherwise
         ReceiptBook.shared.becameActive()
     }
     func applicationDidResignActive(_ notification: Notification) {
@@ -503,9 +496,10 @@ struct NibCommands: Commands {
             // Sparkle (DS2): released copies only; a Debug build or a test run's has it off.
             Button("Check for Updates…") { Updates.shared.checkNow() }
                 .disabled(!Updates.shared.isAvailable || !Updates.shared.canCheck)
-            // DS4, from Blit's app menu: only while licensing is on. Once a key is in, nothing to
-            // buy or enter: License… opens Settings › License (whose it is, Deactivate This Mac).
-            if LicenseManager.shared.isEnforced { LicenseMenuItems() }
+            // DS4, as Blit's app menu: Rune is free (MIT) and pay-what-you-want.
+            Divider()
+            Button("Support Rune…") { NSWorkspace.shared.open(Support.url) }
+                .help("Rune is free and open source. Pay what you want for the signed build.")
         }
         CommandGroup(replacing: .newItem) {
             Button("New") { AppDelegate.newUntitled() }
@@ -699,18 +693,10 @@ extension View {
     }
 }
 
-/// File › Open Recent, from the system's list (ED2).
-/// Rune › Buy Rune… and Enter License…, or License… once a key is in (DS4). A view of its own, as
-/// `CloseMenuItems` is: in the commands' body, a change of license left the menu as it was.
-struct LicenseMenuItems: View {
-    var body: some View {
-        if LicenseManager.shared.isLicensed {
-            Button("License…") { LicenseManager.shared.openLicenseSettings() }
-        } else {
-            Button("Buy Rune…") { LicenseManager.shared.openBuyPage() }
-            Button("Enter License…") { LicenseManager.shared.openLicenseSettings() }
-        }
-    }
+/// Rune is free (MIT) and pay-what-you-want (DS4, since 1.3): Rune › Support Rune… opens the
+/// site's support section, so where the money goes can change without a release. As Blit's.
+enum Support {
+    static let url = URL(string: "https://rune.banast.as/#support")!
 }
 
 /// File › Close, or Close Tab in a window of tabs, and Close Window (F78). A view of its own, as

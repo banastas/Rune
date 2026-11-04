@@ -147,7 +147,6 @@ enum TestHarness {
             case "about": await aboutScenario(log, marker)
             case "dock": await dockScenario(log, marker)
             case "services": await servicesScenario(Documents.scratch, log, marker)
-            case "license": await licenseScenario(Documents.scratch, log, marker)
             case "nap": await napScenario(document, log, marker)
             case "findjump": await findJumpScenario(log, marker)
         case "keepview": await keepViewScenario(log, marker)
@@ -1931,157 +1930,6 @@ enum TestHarness {
 
     /// Services and Shortcuts (SC8, PT7): Append to Nib Scratch and Clean Text as the system sends
     /// them (on a pasteboard of their own), and the three App Intents as Shortcuts runs them.
-    /// The trial's lock (DS4), with `-NibLicensing YES` and the trial and license in memory: day 1
-    /// types; the trial over, typing goes on until a minute without it; then read-only (typing,
-    /// paste, Append to Scratch, ⌘N, Clean Clipboard, `rune -w` and `cmd | rune -a` refused, each
-    /// saying why), while another app's version still comes in and a conflict still resolves; a
-    /// license lifts it; a month unchecked offline brings it back.
-    static func licenseScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
-        await waitReady(document)
-        let license = LicenseManager.shared
-        guard license.isEnforced, license.storage is MemoryLicenseStorage else {
-            log.check(false, "licensing on and in memory (-NibLicensing YES in a test run)")
-            return
-        }
-        let view = document.editor.textView
-        let folder = URL(fileURLWithPath: log.path).deletingLastPathComponent()
-        defer { license.testSet(trialStartedDaysAgo: 0, license: .some(nil)) }
-
-        license.testSet(trialStartedDaysAgo: 0, license: .some(nil))
-        await type("\n- day one \(marker)\n", into: document)
-        log.check(license.state == .trial(daysLeft: 7) && !license.typingLocked && view.string.contains("day one \(marker)"),
-                  "day 1: \(license.summary), typing goes in")
-
-        // A block typed while it's allowed, to resolve once it isn't.
-        let block = "<<<<<<< Scenario A · 10:00\n- ours \(marker)\n=======\n- theirs \(marker)\n>>>>>>> Scenario B · 10:00\n"
-        view.setSelectedRange(NSRange(location: (view.string as NSString).length, length: 0))
-        view.insertText(block, replacementRange: view.selectedRange())
-        await endOfEvent(view)
-
-        // The eighth day, typed a moment ago: never mid-sentence.
-        license.testSet(trialStartedDaysAgo: 8)
-        await type("- still typing \(marker)\n", into: document)
-        log.check(license.state == .trialEnded && !license.typingLocked && view.isEditable && view.string.contains("still typing \(marker)"),
-                  "day 8, typing a moment ago: not locked yet, typing goes on (\(license.summary))")
-
-        await document.flush(reason: "test")
-        await waitSynced(document, 30)
-        license.testSet(quietFor: 61)
-        log.check(license.typingLocked && !view.isEditable, "a minute without typing: read-only (\(license.stripLine))")
-        if let window = view.window, let frame = window.contentView?.superview, let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) {
-            frame.cacheDisplay(in: frame.bounds, to: rep)
-            try? rep.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("license.png"))
-        }
-
-        let before = view.string
-        view.setSelectedRange(NSRange(location: (before as NSString).length, length: 0))
-        view.insertText("typed while locked \(marker)", replacementRange: view.selectedRange())
-        let pasteboard = NSPasteboard.general
-        let saved = savePasteboard()
-        pasteboard.clearContents()
-        pasteboard.setString("pasted\u{200B} while locked \(marker)", forType: .string)
-        view.paste(nil)
-        await endOfEvent(view)
-        log.check(view.string == before, "typing and ⌘V change nothing")
-        let appended = Clipboard.append("appended while locked \(marker)", action: "Append", from: "THE TEST")
-        let cleaned = Clipboard.cleanInPlace()
-        let clipboard = pasteboard.string(forType: .string) ?? ""
-        restorePasteboard(saved)
-        let files = Documents.all.count
-        AppDelegate.newUntitled()
-        try? await Task.sleep(for: .milliseconds(500))
-        log.check(view.string == before && appended == .locked(license.refusedHUD) && cleaned.hasPrefix("✕ RUNE IS READ-ONLY")
-                    && clipboard.contains("\u{200B}") && Documents.all.count == files,
-                  "Append to Scratch, Clean Clipboard and ⌘N refused, saying why (“\(appended.hud)”, “\(cleaned)”)")
-
-        // The rune command (when the runner names it): -w exits at once, and so does -a.
-        if let tool = NibDefaults.store.string(forKey: "NibCLI"), FileManager.default.isExecutableFile(atPath: tool) {
-            func run(_ arguments: [String], input: String? = nil) async -> (status: Int32, error: String)? {
-                let process = Process(), stdin = Pipe(), stderr = Pipe()
-                process.executableURL = URL(fileURLWithPath: tool)
-                process.arguments = arguments
-                process.environment = ["NIB_SCENARIOS": "1", "NIB_NO_LAUNCH": "1", "NIB_NO_ACTIVATE": "1", "HOME": NSHomeDirectory(), "PATH": "/usr/bin:/bin"]
-                process.standardInput = stdin
-                process.standardOutput = Pipe()
-                process.standardError = stderr
-                try? process.run()
-                if let input { stdin.fileHandleForWriting.write(Data(input.utf8)) }
-                try? stdin.fileHandleForWriting.close()
-                guard await waitFor(15, { !process.isRunning }) else { process.terminate(); return nil }
-                let said = String(data: stderr.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                return (process.terminationStatus, said.trimmingCharacters(in: .whitespacesAndNewlines))
-            }
-            let waited = await run(["-w", document.url.deletingLastPathComponent().appendingPathComponent("license-\(marker).txt").path])
-            let appendedByTool = await run(["-a"], input: "piped while locked \(marker)\n")
-            log.check(waited?.status == 1 && waited?.error.contains("trial has ended") == true && appendedByTool?.status == 1 && view.string == before,
-                      "rune -w and cmd | rune -a exit 1 at once (“\(waited?.error ?? "no answer")”)")
-            try? FileManager.default.removeItem(at: document.url.deletingLastPathComponent().appendingPathComponent("license-\(marker).txt"))
-        }
-
-        // Never locked: another app's version comes in, and the block resolves.
-        append("from another app while locked \(marker)", to: document.url)
-        let reloaded = await waitFor(10) { view.string.contains("from another app while locked \(marker)") }
-        log.check(reloaded && !view.isEditable, "another app's version comes in, still read-only (\(document.notice ?? document.state.line))")
-        let resolved = await keepBoth(document, marker)
-        log.check(resolved && view.string.contains("- ours \(marker)\n- theirs \(marker)") && !view.isEditable,
-                  "⌘3 resolves the conflict, into the file, still read-only")
-
-        // A license lifts it; a month unchecked offline brings it back.
-        license.testSet(license: StoredLicense(key: "TEST-0000-\(marker)", instanceID: "i", email: "buyer@example.com", name: nil, lastValidated: Date()))
-        await type("- licensed \(marker)\n", into: document)
-        log.check(!license.typingLocked && view.isEditable && view.string.contains("licensed \(marker)"), "licensed: typing goes in (\(license.summary))")
-        // The app menu: License… once licensed, Buy and Enter License before. (SwiftUI brings a
-        // menu up to date as it opens: refreshed here as opening it would, as `files` does File.)
-        func appMenu() -> [String] {
-            guard let menu = NSApp.mainMenu?.items.first?.submenu else { return [] }
-            PaletteSession.refresh(menu)
-            return menu.items.map(\.title).filter { $0.contains("Buy") || $0.contains("License") }
-        }
-        let licensedMenu = await waitFor(3) { appMenu() == ["License…"] }
-        log.check(licensedMenu, "licensed: the Rune menu has License…, not Buy Rune… or Enter License… (\(appMenu()))")
-        license.testSet(license: StoredLicense(key: "TEST-0000-\(marker)", instanceID: "i", email: nil, name: nil, lastValidated: Date().addingTimeInterval(-36 * 86_400)))
-        let graced = !license.typingLocked
-        license.testSet(license: StoredLicense(key: "TEST-0000-\(marker)", instanceID: "i", email: nil, name: nil, lastValidated: Date().addingTimeInterval(-38 * 86_400)), quietFor: 61)
-        log.check(graced && license.typingLocked && !view.isEditable, "unchecked 36 days: still licensed; 38 days: read-only (\(license.summary))")
-        license.testSet(trialStartedDaysAgo: 0, license: .some(nil))
-        log.check(!license.typingLocked && view.isEditable, "the trial back (day 1), as the test leaves it")
-        let trialMenu = await waitFor(3) { appMenu() == ["Buy Rune…", "Enter License…"] }
-        log.check(trialMenu, "in the trial: Buy Rune… and Enter License… again (\(appMenu()))")
-
-        // With a real key (`-NibLicenseTestKey`, a test-mode purchase): Lemon Squeezy's own answers.
-        // Activate, the weekly check, Deactivate (the activation freed again); and a made-up key.
-        if let key = NibDefaults.store.string(forKey: "NibLicenseTestKey"), !key.isEmpty {
-            let madeUp = await license.activate("RUNE-TEST-0000-0000-NOT-A-REAL-KEY", instanceName: "Rune test")
-            log.check(madeUp?.hasPrefix("That license key wasn't found") == true && license.license == nil,
-                      "a made-up key: “\(madeUp ?? "activated?!")”")
-            let problem = await license.activate(key, instanceName: "Rune test")
-            log.check(problem == nil && license.license != nil && !license.typingLocked, "a real key activates: \(problem ?? license.summary)")
-            if var stored = license.license {
-                stored.lastValidated = Date().addingTimeInterval(-8 * 86_400)
-                license.testSet(license: stored)
-                await license.revalidateIfDue()
-                let checked = license.license.map { Date().timeIntervalSince($0.lastValidated) < 60 } ?? false
-                log.check(checked && license.state == .licensed(email: license.license?.email), "the weekly check: still valid, checked now (\(license.summary))")
-            }
-            let freed = await license.deactivate()
-            log.check(freed == nil && license.license == nil, "Deactivate This Mac frees the activation: \(freed ?? license.summary)")
-        }
-        // A key refunded or disabled after it was activated (`-NibLicenseRevokedKey`): the weekly
-        // check hears it from Lemon Squeezy, the license goes, and Rune is read-only after a quiet minute.
-        if let revoked = NibDefaults.store.string(forKey: "NibLicenseRevokedKey"), !revoked.isEmpty {
-            license.testSet(license: StoredLicense(key: revoked, instanceID: "rune-test", email: nil, name: nil, lastValidated: Date().addingTimeInterval(-8 * 86_400)))
-            let before = license.state
-            await license.revalidateIfDue()
-            license.testSet(quietFor: 61)
-            var said = ""
-            if case .revoked(let why) = license.state { said = why }
-            log.check(before == .licensed(email: nil) && !said.isEmpty && license.license == nil && license.typingLocked && !view.isEditable,
-                      "a key disabled since it was activated: the weekly check revokes it, read-only after a quiet minute (“\(said)”)")
-            license.testSet(trialStartedDaysAgo: 0, license: .some(nil))
-        }
-        await document.flush(reason: "test")
-    }
-
     static func servicesScenario(_ document: Document, _ log: HarnessLog, _ marker: String) async {
         await waitReady(document)
         let view = document.editor.textView
@@ -2381,7 +2229,7 @@ enum TestHarness {
         // and General was 967 points tall (the QA review's F22). A picture of each.
         var heights: [String] = []
         var tooTall = false
-        for (tag, title) in [("general", "General"), ("sync", "Sync"), ("files", "Files"), ("editor", "Editor"), ("themes", "Themes")] + (LicenseManager.shared.isEnforced ? [("license", "License")] : []) {
+        for (tag, title) in [("general", "General"), ("sync", "Sync"), ("files", "Files"), ("editor", "Editor"), ("themes", "Themes")] {
             NibDefaults.store.set(tag, forKey: "settingsTab")
             AppDelegate.openSettings()
             _ = await waitFor(5) { NSApp.windows.contains { $0.isVisible && $0.title == title } }

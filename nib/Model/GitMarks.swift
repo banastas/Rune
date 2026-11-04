@@ -137,13 +137,11 @@ final class GitMarks {
         return editor.lineIndex.line(at: editor.textView.selectedRange().location) - 1
     }
 
-    /// Puts a change's committed lines back: an edit like typing, one ⌘Z step, so not while the
-    /// trial's lock is on (DS4). False when it wasn't made (the lines moved on since: no longer
-    /// a change as shown).
+    /// Puts a change's committed lines back: an edit like typing, one ⌘Z step. False when it
+    /// wasn't made (the lines moved on since: no longer a change as shown).
     @discardableResult
     func revert(_ shown: LineChanges.Hunk) -> Bool {
         guard let document, let changes = changesNow(), changes.hunks.contains(shown) else { NSSound.beep(); return false }
-        guard !LicenseManager.shared.typingLocked else { Toast.show(LicenseManager.shared.refusedHUD, for: 4); return false }
         let view = document.editor.textView
         let (range, replacement) = LineChanges.revert(shown, in: view.string)
         guard view.isEditable, view.shouldChangeText(in: range, replacementString: replacement) else { NSSound.beep(); return false }
