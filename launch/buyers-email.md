@@ -24,5 +24,5 @@ Bill
 ---
 
 Notes:
-- The refund offer goes past the 30 days in `site/legal.html`. Take it out if you don't want that.
+- The refund offer matches `site/legal.html` (Refunds): buyers from before Rune was free get a refund whenever they ask; the 30 days are for payments since.
 - Fill in the post's link, and check the version number (1.3) before sending.
