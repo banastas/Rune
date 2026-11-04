@@ -144,6 +144,12 @@ body.github { width: 1280px; height: 640px; }
 const kind = { "#card": "card", "#github": "github" }[location.hash] || "product";
 document.body.className = kind;
 // The card's head is one row: the name and the tagline side by side, as Blit's card.
+if (kind === "github") {
+  // The repository's preview says what the repository is: free, open source, MIT (DS4, 2026-11-04).
+  const label = document.querySelector(".label");
+  label.innerHTML += "<br>Free · open source · MIT";
+  label.style.lineHeight = "1.9";
+}
 if (kind === "product") {
   // In the square it has room for, the small line in two: where the file is, what Rune promises.
   document.querySelector(".label").innerHTML = "One scratch file · iCloud Drive · all your Macs<br>Saved as you type, merged, never overwritten";
