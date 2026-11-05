@@ -1,6 +1,6 @@
 # Rune
 
-A small, fast macOS text editor that never loses a keystroke between Macs. The second app in a family with Blit. Named Nib until 2026-10-07: the code, its folders and the bundle ID (`com.banastas.nib`) keep that name inside.
+A macOS text editor that never loses a keystroke between Macs: one scratch file, synced through iCloud Drive with three-way merges. The second app in a family with Blit. Named Nib until 2026-10-07: the code, its folders and the bundle ID (`com.banastas.nib`) keep that name inside.
 
 **[PRD.md](PRD.md)** is the living product document: what Rune is for, the sync design, milestones, measurements and decisions. **[CLAUDE.md](CLAUDE.md)** says where things stand.
 
