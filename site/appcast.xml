@@ -6,13 +6,13 @@
     <description>Updates for Rune</description>
     <language>en</language>
     <item>
-      <title>Rune 1.3</title>
-      <pubDate>Wed, 04 Nov 2026 18:18:29 +0000</pubDate>
-      <sparkle:version>202611041016</sparkle:version>
-      <sparkle:shortVersionString>1.3</sparkle:shortVersionString>
+      <title>Rune 1.3.1</title>
+      <pubDate>Fri, 06 Nov 2026 05:55:14 +0000</pubDate>
+      <sparkle:version>202611052153</sparkle:version>
+      <sparkle:shortVersionString>1.3.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>27.0</sparkle:minimumSystemVersion>
-      <description><![CDATA[<p>Free and open source: no trial, no license key</p>]]></description>
-      <enclosure url="https://rune.banast.as/downloads/Rune-1.3-202611041016.zip" type="application/octet-stream" sparkle:edSignature="ybnS3dZNtRv5RaLpwsZ1GQQlMvNHAFChuAEOeRrhyaeii+kCMCxk2g+bxnOFT/9VrBtgjXs4d8+Cfj7B0pF6BQ==" length="6897094" />
+      <description><![CDATA[<p>A new app icon, in the family's new look.</p>]]></description>
+      <enclosure url="https://rune.banast.as/downloads/Rune-1.3.1-202611052153.zip" type="application/octet-stream" sparkle:edSignature="u9lq4pbDf3tL5Q52pDw/bOascXOBBu6RsnxM83EuVNiiZvqR6egly3a3TwVPPiNtBQ4WWhnVAhsu9vHIt/O4BA==" length="8451118" />
     </item>
   </channel>
 </rss>
