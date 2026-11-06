@@ -27,7 +27,8 @@ body { font-family: var(--term); -webkit-font-smoothing: none; }
 .frame { position: relative; display: flex; flex-direction: column; justify-content: center; }
 .head { display: flex; align-items: center; }
 .tile { flex: none; background: #121212; box-shadow: inset 0 0 0 1px var(--border); display: grid; place-items: center; }
-.tile svg { width: 66%; height: 66%; }
+.tile { overflow: hidden; }
+.tile img { display: block; width: 100%; height: 100%; }
 h1 { font-family: var(--label); font-weight: normal; letter-spacing: 0.04em; line-height: 0.9; }
 .tagline { color: var(--bright); }
 .tagline .cursor { color: var(--bright); }
@@ -119,7 +120,7 @@ body.github { width: 1280px; height: 640px; }
 <body>
 <div class="frame">
   <div class="head">
-    <div class="tile"><svg class="px" viewBox="0 0 14 14" data-art="icon"></svg></div>
+    <div class="tile"><img src="../../site/icon.svg" alt=""></div>
     <div class="titles">
       <div class="row">
         <h1>RUNE</h1>
@@ -168,12 +169,6 @@ function rects(svg, rows, colors, dy = 0) {
     svg.appendChild(r);
   }));
 }
-// The app icon's grid (scripts/make-icon.swift): the rune ᚱ over Blit's family mark.
-rects(document.querySelector('[data-art="icon"]'), [
-  "...##.........", "...####.......", "...##.##......", "...##..##.....",
-  "...##.##......", "...####.......", "...##.##......", "...##..##.....",
-  "...##...##....", "...##....##...", "..............", "##.##.##.##.::",
-], { "#": "#f0f0f0", ":": "#4a4a4a" }, 1);
 const check = document.querySelector('[data-glyph="check"]');
 rects(check, [".......", "......#", ".....#.", "#...#..", ".#.#...", "..#....", "......."], {});
 const glyphSize = kind === "product" ? 15 : 13;
